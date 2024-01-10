@@ -1,0 +1,1 @@
+npm i -g @tensorflow/tfjs-node nsfwjs jpeg-js express multer

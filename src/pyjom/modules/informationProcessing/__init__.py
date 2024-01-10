@@ -1,0 +1,3 @@
+from pyjom.modules.informationProcessing.dummyProcessor import dummyProcessor
+from pyjom.modules.informationProcessing.localProcessor import FilesystemProcessor
+from pyjom.modules.informationProcessing.onlineProcessor import OnlineProcessor

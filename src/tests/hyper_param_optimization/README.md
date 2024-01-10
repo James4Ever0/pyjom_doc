@@ -1,0 +1,1 @@
+[tutorials](https://github.com/hyperopt/hyperopt/wiki/FMin) found from [official documentation](http://hyperopt.github.io/hyperopt/) of [hyperopt](https://github.com/hyperopt/hyperopt).
