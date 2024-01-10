@@ -1,0 +1,15 @@
+{
+    "summary": "The code defines three functions for censoring replies based on sentiment analysis, including \"censorReply\", which sends a request to a censor API; \"censorReplyAbsSentiment\", which censors if the absolute sentiment score exceeds a certain threshold; and \"censorReplyLinearSentiment\", which censors if the linear sentiment score is below a certain level. However, there is an issue with the positive/negative flag for some sentences. The function also returns the original reply if the sentiment change after censoring is less than 0.5; otherwise, it returns the censored reply.",
+    "details": [
+        {
+            "comment": "This code defines three functions for censoring replies based on sentiment analysis. The \"censorReply\" function sends a request to a censor API, the \"censorReplyAbsSentiment\" function censors a reply if its absolute sentiment score is above a certain threshold, and the \"censorReplyLinearSentiment\" function censors a reply if its linear sentiment score is below a certain level. However, the positive/negative flag does not work properly for some sentences.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/tasks/qq/qq_red_packet_collect/censorApis.py\":0-32",
+            "content": "import requests\nfrom chat_local import getLinearSentiment, getAbsSentiment\ndef censorReply(reply, moderate=True):\n    url = \"http://127.0.0.1:8932/filter\"\n    response = requests.get(url, params={\"text\": reply, \"moderate\": moderate})\n    response = response.json()\n    reply = response[\"response\"]\n    return reply\ndef censorReplyAbsSentiment(\n    reply, moderate=True, sentiment_abs_level=0.6, censored_sentiment_threshold=0.8\n):\n    sentiment = getAbsSentiment(reply)\n    if sentiment > sentiment_abs_level:\n        reply = censorReply(reply)\n        censored_sentiment = getAbsSentiment(reply)\n        if censored_sentiment > censored_sentiment_threshold:\n            return None\n    return reply\n# however these sentiment based function will not work very well since the positive/negative flag is not working properly for sentence like \"\u64cd\u4f60\u5988\" -> (\"positive\", 0.8)\ndef censorReplyLinearSentiment(reply, moderate=True, sentiment_level=-0.9):\n    sentiment = getLinearSentiment(reply)\n    if sentiment < sentiment_level:\n        reply = censorReply(reply)"
+        },
+        {
+            "comment": "This function censors a reply and returns the original reply if the sentiment change after censoring is less than 0.5; otherwise, it returns the censored reply.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/tasks/qq/qq_red_packet_collect/censorApis.py\":33-46",
+            "content": "    return reply\ndef censorReplySentimentDelta(reply, moderate=True, sentiment_delta_level=0.5):\n    reply2 = censorReply(reply)\n    sentiment = getLinearSentiment(reply)\n    sentiment2 = getLinearSentiment(reply2)\n    sentiment_delta = sentiment2 - sentiment\n    if sentiment_delta < sentiment_delta_level:  # is that good?\n        return reply\n    else:\n        return reply2"
+        }
+    ]
+}
