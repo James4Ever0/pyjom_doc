@@ -1,536 +1,541 @@
 {
     "3900": {
-        "file_id": 486,
-        "content": "class {{ channelName }}:\n    tid = {{ channelTid }}{% for subChannelName, subChannelTid in subChannels %}\n    {{ subChannelName }} = {{ subChannelTid }}{% endfor %}",
+        "file_id": 483,
+        "content": "#!/bin/bash\nxhost +\ndocker run \\\n    -it \\\n    --ipc=host \\\n    --env=\"DISPLAY\" \\\n    -v $(pwd):/home/video_cap \\\n    -v /tmp/.X11-unix:/tmp/.X11-unix:rw \\\n    lubo1994/mv-extractor:latest \\\n    \"$@\"",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/template.j2:2-4"
+        "location": "/tests/motion_vector_estimation/run.sh:1-12"
     },
     "3901": {
-        "file_id": 486,
-        "content": "This code defines a class with properties named after channel names, where the values are their respective channel TIDs. It also includes subchannels as additional properties, each with its own TID.",
+        "file_id": 483,
+        "content": "This code runs a Docker container using lubo1994/mv-extractor image, mounting the current directory to /home/video_cap within the container and allowing X11 forwarding for graphical user interface support.",
         "type": "comment"
     },
     "3902": {
-        "file_id": 487,
-        "content": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py",
+        "file_id": 484,
+        "content": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py",
         "type": "filepath"
     },
     "3903": {
-        "file_id": 487,
-        "content": "The code processes generators, repairs links, detects errors, and extracts links using regular expressions. It also parses video descriptions for BGM detection and author keyword extraction with Jieba segmentation, and updates video information by processing video-related data.",
+        "file_id": 484,
+        "content": "The code initializes motion vector estimation, filters horizontal movement, improves accuracy using various techniques, processes motion vectors from coordinates, visualizes motion with OpenCV, creates bounding boxes, and handles further options. The code plots multiple sets of data onto a graph, iterating through lists using nested for loops, creating separate plots if desired, and then displays the graph.",
         "type": "summary"
     },
     "3904": {
-        "file_id": 487,
-        "content": "import json\nfrom bs4 import BeautifulSoup\nfrom lazero.utils.logger import sprint\ndef generatorToList(generator):\n    return [x for x in generator]\ndef linkFixer(link, prefix=\"http:\"):\n    if link.startswith(\"//\"):\n        return prefix + link\n    return link\ndef traceError(errorMsg: str = \"error!\", _breakpoint: bool = False):\n    import traceback\n    traceback.print_exc()\n    sprint(errorMsg)\n    if _breakpoint:\n        return breakpoint()\ndef extractLinks(description, extract_bgm=True):\n    \"\"\"Extract and remove links in description\"\"\"\n    import re\n    # notice, we don't need to go wild here. we just want the title and the cover, and the tags.\n    expression = r\"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\"\n    # expr = re.compile(expression)\n    links = re.findall(expression, description)\n    # if links == None:\n    #     links = []\n    desc_without_link = re.sub(expression, \"\", description)\n    desc_without_link_per_line = [\n        x.replace(\"\\n\", \"\").strip() for x in desc_without_link.split(\"\\n\")",
+        "file_id": 484,
+        "content": "###################################################\n# aim to create optical flow here, with directions and convolution\n###################################################\n# it contains subpixel motion vectors. fucking hell\n# source = \"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\"\n# change source?\n# gif containers does not have motion vectors.\n# source = \"/root/Desktop/works/pyjom/samples/video/cat_invalid_eye_rolling.gif\"\n# source = \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.gif\"\n# without mestimate\n# source = \"/root/Desktop/works/pyjom/samples/video/cat_invalid_eye_rolling_without_mestimate.mp4\"\n# source = \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps_without_mestimate.mp4\"\n# with mestimate\n# source = \"/root/Desktop/works/pyjom/samples/video/cat_invalid_eye_rolling_with_mestimate.mp4\"\n# source = \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps_with_mestimate.mp4\"\n# source = \"/root/Desktop/works/pyjom/samples/video/nearly_duplicate_frames_detection_30fps.mp4\"",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:1-37"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:1-22"
     },
     "3905": {
-        "file_id": 487,
-        "content": "The code contains functions for handling generators, fixing links, error tracing, and extracting links from descriptions. It uses regular expressions to find links in the description and removes them while preserving other relevant information like titles and tags.",
+        "file_id": 484,
+        "content": "This code aims to create optical flow with motion vectors and convolution, using video files as input. The source file changes depending on the specific test case (with or without mestimate, different videos).",
         "type": "comment"
     },
     "3906": {
-        "file_id": 487,
-        "content": "    ]\n    desc_without_link_per_line = [x for x in desc_without_link_per_line if len(x) > 0]\n    bgms = []\n    final_desc_list = []\n    if not extract_bgm:\n        final_desc_list = desc_without_link_per_line\n    else:\n        for line in desc_without_link_per_line:\n            bgmCandidateTemplates = [\"{}：\", \"{}:\", \"{} \"]\n            fixers = [x.format(\"\") for x in bgmCandidateTemplates]\n            bgmCandidates = [x.format(\"bgm\") + \"(.+)\" for x in bgmCandidateTemplates]\n            has_bgm = False\n            for candidate in bgmCandidates:\n                bgm_parse_result = re.findall(candidate, line.lower())\n                if len(bgm_parse_result) > 0:\n                    has_bgm = True\n                    # bgm = line[len(bgmCandidates) :]\n                    bgm = bgm_parse_result[0]\n                    bgm = bgm.strip()\n                    for fixer in fixers:\n                        bgm = bgm.strip(fixer)\n                    if len(bgm) > 0:\n                        bgms.append(bgm)\n                    break",
+        "file_id": 484,
+        "content": "source = \"/root/Desktop/works/pyjom/samples/video/cute_cat_gif.mp4\"\nfrom lazero.utils.importers import cv2_custom_build_init\n# from sniffio import current_async_library\ncv2_custom_build_init()\nfrom mvextractor.videocap import VideoCap\nfrom caer.video.frames_and_fps import count_frames, get_res\nimport cv2\nframesCount = count_frames(source)\nres = get_res(source)  # (width, height)\nprint(\"RES: %s\" % str(res))\nres_x, res_y = res\nframe_common_divisor = min(res_x, res_y)\nimport math\ndef cartesianDistance(d2vector):\n    try:\n        x, y = d2vector\n        return math.sqrt(x**2 + y**2)\n    except:\n        print('item unpackable.', d2vector)\n        return 0\ndef XYWHToDiagonal(x, y, w, h):\n    return (x, y), (x + w, y + h)\n# 如果整除16那么就在这个范围里面 如果不整除范围就要扩大 扩大到相应的16的倍数\ndef get16Value(res_x):\n    rem_x = res_x % 16\n    val = res_x // 16\n    if rem_x != 0:\n        val += 1\n    return val\nx_16val = get16Value(res_x)\ny_16val = get16Value(res_y)\nmotion_render_frame = (x_16val * 16, y_16val * 16)\ntotal_block_weights = x_16val * y_16val * 2 * 2",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:38-61"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:24-70"
     },
     "3907": {
-        "file_id": 487,
-        "content": "This code extracts background music (BGMs) from a list of descriptions. It checks each description line for specific patterns using regular expressions and adds them to the bgms list if found. If no BGMs are found, it stores all the description lines without links in final_desc_list.",
+        "file_id": 484,
+        "content": "This code initializes necessary libraries and imports, gets the resolution of a video source, calculates the frame count, and sets up variables for motion vector estimation. The functions cartesianDistance and XYWHToDiagonal are defined for spatial calculations, and get16Value is used to ensure the resolution is a multiple of 16 for the motion vector estimation process. The total number of block weights is calculated based on the video's resolution.",
         "type": "comment"
     },
     "3908": {
-        "file_id": 487,
-        "content": "            if not has_bgm:\n                final_desc_list.append(line)\n    desc_without_link = \"\\n\".join(final_desc_list)\n    return links, bgms, desc_without_link\ndef videoDurationStringToSeconds(durationString):\n    if type(durationString) == int:\n        return durationString  # not string at all.\n    if type(durationString) != str:\n        print(\"unknown durationString type: %s\" % type(durationString))\n        return None\n    durationString = durationString.strip()\n    mList = durationString.split(\":\")[::-1]\n    if len(mList) > 3:\n        print(\"DURATION STRING TOO LONG\")\n        return None\n    seconds = 0\n    for index, elem in enumerate(mList):\n        elem = int(elem)\n        seconds += (60**index) * elem\n    return seconds\ndef clearHtmlTags(htmlObject):\n    a = BeautifulSoup(htmlObject, features=\"lxml\")\n    return a.text\ndef detectAuthorRelatedKeywords(title_tag, author_keywords):\n    abandon = False\n    for keyword in author_keywords:\n        if len(keyword) > 1:\n            if keyword in title_tag:\n                abandon = True  # detected this thing.",
+        "file_id": 484,
+        "content": "cap = VideoCap()\ncap.open(source)  # wtf is going on here?\n# if there is nothing we will breakup\n# visualize, show_picture = True, True\nvisualize, show_picture = False, False\n# so there can only be one such macroblock\ndef checkMacroBlock(value):\n    for mod in [16, 8]:\n        modValue = value % mod\n        if modValue == mod / 2:\n            return mod\n    # if not satisfied, we are shit.\nfrom functools import lru_cache\n@lru_cache(maxsize=4)\ndef getModXModYFromBlockCenterCoordinates(blockCenterCoordinates):\n    block_x, block_y = blockCenterCoordinates\n    mod_x, mod_y = checkMacroBlock(block_x), checkMacroBlock(block_y)\n    if mod_x is not None and mod_y is not None:\n        return mod_x, mod_y\n    else:\n        print(\"block center coordinates\", blockCenterCoordinates)\n        print(\"WTF IS GOING ON WITH THE BLOCK CENTER\")\n        breakpoint()\n        return 0, 0\ndef getRectangleXYWHFromBlockCenterCoordinates(blockCenterCoordinates):\n    block_x, block_y = blockCenterCoordinates\n    mod_x, mod_y = getModXModYFromBlockCenterCoordinates(blockCenterCoordinates)",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:62-96"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:72-106"
     },
     "3909": {
-        "file_id": 487,
-        "content": "The code contains functions for parsing video descriptions, converting duration strings to seconds, and detecting related keywords. It also handles cases where a background music (BGM) is or isn't present. The final description without links is returned along with the links and BGMs.",
+        "file_id": 484,
+        "content": "The code initializes a VideoCap object and opens a specified source. It then defines two functions: `checkMacroBlock` to determine the macroblock size based on given values, and `getModXModYFromBlockCenterCoordinates` to get the modX and modY from block center coordinates using `checkMacroBlock`. The code also includes error handling in case of unexpected block center coordinates.",
         "type": "comment"
     },
     "3910": {
-        "file_id": 487,
-        "content": "                break\n    return abandon\ndef getAuthorKeywords(author):\n    author = author.strip()\n    import jieba\n    author_keywords = jieba.lcut(author)\n    author_keywords = [x.strip() for x in author_keywords]\n    author_keywords = [x for x in author_keywords if len(x) > 0]\n    return author_keywords\ndef removeAuthorRelatedTags(description_or_title, author):\n    templates = [\"【{}】\", \"@{}\", \"{}\"]\n    tags = [template.format(author) for template in templates]\n    for tag in tags:\n        description_or_title = description_or_title.replace(tag, \"\")\n    return description_or_title\ndef splitTitleTags(title, author_keywords):\n    import re\n    pattern = r\"【.+】\"\n    title_tags = re.findall(pattern, title)\n    title = re.sub(pattern, \"\", title)\n    title_tags = [x.lstrip(\"【\").rstrip(\"】\").strip() for x in title_tags]\n    title_tags = [x for x in title_tags if len(x) > 0]\n    final_title_tags = []\n    for title_tag in title_tags:\n        detected = detectAuthorRelatedKeywords(title_tag, author_keywords)\n        if not detected:",
+        "file_id": 484,
+        "content": "    mod_x_half, mod_y_half = mod_x / 2, mod_y / 2\n    x, y, w, h = block_x - mod_x_half, block_y - mod_y_half, mod_x, mod_y\n    return tuple([int(elem) for elem in [x, y, w, h]])\ndef getBlockWeightFromBlockCenterCoordinates(blockCenterCoordinates):\n    mod_x, mod_y = getModXModYFromBlockCenterCoordinates(blockCenterCoordinates)\n    weights = mod_x * mod_y / 8 / 8\n    return weights\nimport progressbar\nimport numpy as np\n# max_dst_x, max_dst_y = 0,0\ndef averageMotionVectors(motion_vector_list):\n    if len(motion_vector_list) == 0:\n        average_tuple = (0, 0)\n    if len(motion_vector_list) > 1:\n        marray = np.array(motion_vector_list)\n        # print(\"MAKING AVERAGE:\")\n        # print(marray)\n        average = np.average(marray, axis=0)\n        # breakpoint()\n        average_tuple = tuple(average)\n    else:\n        average_tuple = tuple(motion_vector_list[0])\n    return average_tuple\nmotion_area_ratio_array = []\n# average_weighted_motion_vector_array = []\n# average_global_weighted_motion_vector_array = []\naverage_weighted_motion_vector_cartesian_array = []",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:97-131"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:107-142"
     },
     "3911": {
-        "file_id": 487,
-        "content": "This code performs the following tasks:\n1. Extracts author keywords using Jieba segmentation and removes leading/trailing whitespace, while discarding empty strings.\n2. Removes author-related tags from the description or title by replacing them with an empty string.\n3. Splits the title into tags, removing any leading/trailing brackets, and eliminating empty strings.\n4. Detects if each tag contains any of the author's keywords and adds it to a list called \"final_title_tags\" only if it does.",
+        "file_id": 484,
+        "content": "Function `getBlockWeightFromBlockCenterCoordinates` calculates the weight of a block based on its center coordinates.\nThe `averageMotionVectors` function calculates the average motion vector from a list of motion vectors.\n`motion_area_ratio_array` is used to store area ratios for blocks, which will be used in calculations later.",
         "type": "comment"
     },
     "3912": {
-        "file_id": 487,
-        "content": "            final_title_tags.append(title_tag)\n    return title, title_tags\ndef parseVideoSearchItem(video, disableList: list = [], debug=False):\n    bvid = video[\"bvid\"]\n    pubdate = video['pubdate']\n    if \"author\" not in disableList:\n        author = video[\"author\"]\n        author_id = video[\"mid\"] # this is important. may let us able to find out the fans count.\n    else:\n        author = \"\"\n        author_id = -1\n    author_keywords = getAuthorKeywords(author)\n    if \"tag\" not in disableList:\n        tag = video[\"tag\"]\n        tags = tag.split(\",\")\n        tags = [\n            tag for tag in tags if not detectAuthorRelatedKeywords(tag, author_keywords)\n        ]\n    else:\n        tags = []\n    if \"typeid\" not in disableList and \"typename\" not in disableList:\n        categoryId = int(video.get(\"typeid\", video.get(\"type_id\")))\n        categoryName = video.get(\"typename\", video.get(\"type_name\"))\n    else:\n        categoryId = 0\n        categoryName = \"\"\n    title = video[\"title\"]  # remove those markers, please?",
+        "file_id": 484,
+        "content": "average_global_weighted_motion_vector_cartesian_array = []\naverage_weighted_motion_vectors_filtered_cartesian_distance_array = []\naverage_global_weighted_motion_vectors_filtered_cartesian_distance_array = []\nfor _ in progressbar.progressbar(range(framesCount)):\n    success, frame, motion_vectors, frame_type, timestamp = cap.read()\n    height, width, channels = frame.shape\n    # breakpoint()\n    if success:\n        # what is the content of this motion vector?\n        # print(motion_vectors)\n        # import pandas as pd\n        # df = pd.DataFrame(motion_vectors)\n        # df = pd.DataFrame(motion_vectors,index=['source_index','unk0','unk1','src_x','src_y','dst_x','dst_y','motion_x','motion_y','motion_scale'])\n        # breakpoint()\n        # print()\n        # print(\"_____________________________\")\n        condition = motion_vectors[:, 0] < 0\n        # print(condition)\n        # print(condition.shape)\n        # breakpoint()\n        motion_vectors_simplified = motion_vectors[condition, :][:, [0, 5, 6, 7, 8, 9]]",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:132-160"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:143-164"
     },
     "3913": {
-        "file_id": 487,
-        "content": "The function takes a video object, optional disabled list for author and tag keywords, and debug flag as input. It extracts the bvid and pubdate from the video object. If author is not in disableList, it retrieves the author name and id. The author's keywords are obtained using getAuthorKeywords function. If tag is not in disableList, it splits the tags and removes any related to author keywords. The typeid and typename are also extracted if not in disableList, otherwise set to default values. Finally, title removal markers are applied.",
+        "file_id": 484,
+        "content": "This code calculates the motion vectors from video frames and filters them based on a condition. The condition checks if the x-component of the motion vector is less than 0, which may indicate horizontal movement. The code then selects specific columns (x, y coordinates, and scale) from the motion vectors that meet this condition for further processing.",
         "type": "comment"
     },
     "3914": {
-        "file_id": 487,
-        "content": "    title = clearHtmlTags(title)\n    title = removeAuthorRelatedTags(title, author)\n    title, title_tags = splitTitleTags(\n        title, author_keywords\n    )  # use author for filtering unwanted title tags.\n    duration = video[\"duration\"]  # this is not recommended. we need seconds.\n    play = video.get(\"play\", video.get(\"view\"))  # select some hot videos.\n    cover = video[\"pic\"]\n    cover = linkFixer(cover)\n    if \"description\" not in disableList:\n        description = video.get(\"description\", video.get(\"desc\"))\n        description = clearHtmlTags(description)\n        description = removeAuthorRelatedTags(description, author)\n    else:\n        description = \"\"\n    links_in_description, bgms, description = extractLinks(description)\n    duration_seconds = videoDurationStringToSeconds(duration)\n    resultTuple = (\n        author,\n        author_id,\n        bvid,\n        tags,\n        categoryId,\n        categoryName,\n        title,\n        duration_seconds,\n        play,\n        cover,\n        description,\n        links_in_description,",
+        "file_id": 484,
+        "content": "        motion_vectors_scale = motion_vectors_simplified[:, [5]]\n        motion_vectors_scale_inversed = 1 / motion_vectors_scale\n        motion_vectors_with_scale = motion_vectors_simplified[:, [3, 4]]\n        motion_vectors_scale_inversed_stacked = np.hstack(\n            [motion_vectors_scale_inversed] * 2\n        )\n        motion_vectors_restored = (\n            motion_vectors_scale_inversed_stacked * motion_vectors_with_scale\n        )  # just element wise?\n        # print('STACKED:', motion_vectors_scale_inversed_stacked.shape)\n        # print(\"WITH SCALE:\", motion_vectors_with_scale.shape)\n        # print(\"RESTORED:\",motion_vectors_restored.shape)\n        # print(motion_vectors_simplified.shape)\n        # print(motion_vectors_scale.shape)\n        # breakpoint()\n        motion_vectors_dest_coords_restored = np.hstack(\n            [motion_vectors_simplified[:, [1, 2]], motion_vectors_restored]\n        )\n        # motion_vectors_simplified = motion_vectors[:,[0,5,6,7,8]]\n        # motion_vectors_simplified_unique = np.unique(motion_vectors_simplified, axis=0)",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:161-190"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:165-184"
     },
     "3915": {
-        "file_id": 487,
-        "content": "This code parses video data from a bilibili search API response and extracts relevant information such as author, title, duration, play count, cover image, and description. It applies filters to remove unwanted HTML tags and uses author keywords for filtering. It converts duration strings to seconds and extracts links from the description.",
+        "file_id": 484,
+        "content": "This code segment is involved in optical flow calculation. It performs scaling, inverse scaling, and stacking of motion vectors to restore the original motion vector array. The code then concatenates the destination coordinates with restored motion vectors. This process helps in improving the accuracy of motion vector estimation.",
         "type": "comment"
     },
     "3916": {
-        "file_id": 487,
-        "content": "        bgms,\n        title_tags,\n        pubdate\n    )\n    if debug:\n        for metadata in resultTuple:\n            print(metadata)\n    from lazero.utils.logger import sprint\n    if debug:\n        sprint()\n    return resultTuple\n# you might want the creater's name, to filter out unwanted parts.\ndef iterateResultList(resultList, debug=False):\n    for video in resultList:\n        # be warned cause all these things might fail.\n        try:\n            if video[\"type\"] == \"video\":\n                yield parseVideoSearchItem(video, debug=debug)\n        except:\n            traceError(\"error iterating video metadata\")\n            continue\ndef parseSearchAllResult(data, debug=False):\n    # if not generator:\n    #     return generatorToList(parseSearchAllResult(data, debug=debug,generator=True))\n    results = data[\"result\"]\n    for elem in results:\n        try:\n            if elem[\"result_type\"] == \"video\":\n                resultList = elem[\"data\"]\n                for videoMetadata in iterateResultList(resultList, debug=debug):",
+        "file_id": 484,
+        "content": "        # print(motion_vectors_simplified_unique.shape, motion_vectors.shape)\n        # breakpoint()\n        motion_vectors_dict = {}\n        for mv in motion_vectors_dest_coords_restored:\n            # drop duplicates first!\n            (\n                dst_x,  # corresponding macro block.\n                dst_y,  # for destination only\n                motion_x,\n                motion_y,\n                # motion_scale,  # don't know what the fuck is wrong with the motion scale\n            ) = mv.tolist()\n            # say we just want source_index <0, aka mv compared to previous frame\n            # try:\n            #     assert motion_x / motion_scale == src_x - dst_x\n            #     assert motion_y / motion_scale == src_y - dst_y\n            # except:\n            #     print(src_x, dst_x, motion_x, motion_scale)\n            #     print(src_y, dst_y, motion_y, motion_scale)\n            #     print(\"*\" * 20)\n            # it will be inaccurate if we abandon this subpixel precision.\n            # if source_index >= 0:",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:191-227"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:185-206"
     },
     "3917": {
-        "file_id": 487,
-        "content": "This code defines a function `parseSearchAllResult` that takes in data and a boolean debug parameter. It extracts the \"result\" list from the data, then iterates through each element checking if its type is 'video'. For each video, it yields a parsed video metadata using the `iterateResultList` function, while handling any exceptions that may occur. The `iterateResultList` function iterates over a result list of video items, yielding the parsed data for videos and handling exceptions related to parsing video metadata.",
+        "file_id": 484,
+        "content": "This code segment is extracting and processing motion vectors from a set of coordinates. It is checking for duplicates, performing calculations with source and destination coordinates, and possibly handling inaccuracies caused by subpixel precision. The code seems to be part of a larger process, as it includes debugging statements and references to variables that are not explicitly defined within the provided segment.",
         "type": "comment"
     },
     "3918": {
-        "file_id": 487,
-        "content": "                    yield videoMetadata\n        except:\n            traceError(\"error iterating data results\")\ndef parseSearchVideoResult(data, debug=False):\n    # if not generator:\n    #     return generatorToList(parseSearchVideoResult(data, debug=debug,generator=True))\n    try:\n        resultList = data[\"result\"]\n        try:\n            for videoMetadata in iterateResultList(resultList, debug=debug):\n                try:\n                    yield videoMetadata\n                except:\n                    traceError(\"error iterating video metadata\")\n        except:\n            traceError(\"error iterating result list\")\n    except:\n        traceError(\"error parsing search video result\")\ndef parseVideoInfo(videoInfo, debug=False):\n    data = videoInfo\n    # no tag out here.\n    secondaryVideoInfoList = []\n    data_copy = data.copy()\n    data_copy.update({\"author\": data[\"owner\"][\"name\"], \"mid\": data[\"owner\"][\"mid\"]})\n    data_copy.update(data[\"stat\"])\n    primaryVideoInfo = parseVideoSearchItem(\n        data_copy, disableList=[\"tag\", \"typeid\", \"typename\"], debug=debug",
+        "file_id": 484,
+        "content": "            #     continue\n            # if dst_x>max_dst_x:\n            #     max_dst_x = dst_x\n            # if dst_y>max_dst_y:\n            #     max_dst_y = dst_y\n            destCoord = (dst_x, dst_y)\n            motion_vector = (motion_x, motion_y)\n            # print(destCoord)\n            # breakpoint()\n            if motion_vector == (0, 0):\n                # print(\"zero motion vector detected. skipping\")\n                # breakpoint()\n                continue\n            # print('destination coords:',destCoord)\n            # print('motion vector:',motion_vector)\n            motion_vectors_dict.update(\n                {destCoord: motion_vectors_dict.get(destCoord, []) + [motion_vector]}\n            )\n            # you know, different frame sources may lead to different results.\n            # these vectors could overlap. which one you want to keep? the smaller ones or the bigger ones?\n            # if destCoord in destCoords:\n            #     print(\"SKIPPING DUPLICATE DESTCOORD:\", destCoord)\n            #     print(\"PREVIOUS MV\",prevMV)",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:228-258"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:207-230"
     },
     "3919": {
-        "file_id": 487,
-        "content": "The code defines two functions, `parseSearchVideoResult` and `parseVideoInfo`, which are responsible for parsing video search results and video information respectively. The code utilizes exception handling to handle errors while iterating over data and result lists. It also includes a function `iterateResultList` to iterate over the result list.",
+        "file_id": 484,
+        "content": "This code iterates over motion vectors and updates a dictionary with the destination coordinates and corresponding motion vectors. It skips zero vectors and handles duplicate destinations, but doesn't specify which motion vector to keep in case of overlapping coordinates.",
         "type": "comment"
     },
     "3920": {
-        "file_id": 487,
-        "content": "    )\n    # videoInfoList.append(primaryVideoInfo)\n    season = data.get(\"ugc_season\", {})  # we only care about this thing.\n    season_cover = season.get(\"cover\", None)  # it could be noting.\n    sections = season.get(\"sections\", [])\n    for section in sections:\n        for episode in section[\"episodes\"]:\n            # print(episode.keys())\n            # breakpoint()\n            arc = episode[\"arc\"]\n            stat = arc[\"stat\"]\n            videoInfo = episode.copy()\n            videoInfo.update(stat)\n            videoInfo.update(arc)\n            authorRelatedVideoInfo = parseVideoSearchItem(\n                videoInfo,\n                disableList=[\"tag\", \"typeid\", \"typename\", \"description\", \"author\"],\n                debug=debug,\n            )  # author is the same as the original video.\n            secondaryVideoInfoList.append(authorRelatedVideoInfo)\n            # BV1Cb4y1s7em\n            # []\n            # 0\n            # 这次真的燃起来了！！！\n            # 217\n            # 27911\n            # http://i2.hdslb.com/bfs/archive/c5a0d18ee077fb6a4ac0970ccb0a3788e137d14f.jpg",
+        "file_id": 484,
+        "content": "            #     print(\"CURRENT MV\", mv)\n            #     continue\n            # else:\n            #     destCoords.add(destCoord)\n            # prevMV = mv\n            # try:\n            #     # src_x, src_y may not apply the same rule.\n            #     # assert src_x % 16 == 8\n            #     # assert src_y % 16 == 8\n            #     assert checkMacroBlock(dst_x) is not None\n            #     assert checkMacroBlock(dst_y) is not None\n            #     # assert dst_x<=res_x # dst_x can go beyond the res_x\n            #     # assert dst_y<=res_y\n            #     # so all rules applied.\n            # except:\n            #     # print('source',src_x, src_y)\n            #     print(\"res\", res_x, res_y)\n            #     print('destionation',dst_x, dst_y)\n            #     print('motion',motion_x, motion_y)\n            #     print(\"scale\",motion_scale)\n        motion_vectors_dict_averaged = {\n            key: averageMotionVectors(motion_vectors_dict[key])\n            for key in motion_vectors_dict.keys()\n        }",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:259-286"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:231-254"
     },
     "3921": {
-        "file_id": 487,
-        "content": "Code iterates through season episodes, extracts arc and stat information from each episode, creates a videoInfo dictionary with episode and arc data, updates the author-related video information by parsing the original video, and appends it to secondaryVideoInfoList.",
+        "file_id": 484,
+        "content": "This code is filtering and averaging motion vectors for macroblocks within a certain range. It checks if the source coordinates follow a specific rule, asserts that valid macroblock check functions are not None, and ensures the destination coordinates do not exceed the resolution limits. If any of these conditions fail, it prints debug information and continues execution. Finally, it calculates the averaged motion vectors for each macroblock in the dictionary.",
         "type": "comment"
     },
     "3922": {
-        "file_id": 487,
-        "content": "    return primaryVideoInfo, secondaryVideoInfoList\ndef parseVideoRelated(videoRelatedData, debug=False):\n    data = videoRelatedData\n    # if not generator:\n    #     return generatorToList(parseVideoRelated(data, debug=debug,generator=True))\n    try:\n        for videoInfo in data:\n            try:\n                videoInfo2 = videoInfo.copy()\n                videoInfo2.update({\"author\": videoInfo[\"owner\"][\"name\"]})\n                videoInfo2.update({\"mid\": videoInfo[\"owner\"][\"mid\"]})\n                # also update the stat.\n                videoInfo2.update(videoInfo[\"stat\"])\n                try:\n                    yield parseVideoSearchItem(\n                        videoInfo2,\n                        disableList=[\"tag\", \"typeid\", \"typename\"],\n                        debug=debug,\n                    )\n                    # print(videoMetadata)\n                except:\n                    traceError()\n            except:\n                traceError()\n    except:\n        traceError()\nif __name__ == \"__main__\":\n    # test_subject = \"search_video\"",
+        "file_id": 484,
+        "content": "        # assuming no duplicates?\n        weighted_motion_vectors = []\n        weights = []\n        rectangles = []\n        motion_vectors_filtered = []  # for getting data later?\n        for (\n            blockCenterCoordinates,\n            average_motion_vector,\n        ) in motion_vectors_dict_averaged.items():\n            if average_motion_vector == (0, 0):\n                continue\n                # wtf is this? why fucking zero?\n                # print('skipping zero average motion vector')\n                # print(\"destination coords\", key)\n                # print('average motion vector', average_motion_vector)\n            else:\n                m_x, m_y = average_motion_vector\n                motion_vectors_filtered.append(average_motion_vector)\n                rectangle_XYWH = getRectangleXYWHFromBlockCenterCoordinates(\n                    blockCenterCoordinates\n                )\n                rectangles.append(rectangle_XYWH)\n                blockWeight = getBlockWeightFromBlockCenterCoordinates(\n                    blockCenterCoordinates",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:287-318"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:255-278"
     },
     "3923": {
-        "file_id": 487,
-        "content": "This code defines a function `parseVideoRelated` that parses video-related data and yields parsed video information, and also includes an if block for generator handling. It updates the video info with author name and mid, and applies the `parseVideoSearchItem` to each item in the data list. If any error occurs during processing, it traces the error.",
+        "file_id": 484,
+        "content": "This code filters out motion vectors with an average of (0, 0) and stores the remaining vectors in a list. It also extracts relevant information from the blockCenterCoordinates and calculates the weight for each block. Rectangles are created using the getRectangleXYWHFromBlockCenterCoordinates function, and weights are obtained through getBlockWeightFromBlockCenterCoordinates. The motion_vectors_filtered list keeps track of filtered motion vectors for later use.",
         "type": "comment"
     },
     "3924": {
-        "file_id": 487,
-        "content": "    # test_subject = \"search_all\"\n    # test_subject = 'video_related'\n    test_subject = \"video_info\"\n    # test_subject = 'extract_links'\n    if test_subject == \"search_all\":\n        with open(\"search_result_all.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for mresult in parseSearchAllResult(data):\n            print(\"RESULT:\")\n            sprint(mresult)\n    elif test_subject == \"search_video\":\n        with open(\"search_by_type_result_video.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for mresult in parseSearchVideoResult(data):\n            print(\"VIDEO SEARCH RESULT:\")\n            sprint(mresult)\n    elif test_subject == \"video_info\":\n        with open(\"video_info.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        primaryVideoInfo, secondaryVideoInfoList = parseVideoInfo(data)\n        videoInfoList = [primaryVideoInfo] + secondaryVideoInfoList\n        for mVideoInfo in videoInfoList:",
+        "file_id": 484,
+        "content": "                )\n                weights.append(blockWeight)\n                weighted_motion_vectors.append(\n                    (\n                        m_x * blockWeight / frame_common_divisor,\n                        m_y * blockWeight / frame_common_divisor,\n                    )\n                )\n        weighted_motion_vectors = np.array(weighted_motion_vectors)\n        sum_weighted_motion_vector = np.sum(weighted_motion_vectors, axis=0)\n        average_global_weighted_motion_vector = (\n            sum_weighted_motion_vector / total_block_weights\n        )\n        sum_weights = sum(weights)\n        average_weighted_motion_vector = sum_weighted_motion_vector / sum_weights\n        motion_area_ratio = sum_weights / total_block_weights\n        # print(motion_vectors.shape)\n        motion_vectors_filtered_cartesian_distance = [\n            cartesianDistance(vector) for vector in motion_vectors_filtered\n        ] + [\n            0\n        ]  # to avoid errors.\n        motion_vectors_filtered_cartesian_distance = np.array(",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:319-343"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:279-301"
     },
     "3925": {
-        "file_id": 487,
-        "content": "This code is testing different APIs by reading JSON files and parsing the data. It tests \"search_all\", \"search_video\", and \"video_info\" sections. For each section, it reads a corresponding JSON file, loads the data, and then prints the results after parsing. This appears to be part of API testing for a video search application.",
+        "file_id": 484,
+        "content": "This code calculates the average global weighted motion vector and average weighted motion vector, as well as the motion area ratio. It also filters and stores cartesian distances for each motion vector.",
         "type": "comment"
     },
     "3926": {
-        "file_id": 487,
-        "content": "            print(mVideoInfo)\n            sprint()\n    elif test_subject == \"video_related\":\n        with open(\"video_related.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for videoMetadata in parseVideoRelated(data):\n            print(videoMetadata)\n            sprint()\n    elif test_subject == \"extract_links\":\n        description = (\n            \"http://www.toutiao.com/a6347649852365897986/ 男子送走从小养大的狗，狗狗用泪汪汪的眼神看着他\\n\"\n            + \"https://www.youtube.com/watch?v=r724w57oXyU\"\n            + \" https://www.youtube.com/shorts/UYCy8HD1C7o\"\n        )\n        links, desc = extractLinks(description)\n        print(links)\n        print(desc)\n    else:\n        raise Exception(\"unknown test_subject:\", test_subject)",
+        "file_id": 484,
+        "content": "            motion_vectors_filtered_cartesian_distance\n        )\n        cartesianWeights = weights + [0]\n        cartesianWeights = np.array(cartesianWeights)\n        cartesianWeightsSum = np.sum(cartesianWeights)\n        weighted_motion_vectors_filtered_cartesian_distance = (\n            motion_vectors_filtered_cartesian_distance * cartesianWeights\n        )\n        sum_weighted_motion_vectors_filtered_cartesian_distance = np.sum(\n            weighted_motion_vectors_filtered_cartesian_distance\n        )\n        # print(\"SUM\", sum_weighted_motion_vectors_filtered_cartesian_distance)\n        # breakpoint()\n        average_weighted_motion_vectors_filtered_cartesian_distance = (\n            sum_weighted_motion_vectors_filtered_cartesian_distance / cartesianWeightsSum\n        )\n        average_global_weighted_motion_vectors_filtered_cartesian_distance = (\n            sum_weighted_motion_vectors_filtered_cartesian_distance\n            / total_block_weights # this is a number, not array!\n        )\n        min_cartesian = min(motion_vectors_filtered_cartesian_distance)",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:344-363"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:302-328"
     },
     "3927": {
-        "file_id": 487,
-        "content": "The code snippet appears to handle different test subjects, each with a specific task. For \"video_related\", it reads data from a JSON file and processes it using the parseVideoRelated function, then prints videoMetadata for each videoMetadata in the parsed data. The \"extract_links\" subject extracts links from a given description and prints them. Unknown test subjects will raise an Exception.",
+        "file_id": 484,
+        "content": "This code calculates weighted average motion vectors by multiplying the distance of each vector with its corresponding weight, summing them, and dividing by the total weight. The minimum cartesian distance is also found.",
         "type": "comment"
     },
     "3928": {
-        "file_id": 488,
-        "content": "/tests/bilibili_search_api_modification_section_params_get_related_videos/recursive_search_bilibili_test.py",
-        "type": "filepath"
+        "file_id": 484,
+        "content": "        max_cartesian = max(motion_vectors_filtered_cartesian_distance)\n        motion_area_ratio_array.append(motion_area_ratio)\n        # print()\n        # print(average_weighted_motion_vector)\n        # print(average_global_weighted_motion_vector)\n        # breakpoint()\n        average_weighted_motion_vector_cartesian=cartesianDistance(average_weighted_motion_vector)\n        average_weighted_motion_vector_cartesian_array.append(average_weighted_motion_vector_cartesian)\n        average_global_weighted_motion_vector_cartesian = cartesianDistance(average_global_weighted_motion_vector)\n        average_global_weighted_motion_vector_cartesian_array.append(\n        average_global_weighted_motion_vector_cartesian\n        )\n        average_weighted_motion_vectors_filtered_cartesian_distance_array.append(\n            average_weighted_motion_vectors_filtered_cartesian_distance\n        )\n        average_global_weighted_motion_vectors_filtered_cartesian_distance_array.append(\n            average_global_weighted_motion_vectors_filtered_cartesian_distance",
+        "type": "code",
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:329-346"
     },
     "3929": {
-        "file_id": 488,
-        "content": "The code changes directory, initializes OpenCV, and fetches video metadata for production. It imports necessary modules and displays an image using imshow, pausing until a keyboard event occurs for visualization purposes.",
-        "type": "summary"
+        "file_id": 484,
+        "content": "Calculates the average weighted motion vector and global weighted motion vector in Cartesian distance, then appends them to corresponding arrays. It also computes and appends filtered Cartesian distances of both types of vectors to their respective arrays. No print statements or breakpoints are executed.",
+        "type": "comment"
     },
     "3930": {
-        "file_id": 488,
-        "content": "import sys\nimport os\nos.chdir(\"../../\")\nsys.path.append(\".\")\n# ignore the global proxy now, we are not going to use that.\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\nfrom pyjom.platforms.bilibili.postMetadata import getBilibiliPostMetadataForDogCat\n# metatopic = {\n#     \"optional\": [\n#         [\n#             \"狗狗\",\n#             \"狗\",\n#             \"汪汪\",\n#             \"修勾\",\n#             \"汪\",\n#             \"狗子\",\n#         ],\n#         [\"喵喵\", \"猫\", \"猫咪\", \"喵\"],\n#     ],\n#     \"dynamic\": [[\"可爱\", \"萌\", \"萌宠\", \"行为\", \"燃\"]],\n# }\n# maybe this is not task specific. just maybe.\nif __name__ == \"__main__\":\n    for (\n        mCover,\n        mTagSeries,\n        mTitle,\n        mBgm,\n        mDescription,\n        dog_or_cat,\n    ) in getBilibiliPostMetadataForDogCat():\n        print(\"FETCHED VIDEO METADATA FOR PRODUCTION:\")\n        videoMetadata = mCover, mTagSeries, mTitle, mBgm, mDescription, dog_or_cat\n        print(videoMetadata)\n        mCover2 = cv2.resize(mCover, (int(1920 / 2), int(1080 / 2)))",
+        "file_id": 484,
+        "content": "        )\n        if motion_vectors_dict_averaged != {}:\n            # breakpoint()\n            if visualize:\n                print(\"motion_area_ratio\", motion_area_ratio)\n                print(\"average_weighted_motion_vector_cartesian\", average_weighted_motion_vector_cartesian)\n                print(\n                    \"average_global_weighted_motion_vecto_cartesianr\",\n                    average_global_weighted_motion_vector_cartesian,\n                )\n                print(\n                    \"average_weighted_motion_vectors_filtered_cartesian_distance\",\n                    average_weighted_motion_vectors_filtered_cartesian_distance,\n                )\n                print(\n                    \"average_global_weighted_motion_vectors_filtered_cartesian_distance\",\n                    average_global_weighted_motion_vectors_filtered_cartesian_distance,\n                )\n                motion_mask = np.zeros(\n                    (motion_render_frame[1], motion_render_frame[0], 1)\n                )\n                for index, (x, y, w, h) in enumerate(rectangles):",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/recursive_search_bilibili_test.py:1-45"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:347-369"
     },
     "3931": {
-        "file_id": 488,
-        "content": "The code changes the directory, appends the current path to Python's sys.path, and removes the global proxy environment variables. It then initializes OpenCV with a custom build and imports necessary modules. Finally, it loops through fetched video metadata for production, resizing the cover image, and prints the metadata.",
+        "file_id": 484,
+        "content": "The code checks if there are any motion vectors in the dictionary and prints various motion-related information and creates a motion mask with zeros.",
         "type": "comment"
     },
     "3932": {
-        "file_id": 488,
-        "content": "        cv2.imshow(\"COVER\", mCover2)\n        cv2.waitKey(0)\n        breakpoint()",
+        "file_id": 484,
+        "content": "                    pt1, pt2 = XYWHToDiagonal(x, y, w, h)\n                    # print(pt1, pt2)\n                    current_cartesian = motion_vectors_filtered_cartesian_distance[\n                        index\n                    ]\n                    # print(type(pt1), type(pt1[0]))\n                    relative_motion_cartesian = (current_cartesian - min_cartesian) / (\n                        max_cartesian - min_cartesian\n                    )  # must from 0 to 1 so we can plot this,\n                    # relative_motion_cartesian = 255*((current_cartesian-min_cartesian)/(max_cartesian-min_cartesian))\n                    # relative_motion_cartesian = int(relative_motion_cartesian)\n                    # relative_motion_cartesian = min(255,max(0, relative_motion_cartesian))\n                    # breakpoint()\n                    cv2.rectangle(\n                        motion_mask,\n                        pt1,\n                        pt2,\n                        color=(relative_motion_cartesian,),\n                        thickness=-1,",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/recursive_search_bilibili_test.py:46-48"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:370-388"
     },
     "3933": {
-        "file_id": 488,
-        "content": "The code snippet displays an image using OpenCV's imshow function, pauses the execution until a keyboard event occurs with waitKey, and then terminates the loop with breakpoint. It is used for visualizing an image, potentially during debugging or analysis.",
+        "file_id": 484,
+        "content": "This code calculates the relative motion vector cartesian distance and draws a rectangle on an image using OpenCV's `cv2.rectangle` function. The rectangle dimensions are based on the input x, y, w, and h parameters, and its color is determined by the relative motion vector cartesian distance, converted to a range of 0-255 for image intensity values.",
         "type": "comment"
     },
     "3934": {
-        "file_id": 489,
-        "content": "/tests/bilibili_search_api_modification_section_params_get_related_videos/load_json5_render_template.py",
-        "type": "filepath"
+        "file_id": 484,
+        "content": "                    )\n                # should we gaussian blur, threshold this, do convolution and then apply bounding box on it?\n                # # visualize this.\n                if show_picture:\n                    cv2.imshow(\"motion_mask\", motion_mask)\n                    cv2.waitKey(100)\n            # may you create bounding box for this? for tracking motion? or not?\n        # breakpoint()\n    else:\n        break\n# print('max_dst_x', max_dst_x)\n# print('max_dst_y', max_dst_y)\nimport matplotlib.pyplot as plt\n# plt.style.use('dark_background')\na, b = 5, 1\nfigure, axis = plt.subplots(a, b)\ndata = [\n    motion_area_ratio_array,\n    # average_weighted_motion_vector_array,\n    # average_global_weighted_motion_vector_array,\n    average_weighted_motion_vector_cartesian_array,\n    average_global_weighted_motion_vector_cartesian_array,\n    average_weighted_motion_vectors_filtered_cartesian_distance_array,\n    average_global_weighted_motion_vectors_filtered_cartesian_distance_array,\n]\ntitles = [\n    \"motion_area_ratio\",",
+        "type": "code",
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:389-419"
     },
     "3935": {
-        "file_id": 489,
-        "content": "The code reads a JSON5 file named 'channelConfig.json5' and a Jinja2 template file named 'template.j2'. It then parses the JSON5 data to obtain channel information such as name and tid. For each channel, it tries to extract subChannel information (name and tid). If successful, it appends them to a list called subChannels. The code renders the Jinja2 template with the extracted channel and subchannel information, and then prints the rendered data.",
-        "type": "summary"
+        "file_id": 484,
+        "content": "The code is visualizing and analyzing motion data using image processing techniques. It displays a motion mask, creates a bounding box for motion tracking, and plots various motion-related data on subplots. The code also includes options to blur, threshold, apply convolution, and display the results.",
+        "type": "comment"
     },
     "3936": {
-        "file_id": 489,
-        "content": "import json5\nimport jinja2\ntemplate = open('template.j2','r').read()\ntemplate = jinja2.Template(template)\ndata = open(\"channelConfig.json5\",'r').read()\ndata = json5.loads(data)\nchannelList = data['channelList']\nfor channel in channelList:\n    try:\n        channelName = channel['name']\n        channelTid = channel['tid']\n        subChannels = []\n        for subChannel in channel['sub']:\n            try:\n                subChannelName = subChannel['name']\n                subChannelTid = subChannel['tid']\n                subChannels.append((subChannelName, subChannelTid))\n            except:\n                continue\n        rendered_data = template.render(channelName=channelName, channelTid=channelTid, subChannels=subChannels)\n        print(rendered_data)\n    except:\n        continue",
+        "file_id": 484,
+        "content": "    # \"average_weighted_motion_vector\",\n    # \"average_global_weighted_motion_vector\",\n    \"average_weighted_motion_vector_cartesian\",\n    \"average_global_weighted_motion_vector_cartesian\",\n    \"average_weighted_motion_vectors_filtered_cartesian_distance\",\n    \"average_global_weighted_motion_vectors_filtered_cartesian_distance\",\n]\n# breakpoint()\nassert len(titles) == len(data)\nassert a*b >= len(titles)\nfor _a in range(a):\n    for _b in range(b):\n        index = _a * b + _b\n        if index > len(data) - 1:\n            break\n        if a == 1:\n            if b == 1:\n                axis[0].plot(data[index])\n                axis[0].set_title(titles[index])\n            else:\n                axis[_b].plot(data[index])\n                axis[_b].set_title(titles[index])\n        elif b == 1:\n            axis[_a].plot(data[index])\n            axis[_a].set_title(titles[index])\n        else:\n            axis[_a, _b].plot(data[index])\n            axis[_a, _b].set_title(titles[index])\nplt.show()",
         "type": "code",
-        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/load_json5_render_template.py:1-26"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:420-449"
     },
     "3937": {
-        "file_id": 489,
-        "content": "The code reads a JSON5 file named 'channelConfig.json5' and a Jinja2 template file named 'template.j2'. It then parses the JSON5 data to obtain channel information such as name and tid. For each channel, it tries to extract subChannel information (name and tid). If successful, it appends them to a list called subChannels. The code renders the Jinja2 template with the extracted channel and subchannel information, and then prints the rendered data.",
+        "file_id": 484,
+        "content": "This code is plotting multiple sets of data onto a graph, with each set corresponding to an item in two lists of titles and data. The code asserts that the lengths of both lists are equal, and then iterates through each element of the lists using nested for loops. If a single plot is desired, it plots and labels one line of data at a time. If multiple plots are desired, it creates and labels a separate plot for each line of data. Finally, it displays the graph.",
         "type": "comment"
     },
     "3938": {
-        "file_id": 490,
-        "content": "/tests/anime1_me_video_download/test_download.sh",
+        "file_id": 485,
+        "content": "/tests/motion_vector_estimation/mpegflow/test.sh",
         "type": "filepath"
     },
     "3939": {
-        "file_id": 490,
-        "content": "This script downloads \"crossdressing.mp4\" from the URL using various cookies until successful, involving timestamp, header, and Google Analytics parameters.",
+        "file_id": 485,
+        "content": "The code sets the VIDEO variable to a specific video file path, runs the mpegflow command on that file and redirects output to output.txt, but the .so file is fake so it doesn't work well. The code also provides an alternative method using Docker or downloading a real .so file from the web, creating an examples/vis_dump directory, and piping the mpegflow command's output into ./vis with the video file path.",
         "type": "summary"
     },
     "3940": {
-        "file_id": 490,
-        "content": "# curl -L -o crossdressing.mp4 --cookie \"e=1652443257\" https://shiro.v.anime1.me/1019/6b.mp4\n# curl -L -o crossdressing.mp4 --cookie \"e=1652443257; p=eyJpc3MiOiJhbmltZTEubWUiLCJleHAiOjE2NTI0NDMyNTcwMDAsImlhdCI6MTY1MjQyODk1NTAwMCwic3ViIjoiLzEwMTkvNmIubXA0In0\" https://shiro.v.anime1.me/1019/6b.mp4\n# curl -L -o crossdressing.mp4 --cookie \"h=i6CylEHO-BiMkCPCqFDk_A\" https://shiro.v.anime1.me/1019/6b.mp4\n# curl -L -o crossdressing.mp4 --cookie \"e=1652443257; p=eyJpc3MiOiJhbmltZTEubWUiLCJleHAiOjE2NTI0NDMyNTcwMDAsImlhdCI6MTY1MjQyODk1NTAwMCwic3ViIjoiLzEwMTkvNmIubXA0In0; h=i6CylEHO-BiMkCPCqFDk_A\" https://shiro.v.anime1.me/1019/6b.mp4\ncurl -L -o crossdressing.mp4 --cookie \"e=1652443257; p=eyJpc3MiOiJhbmltZTEubWUiLCJleHAiOjE2NTI0NDMyNTcwMDAsImlhdCI6MTY1MjQyODk1NTAwMCwic3ViIjoiLzEwMTkvNmIubXA0In0; h=i6CylEHO-BiMkCPCqFDk_A\" https://shiro.v.anime1.me/1019/6b.mp4 # the only way to be.\n# curl -L -o crossdressing.mp4 --cookie \"e=1652443257; p=eyJpc3MiOiJhbmltZTEubWUiLCJleHAiOjE2NTI0NDMyNTcwMDAsImlhdCI6MTY1Mj",
+        "file_id": 485,
+        "content": "VIDEO=\"/root/Desktop/works/pyjom/samples/video/cute_cat_gif.mp4\"\n# ./mpegflow $VIDEO > output.txt\n# it does not help because the .so file is fake. you need a real one.\n# you may download it from web, or just use docker\n# mkdir -p examples/vis_dump && ./mpegflow $VIDEO | ./vis $VIDEO examples/vis_dump\n# maybe this shit is not good at all...",
         "type": "code",
-        "location": "/tests/anime1_me_video_download/test_download.sh:1-6"
+        "location": "/tests/motion_vector_estimation/mpegflow/test.sh:1-10"
     },
     "3941": {
-        "file_id": 490,
-        "content": "This script is downloading a video file named \"crossdressing.mp4\" from the URL \"https://shiro.v.anime1.me/1019/6b.mp4\", using different combinations of cookies to access and save the file, with each attempt providing additional cookie values until the final combination successfully downloads the video.",
+        "file_id": 485,
+        "content": "The code sets the VIDEO variable to a specific video file path, runs the mpegflow command on that file and redirects output to output.txt, but the .so file is fake so it doesn't work well. The code also provides an alternative method using Docker or downloading a real .so file from the web, creating an examples/vis_dump directory, and piping the mpegflow command's output into ./vis with the video file path.",
         "type": "comment"
     },
     "3942": {
-        "file_id": 490,
-        "content": "QyODk1NTAwMCwic3ViIjoiLzEwMTkvNmIubXA0In0; h=i6CylEHO-BiMkCPCqFDk_A; _ga=GA1.2.1032429949.1652428850; _gid=GA1.2.244096696.1652428850\" https://shiro.v.anime1.me/1019/6b.mp4",
-        "type": "code",
-        "location": "/tests/anime1_me_video_download/test_download.sh:6-6"
+        "file_id": 486,
+        "content": "/tests/motion_vector_estimation/mpegflow/init.sh",
+        "type": "filepath"
     },
     "3943": {
-        "file_id": 490,
-        "content": "The code appears to be a string containing a series of parameters and URL for downloading an MP4 file. The specific parameters include a timestamp, header value, Google Analytics IDs, and the video URL.",
-        "type": "comment"
+        "file_id": 486,
+        "content": "Downloading 'mpegflow' and 'vis' from the 1.0 release of vadimkantorov/mpegflow repository.",
+        "type": "summary"
     },
     "3944": {
-        "file_id": 491,
-        "content": "/tests/anime1_me_video_download/parse_static.py",
-        "type": "filepath"
+        "file_id": 486,
+        "content": "curl -L -O https://github.com/vadimkantorov/mpegflow/releases/download/1.0/mpegflow\ncurl -L -O https://github.com/vadimkantorov/mpegflow/releases/download/1.0/vis",
+        "type": "code",
+        "location": "/tests/motion_vector_estimation/mpegflow/init.sh:1-2"
     },
     "3945": {
-        "file_id": 491,
-        "content": "Code is parsing HTML data from 'sample.html' using BeautifulSoup and finding video tags. It then extracts channel and episode information from JSON data, formats download link, and prints the episode ID and download link. The code likely automates the process of downloading videos from a specific website.",
-        "type": "summary"
-    },
-    "3946": {
-        "file_id": 491,
-        "content": "source = \"sample.html\"\n# curl -L -o sample.html \"https://anime1.me/category/2022%e5%b9%b4%e6%98%a5%e5%ad%a3/%e5%8b%87%e8%80%85%e8%be%ad%e8%81%b7%e4%b8%8d%e5%b9%b9%e4%ba%86\"\nfrom bs4 import BeautifulSoup\ndata = open(source,\"r\",encoding=\"utf-8\").read()\ndom = BeautifulSoup(data)\n# dom = BeautifulSoup(data,features='lxml')\nimport urllib.parse as up\nimport json\nimport re\nvideos = dom.find_all(\"video\")\nformat_download_link = lambda c,e: \"https://shiro.v.anime1.me/{}/{}.mp4\".format(c,e)\nfor video in videos:\n    # print(dir(video))\n    data_src = \"data-apireq\"\n    json_obj = video[data_src]\n    json_obj = up.unquote(json_obj)\n    json_obj = json.loads(json_obj)\n    channel, episode = json_obj[\"c\"], json_obj[\"e\"]\n    link = format_download_link(channel, episode)\n    episode_id = re.findall(r\"\\d+\",episode)[0]\n    print(\"EPISODE:\",episode_id)\n    print(\"DOWNLOAD LINK:\",link)\n    # breakpoint()",
-        "type": "code",
-        "location": "/tests/anime1_me_video_download/parse_static.py:1-28"
-    },
-    "3947": {
-        "file_id": 491,
-        "content": "Code is parsing HTML data from 'sample.html' using BeautifulSoup and finding video tags. It then extracts channel and episode information from JSON data, formats download link, and prints the episode ID and download link. The code likely automates the process of downloading videos from a specific website.",
+        "file_id": 486,
+        "content": "Downloading 'mpegflow' and 'vis' from the 1.0 release of vadimkantorov/mpegflow repository.",
         "type": "comment"
     },
-    "3948": {
-        "file_id": 492,
-        "content": "/tests/anime1_me_video_download/get_cookie_sample.py",
+    "3946": {
+        "file_id": 487,
+        "content": "/tests/video_script_generation_reconstruction/spp_module.py",
         "type": "filepath"
     },
-    "3949": {
-        "file_id": 492,
-        "content": "This code downloads a file, displays progress in real-time, uses chunked data for memory efficiency, and sets cookies from response headers.",
+    "3947": {
+        "file_id": 487,
+        "content": "The `spatial_pyramid_pool` function performs spatial pyramid pooling on convolutional output using max pooling, and the code includes a main section for testing. The code also performs 1D convolutions followed by LSTM layers to process sequential data.",
         "type": "summary"
     },
-    "3950": {
-        "file_id": 492,
-        "content": "import requests\nimport json\nimport urllib.parse as up\nimport sys\n# import multithread\nfrom fake_useragent import UserAgent\nua = UserAgent()\nuser_agent =ua.random\nurl = \"https://v.anime1.me/api\"\n# data = '{\"c\":\"1019\",\"e\":\"6b\",\"t\":1652428857,\"p\":0,\"s\":\"ec9042ac177510fd67dd508f4d974074\"}'\n# data = '%7B%22c%22%3A%221019%22%2C%22e%22%3A%222b%22%2C%22t%22%3A1652429744%2C%22p%22%3A0%2C%22s%22%3A%225a78c05bd07077f05278ed6b44897878%22%7D'\ndata = \"%7B%22c%22%3A%221019%22%2C%22e%22%3A%225b%22%2C%22t%22%3A1652429744%2C%22p%22%3A0%2C%22s%22%3A%222d424b87559a56d7f761c436bca72502%22%7D\"\ndata_unquote = up.unquote(data)\ndata_json = json.loads(data_unquote)\n# url0 = \"https://anime1.me/category/2022%e5%b9%b4%e6%98%a5%e5%ad%a3/%e5%8b%87%e8%80%85%e8%be%ad%e8%81%b7%e4%b8%8d%e5%b9%b9%e4%ba%86\"\ns = requests.Session()\ns.headers.update({\"User-Agent\":user_agent}) # no freaking drama.\n# s.get(url0)\n# r = requests.post(url,body=data)\nmdata = \"d={}\".format(data)\nmheaders = {'authority': 'v.anime1.me'\n  ,'accept': '*/*' \n  ,'accept-language': 'en-US,en;q=0.9' ",
+    "3948": {
+        "file_id": 487,
+        "content": "import math\nfrom torch import nn\nimport torch\ndef spatial_pyramid_pool(previous_conv, num_sample, previous_conv_size, out_pool_size):\n    '''\n    previous_conv: a tensor vector of previous convolution layer\n    num_sample: an int number of image in the batch\n    previous_conv_size: an int vector [height, width] of the matrix features size of previous convolution layer\n    out_pool_size: a int vector of expected output size of max pooling layer\n    returns: a tensor vector with shape [1 x n] is the concentration of multi-level pooling\n    '''    \n    # print(previous_conv.size())\n    for i in range(len(out_pool_size)):\n        # print(previous_conv_size)\n        h_wid = int(math.ceil(previous_conv_size[0] / out_pool_size[i]))\n        w_wid = int(math.ceil(previous_conv_size[1] / out_pool_size[i]))\n        h_pad = (h_wid*out_pool_size[i] - previous_conv_size[0] + 1)/2 # float man.\n        h_pad = math.ceil(h_pad)\n        w_pad = (w_wid*out_pool_size[i] - previous_conv_size[1] + 1)/2\n        w_pad = math.ceil(w_pad)",
         "type": "code",
-        "location": "/tests/anime1_me_video_download/get_cookie_sample.py:1-28"
+        "location": "/tests/video_script_generation_reconstruction/spp_module.py:1-22"
+    },
+    "3949": {
+        "file_id": 487,
+        "content": "This function, `spatial_pyramid_pool`, takes in a tensor vector from the previous convolution layer, the number of samples in the batch, the size of the matrix features in the previous layer, and the expected output size for max pooling. It returns a tensor vector with shape [1 x n], which represents the concentration of multi-level pooling. The function calculates the height and width padding required for each level of the max pooling based on the input sizes and desired output sizes.",
+        "type": "comment"
+    },
+    "3950": {
+        "file_id": 487,
+        "content": "        maxpool = nn.MaxPool2d((h_wid, w_wid), stride=(h_wid, w_wid), padding=(h_pad, w_pad)) # this has no trainable parameter.\n        x = maxpool(previous_conv)\n        # print(x.size())\n        torch.Size([20, 16, 20, 20])\n        # this is it.\n        if(i == 0):\n            spp = x.view(num_sample,-1)\n            # print(\"spp size:\", spp.size())\n        else:\n            # print(\"size:\",spp.size())\n            spp = torch.cat((spp,x.view(num_sample,-1)), 1)\n    return spp\nif __name__ == \"__main__\":\n    # to test the freaking video.\n    for i in [200,1000]:\n        w0 = h0 = i\n        x = torch.rand(20,3,w0,h0) # 20 frames, 20 width, 20 height8\n        # three channels? where is the optical flow layer?\n        c2layer_1 = nn.Conv2d(3,4,4)\n        c2_output_1 = c2layer_1(x)\n        print(c2_output_1.shape)\n        c2layer_2 = nn.Conv2d(4,16,20)\n        c2_output_2 = c2layer_2(c2_output_1)\n        print(c2_output_2.shape)\n        output_num = [20]\n        spp = spatial_pyramid_pool(c2_output_2,20,[int(c2_output_2.size(2)),int(c2_output_2.size(3))],output_num) # great now you have the batch size.",
+        "type": "code",
+        "location": "/tests/video_script_generation_reconstruction/spp_module.py:23-49"
     },
     "3951": {
-        "file_id": 492,
-        "content": "Code imports necessary libraries, sets a random user agent, defines the URL and data for API request, creates a session with the user agent as header, and formats the data for the API call.",
+        "file_id": 487,
+        "content": "This code defines a function that performs spatial pyramid pooling on convolutional output. It uses max pooling with fixed window sizes and combines the results into a single tensor. The code also includes a main section for testing purposes, where it applies convolutions to random input data and then calls the spatial_pyramid_pool function.",
         "type": "comment"
     },
     "3952": {
-        "file_id": 492,
-        "content": "  ,'content-type': 'application/x-www-form-urlencoded' \n  ,'origin': 'https://anime1.me' \n  ,'referer': 'https://anime1.me/'}\nrpost = s.post(url,data=mdata,headers=mheaders)\n# print(dir(rpost))\nmjson2 = rpost.json()\ndownload_url = mjson2['s']['src']\ndownload_url = \"https:\"+download_url\ndownload_name = \"sample\"\ndownload_name = \"{}.{}\".format(download_name,download_url.split(\".\")[-1])\n# '{\"success\":false,\"errors\":[\"Signature invalid.\"]}' <- shit.\n# breakpoint()\n# print(rpost.text) # good. then where is the cookie?\n# print(s.cookies)\nfilename = download_name\n# print(\"downloading target file:\",filename)\n# download_object = multithread.Downloader(download_url, filename,aiohttp_args= {\"headers\":mheaders_session}) # ther e is no 'Content-Length'\n# download_object.start()\nwith open(filename, 'wb') as f:\n    # response = requests.get(url, stream=True)\n    response = s.get(download_url,stream = True)\n    total = response.headers.get('content-length')\n    if total is None:\n        f.write(response.content)\n    else:\n        downloaded = 0",
+        "file_id": 487,
+        "content": "        print(x.shape,spp.shape) # 1,5120\n        spp_lstm = spp[None,:]\n        print(spp_lstm.shape) # 1,1,5120\n        cnn_1 = nn.Conv1d(20,20,16,stride=2)\n        cout_1 = cnn_1(spp_lstm)\n        print(cout_1.shape)\n        cnn_2 = nn.Conv1d(20,20,16,stride=2)\n        cout_2 = cnn_2(cout_1)\n        print(cout_2.shape)\n        lstm_1 = nn.LSTM(1589,400)\n        out_1,hid_1 = lstm_1(cout_2)\n        print(out_1.shape)\n        lstm_2 = nn.LSTM(400,20)\n        out_2,hid_2 = lstm_2(out_1)\n        print(out_2.shape)\n        lstm_3 = nn.LSTM(20,2)\n        out_3,hid_3 = lstm_3(out_2)\n        print(out_3.shape)",
         "type": "code",
-        "location": "/tests/anime1_me_video_download/get_cookie_sample.py:29-60"
+        "location": "/tests/video_script_generation_reconstruction/spp_module.py:50-67"
     },
     "3953": {
-        "file_id": 492,
-        "content": "This code downloads a video from anime1.me and saves it in the specified format. It uses requests library to handle HTTP requests, extracts download URL from JSON response, sets headers for post and get requests, opens file in write mode for downloading the video, checks content length of the video, and downloads it if content length is available.",
+        "file_id": 487,
+        "content": "The code performs 1D convolutions followed by LSTM layers to process a sequence of data. It reshapes the input and applies two Conv1d operations, reducing the dimensionality of the data. Then, it applies three LSTM layers with decreasing hidden dimensions for further processing. The output shapes are printed at each step.",
         "type": "comment"
     },
     "3954": {
-        "file_id": 492,
-        "content": "        total = int(total)\n        for data in response.iter_content(chunk_size=max(int(total/1000), 1024*1024)):\n            downloaded += len(data)\n            f.write(data)\n            done = int(50*downloaded/total)\n            sys.stdout.write('\\r[{}{}]'.format('█' * done, '.' * (50-done)))\n            sys.stdout.flush()\nsys.stdout.write('\\n')\n# print(download_content.headers)\n# now you have the freaking cookie.\n# <RequestsCookieJar[<Cookie e=1652444144 for .v.anime1.me/1019/2b.mp4>, <Cookie h=oRLPqsTE0KXMFmVWJD669g for .v.anime1.me/1019/2b.mp4>, <Cookie p=eyJpc3MiOiJhbmltZTEubWUiLCJleHAiOjE2NTI0NDQxNDQwMDAsImlhdCI6MTY1MjQzNDEzNzAwMCwic3ViIjoiLzEwMTkvMmIubXA0In0 for .v.anime1.me/1019/2b.mp4>]>\n# get set-cookie header.",
-        "type": "code",
-        "location": "/tests/anime1_me_video_download/get_cookie_sample.py:61-72"
-    },
-    "3955": {
-        "file_id": 492,
-        "content": "This code is downloading a file and displaying the progress in real-time. It uses chunked data to manage memory efficiently and sets cookies from the response headers.",
-        "type": "comment"
-    },
-    "3956": {
-        "file_id": 493,
-        "content": "/tests/anime1_me_video_download/README.md",
+        "file_id": 488,
+        "content": "/tests/video_script_generation_reconstruction/spp_any_video.py",
         "type": "filepath"
     },
-    "3957": {
-        "file_id": 493,
-        "content": "This code instructs to extract data from the video API, send it to a specific URL, use the resulting cookie for downloading the video from another URL to avoid errors.",
+    "3955": {
+        "file_id": 488,
+        "content": "The code initializes video and audio data arrays, defines a VideoCutNet model with CNN layers, performs spatial pyramid pooling on video frames, uses LSTM for audio processing, iterates over training loop for gradient descent, and lacks batch size specification.",
         "type": "summary"
     },
-    "3958": {
-        "file_id": 493,
-        "content": "the data is hide in the video data-api. unquote it and we will get the info. \npost data to https://v.anime1.me/api, then use responded cookie p,h with the original e(timestamp) for download.\ndownload video from https://shiro.v.anime1.me/(or elsewhere) or somehow we will get it wrong.",
+    "3956": {
+        "file_id": 488,
+        "content": "# 2d understanding or 3d?\n# what about the freaking audio?\nimport numpy as np\nimport torch\nimport torch.nn.functional as F\nimport torch.nn as nn\nvideo_shape = (20,3,100,100) # thirty frames extracted.\naudio_shape = (1,40000)\nvideo2_shape = (70,3,200,200) # thirty frames extracted. # change it!\naudio2_shape = (2,120000) # no freaking padding game.\ntarget_sentence_shape = (20,2) # full charset. you may choose not to speak. when should you freaking speak?\ntarget_sentence2_shape = (70,2) # full charset. you may choose not to speak. when should you freaking speak?\n# one hot encoding.\nimport random\ntarget_sentence = np.array([random.randint(0,1) for _ in range(20)]) # do one-hot encoding please.\ntarget_sentence2 = np.array([random.randint(0,1) for _ in range(70)])\ntarget_sentence = np.eye(2)[target_sentence]\ntarget_sentence2 = np.eye(2)[target_sentence2]\npad_video_shape_2 = np.zeros((20,3,200,200))\npad_sentence_2 = np.zeros((20,2))\ntarget_sentence2 = np.concatenate([target_sentence2,pad_sentence_2])\n# print(target_sentence2.shape,pad_sentence_2.shape)",
         "type": "code",
-        "location": "/tests/anime1_me_video_download/README.md:1-5"
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:1-30"
+    },
+    "3957": {
+        "file_id": 488,
+        "content": "This code defines video and audio shapes for various inputs, creates random target sentences, and pads the data with zeros to maintain consistent shape. It uses numpy array manipulation and one-hot encoding to represent categorical data.",
+        "type": "comment"
+    },
+    "3958": {
+        "file_id": 488,
+        "content": "# breakpoint()\n# i really don't care how. freaking do it!\nvideo_data = np.random.random(video_shape)\naudio_data = np.random.random(audio_shape)\nvideo2_data = np.random.random(video2_shape)\naudio2_data = np.random.random(audio2_shape)\n# print(data)\nvideo2_data = np.concatenate([video2_data,pad_video_shape_2])\n# I really not caring the freaking data range.\nprint(video_data.shape)\nprint(audio_data.shape)\nfrom spp_module import spatial_pyramid_pool\nclass VideoCutNet(torch.nn.Module):\n    def __init__(self,debug=True):\n        super().__init__()\n        self.debug = debug\n        self.hidden_states=[None]\n        self.audio_hidden_states = [None]\n        self.va_hidden_states = [None,None]\n        self.c2layer_1 = nn.Conv2d(3,4,4)\n        self.c2layer_2 = nn.Conv2d(4,16,20)\n        self.output_num = [20]\n        # print(x.shape,spp.shape) # 1,5120\n        self.cnn_1 = nn.Conv1d(2,20,16,stride=2,padding=8) # you could use this on the audio.\n        self.cnn_2 = nn.Conv1d(20,16,16,stride=2,padding=8)\n        self.cnn_3 = nn.Conv1d(16,30,16,stride=4,padding=8)",
+        "type": "code",
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:31-63"
     },
     "3959": {
-        "file_id": 493,
-        "content": "This code instructs to extract data from the video API, send it to a specific URL, use the resulting cookie for downloading the video from another URL to avoid errors.",
+        "file_id": 488,
+        "content": "This code snippet initializes random video and audio data arrays with specified shapes, concatenates the second video data array with padding, defines a class for the VideoCutNet model, and sets up various layers such as convolutional layers (CNNs) for processing audio and videos. The debug parameter allows controlling whether or not to print the shapes of the initialized arrays.",
         "type": "comment"
     },
     "3960": {
-        "file_id": 494,
-        "content": "/tests/anime1_me_video_download/get_best_edm.sh",
-        "type": "filepath"
+        "file_id": 488,
+        "content": "        self.lstm_1 = nn.LSTM(6400,1200,batch_first=True) # huge?\n        # self.lstm_2 = nn.LSTM(400,20)\n        # self.lstm_3 = nn.LSTM(20,2)\n        self.audio_lstm_1 = nn.LSTM(2501,500,batch_first=True)\n        self.video_audio_merger = nn.Linear(1700,300)\n        # self.audio_lstm_2 = nn.LSTM()\n        # self.audio_lstm_3 = nn.LSTM()\n        self.va_lstm_2 = nn.LSTM(300,50,batch_first=True)\n        self.va_lstm_3 = nn.LSTM(50,20,batch_first=True)\n        self.va_linear = nn.Linear(20,2)\n    def clear_hidden_state(self):\n        self.hidden_states=[None] # no tuple.\n        self.audio_hidden_states=[None] # no tuple.\n        self.va_hidden_states=[None,None] # no tuple.\n    def forward(self,x,audio_x):\n        # with torch.autograd.set_detect_anomaly(False):\n        c2_output_1 = self.c2layer_1(x)\n        if self.debug:\n            print(c2_output_1.shape)\n        c2_output_1 = F.relu(c2_output_1)\n        c2_output_2 = self.c2layer_2(c2_output_1)\n        if self.debug:\n            print(c2_output_2.shape)",
+        "type": "code",
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:65-91"
     },
     "3961": {
-        "file_id": 494,
-        "content": "The code uses FFmpeg to extract segments from the \"edm_super_summit.m4a\" audio file, saving them as \"best_edm_split.mp3\" and \"best_edm_split2.mp3\". The -ss option specifies the start time and -to the end time for each segment.",
-        "type": "summary"
+        "file_id": 488,
+        "content": "This code defines a neural network model with LSTM layers for processing video and audio data. The forward function takes input x (video) and audio_x, and passes them through convolutional layers followed by LSTM layers to extract features. The clear\\_hidden\\_state method initializes hidden states for each LSTM layer.",
+        "type": "comment"
     },
     "3962": {
-        "file_id": 494,
-        "content": "# ffmpeg -y -i edm_super_summit.m4a -ss 00:00:50 -to 00:01:05 best_edm_split.mp3\nffmpeg -y -i edm_super_summit.m4a -ss 00:01:38 -to 00:01:49 best_edm_split2.mp3",
+        "file_id": 488,
+        "content": "        c2_output_2 = F.relu(c2_output_2)\n        msize = int(c2_output_2.size(0))\n        # print(msize)\n        # breakpoint()\n        spp = spatial_pyramid_pool(c2_output_2,msize,[int(c2_output_2.size(2)),int(c2_output_2.size(3))],self.output_num) # great now you have the batch size.\n        spp_lstm = spp[None,:]\n        spp_lstm = F.relu(spp_lstm)\n        if self.debug:\n            print(spp_lstm.shape) # 1,1,5120\n###AUDIO\n        cout_1 = self.cnn_1(audio_x)\n        if self.debug:\n            print(\"AUDIO\",cout_1.shape)\n        cout_1 = F.relu(cout_1)\n        cout_2 = self.cnn_2(cout_1)\n        if self.debug:\n            print(\"AUDIO\",cout_2.shape)\n        cout_2 = F.relu(cout_2)\n        cout_3 = self.cnn_3(cout_2)\n        if self.debug:\n            print(\"AUDIO\",cout_3.shape)\n        cout_3 = F.relu(cout_3)\n        aout_1, ahid_1 = self.audio_lstm_1(cout_3,self.audio_hidden_states[0])\n        self.audio_hidden_states[0] =(ahid_1[0].detach(),ahid_1[1].detach())\n        if self.debug:\n            print(\"AUDIO LSTM\",aout_1.shape)",
         "type": "code",
-        "location": "/tests/anime1_me_video_download/get_best_edm.sh:1-2"
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:92-123"
     },
     "3963": {
-        "file_id": 494,
-        "content": "The code uses FFmpeg to extract segments from the \"edm_super_summit.m4a\" audio file, saving them as \"best_edm_split.mp3\" and \"best_edm_split2.mp3\". The -ss option specifies the start time and -to the end time for each segment.",
+        "file_id": 488,
+        "content": "This code snippet performs feature extraction and pooling on video frames using CNNs and a spatial pyramid pooling layer, followed by LSTM processing for audio. It then prints the shapes of intermediate tensors for debugging purposes.",
         "type": "comment"
     },
     "3964": {
-        "file_id": 495,
-        "content": "/tests/anime1_me_video_download/api_curl.sh",
-        "type": "filepath"
+        "file_id": 488,
+        "content": "        aout_1 = F.relu(aout_1) # for audio only this time we apply this.\n###AUDIO\n        out_1, hid_1 = self.lstm_1(spp_lstm,self.hidden_states[0]) # passing no hidden state at all.\n        self.hidden_states[0] =(hid_1[0].detach(),hid_1[1].detach())\n        if self.debug:\n            print(out_1.shape)\n        out_1 = F.relu(out_1)\n        # breakpoint()\n##VIDEO AUDIO MERGE\n        merged = torch.cat([aout_1,out_1],dim=2)\n        if self.debug:\n            print(merged.shape)\n        mout_1 = self.video_audio_merger(merged)\n        if self.debug:\n            print(mout_1.shape)\n        # breakpoint()\n        mout_2,mhid_2 = self.va_lstm_2(mout_1,self.va_hidden_states[0])\n        self.va_hidden_states[0] =(mhid_2[0].detach(),mhid_2[1].detach())\n        if self.debug:\n            print(mout_2.shape)\n        mout_3,mhid_3 = self.va_lstm_3(mout_2,self.va_hidden_states[1])\n        self.va_hidden_states[1] =(mhid_3[0].detach(),mhid_3[1].detach())\n        if self.debug:\n            print(mout_3.shape)\n        # breakpoint()",
+        "type": "code",
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:124-153"
     },
     "3965": {
-        "file_id": 495,
-        "content": "The code sends a POST request to anime1.me API using cURL, containing video ID, episode number, timestamp, and secret key, likely for interacting with anime videos. It also includes the \"--compressed\" flag for file compression during download, saving storage space and time.",
-        "type": "summary"
+        "file_id": 488,
+        "content": "Applying ReLU activation to audio output, passing no hidden state to LSTM, merging audio and video outputs through concatenation, feeding merged output to two additional LSTMs for further processing.",
+        "type": "comment"
     },
     "3966": {
-        "file_id": 495,
-        "content": "curl 'https://v.anime1.me/api' \\\n  -H 'authority: v.anime1.me' \\\n  -H 'accept: */*' \\\n  -H 'accept-language: en-US,en;q=0.9' \\\n  -H 'content-type: application/x-www-form-urlencoded' \\\n  -H 'origin: https://anime1.me' \\\n  -H 'referer: https://anime1.me/' \\\n  --data-raw 'd=%7B%22c%22%3A%221019%22%2C%22e%22%3A%226b%22%2C%22t%22%3A1652431596%2C%22p%22%3A0%2C%22s%22%3A%221bc65800b44a935eb4e5287655c64cb2%22%7D' \\\n  --compressed\n# curl 'https://v.anime1.me/api' \\\n#   -H 'authority: v.anime1.me' \\\n#   -H 'accept: */*' \\\n#   -H 'accept-language: en-US,en;q=0.9' \\\n#   -H 'content-type: application/x-www-form-urlencoded' \\\n#   -H 'origin: https://anime1.me' \\\n#   -H 'referer: https://anime1.me/' \\\n#   -H 'sec-ch-ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"101\"' \\\n#   -H 'sec-ch-ua-mobile: ?1' \\\n#   -H 'sec-ch-ua-platform: \"Android\"' \\\n#   -H 'sec-fetch-dest: empty' \\\n#   -H 'sec-fetch-mode: cors' \\\n#   -H 'sec-fetch-site: same-site' \\\n#   -H 'user-agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.41 Mobile Safari/537.36' \\",
+        "file_id": 488,
+        "content": "        mout_4 = self.va_linear(mout_3)\n        if self.debug:\n            print(mout_4.shape)\n        return mout_4\nvideo_cut_net = VideoCutNet(debug=True).cuda()\nvideo_data = torch.Tensor(video_data).cuda()\nvideo_data2 = torch.Tensor(video2_data).cuda()\naudio_data2 = torch.Tensor(audio2_data).cuda()\naudio_data2 = audio_data2[None,:]\n# must equal to 20 frames.\ntarget_sentence = torch.Tensor(target_sentence).cuda()\ntarget_sentence2 = torch.Tensor(target_sentence2).cuda()\ncriterion= nn.CrossEntropyLoss()\noptim = torch.optim.Adam(video_cut_net.parameters(),lr=0.0001)\ntarget = target_sentence\ntarget = target_sentence[None,:]\ntarget2 = target_sentence2\ntarget2 = target_sentence2[None,:]\n# for _ in range(240):# we pass 5 identical segments to our network, require to produce different labels.\nvideo_cut_net.clear_hidden_state() # to make sure we can train this shit.\ndivisor = 30\naudio_divisor = 40000\nprint(video_data2.shape) # ([60, 3, 100, 100])\n# breakpoint()\nframes2 = video_data2.shape[0]\nimport math\nbest_index = math.ceil(frames2/divisor)",
         "type": "code",
-        "location": "/tests/anime1_me_video_download/api_curl.sh:1-24"
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:154-186"
     },
     "3967": {
-        "file_id": 495,
-        "content": "This code sends a POST request to 'https://v.anime1.me/api' using cURL, with specified headers and data in the request body. The request includes an API key for authentication and retrieves data from the anime1.me website.",
+        "file_id": 488,
+        "content": "This code initializes a VideoCutNet model, prepares input data, defines a loss function and optimizer, and sets up the training loop to pass 5 identical segments of video data for the network to produce different labels. The model's hidden state is cleared before each iteration. The code also calculates the number of frames in the second video segment and finds the best index for dividing it into sections.",
         "type": "comment"
     },
     "3968": {
-        "file_id": 495,
-        "content": "#   --data-raw 'd=%7B%22c%22%3A%221019%22%2C%22e%22%3A%226b%22%2C%22t%22%3A1652431596%2C%22p%22%3A0%2C%22s%22%3A%221bc65800b44a935eb4e5287655c64cb2%22%7D' \\\n#   --compressed\n# curl 'https://v.anime1.me/api' \\\n#   -H 'authority: v.anime1.me' \\\n#   -H 'accept: */*' \\\n#   -H 'accept-language: en-US,en;q=0.9' \\\n#   -H 'content-type: application/x-www-form-urlencoded' \\\n#   -H 'cookie: _ga=GA1.2.354375679.1652431604; _gid=GA1.2.1847563412.1652431604; _gat=1' \\\n#   -H 'origin: https://anime1.me' \\\n#   -H 'referer: https://anime1.me/' \\\n#   -H 'sec-ch-ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"101\"' \\\n#   -H 'sec-ch-ua-mobile: ?1' \\\n#   -H 'sec-ch-ua-platform: \"Android\"' \\\n#   -H 'sec-fetch-dest: empty' \\\n#   -H 'sec-fetch-mode: cors' \\\n#   -H 'sec-fetch-site: same-site' \\\n#   -H 'user-agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.41 Mobile Safari/537.36' \\\n#   --data-raw 'd=%7B%22c%22%3A%221019%22%2C%22e%22%3A%226b%22%2C%22t%22%3A1652431596%2C%22p%22%3A0%2C%22s%22%3A%221bc65800b44a935eb4e5287655c64cb2%22%7D' \\",
+        "file_id": 488,
+        "content": "for index in range(best_index):\n    optim.zero_grad()\n    video_data_slice = video_data2[index*divisor:(index+1)*divisor,:]\n    audio_data_slice = audio_data2[:,:,index*audio_divisor:(index+1)*audio_divisor]\n    print(\"AUDIO_DATA_SLICE\",audio_data_slice.shape)\n    # breakpoint()\n    # use some padding for our video and label processes. make sure it is divisible by 20\n    # data_input = video_data_slice\n    target_slice = target2[:,index*divisor:(index+1)*divisor,:] # must be the right freaking target.\n    print(video_data_slice.shape,target_slice.shape)\n    # breakpoint()\n    with torch.nn.utils.parametrize.cached():\n        output = video_cut_net(video_data_slice,audio_data_slice)\n        # print(output.shape,target_slice.shape) # 1,20,2\n        # breakpoint()\n        loss = criterion(output, target_slice)\n        # print(loss)\n        val_loss = loss.detach().cpu().numpy()\n        print('CURRENT LOSS:',val_loss) # taking longer for long videos. may kill your freaking ram.\n        loss.backward()\n    optim.step()",
         "type": "code",
-        "location": "/tests/anime1_me_video_download/api_curl.sh:25-43"
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:188-209"
     },
     "3969": {
-        "file_id": 495,
-        "content": "This code is making an API request to 'https://v.anime1.me/api' using curl command with various headers and a data payload in JSON format. The payload contains information such as video ID, episode number, timestamp, and secret key. It seems to be fetching information or performing an action related to an anime video from the anime1.me website.",
+        "file_id": 488,
+        "content": "This code is iterating over a range of indices, performing gradient descent on a loss function using audio and video data slices. The slicing ensures the right target is used for each iteration. It also prints the shape of the audio data slice, video data slice, and checks the shapes before calculating the loss. The current loss is printed at each iteration to monitor progress.",
         "type": "comment"
     },
     "3970": {
-        "file_id": 495,
-        "content": "#   --compressed",
+        "file_id": 488,
+        "content": "    # where is the batch size? reduce it?\n    # there is no batch size. this is recurrent network. must process sequentially.",
         "type": "code",
-        "location": "/tests/anime1_me_video_download/api_curl.sh:44-44"
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:210-211"
     },
     "3971": {
-        "file_id": 495,
-        "content": "The code snippet \"--compressed\" is used to compress the file during download, which can save storage space and reduce transfer time.",
+        "file_id": 488,
+        "content": "These lines indicate that there is no batch size specified in the code and it's a recurrent network which needs to be processed sequentially.",
         "type": "comment"
     },
     "3972": {
-        "file_id": 496,
-        "content": "/tests/image_quality_tests/tiq2.py",
+        "file_id": 489,
+        "content": "/tests/video_script_generation_reconstruction/README.md",
         "type": "filepath"
     },
     "3973": {
-        "file_id": 496,
-        "content": "The code reads video frames, calculates image quality using BRISQUE algorithm, resizes and converts to grayscale. It then displays the resized frame on a GUI window and checks for user input (exiting upon 'q').",
+        "file_id": 489,
+        "content": "This code refers to a project containing various AI models for feature extraction, video summarization, audio classification, image labeling, text extraction, and keyword suggestion. The user needs to write a script before using these tools from PaddleVideo.",
         "type": "summary"
     },
     "3974": {
-        "file_id": 496,
-        "content": "import imquality.brisque as brisque\nimport cv2\nimport PIL\nfrom brisque import BRISQUE\n# integrated svmutil.py and svm.py from that git repo.\n# really strange.\nbrisq = BRISQUE()\nvideo = cv2.VideoCapture(\"../../samples/video/dog_with_text.mp4\")\n_,frame = video.read()\n# frame = imutils.resize(frame,width=720) #why?\nindex = 0\nscore = -1\nperiod = 2\nwhile frame is not None:\n    _, frame = video.read()\n    index+=1\n    if frame is None:\n        print(\"VIDEO END.\")\n        break\n    # just get image quality.\n    # the speed is not so damn fast.\n    image = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)\n    # image = PIL.Image.fromarray(image)\n    if index%period == 0:\n        try:\n            score = brisq.get_score(image) # the lower the better, it was said.\n        except:\n            # this is super fast. but i doubt that.\n            # import traceback\n            # traceback.print_exc()\n            # breakpoint()\n            score = -1 # unknown.\n    cv2.putText(\n        frame,\n        \"[{}]\".format(str(score)[:5]),\n        (200,200),",
+        "file_id": 489,
+        "content": "contains multiple feature extractor, video summarizer, audio classifier, image labeler, text extractor, keyword suggestor. but you need to write one freaking script first. that is your freaking style. you can write that shit in markdown anyway, in reference of existing excellent(?) videos.\nfrom https://github.com/PaddlePaddle/PaddleVideo.\nvideo understanding.",
         "type": "code",
-        "location": "/tests/image_quality_tests/tiq2.py:1-40"
+        "location": "/tests/video_script_generation_reconstruction/README.md:1-5"
     },
     "3975": {
-        "file_id": 496,
-        "content": "The code is reading frames from a video file and calculating the image quality using the BRISQUE algorithm. It prints the score for every 'period' number of frames, with a lower score indicating better image quality. If an error occurs while calculating the score, it assigns -1 (unknown) as the value. The code is also resizing the frame to a width of 720 pixels using imutils library and converting it to grayscale using cv2.cvtColor function.",
+        "file_id": 489,
+        "content": "This code refers to a project containing various AI models for feature extraction, video summarization, audio classification, image labeling, text extraction, and keyword suggestion. The user needs to write a script before using these tools from PaddleVideo.",
         "type": "comment"
     },
     "3976": {
-        "file_id": 496,
-        "content": "        cv2.FONT_HERSHEY_SIMPLEX,\n        2,\n        (0,255,0),\n        3,\n        cv2.LINE_AA,\n    )\n    cv2.imshow('Output',frame)\n    key  =  cv2.waitKey(1) & 0xff\n    if key == ord('q'):\n        break",
-        "type": "code",
-        "location": "/tests/image_quality_tests/tiq2.py:41-50"
+        "file_id": 490,
+        "content": "/tests/video_script_generation_reconstruction/raw_data_understanding.py",
+        "type": "filepath"
     },
     "3977": {
-        "file_id": 496,
-        "content": "This code is using OpenCV library to display an image on a GUI window with the title 'Output'. The image is drawn on it using a green color (0,255,0) and a simplex font. It checks for user input (key pressed) and if 'q' is entered, the loop breaks.",
-        "type": "comment"
+        "file_id": 490,
+        "content": "The code defines the shapes of video and audio data, generates random one-hot encoded target sentences, and creates random data for both videos. It then prints the shapes of the generated video and audio data.",
+        "type": "summary"
     },
     "3978": {
-        "file_id": 497,
-        "content": "/tests/image_quality_tests/test_pyiqa.sh",
-        "type": "filepath"
+        "file_id": 490,
+        "content": "# 2d understanding or 3d?\n# what about the freaking audio?\nimport numpy as np\nimport torch\nvideo_shape = (30,100,100) # thirty frames extracted.\naudio_shape = (1,40000)\nvideo2_shape = (60,200,200) # thirty frames extracted.\naudio2_shape = (1,80000)\ntarget_sentence_shape = (10,40000) # full charset. you may choose not to speak. when should you freaking speak?\ntarget_sentence2_shape = (15,40000) # full charset. you may choose not to speak. when should you freaking speak?\n# one hot encoding.\nimport random\ntarget_sentence = np.array([random.randint(0,39999) for _ in range(10)])\ntarget_sentence2 = np.array([random.randint(0,39999) for _ in range(15)])\n# i really don't care how. freaking do it!\nvideo_data = np.random.random(video_shape)\naudio_data = np.random.random(audio_shape)\nvideo2_data = np.random.random(video2_shape)\naudio2_data = np.random.random(audio2_shape)\n# print(data)\n# I really not caring the freaking data range.\nprint(video_data.shape)\nprint(audio_data.shape)",
+        "type": "code",
+        "location": "/tests/video_script_generation_reconstruction/raw_data_understanding.py:1-31"
     },
     "3979": {
-        "file_id": 497,
-        "content": "This code is running the pyiqa_inference.py script with the specified image and name argument, which downloads the necessary weights from Torch Hub directory for image quality testing.",
-        "type": "summary"
-    },
-    "3980": {
-        "file_id": 497,
-        "content": "python3 pyiqa_inference.py -n $1 -i sample.bmp\n# it is downloading weights to torch hub directory.",
-        "type": "code",
-        "location": "/tests/image_quality_tests/test_pyiqa.sh:1-2"
-    },
-    "3981": {
-        "file_id": 497,
-        "content": "This code is running the pyiqa_inference.py script with the specified image and name argument, which downloads the necessary weights from Torch Hub directory for image quality testing.",
+        "file_id": 490,
+        "content": "The code defines the shapes of video and audio data, generates random one-hot encoded target sentences, and creates random data for both videos. It then prints the shapes of the generated video and audio data.",
         "type": "comment"
     },
-    "3982": {
-        "file_id": 498,
-        "content": "/tests/image_quality_tests/test_image_quality.py",
+    "3980": {
+        "file_id": 491,
+        "content": "/tests/video_script_generation_reconstruction/raw_data_cut.py",
         "type": "filepath"
     },
-    "3983": {
-        "file_id": 498,
-        "content": "This code reads a video, extracts frames at periodic intervals, calculates the image quality using BRISQUE algorithm and displays it on the frame. The score is displayed in the lower-left corner of each frame, and the user can stop the loop by pressing 'q'.",
+    "3981": {
+        "file_id": 491,
+        "content": "This code initializes shapes, generates cut targets, and ensures correct tensor dimensions. It applies convolution, pooling, activation functions, performs two RNN operations, prints output/hidden state shapes, defines a final linear layer, transposes data, and suggests MaxPool1d for character extraction.",
         "type": "summary"
     },
-    "3984": {
-        "file_id": 498,
-        "content": "# import imquality.brisque as brisque\nimport cv2\nimport PIL\nvideo = cv2.VideoCapture(\"../../samples/video/dog_with_text.mp4\")\n_,frame = video.read()\n# frame = imutils.resize(frame,width=720) #why?\nindex = 0\nscore = -1\nperiod = 20\nwhile frame is not None:\n    _, frame = video.read()\n    index+=1\n    if frame is None:\n        print(\"VIDEO END.\")\n        break\n    # just get image quality.\n    # the speed is not so damn fast.\n    image = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)\n    image = PIL.Image.fromarray(image)\n    if index%period == 0:\n        try:\n            score = brisque.score(image) # the lower the better, it was said.\n        except:\n            score = -1 # unknown.\n    cv2.putText(\n        frame,\n        \"[{}]\".format(str(score)[:5]),\n        (200,200),\n        cv2.FONT_HERSHEY_SIMPLEX,\n        2,\n        (0,255,0),\n        3,\n        cv2.LINE_AA,\n    )\n    cv2.imshow('Output',frame)\n    key  =  cv2.waitKey(1) & 0xff\n    if key == ord('q'):\n        break",
+    "3982": {
+        "file_id": 491,
+        "content": "# 2d understanding or 3d?\n# what about the freaking audio?\nimport numpy as np\nimport torch\nvideo_shape = (30,100,100) # thirty frames extracted.\naudio_shape = (1,40000) # so batch size is included.\nvideo2_shape = (60,200,200) # thirty frames extracted.\naudio2_shape = (1,80000)\ntarget_cut_shape = (30,2) # choose either beginning or to cut?\ntarget_cut2_shape = (60,2) # choose either beginning or to cut?\nimport random\ntarget_cut = np.array([random.randint(0,1) for _ in range(30)])\ntarget_cut2 = np.array([random.randint(0,1) for _ in range(60)])\nvideo_data = np.array(np.random.random(video_shape))\naudio_data = np.array(np.random.random(audio_shape))\nvideo2_data = np.array(np.random.random(video2_shape))\naudio2_data = np.array(np.random.random(audio2_shape))\n# print(data)\n# I really not caring the freaking data range.\nprint(video_data.shape)\nprint(audio_data.shape)\nprint(target_cut2.shape)\ndevice = torch.device(\"cuda\")\nvideo_data = torch.Tensor([video_data]) # to make sure the first dimension is batchsize\ntarget_cut = torch.Tensor([target_cut])",
         "type": "code",
-        "location": "/tests/image_quality_tests/test_image_quality.py:1-40"
+        "location": "/tests/video_script_generation_reconstruction/raw_data_cut.py:1-33"
+    },
+    "3983": {
+        "file_id": 491,
+        "content": "Code initializes various shapes for video and audio data, randomly generates cut targets, and ensures tensor dimensions are correct for GPU usage.",
+        "type": "comment"
+    },
+    "3984": {
+        "file_id": 491,
+        "content": "audio_data = torch.Tensor(audio_data)\nlayer_1 = torch.nn.Conv2d(30,3,10) # original shape: (30,100,100)\noutput_1 = layer_1(video_data)\nprint(output_1.shape) #(1,3,91,91)\nlayer_2 = torch.nn.Conv2d(3,1,10)\noutput_2 = layer_2(output_1)\nprint(output_2.shape) #([1, 2, 82, 82])\nlayer_3 = torch.nn.MaxPool1d(4)\noutput_3 = layer_3(audio_data)\nprint(output_3.shape) # torch.Size([1, 10000]) # what is this fuck?\nlayer_4 = torch.nn.MaxPool2d(2)\noutput_4 = layer_4(output_2)\nprint(output_4.shape) # 1,2,41,41 freaking bad.\nlayer_5 = torch.nn.Sigmoid()\noutput_5 = layer_5(output_4)\nprint(output_5.shape) # 1,2,41,41\noutput_5 = output_5.reshape(1,41,41)\n# get this reshaped.\noutput_5 = output_5.reshape(1,1,41*41)\nrnn_layer_1 = torch.nn.RNN(41*41,41*41,3) # must have three dimensions.\nrnn_output_1, rnn_hidd_1 = rnn_layer_1(output_5)\nprint(rnn_output_1.shape,rnn_hidd_1.shape) #tuple torch.Size([1, 41, 20]) torch.Size([3, 41, 20])\nrnn_output_2, rnn_hidd_2 = rnn_layer_1(output_5,rnn_hidd_1)\nprint(\"RNN 2:\",rnn_output_2.shape,rnn_hidd_2.shape)",
+        "type": "code",
+        "location": "/tests/video_script_generation_reconstruction/raw_data_cut.py:34-67"
     },
     "3985": {
-        "file_id": 498,
-        "content": "This code reads a video, extracts frames at periodic intervals, calculates the image quality using BRISQUE algorithm and displays it on the frame. The score is displayed in the lower-left corner of each frame, and the user can stop the loop by pressing 'q'.",
+        "file_id": 491,
+        "content": "This code applies convolution, pooling, and activation functions to the input data. It reshapes the output for RNN processing with a specific structure, and performs two RNN operations.",
         "type": "comment"
     },
     "3986": {
-        "file_id": 499,
-        "content": "/tests/image_quality_tests/t_pyiqa2.sh",
-        "type": "filepath"
+        "file_id": 491,
+        "content": "rnn_output_3, rnn_hidd_3 = rnn_layer_1(rnn_output_1,rnn_hidd_1)\nprint(\"RNN 3:\",rnn_output_3.shape,rnn_hidd_3.shape)\n# final_data = \nfinal_layer = torch.nn.Linear(41*41,2) # the final swap.\nfinal_data = final_layer(rnn_output_1)\nprint(final_data.shape)\n# find the max one.\nfinal_data = final_data.transpose(2,1)\nprint(final_data.shape)\n# output_final_layer = torch.nn.MaxPool1d(41) \n# final_data2 = output_final_layer(final_data)\n# print(final_data2.shape) # 40000,1 this is a single character. is it?",
+        "type": "code",
+        "location": "/tests/video_script_generation_reconstruction/raw_data_cut.py:69-81"
     },
     "3987": {
-        "file_id": 499,
-        "content": "This code is piping the output of `pyiqa_test.py` into `test_pyiqa.sh`, filtering for lines containing \"taking time\", and returning those results.",
-        "type": "summary"
+        "file_id": 491,
+        "content": "This code applies an RNN layer, prints the shapes of output and hidden states, defines a final linear layer with 41x41 input size and 2 output sizes, passes RNN output through it, transposes the data, and suggests using MaxPool1d for possible character extraction.",
+        "type": "comment"
     },
     "3988": {
-        "file_id": 499,
-        "content": "python3 pyiqa_test.py | xargs -iabc bash test_pyiqa.sh abc 2>&1 | grep \"taking time\"",
-        "type": "code",
-        "location": "/tests/image_quality_tests/t_pyiqa2.sh:1-1"
+        "file_id": 492,
+        "content": "/tests/video_script_generation_reconstruction/lstm_trial.py",
+        "type": "filepath"
     },
     "3989": {
-        "file_id": 499,
-        "content": "This code is piping the output of `pyiqa_test.py` into `test_pyiqa.sh`, filtering for lines containing \"taking time\", and returning those results.",
-        "type": "comment"
+        "file_id": 492,
+        "content": "This code initializes a LSTM layer, passes a 3D input tensor through it, and prints the shapes of the input, output, and hidden states.",
+        "type": "summary"
     },
     "3990": {
-        "file_id": 500,
-        "content": "/tests/image_quality_tests/README.md",
-        "type": "filepath"
+        "file_id": 492,
+        "content": "from torch.nn import LSTM\nimport numpy as np\ndata = [[[1,2,3],[2,3,4],[3,5,6]]]\nfrom torch import Tensor\ndata = Tensor(data)\nlayer_lstm = LSTM(3,1)\noutput_1, (hid_1_a,hid_1_b) = layer_lstm(data)\n# print(len(hidden_1))\nprint(data.shape)\nprint(output_1.shape) # [1,3,10]\nprint(hid_1_a.shape,hid_1_b.shape)",
+        "type": "code",
+        "location": "/tests/video_script_generation_reconstruction/lstm_trial.py:1-17"
     },
     "3991": {
-        "file_id": 500,
-        "content": "This code provides a solution to ensure image quality for model accuracy, examines ROI using DasiamRPN and siamMask, re-examines for potential loss of mark, applies motion analysis, suggests integrating TA-Lib for statistics, and recommends upscaling video with anime4k or other engines.",
-        "type": "summary"
+        "file_id": 492,
+        "content": "This code initializes a LSTM layer, passes a 3D input tensor through it, and prints the shapes of the input, output, and hidden states.",
+        "type": "comment"
     },
     "3992": {
-        "file_id": 500,
-        "content": "# princlple\nif the image quality is bad, then no matter what model we use we will get poor result.\n# solution\nuse image quality assessment to examine ROI tracked by DasiamRPN and make sure we will use the best sample and get most accurate result.\n# footnote\nDasiamRPN is a good tracker. so before abandon the tracking data re-examine the ROI for several times to see if it really lost its mark. so as the siamMask.\nYou can also examine the image quality by means of motion. if it heavily moves, we refuse to feed it into model.\nIntegrate TA-Lib for less boilerplates. i mean financial analysis can be applied anywhere. they are basically statistics. anything other than that might just be fake.\nwhere is your dog video?\n# further actions\nyou may upscale video using anime4k or other engines.",
-        "type": "code",
-        "location": "/tests/image_quality_tests/README.md:1-21"
+        "file_id": 493,
+        "content": "/tests/mmd_human_dance_pose/test_detection_yolo.py",
+        "type": "filepath"
     },
     "3993": {
-        "file_id": 500,
-        "content": "This code provides a solution to ensure image quality for model accuracy, examines ROI using DasiamRPN and siamMask, re-examines for potential loss of mark, applies motion analysis, suggests integrating TA-Lib for statistics, and recommends upscaling video with anime4k or other engines.",
-        "type": "comment"
+        "file_id": 493,
+        "content": "Importing necessary libraries and setting proxy environments to ensure proper model loading. Loading the YOLOv5 model from a local directory, and performing inference on an image file. Saving and displaying results. Some confusion regarding the 'bird' detection category.",
+        "type": "summary"
     },
     "3994": {
-        "file_id": 501,
-        "content": "/tests/image_quality_tests/pyiqa_test.py",
-        "type": "filepath"
+        "file_id": 493,
+        "content": "import torch\nimport os\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# Model\nlocalModelDir = '/root/Desktop/works/pyjom/pyjom/models/yolov5/ultralytics_yolov5_master/'\n# import os\nos.environ[\"YOLOV5_MODEL_DIR\"] = '/root/Desktop/works/pyjom/pyjom/models/yolov5/' # this is strange. must be a hack in the localModelDir\nmodel = torch.hub.load(localModelDir, 'yolov5s',source=\"local\")  # or yolov5m, yolov5l, yolov5x, custom\n# Images\nimg = '/media/root/help/pyjom/samples/image/miku_on_green.png'  # or file, Path, PIL, OpenCV, numpy, list\n# Inference\nresults = model(img)\n# Results\n# results.print() # or .show(),\nresults.save()\n# print(type(results),dir(results))\n# breakpoint()\nimport cv2\nimage = cv2.imread(\"runs/detect/exp3/miku_on_green.jpg\")\ncv2.imshow(\"NONE\",image)\n# results.print()  # or .show(),\n# hold it.\n# image 1/1: 720x1280 1 bird # what the fuck is a bird?\n# os.system(\"pause\")\n# input()\n# this shit has been detected but not in the right category.",
+        "type": "code",
+        "location": "/tests/mmd_human_dance_pose/test_detection_yolo.py:1-32"
     },
     "3995": {
-        "file_id": 501,
-        "content": "This code is filtering out certain metric modes from the DEFAULT_CONFIGS dictionary, printing only those not in the allow_lists. The author comments that these methods may not be as useful and seems difficult to determine their effectiveness before downloading all models. They express confusion about the size of some model files.",
-        "type": "summary"
-    },
-    "3996": {
-        "file_id": 501,
-        "content": "from pyiqa.default_model_configs import DEFAULT_CONFIGS\nmlist = []\nfor key in DEFAULT_CONFIGS.keys():\n    config = DEFAULT_CONFIGS[key]\n    mode = config[\"metric_mode\"]\n    if mode == \"NR\":\n        mlist.append(key)\n# print(mlist)\n# forbid_lists = [\"ilniqe\",\"nima\"]\nallow_lists = [\"niqe\", \"brisque\", \"paq2piq\"]\nfor elem in mlist:\n    if elem not in allow_lists:\n        continue\n    print(elem)\n# i need to say these methods are not as useful as it was said.\n# the objective shall be EMA based.\n# ['niqe', 'ilniqe', 'brisque', 'nrqm', 'pi', 'musiq', 'musiq-ava', 'musiq-koniq', 'musiq-paq2piq', 'musiq-spaq', 'nima', 'paq2piq', 'dbcnn']\n# you may try them all?\n# it is really hard to say before we download all these models.\n# seems not really dependent on the model size?\n# we've got freaking huge shits.\n# like this one, for nima.\n# https://download.pytorch.org/models/vgg16-397923af.pth\n# what is this shit for anyway?",
-        "type": "code",
-        "location": "/tests/image_quality_tests/pyiqa_test.py:1-31"
-    },
-    "3997": {
-        "file_id": 501,
-        "content": "This code is filtering out certain metric modes from the DEFAULT_CONFIGS dictionary, printing only those not in the allow_lists. The author comments that these methods may not be as useful and seems difficult to determine their effectiveness before downloading all models. They express confusion about the size of some model files.",
+        "file_id": 493,
+        "content": "Importing necessary libraries and setting proxy environments to ensure proper model loading. Loading the YOLOv5 model from a local directory, and performing inference on an image file. Saving and displaying results. Some confusion regarding the 'bird' detection category.",
         "type": "comment"
     },
-    "3998": {
-        "file_id": 502,
-        "content": "/tests/image_quality_tests/pyiqa_inference.py",
+    "3996": {
+        "file_id": 494,
+        "content": "/tests/mitm_chatbot_framework/README.md",
         "type": "filepath"
     },
-    "3999": {
-        "file_id": 502,
-        "content": "This code uses pyiqa library to evaluate image quality and compare algorithms, averaging scores for multiple inputs and timing the process. It saves or prints results and handles missing files with errors.",
+    "3997": {
+        "file_id": 494,
+        "content": "The code represents the MITM (Man-in-the-Middle) Chatbot, which goes beyond traditional chat applications. This indicates that it likely involves advanced functionality or interactions beyond typical text-based conversations.",
         "type": "summary"
+    },
+    "3998": {
+        "file_id": 494,
+        "content": "mitm chatbot, beyond chat",
+        "type": "code",
+        "location": "/tests/mitm_chatbot_framework/README.md:1-1"
+    },
+    "3999": {
+        "file_id": 494,
+        "content": "The code represents the MITM (Man-in-the-Middle) Chatbot, which goes beyond traditional chat applications. This indicates that it likely involves advanced functionality or interactions beyond typical text-based conversations.",
+        "type": "comment"
     }
 }

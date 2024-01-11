@@ -1,548 +1,540 @@
 {
     "1100": {
-        "file_id": 100,
-        "content": "        return None\n    try:\n        if method == \"vtc\":\n            import vtc\n            timecode = \"{}:0\".format(durationString)\n            decimal_seconds = vtc.Timecode(timecode, rate=1).seconds\n            seconds = round(decimal_seconds)\n            return seconds\n        elif method == \"basic\":\n            if type(durationString) == int:\n                return durationString  # not string at all.\n            if type(durationString) != str:\n                print(\"unknown durationString type: %s\" % type(durationString))\n                return None\n            durationString = durationString.strip()\n            mList = durationString.split(\":\")[::-1]\n            if len(mList) > 3:\n                print(\"DURATION STRING TOO LONG\")\n                return None\n            seconds = 0\n            for index, elem in enumerate(mList):\n                elem = int(elem)\n                seconds += (60**index) * elem\n            return seconds\n        else:\n            raise Exception(\"method %s does not exist\" % method)",
-        "type": "code",
-        "location": "/pyjom/platforms/bilibili/utils.py:100-126"
+        "file_id": 82,
+        "content": "/pyjom/modules/contentPosting/dummyPoster.py",
+        "type": "filepath"
     },
     "1101": {
-        "file_id": 100,
-        "content": "This function converts a duration string, either in basic format or \"vtc\" method, into seconds. It checks the input type and handles invalid formats, returning None for errors or the converted duration in seconds if successful.",
-        "type": "comment"
+        "file_id": 82,
+        "content": "Function \"dummyPoster\" takes content as input, iterates over it if specified, and returns a protocol link.",
+        "type": "summary"
     },
     "1102": {
-        "file_id": 100,
-        "content": "    except:\n        import traceback\n        traceback.print_exc()\n        print(\"exception durion video duration string conversion\")\ndef clearHtmlTags(htmlObject):\n    a = BeautifulSoup(htmlObject, features=\"lxml\")\n    return a.text\ndef detectAuthorRelatedKeywords(title_tag, author_keywords):\n    abandon = False\n    for keyword in author_keywords:\n        if len(keyword) > 1:\n            if keyword in title_tag:\n                abandon = True  # detected this thing.\n                break\n    return abandon\ndef getAuthorKeywords(author):\n    author = author.strip()\n    import jieba\n    author_keywords = jieba.lcut(author)\n    author_keywords = [x.strip() for x in author_keywords]\n    author_keywords = [x for x in author_keywords if len(x) > 0]\n    return author_keywords\ndef removeAuthorRelatedTags(description_or_title, author):\n    templates = [\"【{}】\", \"@{}\", \"{}\"]\n    tags = [template.format(author) for template in templates]\n    for tag in tags:\n        description_or_title = description_or_title.replace(tag, \"\")",
+        "file_id": 82,
+        "content": "from pyjom.commons import *\n@decorator\ndef dummyPoster(content, iterate=False):\n    if iterate:\n        for elem in content:\n            print(\"READY TO POST CONTENT FROM:\",elem)\n    return \"mydarnprotocol://mydarnlink\"",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/utils.py:127-163"
+        "location": "/pyjom/modules/contentPosting/dummyPoster.py:1-8"
     },
     "1103": {
-        "file_id": 100,
-        "content": "The code defines several functions:\n1. `clearHtmlTags` removes HTML tags from an object using BeautifulSoup and returns the text content.\n2. `detectAuthorRelatedKeywords` checks if a given title contains any keywords from a list of author-related keywords, returning True if detected.\n3. `getAuthorKeywords` takes an author's name, tokenizes it with Jieba, filters out empty strings and returns a list of non-empty tokens.\n4. `removeAuthorRelatedTags` replaces specific author-related tags in the description or title with an empty string.",
+        "file_id": 82,
+        "content": "Function \"dummyPoster\" takes content as input, iterates over it if specified, and returns a protocol link.",
         "type": "comment"
     },
     "1104": {
-        "file_id": 100,
-        "content": "    return description_or_title\ndef splitTitleTags(title, author_keywords):\n    import re\n    pattern = r\"【.+】\"\n    title_tags = re.findall(pattern, title)\n    title = re.sub(pattern, \"\", title)\n    title_tags = [x.lstrip(\"【\").rstrip(\"】\").strip() for x in title_tags]\n    title_tags = [x for x in title_tags if len(x) > 0]\n    final_title_tags = []\n    for title_tag in title_tags:\n        detected = detectAuthorRelatedKeywords(title_tag, author_keywords)\n        if not detected:\n            final_title_tags.append(title_tag)\n    return title, title_tags",
-        "type": "code",
-        "location": "/pyjom/platforms/bilibili/utils.py:164-181"
-    },
-    "1105": {
-        "file_id": 100,
-        "content": "This function splits the title and tags in a video using regular expressions, removes unnecessary characters, filters out empty strings, and detects author-related keywords. It returns the cleaned title and a list of remaining title tags.",
-        "type": "comment"
-    },
-    "1106": {
-        "file_id": 101,
-        "content": "/pyjom/platforms/bilibili/uploader.py",
+        "file_id": 83,
+        "content": "/pyjom/modules/contentPosting/bilibiliPoster.py",
         "type": "filepath"
     },
-    "1107": {
-        "file_id": 101,
-        "content": "This code uses bilibili_api module to create an asynchronous function and class for uploading videos to Bilibili platform. It supports multithreading, retry mechanisms, and profile settings, with exception handling and result validation.",
+    "1105": {
+        "file_id": 83,
+        "content": "This code defines functions for sending POST requests to Bilibili, handling metadata and exceptions in content posting operations. It also generates a Bilibili URL for input content with optional iterative processing.",
         "type": "summary"
     },
-    "1108": {
-        "file_id": 101,
-        "content": "from bilibili_api import video_uploader, Credential\nfrom pyjom.platforms.bilibili.credentials import bilibiliCredential\nimport os\nfrom pyjom.platforms.bilibili.utils import bilibiliSync\n# you may use the 'sync' method elsewhere.\n# damn. out of sync.\n# recall the order of applying decorators\n# WTF is the order?\n@bilibiliSync\nasync def asyncVideoUploader(\n    videoPath, title, description, meta, credential, cover_path\n):\n    page = video_uploader.VideoUploaderPage(\n        path=videoPath,\n        title=title,\n        description=description,\n    )  # are you sure?\n    uploader = video_uploader.VideoUploader(\n        [page], meta, credential, cover_path=cover_path\n    )\n    # will this work as expected?\n    # @uploader.on(\"__ALL__\")\n    # async def ev(data):\n    #     print(data)\n    result = await uploader.start()  # with bvid, aid as key.\n    # please tell me where the fuck you upload my video upto?\n    # print(\"upload video result:\", result)\n    return result # there's no upload_id. but you can do it in other way, with methods inside the class.",
+    "1106": {
+        "file_id": 83,
+        "content": "from types import FunctionType\nfrom pyjom.commons import *\nfrom pyjom.platforms.bilibili.uploader import uploadVideo\nfrom lazero.filesystem.temp import (\n    tmpdir,\n    getRandomFileNameUnderDirectoryWithExtension,\n    tmpfile,\n)\n# that generator you must put beforehand.\nimport cv2\nimport requests\ndef registerBilibiliUserVideo(\n    bvid: str,\n    dedeuserid: str,\n    is_mine: bool = True,\n    visible: bool = False,\n    server_domain: str = \"localhost\",\n    server_endpoint: str = \"registerUserVideo\",\n    server_port: int = 7341,\n    success_codes: list[int] = [200, 201],\n):\n    data = {\n        \"bvid\": bvid,\n        \"dedeuserid\": dedeuserid,\n        \"is_mine\": is_mine,\n        \"visible\": visible,\n    }\n    r = requests.post(\n        \"http://{}:{}/{}\".format(server_domain, server_port, server_endpoint), json=data\n    )\n    register_success = r.status_code in success_codes\n    return register_success\n# why you have decorator? so OnlinePoster will not have decorator.\n@decorator\ndef BilibiliPoster(\n    content,\n    iterate=False,",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:1-34"
+        "location": "/pyjom/modules/contentPosting/bilibiliPoster.py:1-44"
+    },
+    "1107": {
+        "file_id": 83,
+        "content": "This code defines a function `registerBilibiliUserVideo` which sends a POST request to a server, passing Bilibili video details and returns the success status based on received response. The `BilibiliPoster` decorator is applied to another function `content`, likely for handling content posting operations in the context of Bilibili platform. It seems to involve file manipulation using `cv2` and `requests` library, as well as external dependencies from `pyjom` and `lazero`. The code also uses a generator, but its purpose is not clear from the provided snippet.",
+        "type": "comment"
+    },
+    "1108": {
+        "file_id": 83,
+        "content": "    getPostMetadata=...,  # some lambda calling generator.__next__()\n    contentType=\"video\",\n    dedeuserid: str = \"397424026\",\n    tempdir=\"/dev/shm/medialang/bilibiliPoster\",\n    afterPosting: FunctionType = ...,\n):\n    # are you sure this 'postMetadataGenerator' will generate valid data for us?\n    # anyway let's write for video.\n    # there are two generators. what do you want?\n    # getPostMetadata = lambda: postMetadataGenerator.__next__()\n    from retry import retry\n    @retry(tries=3, delay=5)  # if causing trouble\n    def postContent(elem):  # what is this elem? please check for video producer.\n        with tmpdir(path=tempdir):\n            postMetadata = getPostMetadata()\n            print(\n                \"READY TO POST CONTENT FROM:\", elem\n            )  # this elem is video location for me.\n            if contentType == \"video\":  # single video upload without grouping.\n                videoPath = elem\n                cover_path = getRandomFileNameUnderDirectoryWithExtension(\n                    \"png\", tempdir",
+        "type": "code",
+        "location": "/pyjom/modules/contentPosting/bilibiliPoster.py:45-67"
     },
     "1109": {
-        "file_id": 101,
-        "content": "This code defines an asynchronous function for uploading videos to Bilibili using the video_uploader module from bilibili_api. It takes videoPath, title, description, meta, credential, and cover_path as parameters, and uses the VideoUploaderPage and VideoUploader classes from the video_uploader module to initiate the upload process. The function is decorated with @bilibiliSync for synchronization purposes.",
+        "file_id": 83,
+        "content": "This code is defining a function `postContent` that takes an element (elem) as input. The function uses a retry decorator to attempt the post operation three times with a 5-second delay between retries. It also defines the content type as video and a temporary directory for storage. The `getPostMetadata` seems to be used to retrieve metadata for posting, but its validity is questioned. The elem is likely a video location for uploading.",
         "type": "comment"
     },
     "1110": {
-        "file_id": 101,
-        "content": "    # if possible please return something like upload_id?\n    # upload video result: {'aid': 901508571, 'bvid': 'BV1MN4y1P7mq'}\n    # breakpoint()  # comment it out later? or we will check why this upload fails. maybe it is because we have duplicated name/cover.\n    # return result[\"bvid\"]  # choose to be in this way?\n#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nimport os\nimport re\nimport sys\nimport math\nimport base64\nimport requests\nfrom requests.adapters import HTTPAdapter\nimport threading\nfrom threading import Event\nimport copy\nimport traceback\n# you better embed it inside your function? what a creep?\n# but that will make it impossible to test against other shits.\nclass MultithreadUploader(object):\n    ## what is the cookie string look like?\n    def __init__(self, cookie_string):\n        # TODO: 增加登录接口使用账号密码登陆\n        #  get all related shits?\n        cookie = cookie_string\n        self.MAX_RETRYS = 5\n        self.profile = \"ugcupos/yb\"\n        self.cdn = \"ws\"\n        self.csrf = re.search(\"bili_jct=(.*?);\", cookie + \";\").group(1)",
+        "file_id": 83,
+        "content": "                )\n                (\n                    cover_target,\n                    mTagSeries,  # are you sure this is a list of tags?\n                    mTitle,\n                    mBgm,  # what is the bgm here used for?\n                    mDescription,\n                    dog_or_cat_original,  # what again is this dog/cat label?\n                    search_tid,\n                ) = postMetadata  # assumptions on video type.\n                # you can fetch this from database. you can pickle this thing.\n                tagString = \",\".join(mTagSeries)\n                # will have exceptions when having name clash. handle it!\n                with tmpfile(cover_path):\n                    cv2.imwrite(cover_path, cover_target)\n                    # you need to save this 'cover_target' to file.\n                    contentId = uploadVideo(\n                        dedeuserid=dedeuserid,  # by decorator.\n                        description=mDescription,\n                        dynamic=mDescription,\n                        tagString=tagString,",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:35-67"
+        "location": "/pyjom/modules/contentPosting/bilibiliPoster.py:68-88"
     },
     "1111": {
-        "file_id": 101,
-        "content": "Class \"MultithreadUploader\" is a custom class for uploading videos to Bilibili platform using multiple threads. It takes a cookie string as input and has features like retry mechanism and profile settings for caching, CDN, etc.",
+        "file_id": 83,
+        "content": "The code is responsible for extracting metadata from a tuple called `postMetadata` and storing it into relevant variables. It then joins the tags in the `mTagSeries` list with commas and writes the cover image to a file using OpenCV's imwrite function. Finally, it calls the `uploadVideo` function to upload the video content. The code assumes the video type and has potential exceptions if there is a name clash while joining tags into a string.",
         "type": "comment"
     },
     "1112": {
-        "file_id": 101,
-        "content": "        self.mid = re.search(\"DedeUserID=(.*?);\", cookie + \";\").group(1)\n        self.session = requests.session()\n        self.session.mount(\"https://\", HTTPAdapter(max_retries=self.MAX_RETRYS))\n        self.session.headers[\"cookie\"] = cookie\n        self.session.headers[\n            \"Accept\"\n        ] = \"application/json, text/javascript, */*; q=0.01\"\n        self.session.headers[\n            \"User-Agent\"\n        ] = \"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36\"\n        self.session.headers[\"Referer\"] = \"https://space.bilibili.com/{mid}/#!/\".format(\n            mid=self.mid\n        )\n        self.upload_id = None\n    def _preupload(self, filename, filesize):\n        # 1.获取本次上传所需信息\n        preupload_url = \"https://member.bilibili.com/preupload\"\n        params = {\n            \"os\": \"upos\",\n            \"r\": \"upos\",\n            \"ssl\": \"0\",\n            \"name\": filename,\n            \"size\": filesize,\n            \"upcdn\": self.cdn,\n            \"profile\": self.profile,",
+        "file_id": 83,
+        "content": "                        tagId=search_tid,\n                        cover_path=cover_path,\n                        videoPath=videoPath,\n                        title=mTitle,\n                    )  # choose to upload and get bvid.\n            else:\n                raise Exception(\n                    \"unknown content type to upload for bilibiliPoster:\", contentType\n                )\n            afterPosting()  # execute no matter what. after posting the content.\n            # now register the uploaded video.\n            if contentType == \"video\":\n                video_bvid = (\n                        contentId\n                        if type(contentId) == str\n                        else contentId.get(\"bvid\", contentId.get(\"BVID\"))\n                    )\n                register_success = registerBilibiliUserVideo(\n                    video_bvid,\n                    str(dedeuserid),\n                )\n                print(\"VIDEO REGISTRATION STATUS?\", register_success)\n                if not register_success:\n                    print(\"VIDEO REGISTRATION ERROR\")",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:68-94"
+        "location": "/pyjom/modules/contentPosting/bilibiliPoster.py:89-112"
     },
     "1113": {
-        "file_id": 101,
-        "content": "The code sets up the necessary headers and session parameters for interacting with Bilibili's API, then defines a function _preupload that makes a request to \"https://member.bilibili.com/preupload\" to obtain pre-upload information. The parameters for this request include filename, file size, cdn, and profile.",
+        "file_id": 83,
+        "content": "Code chooses to upload and gets bvid based on the content type. If the content type is unknown, it raises an exception. It executes afterPosting() regardless of success or failure. For video content, it registers the uploaded video using registerBilibiliUserVideo and prints the registration status.",
         "type": "comment"
     },
     "1114": {
-        "file_id": 101,
-        "content": "        }\n        response = self.session.get(preupload_url, params=params)\n        upload_info = response.json()\n        # 本次上传bilibili端文件名\n        upload_info[\"bili_filename\"] = (\n            upload_info[\"upos_uri\"].split(\"/\")[-1].split(\".\")[0]\n        )\n        # 本次上传url\n        endpoint = \"http:%s/\" % upload_info[\"endpoint\"]\n        upload_url = re.sub(r\"^upos://\", endpoint, upload_info[\"upos_uri\"])\n        print(\"UPLOAD URL:\", upload_url, file=sys.stderr)\n        # 本次上传session\n        upload_session = requests.session()\n        upload_session.mount(\"http://\", HTTPAdapter(max_retries=self.MAX_RETRYS))\n        upload_session.headers[\"X-Upos-Auth\"] = upload_info[\"auth\"]\n        # 2.获取本次上传的upload_id\n        response = upload_session.post(upload_url + \"?uploads&output=json\")\n        upload_info[\"upload_id\"] = response.json()[\n            \"upload_id\"\n        ]  # here you have upload_id\n        self.upload_id = upload_info[\"upload_id\"]\n        print(\"UPLOAD INFO:\", upload_info, file=sys.stderr)\n        return upload_url, upload_info, upload_session",
+        "file_id": 83,
+        "content": "                    breakpoint()\n            if type(contentId) == str:\n                video_identifier = \"bvid_{}\".format(contentId)\n            else:\n                video_identifier = \"aid_{}_bvid_{}\".format(\n                    contentId.get(\"aid\"), contentId.get(\"bvid\")\n                )\n            return \"bilibili://{}/{}/{}\".format(\n                dedeuserid, contentType, video_identifier\n            )  # this content id is fucked.\n    def postContentIterate(content):\n        for elem in content:\n            yield postContent(elem)\n    if iterate:\n        return postContentIterate(content)\n    else:\n        return postContent(content)\n    # content id?",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:95-120"
+        "location": "/pyjom/modules/contentPosting/bilibiliPoster.py:113-132"
     },
     "1115": {
-        "file_id": 101,
-        "content": "This code snippet handles the process of uploading a file to Bilibili. It first fetches pre-upload information, extracts relevant details like filename and endpoint URL. Then it generates an upload URL using this information and creates a session for the upload. The function returns the upload URL, upload info, and the upload session.",
+        "file_id": 83,
+        "content": "This code is a function to generate a Bilibili-specific URL for content, handling different content ID formats. It also includes an optional iterative processing option for the input content list.",
         "type": "comment"
     },
     "1116": {
-        "file_id": 101,
-        "content": "    def _multithread_upload(\n        self, filepath, filesize, upload_url, upload_info, upload_session\n    ):\n        # 3.分块上传文件\n        CHUNK_SIZE = 4 * 1024 * 1024\n        total_chunks = math.ceil(filesize * 1.0 / CHUNK_SIZE)\n        offset = 0\n        chunk = 0\n        parts_info = {\"parts\": []}\n        with open(filepath, \"rb\") as fp:\n            events = []\n            while True:\n                blob = fp.read(CHUNK_SIZE)\n                if not blob:\n                    break\n                params = {\n                    \"partNumber\": chunk + 1,\n                    \"uploadId\": upload_info[\"upload_id\"],\n                    \"chunk\": chunk,\n                    \"chunks\": total_chunks,\n                    \"size\": len(blob),\n                    \"start\": offset,\n                    \"end\": offset + len(blob),\n                    \"total\": filesize,\n                }\n                # here we go?\n                def multiparts():\n                    blob0 = copy.deepcopy(blob)\n                    chunk0 = chunk\n                    thisevent = Event()",
-        "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:122-151"
+        "file_id": 84,
+        "content": "/pyjom/modules/contentPosting/__init__.py",
+        "type": "filepath"
     },
     "1117": {
-        "file_id": 101,
-        "content": "The code reads a file in chunks of 4MB (CHUNK_SIZE) and calculates the total number of chunks required to complete the upload. It then starts a loop where it reads each chunk, creates a dictionary with parameters including partNumber, uploadId, chunk number, total chunks, size of the blob, start and end offsets of the blob, and file's total size. The function seems to be preparing to call another function \"multiparts\" which is defined later in the code block.",
-        "type": "comment"
+        "file_id": 84,
+        "content": "Importing necessary modules for dummy and online posters to prevent circular import issues.",
+        "type": "summary"
     },
     "1118": {
-        "file_id": 101,
-        "content": "                    events.append(thisevent)\n                    offset0 = offset\n                    while True:\n                        try:\n                            response = upload_session.put(\n                                upload_url, params=params, data=blob0\n                            )\n                            print(\n                                \"Uploading...\",\n                                math.floor(chunk0 / total_chunks * 100),\n                                \"%  UPLOAD CHUNK\",\n                                chunk0,\n                                \":\",\n                                response.text,\n                                file=sys.stderr,\n                            )\n                            print(\"done for {}\".format(offset0))\n                            thisevent.set()\n                            break\n                        except:\n                            print(\"error in chunk {}\".format(offset0))\n                            traceback.print_exc()\n                threading.Thread(target=multiparts, args=(), daemon=True).start()",
+        "file_id": 84,
+        "content": "from pyjom.modules.contentPosting.dummyPoster import *\nfrom pyjom.modules.contentPosting.onlinePoster import * # prevent circular import",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:152-175"
+        "location": "/pyjom/modules/contentPosting/__init__.py:1-2"
     },
     "1119": {
-        "file_id": 101,
-        "content": "This code is handling the upload of a chunk of data to Bilibili using a session with retry on error. It creates an event and appends it to a list, initializes the offset, and then enters a while loop to attempt uploading the chunk. If successful, it sets the event to complete, otherwise it prints an error message. A new thread is created to execute a function called multiparts.",
+        "file_id": 84,
+        "content": "Importing necessary modules for dummy and online posters to prevent circular import issues.",
         "type": "comment"
     },
     "1120": {
-        "file_id": 101,
-        "content": "                parts_info[\"parts\"].append({\"partNumber\": chunk + 1, \"eTag\": \"etag\"})\n                chunk += 1\n                offset += len(blob)\n            for event in events:\n                event.wait()\n            print(\"finished waiting.\")\n        return parts_info\n    def _upload(self, filepath):\n        \"\"\"执行上传文件操作\"\"\"\n        if not os.path.isfile(filepath):\n            print(\"FILE NOT EXISTS:\", filepath, file=sys.stderr)\n            return\n        filename = os.path.basename(filepath)\n        filesize = os.path.getsize(filepath)\n        upload_url, upload_info, upload_session = self._preupload(filename, filesize)\n        # 4.标记本次上传完成\n        parts_info = self._multithread_upload(\n            filepath, filesize, upload_url, upload_info, upload_session\n        )\n        params = {\n            \"output\": \"json\",\n            \"name\": filename,\n            \"profile\": self.profile,\n            \"uploadId\": upload_info[\"upload_id\"],\n            \"biz_id\": upload_info[\"biz_id\"],\n        }\n        response = upload_session.post(upload_url, params=params, data=parts_info)",
-        "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:177-205"
+        "file_id": 85,
+        "content": "/pyjom/modules/contentCensoring/core.py",
+        "type": "filepath"
     },
     "1121": {
-        "file_id": 101,
-        "content": "The code uploads a file to Bilibili using multipart upload. It first checks if the file exists, then retrieves the upload URL and necessary information through `_preupload` function. The actual multipart upload is performed in `_multithread_upload`, with progress events handled concurrently. Finally, it posts the parts information to the upload URL along with other parameters to complete the upload.",
-        "type": "comment"
+        "file_id": 85,
+        "content": "This code creates a media downloader GUI with library integration, progress updates, customizable appearance, and tabular post topics. It uses decorator function `keywordDecorator` to censor media based on input parameters and handles unknown content types with exceptions.",
+        "type": "summary"
     },
     "1122": {
-        "file_id": 101,
-        "content": "        print(\n            \"UPLOAD RESULT:\",\n            response.text,\n            file=sys.stderr,  # but till then we can use the upload_id.\n        )  # here we do not have the result.\n        return upload_info  # still, not the bvid thing we want.\n    def _cover_up(self, image_path):\n        \"\"\"上传图片并获取图片链接\"\"\"\n        if not os.path.isfile(image_path):\n            return \"\"\n        import tempfile\n        import cv2\n        with tempfile.NamedTemporaryFile(suffix=\".jpg\") as f:\n            jpeg_image_path = f.name\n            image = cv2.imread(image_path)\n            cv2.imwrite(jpeg_image_path, image)\n            fp = open(jpeg_image_path, \"rb\")\n            encode_data = base64.b64encode(fp.read())\n            # warning. forced to use jpeg.\n            url = \"https://member.bilibili.com/x/vu/web/cover/up\"\n            data = {\n                \"cover\": b\"data:image/jpeg;base64,\" + encode_data,\n                \"csrf\": self.csrf,\n            }\n            response = self.session.post(url, data=data)\n            return response.json()[\"data\"][\"url\"]",
+        "file_id": 85,
+        "content": "from tkinter import *\nfrom pyjom.commons import *\nfrom pyjom.modules.contentCensoring.autoCensor import *\n# import tkinter.font\nimport requests\nimport traceback\nimport os\nimport command_spawner\nfrom progressbar import *\n# add progressbar\ndef mediaDownloader(url, mblogid, basedir=None, index=None):\n    try:\n        with requests.get(url) as r: # what is the media file suffix?\n            suffix = url.split(\"?\")[0].split(\".\")[-1]\n            mid = mblogid if index is None else \"{}[{}]\".format(mblogid, index)\n            fname = \"{}.{}\".format(mid, suffix)\n            if not os.path.exists(basedir):\n                os.mkdir(basedir)\n            fpath = os.path.join(basedir, fname)\n            size = int(r.headers[\"Content-Length\"].strip())\n            mbytes = 0\n            widgets = [\n                fpath,\n                \": \",\n                Bar(marker=\"|\", left=\"[\", right=\" \"),\n                Percentage(),\n                \" \",\n                FileTransferSpeed(),\n                \"] \",\n                \" of {0}MB\".format(str(round(size / 1024 / 1024, 2))[:4]),",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:206-234"
+        "location": "/pyjom/modules/contentCensoring/core.py:1-32"
     },
     "1123": {
-        "file_id": 101,
-        "content": "This function uploads an image to Bilibili and returns the image URL. It first checks if the input file exists, then converts the image to JPEG format using OpenCV. The converted image is encoded as base64 and sent in a POST request to Bilibili's cover upload endpoint. Finally, it retrieves and returns the image URL from the response.",
+        "file_id": 85,
+        "content": "This code snippet is for a media downloader function that uses the requests library to download a file from a given URL. It also includes functionality for handling progress updates using the progressbar module, and it creates a folder to store the downloaded files if one does not already exist. The function takes in parameters such as the URL of the file to be downloaded, an optional mblog ID (and index) for creating a unique file name based on this ID, and an optional base directory where the files will be stored. If no base directory is provided, it will create one automatically with the specified name. The function determines the file's suffix by parsing the URL and extracting the last part of the string after any query parameters. Once the download starts, it tracks progress using a widget that displays a bar indicating the percentage completed, along with other information like the current file transfer speed. It also calculates and displays the size of the file in MB as it downloads.",
         "type": "comment"
     },
     "1124": {
-        "file_id": 101,
-        "content": "    def upload_video_and_cover(self, filepath, cover_path):\n        # 上传文件, 获取上传信息\n        upload_info = self._upload(filepath)\n        if not upload_info:\n            ## fuck?\n            print(\"upload failed?\")\n            return {}, \"\"\n        # 获取图片链接\n        cover_url = self._cover_up(cover_path) if cover_path else \"\"\n        return upload_info, \"\"\n    def postupload(self, upload_info, cover_url, metadata):\n        title = \"\"\n        tid = 0\n        tag = \"\"\n        desc = \"\"\n        source = \"\"\n        # cover_path=\"\",\n        dynamic = \"\"\n        # mission_id = None\n        no_reprint = 1\n        \"\"\"视频投稿\n        Args:\n            filepath   : 视频文件路径\n            title      : 投稿标题\n            tid        : 投稿频道id,详见https://member.bilibili.com/x/web/archive/pre\n            tag        : 视频标签，多标签使用','号分隔\n            desc       : 视频描述信息\n            source     : 转载视频出处url\n            cover_path : 封面图片路径\n            dynamic    : 分享动态, 比如：\"#周五##放假# 劳资明天不上班\"\n            no_reprint : 1表示不允许转载,0表示允许\n        \"\"\"\n        # TODO:",
+        "file_id": 85,
+        "content": "            ]\n            pbar = ProgressBar(widgets=widgets, maxval=size).start()\n            mfile = []\n            for buf in r.iter_content(1024):\n                if buf:\n                    mfile.append(buf)\n                    mbytes += len(buf)\n                    pbar.update(mbytes)\n            pbar.finish()\n            print(\"saved to {}\".format(fpath))\n            with open(fpath, \"wb\") as f:\n                for byteContent in mfile:\n                    f.write(byteContent)\n            return fpath\n    except:\n        traceback.print_exc()\n        print(\"error in mediaDownloader:\\n\", url)\n    return None\nx_buffer = None\ntag_x_offset =None\ntag_y_counter =None\ndef censorInterface(\n    mtitle, mtopic, mcontent,mtags=[], local=False\n):  # this could be a standard template.\n    global x_buffer,tag_x_offset,tag_y_counter\n    assert type(mtopic) == list\n    assert type(mtags) == list\n    is_on = {key:False for key in mtags}\n    def switch(key, buttons, index, is_on):\n        button = buttons[index]\n        if is_on[key]:",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:236-270"
+        "location": "/pyjom/modules/contentCensoring/core.py:33-65"
     },
     "1125": {
-        "file_id": 101,
-        "content": "This function `upload_video_and_cover` uploads a video file and optional cover image, returning the upload information. It first calls the `_upload` method to upload the video and checks if it was successful. If not, it prints an error message and returns empty information. Then it retrieves the cover URL using the `_cover_up` method, if a cover path is provided. The function returns the upload information and an empty string.",
+        "file_id": 85,
+        "content": "The code downloads media content from a URL and saves it to the specified file path. It also includes error handling using try-except block and traceback. The function censorInterface seems to be an interface for switching between tags, where the user can toggle the visibility of different tags on or off.",
         "type": "comment"
     },
     "1126": {
-        "file_id": 101,
-        "content": "        # 1.增加多P上传\n        # 2.对已投稿视频进行删改, 包括删除投稿，修改信息，加P删P等\n        # 设置视频基本信息\n        params = {\n            \"source\": source,\n            \"title\": title,\n            \"tid\": tid,\n            \"tag\": tag,\n            \"no_reprint\": no_reprint,\n            \"desc\": desc,\n            # \"mission_id\": mission_id,\n            \"desc_format_id\": 0,\n            \"dynamic\": dynamic,\n            \"cover\": cover_url,\n            \"videos\": [\n                {\n                    \"filename\": upload_info[\"bili_filename\"],\n                    \"title\": title,\n                    \"desc\": \"\",\n                }\n            ],\n        }\n        params.update(metadata)\n        # 版权判断, 转载无版权\n        params[\"copyright\"] = 2 if params.get(\"source\") else 1\n        if source:\n            del params[\"no_reprint\"]\n        # tag设置\n        mtag = params.get(\"tag\")\n        if isinstance(mtag, list):\n            params[\"tag\"] = \",\".join(mtag)\n        # if mission_id is None:\n        #     del params[\"mission_id\"]\n        url = \"https://member.bilibili.com/x/vu/web/add?csrf=\" + self.csrf",
+        "file_id": 85,
+        "content": "            button.config(text=key ,bg = \"grey\",fg=\"black\")\n            is_on[key] = False\n        else:\n            button.config(text = key,bg = \"green\",fg=\"white\")\n            is_on[key] = True\n    def getSwitchLambda(text, on_buttons, index, is_on):\n        return lambda:switch(text, on_buttons, index, is_on)\n    on_buttons = []\n    mfunctions = []\n    mdata = {\"labels\": [], \"comment\": None, \"discard\": False}\n    left, top = 1500, 500\n    parent = Tk()\n    parent.geometry(\"+{}+{}\".format(left, top))\n    # parent\n    default_window_size =(460,400)\n    parent.geometry(\"{0}x{1}\".format(*default_window_size))\n    themepath = joinScriptFileBaseDir(__file__, \"Forest-ttk-theme/forest-dark.tcl\")\n    parent.tk.call(\"source\", themepath)\n    parent.attributes(\"-topmost\", True)\n    if not local:\n        title = Label(\n            parent,\n            text=\"Title:\" + \"\\n\" * 4,\n            fg=\"white\",\n        )\n        title.grid(row=0, column=0, sticky=\"e\")\n        text0 = Text(fg=\"aqua\", height=5, width=24)\n        text0.grid(row=0, column=1)",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:271-305"
+        "location": "/pyjom/modules/contentCensoring/core.py:66-98"
     },
     "1127": {
-        "file_id": 101,
-        "content": "Sets video basic information, including source, title, TID, tag, no_reprint status, description, dynamic, cover URL, and video file details for upload. Updates parameters if necessary, checks copyright based on source flag, handles tag format, and sets URL with CSRF token.",
+        "file_id": 85,
+        "content": "This code sets up a window with buttons, configures their appearance and state based on the given 'is_on' variable, and provides functions for handling button clicks. It also handles window geometry and theme customization.",
         "type": "comment"
     },
     "1128": {
-        "file_id": 101,
-        "content": "        response = self.session.post(url, json=params)\n        print(\"SET VIDEO INFO:\", response.text, file=sys.stderr)\n        return response.json() # {\"code\":0,\"message\":\"0\",\"ttl\":1,\"data\":{\"aid\":604946025,\"bvid\":\"BV1y84y1v7tM\"}}\n        # seriously, it is a ugc platform.\n        ## what is this fucking json?\n    def upload(\n        self,\n        filepath: str,\n        cover_path: str,\n        metadata: dict,\n    ):\n        upload_info, cover_url = self.upload_video_and_cover(filepath, cover_path)\n        if upload_info == {}:\n            # something went wrong.\n            return\n        response_json = self.postupload(upload_info, cover_url, metadata)\n        return response_json\ndef getCookieStringFromCookieDict(cookies_dict, mustcook=[\"DedeUserID\", \"bili_jct\"]):\n    cookies = cookies_dict\n    cookie_string = \"\"\n    for x in mustcook:\n        assert x in cookies.keys()\n    # ckeys = mustcook + [x for x in cookies.keys() if x not in mustcook]\n    # assert \"bili_jct\" in cookies.keys()\n    for key in mustcook:",
+        "file_id": 85,
+        "content": "        text0.insert(END, mtitle)\n        # print(mtopic)\n        mlabel = (  # not designed for sina topic format.\n            \"None\" if mtopic == None else \" \".join([\"[{}]\".format(x) for x in mtopic])\n        )\n        label = Label(\n            parent,\n            text=\"Topics:\" + \"\\n\" * 4,\n            fg=\"aqua\",\n        )\n        label.grid(row=1, column=0, sticky=\"e\")\n        text1 = Text(fg=\"aqua\", height=5, width=24)\n        text1.grid(row=1, column=1)\n        text1.insert(END, mlabel)\n        content = Label(\n            parent,\n            text=\"Content:\" + \"\\n\" * 4,\n            fg=\"white\",\n        )\n        content.grid(row=2, column=0, sticky=\"e\")\n        text2 = Text(fg=\"aqua\", height=5, width=24)\n        text2.grid(row=2, column=1)\n        text2.insert(END, mcontent)\n        conrow = 3\n    else:\n        conrow = 0\n    redbutton = Entry(parent, fg=\"red\")\n    redbutton.grid(row=0 + conrow, column=1, sticky=\"ew\")\n    # button_height = 32 # default height?\n    x_buffer = 10\n    tag_x_offset = 0\n    tag_y_counter = 0",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:306-333"
+        "location": "/pyjom/modules/contentCensoring/core.py:99-134"
     },
     "1129": {
-        "file_id": 101,
-        "content": "Code snippet is performing the following tasks:\n1. Posting video info to server and returning response as JSON format.\n2. Uploading video and cover, then posting video information with cover URL to the server using a predefined function `postupload`.\n3. Converting cookies dictionary into a string with mandatory cookies \"DedeUserID\", \"bili_jct\".",
+        "file_id": 85,
+        "content": "This code snippet creates a GUI for displaying post topics and content in a tabular format. It includes labels, text boxes, and a red button. The code handles the case where a topic is given or not, and adjusts the positioning accordingly. The variable \"conrow\" keeps track of the row position for the red button. Variables like \"x_buffer\", \"tag_x_offset\", and \"tag_y_counter\" are used for positioning elements on the screen.",
         "type": "comment"
     },
     "1130": {
-        "file_id": 101,
-        "content": "        assert key in cookies.keys()\n    # breakpoint()\n    for key, value in cookies.items():  # oh shit maybe i know it.\n        if key is not None and value is not None:\n            cookie_string += key + \"=\" + value + \"; \"\n    cookie_string = cookie_string[:-2]\n    return cookie_string\n##############################################################\ndef videoMultithreadUploader(\n    cookies_dict: dict = ...,\n    filepath: str = ...,\n    coverpath: str = ...,\n    metadata: dict = ...,\n):\n    # append new events?\n    # planning using two jsons. one for credential, one for video details.\n    # get picture.\n    cookie_string = getCookieStringFromCookieDict(cookies_dict)\n    # while True:\n    try:\n        uper = MultithreadUploader(cookie_string)\n        data = uper.upload(filepath, coverpath, metadata)\n        return True, data\n    except:\n        print(\"Exception found when uploading video.\")\n        traceback.print_exc()\n        return False, {}\n##############################################################\n# @bilibiliSync",
+        "file_id": 85,
+        "content": "    # print(\"TEXT:\", text)\n    def placeTagButtons(index, text,tag_x_offset, tag_y_counter, x_buffer, on=False):\n        # global\n        if not on:\n            mButton = Button(parent, text=text, bd = 0,bg=\"grey\",fg=\"black\")\n        else:\n            mButton = Button(parent, text=text, bd = 0,bg=\"green\",fg=\"white\")\n        button_width = mButton.winfo_reqwidth()\n        # 65\n        button_height = mButton.winfo_reqheight()\n        # print(button_width, button_height)\n        # breakpoint()\n        on_buttons.append(mButton)\n        mfunctions.append(getSwitchLambda(text, on_buttons, index, is_on))\n        on_buttons[index].config(command=mfunctions[index])\n        # on_buttons[index].grid_forget()\n        estimate_x_size = tag_x_offset+x_buffer+button_width\n        estimated_y_size = default_window_size[1]+ button_width*1.3*(tag_y_counter+1)\n        if estimate_x_size > default_window_size[0]:\n            tag_x_offset = 0\n            tag_y_counter+=1\n            # change window geometry\n            parent",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:334-367"
+        "location": "/pyjom/modules/contentCensoring/core.py:135-158"
     },
     "1131": {
-        "file_id": 101,
-        "content": "The code defines a function `videoMultithreadUploader` that uploads a video using multithreading and returns True if successful or False otherwise. It first extracts cookies from the input dictionary and then uses the `MultithreadUploader` class to perform the actual upload. The uploaded data is returned as a tuple with the status and data. In case of an exception, it prints the traceback and returns (False, {}).",
+        "file_id": 85,
+        "content": "This code defines a function `placeTagButtons` which creates buttons with specified text and positions them in a window, adjusting the position based on available space. The button color depends on its 'on' parameter, and it stores the button and associated command for later use.",
         "type": "comment"
     },
     "1132": {
-        "file_id": 101,
-        "content": "# no need to be sync. really?\n@bilibiliCredential  # keyword 'dedeuserid' with default value.\ndef uploadVideo(\n    credential: Credential = ...,\n    # sessdata=\"\",\n    # bili_jct=\"\",\n    # buvid3=\"\", # credentials.\n    # dedeuserid: str = \"397424026\",\n    description: str = \"\",\n    dynamic: str = \"\",\n    tagString: str = \"\",\n    tagId: int = 21,  # what is 21? -> 日常\n    title: str = \"\",\n    close_danmaku: bool = False,\n    close_reply: bool = False,\n    videoPath: str = \"\",\n    cover_path: str = \"\",\n    multithread: bool = True,\n    # threads=3,\n):\n    # title='abdefg'\n    assert os.path.exists(videoPath)\n    assert os.path.exists(cover_path)\n    cookie_dict = {\n        key: credential.__dict__[key.lower()]\n        for key in [\"buvid3\", \"DedeUserID\", \"bili_jct\", \"SESSDATA\"]\n    }\n    # videoExtension = videoPath.split(\".\")[-1].lower()\n    # credential = Credential(sessdata=sessdata, bili_jct=bili_jct, buvid3=buvid3)\n    # you can pass it from somewhere else.\n    # 具体请查阅相关文档\n    meta = {\n        \"copyright\": 1,\n        \"source\": \"\",  # no source?",
+        "file_id": 85,
+        "content": ".geometry(\"{0}x{1}\".format(default_window_size[0], int(default_window_size[1]+ button_height*0.1+(tag_y_counter+1)*button_height*1.2)))\n        elif estimated_y_size > default_window_size[1]:\n            parent.geometry(\"{0}x{1}\".format(default_window_size[0], int(default_window_size[1]+ button_height*0.1+(tag_y_counter+1)*button_height*1.2)))\n        on_buttons[index].place(x=tag_x_offset+x_buffer, y=default_window_size[1]+ button_height*0.1+tag_y_counter*button_height*1.2)\n        tag_x_offset+= button_width\n        return tag_x_offset,tag_y_counter\n        # print(dir(mButton))\n    for index, text in enumerate(is_on.keys()):\n        tag_x_offset,tag_y_counter = placeTagButtons(index, text, tag_x_offset,tag_y_counter, x_buffer)\n        # 32\n        # breakpoint()\n    def add_tag():\n        global tag_x_offset, tag_y_counter, x_buffer\n        mtext = redbutton.get()\n        mtext = mtext.strip()\n        if mtext != \"\": # that is the base line\n            redbutton.delete(0, END)\n            # change this shit.",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:368-401"
+        "location": "/pyjom/modules/contentCensoring/core.py:158-176"
     },
     "1133": {
-        "file_id": 101,
-        "content": "This function uploads a video to Bilibili and requires credentials, metadata such as title, description, and tags, and file paths for the video and cover image. The function uses assertions to ensure the file paths exist and creates a dictionary of required cookie values from the provided credential object. It also allows passing some parameters externally.",
+        "file_id": 85,
+        "content": "The code is setting the window geometry and placing button elements on the screen based on certain conditions. It calculates the dimensions and positions of buttons to fit within the available window space, while keeping track of the x-offset and y-counter for future button placement. The code also includes a function called \"add_tag\" that takes user input and checks if it's not empty before making further actions.",
         "type": "comment"
     },
     "1134": {
-        "file_id": 101,
-        "content": "        \"desc\": description,\n        \"desc_format_id\": 0,\n        \"dynamic\": dynamic,  # could be the same as desc.\n        \"interactive\": 0,\n        \"open_elec\": 1,\n        \"no_reprint\": 1,\n        \"subtitles\": {\"lan\": \"\", \"open\": 0},\n        \"tag\": tagString,\n        \"tid\": tagId,  # original is 21. what is it?\n        \"title\": title,\n        \"up_close_danmaku\": close_danmaku,\n        \"up_close_reply\": close_reply,\n    }\n    if multithread:\n        no_exception, mresult = videoMultithreadUploader(cookie_dict, videoPath, cover_path, meta)\n        if not no_exception:\n            raise Exception('videoMultithreadUploader error')\n        try:\n            code, message = mresult.get('code'), mresult.get('message')\n            assert code == 0  # 为什么分区暂时不可用？\n            assert message == '0'\n        except:\n            print(\"Uploading to bilibili failed\")\n            breakpoint()\n            print()\n            raise Exception('videoMultithreadUploader error: invalid response:', mresult)\n        result = mresult.get('data',{})",
+        "file_id": 85,
+        "content": "            # mdata[\"labels\"].append(mtext)\n            if mtext not in is_on.keys():\n                is_on.update({mtext:True}) # enable this tag anyway.\n                # and we do some append task here.\n                tag_x_offset, tag_y_counter=placeTagButtons(len(on_buttons), mtext,tag_x_offset, tag_y_counter, x_buffer, on=True)\n    bluebutton = Button(parent, text=\"ADD TAG\", fg=\"aqua\", command=add_tag)\n    bluebutton.grid(row=0 + conrow, column=0, sticky=\"e\")\n    redbutton3 = Label(parent, text=\"Comment:\", fg=\"red\")\n    redbutton3.grid(row=1 + conrow, column=0, sticky=\"e\")\n    redbutton2 = Entry(parent, fg=\"red\")\n    def add_comment():\n        comment = redbutton2.get()\n        if comment != \"\":\n            mdata[\"comment\"] = comment\n    redbutton2.grid(row=1 + conrow, column=1, sticky=\"ew\")\n    def mdestroy():\n        add_tag()\n        add_comment()\n        parent.destroy()\n    def mdestroy2():\n        mdata[\"discard\"] = True\n        parent.destroy()\n    blackbutton = Button(parent, text=\"SUBMIT\", fg=\"red\", command=mdestroy)",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:402-428"
+        "location": "/pyjom/modules/contentCensoring/core.py:177-206"
     },
     "1135": {
-        "file_id": 101,
-        "content": "This code is creating a dictionary with metadata for uploading a video to Bilibili. It includes various parameters like description, interactive setting, and tags. The code also implements multithreading for the upload process, handling exceptions and checking for valid response codes from the API. If there's an error or invalid response, it raises an exception and prints a failure message.",
+        "file_id": 85,
+        "content": "This code creates a GUI window for adding tags and comments to content. It enables any previously unused tag, places tag buttons, adds an \"ADD TAG\" button, sets up a comment input field with a \"SUBMIT\" button, and defines functions for adding tags and comments and closing the window.",
         "type": "comment"
     },
     "1136": {
-        "file_id": 101,
-        "content": "    else:\n        result = asyncVideoUploader(\n            videoPath, title, description, meta, credential, cover_path\n        )\n    print(\"multithread?\", multithread)\n    print(\"upload video result:\", result)\n    try:\n        assert 'aid' in result.keys()\n        assert 'bvid' in result.keys()\n    except:\n        raise Exception(\"error: no valid upload result obtained:\", result)\n        # {'aid': 817422346, 'bvid': 'BV1NG4y1t7zk'}\n        # in this format.\n    return result\n# host your web application online, then make money through it!",
+        "file_id": 85,
+        "content": "    blackbutton.grid(row=1 + conrow, column=2, sticky=\"e\")\n    blackbutton2 = Button(parent, text=\"KILL\", fg=\"yellow\", command=mdestroy2)\n    blackbutton2.grid(row=0 + conrow, column=2, sticky=\"ew\")\n    parent.bind(\"<Return>\", lambda event=None: bluebutton.invoke())\n    parent.bind(\"<Control-Return>\", lambda event=None: mdestroy())\n    # this is for updating the order of tags.\n    parent.bind(\"<KeyRelease>\", lambda event=None: print(\"KEY RELEASED! PLEASE CONSIDER TO BIND THIS EVENT TO UPDATING TAGS ORDER BY INPUT\"))\n    # this is for updating the order of tags.\n    parent.mainloop()\n    mdata[\"labels\"] = [x for x in is_on.keys() if is_on[x]]\n    mdata[\"total_labels\"] = [x for x in is_on.keys()]\n    return mdata\ndef playMedia(mediaPath):\n    cmdline = \"ffplay -alwaysontop -loop 0 -top 0 -left 0 {}\".format(mediaPath)\n    cs = command_spawner.CommandSpawner(command=cmdline, daemon=True)\n    cs.run()\n    return cs\ndef coreMediaCensor(\n    mediaPath,\n    meta,\n    play=True,\n    auto=False,\n    semiauto=True,\n    local=False,",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/uploader.py:429-445"
+        "location": "/pyjom/modules/contentCensoring/core.py:207-234"
     },
     "1137": {
-        "file_id": 101,
-        "content": "This code checks if the uploader is not async, then calls `asyncVideoUploader` with provided parameters. It then asserts that the result contains 'aid' and 'bvid' keys before returning the result. The print statements are for debugging purposes.",
+        "file_id": 85,
+        "content": "This code includes functions for playing media, core media censoring functionality, and interacting with a GUI. It spawns a command to play media in the background, binds keyboard events, and updates labels' order when a key is released.",
         "type": "comment"
     },
     "1138": {
-        "file_id": 102,
-        "content": "/pyjom/platforms/bilibili/searchDataParser.py",
-        "type": "filepath"
+        "file_id": 85,
+        "content": "    dummy_auto=True,\n    args={},\n    template_names=[],\n):\n    assert type(local) == bool\n    mtitle, mtopic, mcontent = meta\n    censor_method = (\n        keywordDecorator(autoCensor, args=args, template_names=template_names)\n        if not dummy_auto\n        else dummyAutoCensor\n    )\n    if ((not auto) or semiauto) and play:\n        cs = playMedia(mediaPath)  # siderun.\n        if not auto:\n            mdata = censorInterface(mtitle, mtopic, mcontent, local=local)\n        else:\n            nextData = censor_method(\n                mediaPath, meta, semiauto=semiauto\n            )  # this will not approve the thing. only generate tags and metadata.\n            mdata = censorInterface(mtitle, mtopic, mcontent, local=True)\n            mdata.update(nextData)\n    else:\n        mdata = censor_method(mediaPath, meta, semiauto=semiauto)\n    if ((not auto) or semiauto) and play:\n        cs.kill()\n        os.system(\"killall ffplay\")\n    return mdata\n@decorator\ndef weiboCensor(\n    content,\n    basedir=None,\n    auto=False,\n    semiauto=True,",
+        "type": "code",
+        "location": "/pyjom/modules/contentCensoring/core.py:235-269"
     },
     "1139": {
-        "file_id": 102,
-        "content": "This function parses Bilibili video data, enabling metadata extraction and error handling. It retrieves bvid, pubdate, author name, tags, title, duration, play count, cover image, and description, while disabling specified author-related tags.",
-        "type": "summary"
+        "file_id": 85,
+        "content": "This code uses a decorator function, `keywordDecorator`, to apply different censoring methods based on the input parameters. If `auto` is False or `semiauto` is True and `play` is True, it calls `playMedia` and applies censoring using the `censor_method`. If `auto` is True, it only generates tags and metadata without approving the content. It also kills any running ffplay instances after playback if necessary.",
+        "type": "comment"
     },
     "1140": {
-        "file_id": 102,
-        "content": "import json\n# from bs4 import BeautifulSoup\nfrom lazero.utils.logger import sprint\nfrom pyjom.platforms.bilibili.utils import (\n    # generatorToList,\n    linkFixer,\n    traceError,\n    extractLinks,\n    videoDurationStringToSeconds,\n    getAuthorKeywords,\n    clearHtmlTags,\n    splitTitleTags,\n    removeAuthorRelatedTags,\n)\ndef parseVideoSearchItem(video, disableList: list = [], debug=False):\n    from pyjom.platforms.bilibili.utils import detectAuthorRelatedKeywords\n    bvid = video[\"bvid\"]\n    pubdate = video[\"pubdate\"]\n    if \"author\" not in disableList:\n        author = video[\"author\"]\n        author_id = video[\n            \"mid\"\n        ]  # this is important. may let us able to find out the fans count.\n    else:\n        author = \"\"\n        author_id = -1\n    author_keywords = getAuthorKeywords(author)\n    if \"tag\" not in disableList:\n        tag = video[\"tag\"]\n        tags = tag.split(\",\")\n        tags = [\n            tag for tag in tags if not detectAuthorRelatedKeywords(tag, author_keywords)\n        ]\n    else:",
+        "file_id": 85,
+        "content": "    dummy_auto=True,\n    args={},\n    template_names=[],\n):\n    groupArgs = {\n        \"template_names\": template_names,\n        \"auto\": auto,\n        \"semiauto\": semiauto,\n        \"dummy_auto\": dummy_auto,\n        \"args\": args,\n    }\n    if (not auto) or semiauto:\n        os.system(\"killall ffplay\")\n    # we only need video.\n    data = {\"type\": \"text\", \"review\": None}\n    mtitle = content[\"title\"]\n    mtopic = (\n        None if content[\"topic\"] is None else [x[0] for x in content[\"topic\"]]\n    )  # excerpt the topic name only\n    mcontent = content[\"text\"][\"raw\"]\n    meta = (mtitle, mtopic, mcontent)\n    if content[\"video\"] is not None:\n        data[\"type\"] = \"video\"\n        videoUrl = content[\"video\"][\"download_link\"]\n        mblogid = content[\"meta\"][\"mblogid\"]\n        videoPath = mediaDownloader(videoUrl, mblogid, basedir=basedir)\n        mdata = coreMediaCensor(videoPath, meta, **groupArgs)\n        data[\"review\"] = (videoPath, mdata)\n        # return mdata\n    elif content[\"picture\"] is not None and content[\"picture\"] is not []:",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/searchDataParser.py:1-37"
+        "location": "/pyjom/modules/contentCensoring/core.py:270-299"
     },
     "1141": {
-        "file_id": 102,
-        "content": "Function to parse video search item data from Bilibili platform, takes a video object and an optional list of keywords to disable (author and tag). Extracts bvid, pubdate, author name, author ID, tags, and filters out author-related tags if specified.",
+        "file_id": 85,
+        "content": "This code is creating a dictionary called \"groupArgs\" that holds various parameters. It then checks if the \"auto\" parameter is False or if \"semiauto\" is set, in which case it kills a process named \"ffplay\". Next, it sets the data type to \"text\" and initializes variables for title, topic, and content. If there's a video available, it updates the data type to \"video\", downloads the video, and calls a function \"coreMediaCensor\" with additional parameters. Finally, if there is a picture available but no video, it continues execution.",
         "type": "comment"
     },
     "1142": {
-        "file_id": 102,
-        "content": "        tags = []\n    if \"typeid\" not in disableList and \"typename\" not in disableList:\n        categoryId = int(video.get(\"typeid\", video.get(\"type_id\")))\n        categoryName = video.get(\"typename\", video.get(\"type_name\"))\n    else:\n        categoryId = 0\n        categoryName = \"\"\n    title = video[\"title\"]  # remove those markers, please?\n    title = clearHtmlTags(title)\n    title = removeAuthorRelatedTags(title, author)\n    title, title_tags = splitTitleTags(\n        title, author_keywords\n    )  # use author for filtering unwanted title tags.\n    duration = video[\"duration\"]  # this is not recommended. we need seconds.\n    play = video.get(\"play\", video.get(\"view\"))  # select some hot videos.\n    cover = video[\"pic\"]\n    cover = linkFixer(cover)\n    if \"description\" not in disableList:\n        description = video.get(\"description\", video.get(\"desc\"))\n        description = clearHtmlTags(description)\n        description = removeAuthorRelatedTags(description, author)\n    else:\n        description = \"\"\n    links_in_description, bgms, description = extractLinks(description)",
+        "file_id": 85,
+        "content": "        data[\"type\"] = \"picture\"\n        data[\"review\"] = []\n        for index, pictureUrl in enumerate(content[\"picture\"]):\n            picturePath = mediaDownloader(\n                pictureUrl, mblogid, basedir=basedir, index=index\n            )\n            mdata = coreMediaCensor(picturePath, meta, **groupArgs)\n            data[\"review\"].append((picturePath, mdata))\n    else:\n        # just display the raw content.\n        mdata = coreMediaCensor(\n            None, meta, play=False, **groupArgs\n        )  # how to automate this shit?\n        data[\"review\"] = mdata\n    return data\n@decorator\ndef localCensor(\n    content, auto=False, semiauto=True, dummy_auto=True, args={}, template_names=[]\n):\n    # examine local files.\n    # first determine the content type.\n    groupArgs = {\n        \"auto\": auto,\n        \"semiauto\": semiauto,\n        \"dummy_auto\": dummy_auto,\n        \"template_names\": template_names,\n        \"args\": args,\n    }\n    if (not auto) or semiauto:\n        os.system(\"killall ffplay\")\n    # you may play the media as well.",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/searchDataParser.py:38-61"
+        "location": "/pyjom/modules/contentCensoring/core.py:300-332"
     },
     "1143": {
-        "file_id": 102,
-        "content": "The code checks for certain video types and disables them if present in the disable list. It retrieves category ID, category name, title, duration, play count, cover image, and description from the video data. The title is cleaned by removing markers, clearing HTML tags, and filtering unwanted tags using author keywords. Duration and play count are retrieved with fallback options. Cover image is fixed for links. If description is not disabled, it's also cleaned of HTML tags and filtered for author-related tags, and links in the description, background music, and modified description are extracted.",
+        "file_id": 85,
+        "content": "The code checks if the content is a picture and downloads it using mediaDownloader function. Then, it censors the picture using coreMediaCensor function and adds the path and censoring data to the review list. If the content is not a picture, it directly censors the content without displaying raw content using coreMediaCensor function with appropriate arguments. Finally, it returns the censored content as 'data'.",
         "type": "comment"
     },
     "1144": {
-        "file_id": 102,
-        "content": "    duration_seconds = videoDurationStringToSeconds(duration)\n    resultTuple = (\n        author,\n        author_id,\n        bvid,\n        tags,\n        categoryId,\n        categoryName,\n        title,\n        duration_seconds,\n        play,\n        cover,\n        description,\n        links_in_description,\n        bgms,\n        title_tags,\n        pubdate,\n    )\n    if debug:\n        for metadata in resultTuple:\n            print(metadata)\n    from lazero.utils.logger import sprint\n    if debug:\n        sprint()\n    return resultTuple\n# you might want the creater's name, to filter out unwanted parts.\ndef iterateResultList(resultList, debug=False):\n    for video in resultList:\n        # be warned cause all these things might fail.\n        try:\n            if video[\"type\"] == \"video\":\n                yield parseVideoSearchItem(video, debug=debug)\n        except:\n            traceError(\"error iterating video metadata\")\n            continue\ndef parseSearchAllResult(data, debug=False):\n    # if not generator:\n    #     return generatorToList(parseSearchAllResult(data, debug=debug,generator=True))",
+        "file_id": 85,
+        "content": "    data = {\"type\": None, \"review\": None}\n    mediaTypes = [\"image\", \"video\"]\n    # mediaTypes = [\"picture\", \"video\"]\n    if content[\"type\"] in mediaTypes:\n        data[\"type\"] = content[\"type\"]\n        mediaPath = content[\"path\"]\n        mdata = coreMediaCensor(mediaPath, (None, None, None), local=True, **groupArgs)\n        # review as video.\n        data[\"review\"] = (mediaPath, mdata)\n    else:\n        raise Exception(\"Unknown Content Type: {}\\n{}\".format(content[\"type\"], content))\n    return data",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/searchDataParser.py:62-106"
+        "location": "/pyjom/modules/contentCensoring/core.py:333-344"
     },
     "1145": {
-        "file_id": 102,
-        "content": "The code defines functions for parsing and iterating through search results from a specific platform, bilibili. It converts video duration strings to seconds, extracts relevant metadata, and handles potential errors during iteration.",
+        "file_id": 85,
+        "content": "This code checks the content type, if it's an image or video, then it censor the media using `coreMediaCensor` function and returns the data. If the content type is unknown, it raises an exception.",
         "type": "comment"
     },
     "1146": {
-        "file_id": 102,
-        "content": "    results = data[\"result\"]\n    for elem in results:\n        try:\n            if elem[\"result_type\"] == \"video\":\n                resultList = elem[\"data\"]\n                for videoMetadata in iterateResultList(resultList, debug=debug):\n                    yield videoMetadata\n        except:\n            traceError(\"error iterating data results\")\ndef parseSearchVideoResult(data, debug=False):\n    # if not generator:\n    #     return generatorToList(parseSearchVideoResult(data, debug=debug,generator=True))\n    try:\n        resultList = data[\"result\"]\n        try:\n            for videoMetadata in iterateResultList(resultList, debug=debug):\n                try:\n                    yield videoMetadata\n                except:\n                    traceError(\"error iterating video metadata\")\n        except:\n            traceError(\"error iterating result list\")\n    except:\n        traceError(\"error parsing search video result\")\ndef parseVideoInfo(videoInfo, debug=False):\n    data = videoInfo\n    # no tag out here.\n    secondaryVideoInfoList = []",
-        "type": "code",
-        "location": "/pyjom/platforms/bilibili/searchDataParser.py:107-138"
+        "file_id": 86,
+        "content": "/pyjom/modules/contentCensoring/__init__.py",
+        "type": "filepath"
     },
     "1147": {
-        "file_id": 102,
-        "content": "The code defines functions for parsing search video results and video information from data. It iterates through the results, extracting relevant metadata, and handles potential errors during the process. The parsed results are then yielded or converted to a list if necessary.",
-        "type": "comment"
+        "file_id": 86,
+        "content": "This code imports two parts, label and filter, from the contentCensoring module's core and autoCensor submodules in the pyjom library.",
+        "type": "summary"
     },
     "1148": {
-        "file_id": 102,
-        "content": "    data_copy = data.copy()\n    data_copy.update({\"author\": data[\"owner\"][\"name\"], \"mid\": data[\"owner\"][\"mid\"]})\n    data_copy.update(data[\"stat\"])\n    primaryVideoInfo = parseVideoSearchItem(\n        data_copy, disableList=[\"tag\", \"typeid\", \"typename\"], debug=debug\n    )\n    # videoInfoList.append(primaryVideoInfo)\n    season = data.get(\"ugc_season\", {})  # we only care about this thing.\n    season_cover = season.get(\"cover\", None)  # it could be noting.\n    sections = season.get(\"sections\", [])\n    for section in sections:\n        for episode in section[\"episodes\"]:\n            # print(episode.keys())\n            # breakpoint()\n            arc = episode[\"arc\"]\n            stat = arc[\"stat\"]\n            videoInfo = episode.copy()\n            videoInfo.update(stat)\n            videoInfo.update(arc)\n            authorRelatedVideoInfo = parseVideoSearchItem(\n                videoInfo,\n                disableList=[\"tag\", \"typeid\", \"typename\", \"description\", \"author\"],\n                debug=debug,\n            )  # author is the same as the original video.",
+        "file_id": 86,
+        "content": "# two parts: label and filter\nfrom pyjom.modules.contentCensoring.core import *\nfrom pyjom.modules.contentCensoring.autoCensor import *",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/searchDataParser.py:139-162"
+        "location": "/pyjom/modules/contentCensoring/__init__.py:1-3"
     },
     "1149": {
-        "file_id": 102,
-        "content": "This code parses bilibili search data and extracts relevant information. It creates a primary video info, updates it with necessary attributes, handles seasonal content, and iterates through episodes to create individual video infos for each episode. This is done by updating video stats and arc attributes, then calling parseVideoSearchItem function. The author remains the same as the original video.",
+        "file_id": 86,
+        "content": "This code imports two parts, label and filter, from the contentCensoring module's core and autoCensor submodules in the pyjom library.",
         "type": "comment"
     },
     "1150": {
-        "file_id": 102,
-        "content": "            secondaryVideoInfoList.append(authorRelatedVideoInfo)\n            # BV1Cb4y1s7em\n            # []\n            # 0\n            # 这次真的燃起来了！！！\n            # 217\n            # 27911\n            # http://i2.hdslb.com/bfs/archive/c5a0d18ee077fb6a4ac0970ccb0a3788e137d14f.jpg\n    return primaryVideoInfo, secondaryVideoInfoList\ndef parseVideoRelated(videoRelatedData, debug=False):\n    data = videoRelatedData\n    # if not generator:\n    #     return generatorToList(parseVideoRelated(data, debug=debug,generator=True))\n    try:\n        for videoInfo in data:\n            try:\n                videoInfo2 = videoInfo.copy()\n                videoInfo2.update({\"author\": videoInfo[\"owner\"][\"name\"]})\n                videoInfo2.update({\"mid\": videoInfo[\"owner\"][\"mid\"]})\n                # also update the stat.\n                videoInfo2.update(videoInfo[\"stat\"])\n                try:\n                    yield parseVideoSearchItem(\n                        videoInfo2,\n                        disableList=[\"tag\", \"typeid\", \"typename\"],",
-        "type": "code",
-        "location": "/pyjom/platforms/bilibili/searchDataParser.py:163-190"
+        "file_id": 87,
+        "content": "/pyjom/modules/contentCensoring/autoCensor.py",
+        "type": "filepath"
     },
     "1151": {
-        "file_id": 102,
-        "content": "This function parses video-related data and returns the primary video information and a list of secondary video information. It updates the video information with the author's name, ID, and statistics before yielding the result.",
-        "type": "comment"
+        "file_id": 87,
+        "content": "This code provides content censoring functionality for media processing software using Tkinter and optional parameters, as well as a semi-auto blacklist feature. It removes specified key-value pairs from the dictionary.",
+        "type": "summary"
     },
     "1152": {
-        "file_id": 102,
-        "content": "                        debug=debug,\n                    )\n                    # print(videoMetadata)\n                except:\n                    traceError()\n            except:\n                traceError()\n    except:\n        traceError()\nif __name__ == \"__main__\":\n    # fake tests.\n    # test_subject = \"search_video\"\n    # test_subject = \"search_all\"\n    # test_subject = 'video_related'\n    test_subject = \"video_info\"\n    # test_subject = 'extract_links'\n    if test_subject == \"search_all\":\n        with open(\"search_result_all.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for mresult in parseSearchAllResult(data):\n            print(\"RESULT:\")\n            sprint(mresult)\n    elif test_subject == \"search_video\":\n        with open(\"search_by_type_result_video.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for mresult in parseSearchVideoResult(data):\n            print(\"VIDEO SEARCH RESULT:\")\n            sprint(mresult)\n    elif test_subject == \"video_info\":",
+        "file_id": 87,
+        "content": "from tkinter import *\nfrom pyjom.commons import *\nfrom pyjom.medialang.core import *\ndef dummyAutoCensor(contentPath, meta, semiauto=False):\n    mdata = {\n        \"dummyAutoCensor\": {\n            \"input\": {\"path\": contentPath, \"meta\": meta},\n            \"result\": \"some content here!\",\n        }\n    }\n    return mdata\ndef autoCensor(contentPath, meta, template_names=[], semiauto=False, args={}):\n    from pyjom.medialang.core import Medialang\n    mdata = {}\n    template_dirs = [\"medialang\", \"autoCensor\"]\n    medialang_template_paths = template_names  # not always need all templates.\n    semiauto_key_blacklist = []\n    semiauto_template_path_blacklist = []\n    if semiauto:\n        medialang_template_paths = [\n            x\n            for x in medialang_template_paths\n            if x not in semiauto_template_path_blacklist\n        ]\n    for template_name in medialang_template_paths:\n        name = template_name.split(\".\")[0]  # check if starts with meta.\n        template_path = getTemplatePath(template_dirs, template_name)",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/searchDataParser.py:191-223"
+        "location": "/pyjom/modules/contentCensoring/autoCensor.py:1-31"
     },
     "1153": {
-        "file_id": 102,
-        "content": "The code is running tests on a Python module for parsing search results and video information from Bilibili. It executes the main function with different test subjects, such as \"search_all\", \"search_video\", \"video_info\", and \"extract_links\". If an error occurs during execution, it calls a \"traceError\" function to log the exception.",
+        "file_id": 87,
+        "content": "This code is for content censoring in a media processing software. It utilizes Tkinter and other modules for functionality, provides a dummy auto-censorship function, and an actual auto-censorship function with optional parameters like template names and semi-auto mode. It also includes a list of blacklisted templates if semi-auto mode is enabled.",
         "type": "comment"
     },
     "1154": {
-        "file_id": 102,
-        "content": "        with open(\"video_info.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        primaryVideoInfo, secondaryVideoInfoList = parseVideoInfo(data)\n        videoInfoList = [primaryVideoInfo] + secondaryVideoInfoList\n        for mVideoInfo in videoInfoList:\n            print(mVideoInfo)\n            sprint()\n    elif test_subject == \"video_related\":\n        with open(\"video_related.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for videoMetadata in parseVideoRelated(data):\n            print(videoMetadata)\n            sprint()\n    elif test_subject == \"extract_links\":\n        description = (\n            \"http://www.toutiao.com/a6347649852365897986/ 男子送走从小养大的狗，狗狗用泪汪汪的眼神看着他\\n\"\n            + \"https://www.youtube.com/watch?v=r724w57oXyU\"\n            + \" https://www.youtube.com/shorts/UYCy8HD1C7o\"\n        )\n        links, desc = extractLinks(description)\n        print(links)\n        print(desc)\n    else:\n        raise Exception(\"unknown test_subject:\", test_subject)",
+        "file_id": 87,
+        "content": "        template_args = {} if name not in args.keys() else args[name]\n        assert type(template_args) == dict\n        if name.startswith(\"meta_\"):\n            template_args.update({\"meta\": meta})  # you can access it by keys.\n        template_args.update({\"mediafile\": contentPath})\n        # print(\"template_args\")\n        # breakpoint()\n        medialang = Medialang(\n            script_path=template_path,\n            template=True,\n            template_args=template_args,  # config inside the template args. None to use the default.\n        )\n        script = medialang.prettify()\n        print(script)\n        # breakpoint()\n        data = medialang.execute()\n        # print(\"DATA\",data)\n        # breakpoint()\n        # # try:\n        data = data[0][0]  # language feature.\n        # what the fuck is wrong?\n        mdata.update({name: data})  # this is not so good, though.\n        # except:\n            # print('skipping marking data')\n    if semiauto:  # need some modification.\n        for key in semiauto_key_blacklist:",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/searchDataParser.py:224-249"
+        "location": "/pyjom/modules/contentCensoring/autoCensor.py:32-57"
     },
     "1155": {
-        "file_id": 102,
-        "content": "This code block handles different cases for parsing data from JSON files and extracting links from descriptions. It loads data from \"video_info.json\" or \"video_related.json\", processes it using parseVideoInfo or parseVideoRelated functions, then prints the results. If test_subject is \"extract_links\", it extracts links from a given description using extractLinks function and prints them. For any other test_subject, an Exception is raised.",
+        "file_id": 87,
+        "content": "This code takes a name and dictionary of arguments, checks if the name matches a specific key in the arguments dictionary. If it does, it adds \"meta\" and \"mediafile\" keys to the template_args dictionary, then creates an instance of Medialang with the script path, template set to True, and template_args. The script is prettified, executed, and the data returned. Lastly, the data is added to the mdata dictionary under the given name, unless there was an issue where it prints \"skipping marking data\". If semiauto is set, it goes through a loop for each key in semiauto_key_blacklist.",
         "type": "comment"
     },
     "1156": {
-        "file_id": 103,
-        "content": "/pyjom/platforms/bilibili/postMetadata.py",
-        "type": "filepath"
+        "file_id": 87,
+        "content": "            mdata.pop(key)\n    return mdata",
+        "type": "code",
+        "location": "/pyjom/modules/contentCensoring/autoCensor.py:58-59"
     },
     "1157": {
-        "file_id": 103,
-        "content": "The code filters videos, generates Bilibili post metadata, supports language selection and error handling, extracts video metadata, fetches related videos, applies limits, and generates covers and descriptions for dog or cat topics.",
-        "type": "summary"
-    },
-    "1158": {
-        "file_id": 103,
-        "content": "from pyjom.commons import *\nimport cv2\nfrom pyjom.modules.topicGenerator.onlineTopicGenerator import getMetaTopicString\nfrom bilibili_api import sync, search\nfrom lazero.utils.tools import flattenUnhashableList  # one of my classic methods\nfrom lazero.utils.logger import sprint\n# TODO: you know the drill. if it really contains nonacceptable characters (currently, must be some rule changes), you use Notofu font for rendering and OCR for recognition.\n# well you might want tesseract.\n# i suspect this change is due to language models used in bilibili's system\nfrom pyjom.languagetoolbox import filterNonChineseOrEnglishOrJapaneseCharacters\ndef filterTitleWithCoreTopicSet(title, core_topic_set, debug=False):\n    value = False\n    for core_topic in core_topic_set:\n        if core_topic in title:\n            value = True\n            break\n    if debug:\n        print(\"TITLE:\", title)\n        print(\"CORE TOPIC SET:\", core_topic_set)\n        print(\"VALUE:\", value)\n        breakpoint()\n    return value\ndef filterTitleListWithCoreTopicSet(titleList, core_topic_set, debug=False):",
-        "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:1-27"
-    },
-    "1159": {
-        "file_id": 103,
-        "content": "This code filters titles for a video platform, checking if they contain specific core topics. It utilizes existing modules and tools for this purpose. The function filterTitleListWithCoreTopicSet takes in a list of titles and a set of core topics, returning true if any title contains a core topic. The function filterTitleWithCoreTopicSet checks individual titles for a single core topic. Both functions have optional debug parameter to print information about the process.",
+        "file_id": 87,
+        "content": "Removing specified key-value pair from the dictionary and returning the updated dictionary.",
         "type": "comment"
     },
+    "1158": {
+        "file_id": 88,
+        "content": "/pyjom/modules/globalUpdator/dummyUpdator.py",
+        "type": "filepath"
+    },
+    "1159": {
+        "file_id": 88,
+        "content": "The code imports necessary modules, defines a function 'dummyUpdator' decorated with an unknown decorator and wrapped in 'iterateWithTempDirectory()'. It returns the string \"updated. since it is pending we will schedule another optimization\".",
+        "type": "summary"
+    },
     "1160": {
-        "file_id": 103,
-        "content": "    newTitleList = []\n    for title in titleList:\n        result = filterTitleWithCoreTopicSet(title, core_topic_set)\n        if result:\n            newTitleList.append(title)\n    if debug:\n        print(\"TITLE LIST:\", titleList)\n        print(\"CORE TOPIC SET:\", core_topic_set)\n        sprint(\"NEW TITLE LIST:\", newTitleList)\n    return newTitleList\ndef randomChoiceTagList(\n    tag_list, selected_tag_groups=3, selected_tag_per_group=2, pop=True\n):\n    import random\n    if not pop:\n        selected_tags = random.sample(tag_list, selected_tag_groups)\n    else:\n        selected_tags = [\n            shuffleAndPopFromList(tag_list) for _ in range(selected_tag_groups)\n        ]\n    selected_tags = [\n        random.sample(tags, min(len(tags), selected_tag_per_group))\n        for tags in selected_tags\n    ]\n    # flatten this thing.\n    selected_tags = flattenUnhashableList(selected_tags)\n    return list(set(selected_tags))\nfrom typing import Literal\nfrom pyjom.imagetoolbox import resizeImageWithPadding\ndef getCoverTargetFromCoverListDefault(",
+        "file_id": 88,
+        "content": "from pyjom.commons import *\nfrom lazero.program.functools import iterateWithTempDirectory\n@decorator\n@iterateWithTempDirectory()\ndef dummyUpdator(optimized_result):\n    return \"updated. since it is pending we will schedule another optimization\"",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:28-64"
+        "location": "/pyjom/modules/globalUpdator/dummyUpdator.py:1-7"
     },
     "1161": {
-        "file_id": 103,
-        "content": "This function takes a list of titles, applies a filter based on a core topic set, and creates a new title list. It also generates random tag groups and flattens them to create a final list of unique tags. The function is part of a larger codebase for processing data related to the Bilibili platform.",
+        "file_id": 88,
+        "content": "The code imports necessary modules, defines a function 'dummyUpdator' decorated with an unknown decorator and wrapped in 'iterateWithTempDirectory()'. It returns the string \"updated. since it is pending we will schedule another optimization\".",
         "type": "comment"
     },
     "1162": {
-        "file_id": 103,
-        "content": "    cover_list,\n    dog_or_cat_original,\n    input_width: int = 1200,\n    output_width: int = 1920,\n    filter_function=lambda image: image,\n    histogramMatch=True,\n    delta=0.2,\n    flip: Literal[True, False, \"random\"] = True,\n):  # default function does not process this tag.\n    import random\n    if flip == \"random\":\n        flip = random.choice([True, False])\n    # random.shuffle(cover_list)\n    # reference_histogram_cover = random.choice(cover_list)\n    reference_histogram_cover = shuffleAndPopFromList(cover_list)\n    cover_target = None\n    # for cover in cover_list:\n    while len(cover_list) > 0:\n        cover = shuffleAndPopFromList(cover_list)\n        import os\n        os.environ[\"http\"] = \"\"\n        os.environ[\"https\"] = \"\"\n        from pyjom.imagetoolbox import (\n            imageLoader,\n            # imageDogCatCoverCropAdvanced,\n            imageHistogramMatch,\n        )\n        image = imageLoader(cover)\n        # downscale this image first.\n        image = resizeImageWithPadding(\n            image, input_width, None, border_type=\"replicate\"",
-        "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:65-100"
+        "file_id": 89,
+        "content": "/pyjom/modules/globalUpdator/__init__.py",
+        "type": "filepath"
     },
     "1163": {
-        "file_id": 103,
-        "content": "The code takes a list of image covers, randomly selects one as the reference histogram cover, and iterates over the remaining covers. It prepares for image processing by setting environment variables, loading images, downscaling if necessary, and possibly flipping the image based on a random choice.",
-        "type": "comment"
+        "file_id": 89,
+        "content": "This code imports all the functions and classes from the \"dummyUpdator\" module in the \"pyjom.modules.globalUpdator.dummyUpdator\" package, allowing them to be used within this file or other parts of the program as needed.",
+        "type": "summary"
     },
     "1164": {
-        "file_id": 103,
-        "content": "        )  # are you sure? it is just a cover image.\n        cropped_image = filter_function(\n            image\n        )  # we should do something to the filter function!\n        if cropped_image is not None:\n            if histogramMatch:\n                cropped_image = imageHistogramMatch(\n                    cropped_image, reference_histogram_cover, delta=delta\n                )\n            if flip:\n                cropped_image = cv2.flip(cropped_image, 1)\n            cover_target = cropped_image\n            break\n    if cover_target is not None:\n        cover_target = resizeImageWithPadding(\n            cover_target, output_width, None, border_type=\"replicate\"\n        )  # this is strange.\n    return cover_target\ndef getCoverTargetFromCoverListForDogCat(cover_list, dog_or_cat_original):\n    from pyjom.imagetoolbox import (\n        # imageLoader,\n        imageDogCatCoverCropAdvanced,\n        # imageHistogramMatch,\n    )\n    return getCoverTargetFromCoverListDefault(\n        cover_list,\n        dog_or_cat_original,",
+        "file_id": 89,
+        "content": "from pyjom.modules.globalUpdator.dummyUpdator import *",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:101-130"
+        "location": "/pyjom/modules/globalUpdator/__init__.py:1-1"
     },
     "1165": {
-        "file_id": 103,
-        "content": "The code applies advanced image cropping and processing for a dog or cat cover image. It checks the cover list, performs histogram matching if necessary, and flips the image if required. Finally, it resizes the image with padding using replicate border type. The function \"imageLoader\" and \"imageHistogramMatch\" are imported but not used in this specific code.",
+        "file_id": 89,
+        "content": "This code imports all the functions and classes from the \"dummyUpdator\" module in the \"pyjom.modules.globalUpdator.dummyUpdator\" package, allowing them to be used within this file or other parts of the program as needed.",
         "type": "comment"
     },
     "1166": {
-        "file_id": 103,
-        "content": "        filter_function=lambda image: imageDogCatCoverCropAdvanced(\n            image,\n            yolov5_confidence_threshold=0.27,  # you made it smaller.\n            dog_or_cat=dog_or_cat_original,  # already configured. no need to do shit.\n            area_threshold=0.30,  # 0.7 # could be smaller.\n            corner=False,\n        ),\n    )\nBSP = search.bilibiliSearchParams()\nimport random\nfrom typing import Callable\ndef getBilibiliPostMetadata(\n    sleepTime=2,\n    customParaphraser:Union[Callable,None]=None,\n    getMetatopic={},\n    bgmCacheSetName: Union[str, None] = \"bilibili_cached_bgm_set\",\n    getTids={},  # these two are not specified here.\n    genericTids:list[int]=[],\n    orders=[\n        BSP.all.order.最多点击,\n        BSP.all.order.最多收藏,\n        BSP.all.order.最新发布,\n        BSP.all.order.最多弹幕,\n        BSP.all.order.综合排序,\n    ],\n    pageIndexRange=(1, 5),\n    duration=BSP.all.duration._10分钟以下,\n    lang=\"zh\",\n    duration_limit={\"min\": 70, \"max\": 5 * 60},\n    play_limit={\"min\": 10000},\n    titleLengthLimit={\"min\": 7, \"max\": 17},",
-        "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:131-165"
+        "file_id": 90,
+        "content": "/pyjom/modules/globalOptimizer/dummyOptimizer.py",
+        "type": "filepath"
     },
     "1167": {
-        "file_id": 103,
-        "content": "This function generates Bilibili post metadata by specifying parameters like search type, video duration, order of sorting, and title length limits. It also allows for custom paraphrasing, language selection, and optional background music caching.",
-        "type": "comment"
+        "file_id": 90,
+        "content": "The code defines two decorators, `dummyOptimizer` and `dummyReviewOptimizer`, which take in a topic, feedback or review as parameters. They are intended for some optimization process but seem to be not optimized themselves. The inner function within `dummyOptimizer` prints the current topic and feedback, returning \"pending\". `dummyReviewOptimizer` returns \"processed and labeled content.\". It's unclear how these functions are meant to be used or their actual functionality.",
+        "type": "summary"
     },
     "1168": {
-        "file_id": 103,
-        "content": "    getCoverTargetFromCoverList=getCoverTargetFromCoverListDefault,  # what is the default process?\n    bgmCacheAutoPurge=False,\n):\n    if bgmCacheSetName and bgmCacheAutoPurge:\n        removeRedisValueByKey(bgmCacheSetName)\n    selected_topic_list_dict = {key: [] for key in getMetatopic.keys()}\n    randomTarget = lambda: random.choice(list(selected_topic_list_dict.keys()))\n    dog_or_cat = randomTarget()\n    description_list = []\n    bgm_list = []\n    title_list = []\n    tag_list = []\n    cover_list = []\n    bvid_list = []\n    def clearMyLists():\n        nonlocal bvid_list, bgm_list, title_list, tag_list, cover_list, bvid_list, description_list\n        description_list = []\n        bgm_list = []\n        title_list = []\n        tag_list = []\n        cover_list = []\n        bvid_list = []\n    getKeywords = {\n        key: lambda: getMetaTopicString(value) for key, value in getMetatopic.items()\n    }\n    # getDogTid = lambda: random.choice([BSP.all.tids.动物圈.tid, BSP.all.tids.动物圈.汪星人])\n    # getCatTid = lambda: random.choice([BSP.all.tids.动物圈.tid, BSP.all.tids.动物圈.喵星人])",
+        "file_id": 90,
+        "content": "from pyjom.commons import *\nfrom lazero.program.functools import (\n    iterateWithTempDirectory,\n)  # you can also switch to 'AUTO'\n@decorator  # called 'iterateWithTempDirectory'\ndef dummyOptimizer(topic, feedback):  # wtf is this?\n    # not optimized. need schedule.\n    @iterateWithTempDirectory()\n    def inner(elem):\n        print(\"current topic: %s\" % str(topic))\n        print(\"from feedback:\", elem)\n        return \"pending\"\n    return inner(feedback)\n@decorator\ndef dummyReviewOptimizer(topic, feedback, review):\n    return \"processed and labeled content.\"",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:166-196"
+        "location": "/pyjom/modules/globalOptimizer/dummyOptimizer.py:1-21"
     },
     "1169": {
-        "file_id": 103,
-        "content": "This code retrieves metadata from a bilibili platform, filters and selects topics, randomly chooses between dog or cat content, and initializes lists for BGM, title, tag, cover, and video ID. It also defines functions to clear lists and retrieve keywords. The code does not contain a default process for `getCoverTargetFromCoverList`.",
+        "file_id": 90,
+        "content": "The code defines two decorators, `dummyOptimizer` and `dummyReviewOptimizer`, which take in a topic, feedback or review as parameters. They are intended for some optimization process but seem to be not optimized themselves. The inner function within `dummyOptimizer` prints the current topic and feedback, returning \"pending\". `dummyReviewOptimizer` returns \"processed and labeled content.\". It's unclear how these functions are meant to be used or their actual functionality.",
         "type": "comment"
     },
     "1170": {
-        "file_id": 103,
-        "content": "    # getTid = {\"dog\": getDogTid, \"cat\": getCatTid}\n    getTid = {key: lambda: random.choice(value) for key, value in getTids.items()}\n    getTargetTid = {key: lambda: random.choice([v for v in value if v not in genericTids]) for key, value in getTids.items()}\n    getRandomPage = lambda: random.randint(*pageIndexRange)  # not so broad.\n    # getRandomPage = lambda: random.randint(1, 50)  # broad range!\n    randomOrder = lambda: random.choice(orders)\n    while True:\n        try:\n            core_topic_set = {\n                *flattenUnhashableList(\n                    [value for key, value in getMetatopic[dog_or_cat].items()]\n                )\n            }\n            static_core_topic_list = flattenUnhashableList(\n                getMetatopic[dog_or_cat][\"static\"]\n            )\n            metatopicString = getKeywords[dog_or_cat]()\n            print(\"METATOPIC STRING:\", metatopicString)\n            # we use video only search.\n            search_tid = getTid[dog_or_cat]()\n            target_tid = getTargetTid[dog_or_cat]()",
-        "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:197-223"
+        "file_id": 91,
+        "content": "/pyjom/modules/globalOptimizer/__init__.py",
+        "type": "filepath"
     },
     "1171": {
-        "file_id": 103,
-        "content": "This code dynamically generates a set of core topics, static core topic list, and metatopic string for the bilibili platform. It uses lambda functions to generate random values for TIDs, page index, and order. The code ensures that the selected TID is not present in genericTids. Finally, it prints the metatopic string and assigns a search TID and target TID for further processing.",
-        "type": "comment"
+        "file_id": 91,
+        "content": "The code imports all functions and classes from the \"dummyOptimizer\" module in the \"pyjom.modules.globalOptimizer\" package.",
+        "type": "summary"
     },
     "1172": {
-        "file_id": 103,
-        "content": "            result = sync(\n                search.search_by_type(\n                    keyword=metatopicString,\n                    params={\n                        \"tids\": search_tid,\n                        \"duration\": duration,\n                        \"order\": randomOrder(),\n                    },\n                    page=getRandomPage(),\n                    search_type=search.SearchObjectType.VIDEO,\n                )\n            )\n            # print(result)\n            # breakpoint()\n            from pyjom.platforms.bilibili.searchDataParser import parseSearchVideoResult\n            from pyjom.mathlib import checkMinMaxDict\n            def updateMyLists(\n                videoMetadata,\n                duration_limit={\"min\": 70, \"max\": 5 * 60},\n                titleLengthLimit={\"min\": 7, \"max\": 17},\n                play_limit={\"min\": 10000},\n                debugTag=\"debug\",\n            ):\n                nonlocal bvid_list, bgm_list, title_list, tag_list, cover_list, bvid_list, description_list, static_core_topic_list  # use nonlocal instead in nested functions.",
+        "file_id": 91,
+        "content": "from pyjom.modules.globalOptimizer.dummyOptimizer import *",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:225-252"
+        "location": "/pyjom/modules/globalOptimizer/__init__.py:1-1"
     },
     "1173": {
-        "file_id": 103,
-        "content": "The code searches for video results on Bilibili based on specified criteria and uses the search result to update local lists of videos, titles, tags, covers, descriptions, and static core topics. It checks duration limits, title length limits, play counts, and debugs if needed.",
+        "file_id": 91,
+        "content": "The code imports all functions and classes from the \"dummyOptimizer\" module in the \"pyjom.modules.globalOptimizer\" package.",
         "type": "comment"
     },
     "1174": {
-        "file_id": 103,
-        "content": "                (\n                    author,\n                    author_id,\n                    bvid,\n                    tags,\n                    categoryId,\n                    categoryName,\n                    title,\n                    duration_seconds,\n                    play,\n                    cover,\n                    description,\n                    links_in_description,\n                    bgms,\n                    title_tags,\n                    pubdate,\n                ) = videoMetadata\n                # print(\"VIDEO_METADATA\",videoMetadata)\n                # breakpoint()\n                if not checkMinMaxDict(len(title), titleLengthLimit):\n                    return\n                if not filterTitleWithCoreTopicSet(title, static_core_topic_list):\n                    return\n                if len(tags) > 0:\n                    tagContainStaticCoreTopicFlags = [\n                        int(filterTitleWithCoreTopicSet(tag, static_core_topic_list))\n                        for tag in tags\n                    ]",
-        "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:253-280"
+        "file_id": 92,
+        "content": "/pyjom/modules/informationProcessing/onlineProcessor.py",
+        "type": "filepath"
     },
     "1175": {
-        "file_id": 103,
-        "content": "This code extracts video metadata such as author, duration, title, and tags. It checks the length of the title against a limit and filters it for any static core topic. If the tag contains a static core topic, it creates a boolean flag for each tag. The function then returns the extracted metadata and flag list.",
-        "type": "comment"
+        "file_id": 92,
+        "content": "The OnlineProcessor function processes video elements, applies filters, and has functions for fps filtering and animal detection, with future audio handling planned.",
+        "type": "summary"
     },
     "1176": {
-        "file_id": 103,
-        "content": "                    mTagFlag = sum(tagContainStaticCoreTopicFlags) > 0\n                    if not mTagFlag:\n                        return\n                else:\n                    return\n                if duration_seconds == None:\n                    print(debugTag, \"VIDEO_METADATA\", videoMetadata)\n                    breakpoint()\n                elif play == None:\n                    print(debugTag, \"VIDEO_METADATA\", videoMetadata)\n                    breakpoint()\n                if len(bgms) > 0:\n                    bgm_list += bgms\n                try:\n                    if checkMinMaxDict(duration_seconds, duration_limit):\n                        if checkMinMaxDict(play, play_limit):\n                            bvid_list += [bvid]\n                            cover_list += [cover]\n                            title_list += [title]  # this for topic modeling?\n                            if description not in [\"\", None]:\n                                description_list += [description]\n                            if len(tags) > 0:",
+        "file_id": 92,
+        "content": "import pyjom.videotoolbox as vtb\nfrom pyjom.commons import decorator, keywordDecorator\nimport os\nfrom lazero.utils import sprint\nfrom lazero.network import waitForServerUp\nfrom lazero.filesystem import tmpdir\n# # flag = \"topic_with_fetcher\"\n# # should't we have our judgement here?\n#     collection = getMilvusVideoDeduplicationCollection(get_existing = get_existing)\n@decorator\ndef OnlineProcessor(\n    newElems,  # a generator.\n    source=\"giphy\",\n    use_proxy=False,  # use some proxy.\n    clash_refresher_port=8677,\n    proxy_url=\"http://127.0.0.1:8381\",\n    tmpPath=\"/dev/shm/medialang/onlineProcessor\",\n    debug=False,\n    # dog_or_cat?\n    dog_or_cat=\"dog\",\n    yolov5_default_filter_dict={\n        \"dog\": {\"min\": 0.5},\n        \"cat\": {\"min\": 0.5},\n    },\n):\n    if use_proxy:\n        clash_refresher_url = \"http://127.0.0.1:{}\".format(clash_refresher_port)\n        waitForServerUp(clash_refresher_port, \"clash update controller\")\n    def set_proxy():\n        os.environ[\"http_proxy\"] = proxy_url\n        os.environ[\"https_proxy\"] = proxy_url",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:281-302"
+        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:1-34"
     },
     "1177": {
-        "file_id": 103,
-        "content": "This code checks if a video's metadata contains certain elements and whether they meet specific duration and play limits. If the video meets these criteria, it adds it to a list of bvids for further processing. It also handles potential errors by printing a debug message and breaking the execution. The title is added to a list for topic modeling purposes.",
+        "file_id": 92,
+        "content": "This code defines a function `OnlineProcessor` that processes new video elements from a generator, using the specified source (e.g., \"giphy\"), and applying dog or cat filters based on the `dog_or_cat` parameter. It also supports using a proxy if `use_proxy` is set to True and waits for the Clash refresher server to be up if necessary. The function sets the HTTP and HTTPS proxies if a proxy is being used.",
         "type": "comment"
     },
     "1178": {
-        "file_id": 103,
-        "content": "                                tag_list += [\n                                    tags\n                                ]  # are you sure? this will make the tag_list into different shape!\n                except:\n                    traceError()\n                    breakpoint()\n            def updateMyListsWithIterable(\n                iterable,\n                duration_limit={\"min\": 70, \"max\": 5 * 60},\n                play_limit={\"min\": 10000},\n                titleLengthLimit={\"min\": 7, \"max\": 17},\n                debugTag=\"debug\",\n            ):\n                for videoMetadata in iterable:\n                    updateMyLists(\n                        videoMetadata,\n                        duration_limit=duration_limit,\n                        play_limit=play_limit,\n                        titleLengthLimit=titleLengthLimit,\n                        debugTag=debugTag,\n                    )\n            updateMyListsWithIterable(\n                parseSearchVideoResult(result),\n                duration_limit=duration_limit,",
+        "file_id": 92,
+        "content": "    with tmpdir(path=tmpPath) as testDir:\n        # elif flag == \"topic_with_fetcher\":\n        # sprint(\"checking online fetcher\")\n        # print(\"HERE??\",2)\n        if use_proxy:\n            set_proxy()\n        if source == \"giphy\":\n            for elem in newElems:\n                if use_proxy:\n                    waitForServerUp(clash_refresher_port, \"clash update controller\")\n                if debug:\n                    sprint(elem)\n                (item_id, local_video_location) = elem\n                # what is the freaking response?\n                from caer.video.frames_and_fps import (\n                    get_duration,\n                    get_fps_float,\n                    get_res,\n                )\n                # duration = get_duration(local_video_location)\n                from pyjom.commons import checkMinMaxDict\n                from pyjom.videotoolbox import (\n                    corruptVideoFilter,\n                )\n                # usually we want to make video short.\n                # mode: up/down",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:303-328"
+        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:36-64"
     },
     "1179": {
-        "file_id": 103,
-        "content": "The code defines a function updateMyListsWithIterable that takes an iterable of videoMetadata and applies the updateMyLists function to each element while applying duration, play, and title length limits. The parseSearchVideoResult is called with result and passed as an argument to updateMyListsWithIterable along with other parameters.",
+        "file_id": 92,
+        "content": "This code checks the online fetcher and performs operations based on the 'use_proxy', 'source' (giphy), and 'debug' flags. It sets the proxy, waits for the server to update, retrieves video duration, and applies corruptVideoFilter if needed.",
         "type": "comment"
     },
     "1180": {
-        "file_id": 103,
-        "content": "                play_limit=play_limit,\n                titleLengthLimit=titleLengthLimit,\n                debugTag=\"searchVideoResult\",\n            )\n            # do the related video search?\n            if len(bvid_list) > 0:\n                # get video info!\n                from bilibili_api import video\n                bvid = random.choice(bvid_list)\n                v = video.Video(bvid=bvid)\n                videoInfo = sync(v.get_info())\n                from pyjom.platforms.bilibili.searchDataParser import parseVideoInfo\n                primaryVideoInfo, secondaryVideoInfoList = parseVideoInfo(videoInfo)\n                # for videoMetadata in secondaryVideoInfoList:\n                updateMyListsWithIterable(\n                    secondaryVideoInfoList, debugTag=\"secondaryVideoInfoList\"\n                )\n                # then we get related videos.\n                result = sync(v.get_related())\n                from pyjom.platforms.bilibili.searchDataParser import parseVideoRelated\n                # import json",
+        "file_id": 92,
+        "content": "                from typing import Literal\n                def tuneVideoSpeedToBeat(\n                    video_phase: float,\n                    music_phase: float,\n                    mode: Literal[\"speedup\", \"slowdown\"],\n                ):\n                    speed = music_phase / video_phase # change in speed.\n                    speed_min, speed_max = 1, 2\n                    if mode == \"slowdown\":\n                        speed_min /= 2\n                        speed_max /= 2\n                    while True:\n                        if mode in [\"speedup\", \"slowdown\"]:\n                            if speed < speed_min:\n                                speed *= 2\n                            elif speed > speed_max:\n                                speed /= 2\n                            else:\n                                return speed\n                        else:\n                            raise Exception(\"Unknown speed change mode: %s\" % mode)\n                # TODO: tune video speed to match music phase\n                # valid_video = corruptVideoFilter(local_video_location)",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:329-353"
+        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:65-89"
     },
     "1181": {
-        "file_id": 103,
-        "content": "Searching for a random Bilibili video and retrieving its information, then parsing the results to update the secondary video list and fetch related videos.",
+        "file_id": 92,
+        "content": "This function tunes the video speed based on music phase and mode, either speeding up or slowing down. It uses a while loop to adjust the video speed until it reaches a valid range. If an invalid mode is given, it raises an exception. The code also mentions that a function for tuning the video speed to match the music phase is planned (TODO), but not yet implemented.",
         "type": "comment"
     },
     "1182": {
-        "file_id": 103,
-        "content": "                # print(json.dumps(result, indent=4, ensure_ascii=False))\n                # print('parsing related video info')\n                # breakpoint()\n                updateMyListsWithIterable(\n                    parseVideoRelated(result), debugTag=\"videoRelated\"\n                )\n            # now what do you want? suggested keywords?\n            suggested_queries = sync(\n                search.get_suggest_keywords(keyword=metatopicString)\n            )\n            if type(suggested_queries) != list:\n                suggested_queries = []\n            # now we need to collect the keywords.\n            # notice: we can only update this for selected topic like cat or dog. these keywords might not be shared.\n            topic_modeling_source_sentences = suggested_queries.copy()\n            for tags in tag_list:\n                sentence = \" \".join(tags)\n                topic_modeling_source_sentences.append(sentence)\n            for title in title_list:\n                topic_modeling_source_sentences.append(title)",
+        "file_id": 92,
+        "content": "                # if not valid_video:\n                #     continue\n                # video_duration = get_duration(local_video_location)\n                # music_beat_duration = ...  # get from redis!\n                # speed_change_mode = \"speedup\"\n                # speed_change = tuneVideoSpeedToBeat(video_duration, music_beat_duration,mode=speed_change_mode)\n                # # now change the damn speed of video. replace the original video.\n                ###############################################\n                hard_limit = 3.5\n                remedyDurationRange = {\n                    \"min\": 1.5,\n                    \"max\": hard_limit,\n                    \"min_target\": hard_limit,\n                }  # targets in this range can multiply by some factors, looping forward and backward to get gif.\n                # is it corrupted? fuck?\n                def loopVideoTillTarget(\n                    video_path: str,\n                    objective: dict,\n                    scriptPath: str = \"/root/Desktop/works/pyjom/tests/moviepy_loop_video_till_target/loop_till_target.py\",",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:355-377"
+        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:90-115"
     },
     "1183": {
-        "file_id": 103,
-        "content": "The code is parsing video-related information, updating lists with iterable data, and collecting suggested keywords for a specific topic by joining tags and titles into sentences.",
+        "file_id": 92,
+        "content": "This code chunk checks if the video is valid and retrieves the video duration. It then gets music beat duration from Redis, sets speed change mode as \"speedup\", and determines the video speed change based on the durations. The hard limit for remedyDurationRange is set to 3.5, with a minimum range of 1.5 and maximum at hard_limit. A function loopVideoTillTarget is defined, taking in video path, objective (dictionary), and scriptPath as parameters.",
         "type": "comment"
     },
     "1184": {
-        "file_id": 103,
-        "content": "            from pyjom.modules.topicGenerator.onlineTopicGenerator import (\n                topicModeling,\n                topicWordSelection,\n            )\n            topics = topicModeling(topic_modeling_source_sentences, lang=lang)\n            selectedWord = topicWordSelection(\n                topics, core_topic_set, selected_topic_list_dict[dog_or_cat]\n            )\n            dog_or_cat_original = dog_or_cat\n            dog_or_cat = randomTarget()\n            if selectedWord is not None:\n                keywords = \" \".join(\n                    [getKeywords[dog_or_cat](), selectedWord]\n                )  # for next iteration.\n                print(\"REFRESHING KEYWORDS:\", keywords)\n            else:\n                keywords = getKeywords[dog_or_cat]()\n            # print(selected_topic_list_dict)\n            # breakpoint()\n            filtered_title_list = filterTitleListWithCoreTopicSet(\n                title_list, static_core_topic_list\n            )  # could be enhabced with CLIP\n            filtered_description_list = filterTitleListWithCoreTopicSet(",
+        "file_id": 92,
+        "content": "                ):\n                    # import moviepy # are you sure you want to import this? i think it will fuck up many things.\n                    # use it externally. please!\n                    # as some commandline script.\n                    success = False\n                    videoDuration = -1\n                    videoValid = False\n                    videoValid = corruptVideoFilter(video_path)\n                    if videoValid:\n                        videoDuration = get_duration(local_video_location)\n                        if videoDuration >= objective[\"min\"]:\n                            cmd = [\n                                \"python3\",\n                                scriptPath,\n                                \"-i\",\n                                video_path,\n                                \"-t\",\n                                str(objective[\"min_target\"]),\n                                \"--replace\",\n                            ]  # you must use some random temp file path...\n                            # use subprocess?",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:379-404"
+        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:116-137"
     },
     "1185": {
-        "file_id": 103,
-        "content": "This code imports topic generation and word selection functions, generates topics using the topicModeling function, selects a word from the generated topics, randomizes dog_or_cat variable, joins keywords with selectedWord for next iteration if not None, otherwise uses original getKeywords function, filters title list with core topic set, and possibly enhances description list filtering with CLIP.",
+        "file_id": 92,
+        "content": "The code checks if a video is valid and meets the minimum duration requirement. If valid, it generates a command for a script using moviepy to extract a portion of the video based on the specified duration. The use of moviepy should be done externally due to potential issues.",
         "type": "comment"
     },
     "1186": {
-        "file_id": 103,
-        "content": "                description_list, static_core_topic_list\n            )\n            # filtered_title_list = filterTitleListWithCoreTopicSet(title_list, core_topic_set) # could be enhabced with CLIP\n            # store the bgm elsewhere?\n            # where? you store it where?\n            if bgmCacheSetName:  # no matter what you got to do this.\n                for item in bgm_list:\n                    addToRedisCachedSet(item, bgmCacheSetName)\n            if len(filtered_description_list) > 3:\n                if len(filtered_title_list) > 3:\n                    if len(cover_list) > 3:\n                        if len(tag_list) > 3:\n                            if len(bgm_list) > 3:\n                                # time to yield something.\n                                # detect this thing!\n                                # filtered_cover_list = []\n                                # this method needs to change. the cover_list.\n                                cover_target = getCoverTargetFromCoverList(\n                                    cover_list,",
+        "file_id": 92,
+        "content": "                            import subprocess\n                            r = subprocess.run(cmd)\n                            success = 0 == r.returncode\n                    return videoValid, videoDuration, success\n                videoValid, videoDuration, success = loopVideoTillTarget(\n                    local_video_location, remedyDurationRange\n                )\n                if not videoValid:\n                    print(\"VIDEO NOT VALID.\")\n                    continue\n                elif not success:\n                    print(\"VIDEO DURATION LIMIT OBJECTIVE FAILED.\")\n                    print(f\"MIN: {remedyDurationRange['min']} VIDEO: {videoDuration}\")\n                    continue\n                duration_filter = {\"min\": hard_limit, \"max\": 15}\n                # to loop through short gifs?\n                fps_filter = {\"min\": 7, \"max\": 60}\n                # fps_float = get_fps_float(local_video_location)\n                # duration_valid = checkMinMaxDict(duration,duration_filter)\n                # fps_valid = checkMinMaxDict(fps_float,fps_filter)",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:405-424"
+        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:138-161"
     },
     "1187": {
-        "file_id": 103,
-        "content": "This code filters and processes various lists (title, description, cover, tag, and bgm) for a post. It checks the lengths of these lists and adds items to a Redis cached set if necessary. The code also calls other methods like `filterTitleListWithCoreTopicSet` and `getCoverTargetFromCoverList`.",
+        "file_id": 92,
+        "content": "The code imports subprocess, runs a command and checks its return code to determine success. It then calls loopVideoTillTarget function with local video location and remedyDurationRange as parameters. If the video is not valid, it prints \"VIDEO NOT VALID.\" and continues. If the objective failed, it prints \"VIDEO DURATION LIMIT OBJECTIVE FAILED.\", current min from remedyDurationRange, and the current video duration and continues. It defines duration_filter and fps_filter dictionaries for filtering.",
         "type": "comment"
     },
     "1188": {
-        "file_id": 103,
-        "content": "                                    dog_or_cat_original,  # this is the label of the selected metatopic. might be useful.\n                                )\n                                # this is a general thing.\n                                # r = requests.get(cover)\n                                # content = r.content\n                                # # corrupted or not?\n                                # image = cv2.imdecode(content, cv2.IMREAD_COLOR)\n                                # mCover = random.choice(filtered_cover_list) # what is this cover list?\n                                # mDescription = random.choice(filtered_description_list)\n                                mDescription = shuffleAndPopFromList(\n                                    filtered_description_list\n                                )\n                                if cover_target is not None:\n                                    # you want to pop these things?\n                                    # clearly a list of strings",
+        "file_id": 92,
+        "content": "                from pyjom.videotoolbox import (\n                    getVideoColorCentrality,\n                    checkVideoColorCentrality,\n                    getEffectiveFPS,\n                    NSFWVideoFilter,\n                    yolov5_bezier_paddlehub_resnet50_dog_cat_video_filter,\n                    dummyFilterFunction,  # just for dog and cat, no other animals.\n                    getVideoTextAreaRatio,\n                )\n                video_color_filter = {\n                    \"centrality\": {\"max\": 0.18},  # stricter limit?\n                    \"max_nearby_center_percentage\": {\"max\": 0.13},\n                }\n                video_effective_fps_filter = {\"min\": 7}\n                videoTextAreaRatioFilter = {\"max\": 0.3}\n                valid = True\n                mList = [\n                    [\n                        corruptVideoFilter,\n                        None,\n                        dummyFilterFunction,\n                        \"video corruption filter\",\n                    ],\n                    [get_duration, duration_filter, checkMinMaxDict, \"duration\"],",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:425-439"
+        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:163-187"
     },
     "1189": {
-        "file_id": 103,
-        "content": "The code is selecting a random cover and description from filtered lists for a post's metadata. It uses the requests library to fetch image content, cv2 to decode it, and shuffleAndPopFromList function to select elements from the filtered description list. The cover target could be used to filter these elements further.",
+        "file_id": 92,
+        "content": "The code imports video processing functions from the pyjom.videotoolbox module, sets filter parameters for color centrality, effective FPS, and video text area ratio. It also defines a corruptVideoFilter function and a duration_filter function. The code then checks if all filters are valid to proceed with further processing.",
         "type": "comment"
     },
     "1190": {
-        "file_id": 103,
-        "content": "                                    mTagSeries = randomChoiceTagList(\n                                        tag_list, pop=True\n                                    )  # a collection of tags.\n                                    mTagSeries = [filterNonChineseOrEnglishOrJapaneseCharacters(tag) for tag in mTagSeries]\n                                    # mTitle = random.shuffle(filtered_title_list)\n                                    mTitle = shuffleAndPopFromList(filtered_title_list)\n                                    # mBgm = random.choice(bgm_list)\n                                    # really serious?\n                                    mBgm = shuffleAndPopFromList(bgm_list)\n                                    # you enable this paraphrase option here.\n                                    if customParaphraser:\n                                        mTitle = customParaphraser(mTitle)\n                                        mDescription = customParaphraser(mDescription)\n                              ",
+        "file_id": 92,
+        "content": "                    [get_fps_float, fps_filter, checkMinMaxDict, \"fps\"],\n                    [\n                        getVideoTextAreaRatio,\n                        videoTextAreaRatioFilter,\n                        checkMinMaxDict,\n                        \"videoTextAreaRatioFilter\",\n                    ],\n                    [\n                        # yolov5_bezier_paddlehub_resnet50_dog_cat_video_filter,\n                        keywordDecorator(\n                            yolov5_bezier_paddlehub_resnet50_dog_cat_video_filter,\n                            filter_dict={\n                                key: value\n                                for key, value in yolov5_default_filter_dict.items()\n                                if key == dog_or_cat\n                            },\n                        ),\n                        None,\n                        dummyFilterFunction,\n                        \"DogCat\",\n                    ],\n                    [\n                        getVideoColorCentrality,\n                        video_color_filter,",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:440-454"
+        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:188-211"
     },
     "1191": {
-        "file_id": 103,
-        "content": "This code randomly selects tags, titles, and background music for a post, potentially applying paraphrasing to the title and description if a custom function is provided.",
+        "file_id": 92,
+        "content": "This code defines several processing functions for video analysis, including fps filtering, calculating text area ratio, and filters for detecting dogs or cats based on the provided keywords. These functions are then used to analyze videos and extract relevant information.",
         "type": "comment"
     },
     "1192": {
-        "file_id": 103,
-        "content": "      yield (cover_target, mTagSeries, filterNonChineseOrEnglishOrJapaneseCharacters(mTitle), mBgm, filterNonChineseOrEnglishOrJapaneseCharacters(mDescription), dog_or_cat_original, \n                                    target_tid\n                                    # search_tid\n                                    )  # one additional return value\n                                    # the search tid is not good.\n                                    # we must remove the generic tid.\n                                    clearMyLists()\n        except:\n            import time\n            time.sleep(sleepTime)\n            from lazero.utils.logger import traceError\n            traceError(\"error when fetching metatopic\")\ndef getBilibiliPostMetadataForDogCat(\n    dog_or_cat: Literal[\"dog\", \"cat\"] = \"dog\",\n    bgmCacheSetName=\"bilibili_cached_bgm_set\",\n    bgmCacheAutoPurge=False,\n    customParaphraser:Union[Callable, None]=None\n):\n    dynamics = [[\"可爱\", \"萌\", \"萌宠\"], [\"行为\", \"燃\"], [\"搞笑\", \"逗比\", \"魔性\"]]\n    cat_metatopic = {",
+        "file_id": 92,
+        "content": "                        checkVideoColorCentrality,\n                        \"video_color_centrality\",\n                    ],\n                    [\n                        getEffectiveFPS,\n                        video_effective_fps_filter,\n                        checkMinMaxDict,\n                        \"EffectiveFPS\",\n                    ],  # also, the dog/cat detector! fuck.\n                    [NSFWVideoFilter, None, dummyFilterFunction, \"NSFW\"],\n                    [\n                        vtb.duplicatedVideoFilter,\n                        None,\n                        dummyFilterFunction,\n                        \"video duplication filter\",\n                    ],\n                ]\n                for function, mFilter, filterFunction, flag in mList:\n                    try:\n                        mValue = function(local_video_location)\n                        valid = filterFunction(mValue, mFilter)\n                        if not valid:\n                            print(\"skipping due to invalid %s: %s\" % (flag, mValue))",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:454-478"
+        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:212-234"
     },
     "1193": {
-        "file_id": 103,
-        "content": "This code defines a function `getBilibiliPostMetadataForDogCat` that fetches post metadata for bilibili posts related to dogs or cats. It takes parameters such as the type of animal, custom paraphraser, and more. The function handles potential errors by logging them and retrying after a sleep time if necessary. It also defines `dynamics`, which seems to represent different types of content for the metadata.",
+        "file_id": 92,
+        "content": "This code defines a list of filters for processing videos. Each filter is applied in sequence, and if any filter returns an invalid result, the video is skipped with a message. The NSFW detector is also mentioned as part of one of the filters.",
         "type": "comment"
     },
     "1194": {
-        "file_id": 103,
-        "content": "        \"static\": [\n            [\"喵喵\", \"猫\", \"猫咪\", \"喵\"],\n        ],\n        \"dynamic\": dynamics,\n    }\n    dog_metatopic = {\n        \"static\": [\n            [\n                \"狗狗\",\n                \"狗\",\n                \"汪汪\",\n                \"修勾\",\n                \"汪\",\n                \"狗子\",\n            ],\n        ],\n        \"dynamic\": dynamics,\n    }\n    getMetatopic = {\n        \"dog\": dog_metatopic,\n        \"cat\": cat_metatopic,\n    }\n    # bullshit.\n    # must use subcategories.\n    getTids = {\n        \"dog\": [BSP.all.tids.动物圈.tid, BSP.all.tids.动物圈.汪星人],\n        \"cat\": [BSP.all.tids.动物圈.tid, BSP.all.tids.动物圈.喵星人],\n    }\n    genericTids = [BSP.all.tids.动物圈.tid] # these tids cannot be used for video posting.\n    ## then the decision.\n    getMetatopic = {\n        key: value for key, value in getMetatopic.items() if key == dog_or_cat\n    }\n    getTids = {key: value for key, value in getTids.items() if key == dog_or_cat}\n    return getBilibiliPostMetadata(  # this is a premature version. the deeplearning version might interest you more. but how the fuck i can integrate DL into this shit?",
+        "file_id": 92,
+        "content": "                            print(\"%s filter:\" % flag, mFilter)\n                            break\n                        else:\n                            print(\"%s test passed.\" % flag)\n                    except:\n                        import traceback\n                        traceback.print_exc()\n                        print(\"skipping due to exception during filtering\")\n                        valid = False\n                        break\n                if not valid:\n                    print(\"abandon video:\", item_id)\n                # breakpoint()\n                if not valid:\n                    if os.path.exists(local_video_location):\n                        print(\"removing abandoned video:\", local_video_location)\n                        os.remove(local_video_location)\n                else:\n                    video_width, video_height = get_res(local_video_location)\n                    yield {\n                        \"location\": local_video_location,\n                        \"item_id\": item_id,\n                        \"meta\": {",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:479-515"
+        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:235-258"
     },
     "1195": {
-        "file_id": 103,
-        "content": "This code defines two metatopics, one for cats and one for dogs, and creates dictionaries to map \"dog\" and \"cat\" keys to their respective metatopics and tids. The tids are specific to the Bilibili platform and belong to the animal category. The code also includes a genericTids list that cannot be used for video posting. Finally, it filters the metatopic and tid dictionaries based on the \"dog_or_cat\" key before returning the BilibiliPostMetadata object.",
+        "file_id": 92,
+        "content": "This code is testing a filter for an item and either passing or skipping based on exceptions. If it skips, the video file is removed. If it passes, it yields information about the video location and item ID.",
         "type": "comment"
     },
     "1196": {
-        "file_id": 103,
-        "content": "        getMetatopic=getMetatopic,\n        getTids=getTids,\n        getCoverTargetFromCoverList=getCoverTargetFromCoverListForDogCat,\n        bgmCacheSetName=bgmCacheSetName,\n        bgmCacheAutoPurge=bgmCacheAutoPurge,\n        customParaphraser = customParaphraser,\n        genericTids=genericTids # cannot used for upload tid specification.\n    )",
+        "file_id": 92,
+        "content": "                            \"duration\": get_duration(local_video_location),\n                            \"width\": video_width,\n                            \"height\": video_height,\n                        },\n                    }\n                    # if you abandon that, better delete it!\n                # do time duration check, effective fps check, color centrality check, then the dog/cat check\n                # what's next? find some audio files? or just use one audio?\n                # print(\"HERE??\",3)\n                # print('flag', flag)",
         "type": "code",
-        "location": "/pyjom/platforms/bilibili/postMetadata.py:516-523"
+        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:259-268"
     },
     "1197": {
-        "file_id": 103,
-        "content": "Defining functions for retrieving metadata, handling TIDs, selecting a cover target, setting BGM cache parameters, and using a custom paraphraser. These will be used in the main function of this platform module. The genericTids cannot be used for upload tid specification.",
+        "file_id": 92,
+        "content": "This code snippet is initializing a dictionary with key-value pairs for video duration, width, and height. It also creates another nested dictionary representing the video object. The code mentions time duration check, effective fps check, color centrality check, dog/cat check, and possibly audio file handling in future steps.",
         "type": "comment"
     },
     "1198": {
-        "file_id": 104,
-        "content": "/pyjom/platforms/bilibili/database.py",
+        "file_id": 93,
+        "content": "/pyjom/modules/informationProcessing/localProcessor.py",
         "type": "filepath"
     },
     "1199": {
-        "file_id": 104,
-        "content": "The code is for a video recommendation program that uses text processing, SQLite database, BM25 algorithm, and hybrid search algorithms to retrieve Bilibili user videos, handle pagination, and update databases. It defines functions for video searching and refreshing status, interacts with a database, initializes a scheduler, creates tables, sets up FastAPI application, contains video search endpoints, retrieves video info from generators, schedules tasks, handles forms, registers videos on Bilibili platform, uses Uvicorn server, and runs bilibiliRecommendationServer function.",
+        "file_id": 93,
+        "content": "This code segment processes filesystem information, retrieves metadata, calculates various details, handles GIFs and text files, analyzes YoloV5-detected objects from the \"yolov5\" array, filters file info, discards unwanted files, and returns modified fileinfo dictionary.",
         "type": "summary"
     }
 }

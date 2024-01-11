@@ -1,547 +1,548 @@
 {
     "100": {
-        "file_id": 16,
-        "content": "            ):  # 新版qq之类的信息\n                # we log group chat text for gpt training here. shall we?\n                result = checkGroupMsgSendStatus(group_id)\n                if (\n                    result\n                ):  # will not write banned group to cursor since we will not reply it.\n                    noReply = groupNoReplyStack.get(group_id, 0)\n                    # stderrPrint(\"NOREPLYSTACK:\",groupNoReplyStack)\n                    if noReply >= 0:\n                        groupChatCursor = {\"group_id\": group_id, \"msg\": Content}\n                    else:\n                        groupNoReplyStack.update({group_id: noReply + 1})\n                # chat_stack update logic within the content length filter\n                if chat_stack_lock:\n                    # do not do anything about the chat_stack while locked.\n                    return\n                else:\n                    # check if we are hit by something interesting?\n                    catOrDogAsyncThread(group_id, sender_id, Content)",
+        "file_id": 8,
+        "content": "            if needSegment:\n                start = random.uniform(0, musicLength - segmentLength)\n                end = start + segmentLength\n                ffmpeg.input(filepath, ss=start, to=end).output(segmentName).run(\n                    overwrite_output=True\n                )\n            else:\n                pathlib.Path(segmentName).touch()\n                segmentName = filepath\n            # you will change to given directory, will you?\n            commandLine = [\"npx\", \"ts-node\", \"midomi_music_recognize.ts\", segmentName]\n            success, data = runCommandAndProcessSongRecognizationJson(\n                commandLine,\n                midomiSongRecognizationResultProcessMethod,\n                raw_data=raw_data,\n                debug=debug,\n                timeout=timeout,\n                workingDirectory=\"/root/Desktop/works/pyjom/tests/music_recognization/AmadeusCore\",\n            )\n        if success:\n            break\n    return success, data\ndef recognizeMusicFromFile(\n    filepath,\n    backend: Literal[\"songrec\", \"shazamio\", \"midomi\", None] = None,",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:353-373"
+        "location": "/pyjom/musictoolbox.py:355-381"
     },
     "101": {
-        "file_id": 16,
-        "content": "This code block handles QQ group chat messages and logs them for GPT training. It also manages a \"noReply\" counter for groups where the bot should not reply, and updates a chat_stack based on certain conditions. The chat_stack lock is checked to ensure no simultaneous updates are made. If interesting content is detected, it triggers a catOrDogAsyncThread function.",
+        "file_id": 8,
+        "content": "This code segment is responsible for recognizing music from a given file using different backends. It first checks if there is a need to segment the audio and then uses FFmpeg to extract a segment or touches an existing file as the input. Next, it runs a command line with various arguments including the input file, backend type, raw data, debug mode, timeout, and working directory. The function returns success status and processed data if successful, otherwise continues trying with different backends until success is achieved.",
         "type": "comment"
     },
     "102": {
-        "file_id": 16,
-        "content": "                    updateChatStack(group_id, Content)\n                    # or we could simply add the filter on the reply side.\n    if sender_id != my_qq:  # skip text content sent by itself.\n        # how to act like the TextMsg? it could include video/image contents.\n        if MsgType == \"AtMsg\":\n            Content = ctx.Content  # this is string.\n            Content_json = json.loads(Content)\n            content_text = Content_json[\"Content\"].strip()\n            # print(Content_json)\n            # breakpoint()\n            # 'SrcContent', 'UserID'(list)\n            content_at_target = (\"@\" + content_text.split(\"@\")[1]).strip()\n            content_text = content_text.replace(content_at_target, \"\")\n            content_text = replaceDuplicateChar(content_text, \" \", maxRepeat=1)\n            # UserExt = Content_json[\"UserExt\"]\n            # # shit revised. no more 'UserExt'\n            # for elem in UserExt:\n            #     QQNick = elem[\"QQNick\"]\n            #     at_QQNick = \"@{}\".format(QQNick)\n            #     content_text = content_text.replace(at_QQNick + \" \" + at_QQNick, \"\")",
+        "file_id": 8,
+        "content": "    raw_data=False,\n    debug=False,\n):  # if not returning raw_data, only track data and artist data are returned.\n    assert os.path.exists(filepath)\n    # if returning raw_data, must also return the provider name, for easy parsing.\n    # you can try all methods. but if all three methods fails, you know what to do. what indicates the recognizer has failed?\n    # you can try something erotic.\n    if backend is None:  # auto\n        musicDuration = getAudioDuration(filepath)\n        if musicDuration <= 15:\n            backend = \"midomi\"\n        else:\n            backend = \"songrec\"\n    methods = {\n        \"midomi\": recognizeMusicFromFileMidomi,\n        \"songrec\": recognizeMusicFromFileSongrec,\n        \"shazamio\": recognizeMusicFromFileShazamIO,\n    }\n    keys = list(methods.keys())\n    keys.sort(key=lambda x: -int(x == backend))\n    for key in keys:\n        method = methods[key]\n        success, data = method(filepath, debug=debug)\n        if debug:\n            print(\"DATA:\")\n            print(data)\n            print(\"RETURN FROM MUSIC RECOGNIZE METHOD: %s\" % key)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:374-394"
+        "location": "/pyjom/musictoolbox.py:382-408"
     },
     "103": {
-        "file_id": 16,
-        "content": "This code checks if the message type is an \"AtMsg\" and extracts the content, removes the mentioned user, replaces duplicate characters with a maximum repeat of 1, and updates the chat stack. If the sender is not the bot itself, it performs these actions on the message content.",
+        "file_id": 8,
+        "content": "This function uses a series of methods to recognize music from a file and returns track data, artist data, and raw data if specified. It checks the duration of the audio file and chooses the appropriate method (midomi, songrec, or shazamio) based on the duration. If no backend is specified, it automatically selects the best method for the given file duration. The code also prints debug information if requested.",
         "type": "comment"
     },
     "104": {
-        "file_id": 16,
-        "content": "            #     content_text = content_text.replace(at_QQNick, \"\")\n            # now the content is ready.\n            writeGroupChatCursor(content_text)\n        if MsgType == \"TextMsg\":\n            # is that group allowing sending messages?\n            content_text = ctx.Content  # must not be empty.\n            writeGroupChatCursor(content_text)\n    if RedBaginfoDict is not None:\n        prefix = \"[MREDBAG_LOG]\"\n        print(prefix, \"RECEIVED RED PACKET\", file=sys.stderr)\n        print(\n            prefix, \"_____________RedPacket Message Dump_____________\", file=sys.stderr\n        )\n        print(prefix, ctx, file=sys.stderr)\n        print(\n            prefix, \"_____________RedPacket Message Dump_____________\", file=sys.stderr\n        )\n        startThread(openRedBag, (RedBaginfoDict, group_id, RedBaginfo))\n    schedule.run_pending()  # this is async.\n    # breakpoint()\nif __name__ == \"__main__\":\n    bot.run()\n# do not send porn shits or you need to relogin.",
+        "file_id": 8,
+        "content": "            print(\"SUCCESS:\", success)\n        if success:\n            if raw_data:\n                return success, data, key\n            else:\n                return success, data\n        if debug:\n            break  # no retry then.\n    if raw_data:\n        return False, {}, \"\"\n    return False, {}\n############ SEARCH NETEASE MUSIC, GET SIMILAR MUSIC BY ID, DOWNLOAD MUSIC AND LYRICS ############\nimport requests\nfrom lazero.program.functools import suppressException\nclass neteaseMusic:\n    def __init__(self, port: int = 4042):\n        self.baseUrl = \"http://localhost:{}\".format(port)\n    def verifyResponseCodeAndGetJson(\n        self, response, debug: bool = False, success_codes: list[int] = [200]\n    ):\n        response_json = response.json()  # check search_result.json\n        if success_codes != []:\n            code = response_json[\"code\"]\n            if not code in success_codes:\n                if debug:\n                    print(response_json)\n                import traceback\n                traceback.print_exc()",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:395-421"
+        "location": "/pyjom/musictoolbox.py:409-443"
     },
     "105": {
-        "file_id": 16,
-        "content": "Code chunk handles messages and red packets in a QQ group chat. It filters the message type, prepares content for writing, writes to the group chat cursor, handles received red packets by starting a thread, and runs pending tasks asynchronously.",
+        "file_id": 8,
+        "content": "Imports necessary libraries and defines a class for interacting with Netease Music. The class has a constructor to set the port, and methods to search music, get similar music by ID, download music and lyrics. It also handles exceptions and checks response codes.",
         "type": "comment"
     },
     "106": {
-        "file_id": 17,
-        "content": "/tasks/qq/qq_red_packet_collect/README.md",
-        "type": "filepath"
+        "file_id": 8,
+        "content": "                raise Exception(\"ERROR CODE IN NETEASE API RESPONSE:\", code)\n        return response_json\n    def requestWithParamsGetJson(\n        self,\n        suffix: str,\n        params: dict = {},\n        debug: bool = False,\n        success_codes: list[int] = [200],\n        refresh: bool = False,\n    ):\n        if refresh:\n            params.update({\"timestamp\": getJSTimeStamp()})\n        suffix = suffix.strip()\n        if not suffix.startswith(\"/\"):\n            suffix = \"/\" + suffix\n        link = self.baseUrl + suffix\n        result = requests.get(link, params=params)\n        result_json = self.verifyResponseCodeAndGetJson(\n            result, debug=debug, success_codes=success_codes\n        )\n        return result_json\n    @suppressException(tries=2, defaultReturn={})\n    def searchNeteaseMusicByQuery(\n        self, query: Union[list, str], debug: bool = False, refresh: bool = False\n    ):\n        if type(query) == str:\n            query = query.strip()\n        else:\n            query = [elem.strip() for elem in query]",
+        "type": "code",
+        "location": "/pyjom/musictoolbox.py:444-474"
     },
     "107": {
-        "file_id": 17,
-        "content": "This code provides the URLs to relogin for two users, Yukio and Miaomiao, as well as a command to clear the group chat log using either `cat` or (deprecated) `echo` commands.",
-        "type": "summary"
+        "file_id": 8,
+        "content": "This code defines a class method to request data from a Netease API using GET requests and handle the response. It takes parameters like suffix, query, debug flag, success codes, and refresh flag. The method handles refreshing timestamps if needed, constructs the URL, makes a GET request with the parameters, verifies the response code, and returns the JSON data or raises an exception if an error occurs.",
+        "type": "comment"
     },
     "108": {
-        "file_id": 17,
-        "content": "to relogin, go to:\nfor yukio:\nhttp://localhost:8780/v1/Login/GetQRcode\nfor miaomiao:\nhttp://localhost:8784/v1/Login/GetQRcode\nto clear group chat log:\n```bash\ncat /dev/null > redPacketLog_0.log \n```\n(deprecated)\n```bash\necho > redPacketLog_0.log\n```",
+        "file_id": 8,
+        "content": "            query = \" \".join([elem for elem in query if len(elem) > 0])\n        assert len(query) > 0\n        search_result_json = self.requestWithParamsGetJson(\n            \"/search\",\n            params={\"keywords\": query},\n            debug=debug,\n            refresh=refresh,\n        )\n        return search_result_json\n    @suppressException(defaultReturn=[])\n    def getSimilarMusicByIdFromNetease(\n        self, music_id: int, debug: bool = False, refresh: bool = False\n    ):\n        r_json = self.requestWithParamsGetJson(\n            \"/simi/song\", params={\"id\": music_id}, debug=debug, refresh=refresh\n        )\n        song_ids = []\n        for song in r_json[\"songs\"]:\n            name = song[\"name\"]\n            song_id = song[\"id\"]\n            song_ids.append(song_id)\n            # what you want?\n        return song_ids\n    @suppressException()\n    def getMusicUrlFromNetease(\n        self, music_id: int, debug: bool = False, refresh: bool = False\n    ):\n        r_json = self.requestWithParamsGetJson(\n            \"/song/url\", params={\"id\": music_id}, debug=debug, refresh=refresh",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/README.md:1-20"
+        "location": "/pyjom/musictoolbox.py:475-505"
     },
     "109": {
-        "file_id": 17,
-        "content": "This code provides the URLs to relogin for two users, Yukio and Miaomiao, as well as a command to clear the group chat log using either `cat` or (deprecated) `echo` commands.",
+        "file_id": 8,
+        "content": "The code contains functions to search and retrieve similar music by ID, as well as fetching the URL of a specific song from the Netease API. It makes requests with parameters, handles exceptions, and returns search results or song IDs.",
         "type": "comment"
     },
     "110": {
-        "file_id": 18,
-        "content": "/tasks/qq/qq_red_packet_collect/base_opq.py",
-        "type": "filepath"
+        "file_id": 8,
+        "content": "        )  # this song might expire. warning!\n        # expire in a few seconds.\n        url = r_json[\"data\"][0].get(\"url\", None)\n        return url  # you may test this url. later.\n    @suppressException(defaultReturn=False)\n    def checkMusicFromNetEase(\n        self, music_id: int, debug: bool = False, refresh: bool = False\n    ):\n        # {\n        #   \"success\": true,\n        #   \"message\": \"ok\"\n        # }\n        # no need to check the return code.\n        r_json = self.requestWithParamsGetJson(\n            \"check/music\",\n            params={\"id\": music_id},\n            debug=debug,\n            refresh=refresh,\n            success_codes=[],\n        )\n        assert r_json[\"success\"] == True\n        assert r_json[\"message\"] == \"ok\"\n        return True\n    @suppressException()\n    def getMusicLyricFromNetease(\n        self,\n        music_id: int,\n        debug: bool = False,\n        refresh: bool = False,\n        minLyricStringLength: int = 50,\n    ):\n        r_json = self.requestWithParamsGetJson(\n            \"/lyric\",",
+        "type": "code",
+        "location": "/pyjom/musictoolbox.py:506-540"
     },
     "111": {
-        "file_id": 18,
-        "content": "The code handles group management in a messaging platform using modules and botoy instance for QQ API communication, includes error printing helper functions, and performs searches with API requests. It also has an 'openRedBag' function that retries three times with sleep time backoff strategy and parameter checks, delay ranges, and forbidden keyword filtering. The asyncThread decorator starts new threads to execute original func functions.",
-        "type": "summary"
+        "file_id": 8,
+        "content": "The code defines two functions: `checkMusicFromNetEase` and `getMusicLyricFromNetease`. The first function checks if a music URL exists by sending a GET request to the \"check/music\" endpoint with the given music ID. It returns True if the response is successful. The second function retrieves the lyrics of the specified music ID from the \"/lyric\" endpoint and raises exceptions for errors. Both functions use the `requestWithParamsGetJson` method, which sends a GET request to an endpoint, receives JSON data, and handles success codes or exceptions based on parameters provided.",
+        "type": "comment"
     },
     "112": {
-        "file_id": 18,
-        "content": "from botoy import Action\nfrom botoy import Botoy, GroupMsg\nimport threading\nimport json\nimport time\nimport random\nimport sys\nimport traceback\nfrom threading import Event\nexit_event = Event()\nexit_event.clear()\ndef programExit():\n    exit_event.set()\n# my_qq = 1281727431 # freaking int! Yukio.\nimport argparse\nparser = argparse.ArgumentParser()\nparser.add_argument(\n    \"--qq\", type=int, default=1281727431, required=False\n)  # must not required since we have default value here.\nparser.add_argument(\"--port\", type=int, default=8780, required=False)\nparser.add_argument(\"--log\", action=\"store_true\")\nparser.add_argument(\"--log_file\", action=\"store_true\")\n# 忽略信息的blacklist 还有user_blacklist\ngroup_blacklist = [927825838]  # 微信的hook发布群\nfriend_blacklist = [364831018]  # 发给我微信hook的人\nparsed_args = parser.parse_args()\nmy_qq = parsed_args.qq\nserver_port = parsed_args.port\nlog = parsed_args.log\nlog_file = parsed_args.log_file\n# you can pass the qq via enviorment variable.\n# it is already inside. so the call fails.\n# you might check all friends list and grou list.",
+        "file_id": 8,
+        "content": "            params={\"id\": music_id},\n            debug=debug,\n            refresh=refresh,\n        )\n        # warning: the fetched lrc could be not so clean. clean it somehow!\n        lyric_string = r_json[\"lrc\"][\"lyric\"]\n        if lyric_string != None and type(lyric_string) == str:\n            if len(lyric_string) > minLyricStringLength:\n                return lyric_string\n    @suppressException(tries=2, defaultReturn=((None, None), None))\n    def getMusicAndLyricWithKeywords(\n        self,\n        keywords: str,\n        similar: bool = False,\n        debug: bool = False,\n        min_audio_length: float = 2 * 60,\n        max_audio_length: float = 5 * 60\n    ):  # minimum 2.5 minutes of music.\n        import pyjq\n        # store the downloaded file in some place please?\n        search_data_json = self.searchNeteaseMusicByQuery(keywords, debug=debug)\n        # print(search_data_json)\n        song_ids = pyjq.all(\n            \".result.songs[] | select (.id !=null) | .id\", search_data_json\n        )  # incorrect. use pyjq.all",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:1-46"
+        "location": "/pyjom/musictoolbox.py:541-567"
     },
     "113": {
-        "file_id": 18,
-        "content": "The code imports necessary modules and defines functions for handling program exit, parsing command-line arguments, and managing blacklists. The script takes a QQ number as an input and determines which friends and groups to interact with based on the provided arguments. It also allows for logging and handling environment variables.",
+        "file_id": 8,
+        "content": "This code defines a function that searches for music and its corresponding lyrics using keywords. It also includes error suppression and checks if the downloaded file is stored or not. The function takes in parameters such as keywords, similarity flag, debug mode, minimum and maximum audio lengths. It uses Pyjq to query the music data and extracts song IDs from the search results.",
         "type": "comment"
     },
     "114": {
-        "file_id": 18,
-        "content": "lua_v1_api_path = \"/v1/LuaApiCaller\"\nopq_server = {\"host\": \"localhost\", \"port\": server_port}  # this is for arm\n# opq_server = {\"host\":\"localhost\",\"port\":8781} # this is for amd64\n# not 0.0.0.0 but freaking localhost.\naction = Action(qq=my_qq, port=opq_server[\"port\"], host=opq_server[\"host\"])\nbot = Botoy(\n    qq=my_qq,\n    port=opq_server[\"port\"],\n    host=opq_server[\"host\"],\n    log=log,\n    log_file=log_file,\n    group_blacklist=group_blacklist,\n    friend_blacklist=friend_blacklist,\n)  # have info. have custom log file.\n## this is the damn bot. how to get group name?\nmyGroupDict = {}\ntry:\n    myGroupList = action.getGroupList()\n    myGroupDict = {elem[\"GroupId\"]: elem[\"GroupName\"] for elem in myGroupList}\nexcept:\n    pass\n# [{'GroupId': 118794, 'GroupMemberCount': 2818, 'GroupName': '攻防世界交流群', 'GroupNotice': '第四届“第五空间”网络安全大赛\\n1、报名网站：\\x01https://ctf.360.net/5space\\x02\\n2、 报名时间：8月30日--9月9日（沿用DSCTF）\\n', 'GroupOwner': 41495, 'GroupTotalCount': 3000},...]\n# from lazero.utils.logger import sprint\n# sprint(myGroupList)",
+        "file_id": 8,
+        "content": "        # print(song_ids)\n        # breakpoint()\n        song_id = random.choice(song_ids)\n        # how to parse this shit?\n        if similar:\n            similar_song_ids = self.getSimilarMusicByIdFromNetease(song_id, debug=debug)\n            song_id = random.choice(similar_song_ids)\n        # now download the music.\n        music_url = self.getMusicUrlFromNetease(song_id, debug=debug, refresh=True)\n        # download the music right now.\n        r = requests.get(music_url)\n        if debug:\n            print(\"download music status code:\", r.status_code)\n        assert r.status_code == 200  # are you sure the code is ok?\n        music_format = music_url.split(\".\")[-1]\n        music_content = r.content\n        # how to get song duration?\n        import tempfile\n        with tempfile.NamedTemporaryFile(\n            mode=\"wb\", suffix=\".{}\".format(music_format)\n        ) as f:\n            name = f.name\n            name = os.path.abspath(name)\n            f.write(music_content)\n            song_duration = getAudioDuration(name)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:47-73"
+        "location": "/pyjom/musictoolbox.py:568-594"
     },
     "115": {
-        "file_id": 18,
-        "content": "This code sets up a botoy instance for communication with the QQ API, retrieves a list of groups, and stores them in a dictionary. The group information is obtained using the `getGroupList()` method from the action class, and the dictionary maps each group ID to its corresponding name. If an error occurs during this process, it is caught and ignored.",
+        "file_id": 8,
+        "content": "This code randomly selects a song, if similar music is specified, it chooses one from the similar list. It then downloads the selected music and stores it temporarily for later use. The song duration is determined using a helper function.",
         "type": "comment"
     },
     "116": {
-        "file_id": 18,
-        "content": "# breakpoint()\ndef updateGroupNameDict(groupName, group_id):\n    global myGroupDict\n    group_id = int(group_id)\n    if group_id not in myGroupDict.keys():\n        print(\"UPDATING GROUP_ID -> GROUP_NAME DICT\")\n        print(\"OROUP ID:\", group_id)\n        print(\"GROUP NAME:\", groupName)\n        myGroupDict.update({group_id: groupName})\ndef getGroupNameFromDict(group_id):\n    global myGroupList, action, myGroupDict\n    if myGroupList in [None, []]:  # if not empty please update this dict elsewhere?\n        try:\n            myGroupList = action.getGroupList()\n            myGroupDict.update(\n                {elem[\"GroupId\"]: elem[\"GroupName\"] for elem in myGroupList}\n            )\n        except:\n            print(\"NO GROUP LIST AVALIABLE.\")\n            return\n    group_id = int(group_id)\n    groupName = myGroupDict.get(group_id, None)\n    if groupName is None:\n        print(\"NO GROUP NAME AVALIABLE.\")\n    return groupName\n#  \t搜索群组 添加好友\n# openRedBag \t打开红包\n# joinGroup \t加入群聊\n# dealFriend \t处理好友请求\ndef stderrPrint(*args, **kwargs):",
+        "file_id": 8,
+        "content": "        if song_duration < min_audio_length:\n            raise Exception(\"audio too short, total {} seconds\".format(song_duration))\n        elif song_duration > max_audio_length:\n            raise Exception(\"audio too long, total {} seconds\".format(song_duration))\n        lyric_string = self.getMusicLyricFromNetease(song_id)\n        if debug:\n            print(\"LYRICS:\", lyric_string)\n        if type(lyric_string) ==str and lyric_string.strip() !=\"\":\n            from pyjom.lyrictoolbox import (\n                cleanLrcFromWeb,\n            )  # cleaning needs song duration.\n            lyric_string = cleanLrcFromWeb(lyric_string, song_duration)\n        return (music_content, music_format), lyric_string\n############ SEARCH NETEASE MUSIC, GET SIMILAR MUSIC BY ID, DOWNLOAD MUSIC AND LYRICS ############",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:74-109"
+        "location": "/pyjom/musictoolbox.py:595-611"
     },
     "117": {
-        "file_id": 18,
-        "content": "The code contains a function to update the group_id to group name dictionary, a function to get the group name from the dictionary based on the given group_id, and three uncommented function calls. The code seems to be related to handling groups and red packets in a messaging platform. It also includes a helper function for error printing.",
+        "file_id": 8,
+        "content": "This code checks the song duration against specified minimum and maximum audio lengths, raises exceptions if necessary, retrieves lyrics from Netease using getMusicLyricFromNetease method, prints or logs the lyric string if in debug mode, checks if the lyric string is a non-empty string, cleans the LRC from web by calling cleanLrcFromWeb function and passing song duration as argument, and returns music content, format, and cleaned lyrics.",
         "type": "comment"
     },
     "118": {
-        "file_id": 18,
-        "content": "    kwargs.update({\"file\": sys.stderr})\n    print(*args, **kwargs)\ndef searchGroup(keyword, pageNum=0):\n    payload = {\"Content\": keyword, \"Page\": pageNum}\n    result = action.post(\n        funcname=\"SearchGroup\", payload=payload, path=lua_v1_api_path\n    )  # do not pass params since it will auto complete.\n    print(\"SEARCH GROUP RESULT: \", result)\n    return result\ndef addFriend(friend_id, reason=\"\", sourceString=\"search\", group_id=0):\n    # some conversions\n    if friend_id != int:\n        friend_id = int(friend_id)\n    if group_id != int:\n        group_id = int(group_id)  # source group id.\n    add_friend_sources = {\n        \"qzone\": 2011,\n        \"search\": 2020,\n        \"group\": 2004,\n        \"discussion\": 2005,\n    }\n    source = add_friend_sources[sourceString]\n    source_dict = {\n        2011: \"空间\",\n        2020: \"QQ搜索\",\n        2004: \"群组\",\n        2005: \"讨论组\",\n    }  # you can make it into another dict.\n    assert source in source_dict.keys()\n    if source != 2004:\n        group_id = 0  # prevent issues.\n    payload = {",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:110-146"
+        "file_id": 9,
+        "content": "/pyjom/README.md",
+        "type": "filepath"
     },
     "119": {
-        "file_id": 18,
-        "content": "The code contains two functions: `searchGroup` and `addFriend`. The `searchGroup` function performs a search for a keyword in QQ groups and returns the result. It sends a POST request to a specified API endpoint with the keyword and page number as parameters. The `addFriend` function adds a friend using a given friend ID, reason (optional), source string (e.g., 'search'), and group ID. It first checks if the input is of correct type and then maps the source string to a specific QQ friend adding method. If the source is a group, it also checks if the group ID is provided.",
-        "type": "comment"
+        "file_id": 9,
+        "content": "The code discusses the challenges of a censored internet and half-automated media project, requiring manual interfaces for data selection and labeling. It aims for future automation improvements and mentions data storage in /dev/shm.",
+        "type": "summary"
     },
     "120": {
-        "file_id": 18,
-        "content": "        \"Content\": reason,\n        \"AddFromSource\": source,\n        \"FromGroupID\": group_id,\n        \"AddUserUid\": friend_id,\n    }\n    result = action.post(\n        funcname=\"AddQQUser\", payload=payload, path=lua_v1_api_path\n    )  # do not pass params since it will auto complete.\n    print(\"ADD FRIEND RESULT: \", result)\n    return result\ndef openRedBag(\n    RedBaginfoDict,\n    group_id,\n    RedBaginfo,\n    delay=(5, 10),\n    prefix=\"[MREDBAG_LOG]\",\n    forbiddenKeywords=[\"test\", \"测试\", \"别抢\", \"不要\"],\n):\n    bag_type = RedBaginfoDict[\"RedType\"]\n    print(prefix, \"THREAD LAUCHED\", file=sys.stderr)\n    if bag_type in [4, 6, 12]:\n        print(prefix, \"COLLECTING RED BAG\", file=sys.stderr)\n        sleep_time = random.randint(*delay)\n        print(prefix, \"SLEEP TIME:\", sleep_time, file=sys.stderr)\n        time.sleep(sleep_time)\n        title = RedBaginfoDict[\"Tittle\"]\n        # filter this title shit.\n        if any(\n            [keyword in title.lower().replace(\" \", \"\") for keyword in forbiddenKeywords]\n        ):\n            stderrPrint(\"title containing forbidden keywords\")",
+        "file_id": 9,
+        "content": "due to heavy censored internet and the half-automated nature of media project, require interfaces to select and label data on the fly, when the project is somehow stablized.\nmanual labels can be therefore used later for better automation.\nsimple generation logic will be applied first, establishing basic feedback loop. then we may feature the details, enhancing product quality and so on.\nthis project may be the shadow of nature of life. no offense.\nsorting by priority is always crucial for all of us, all the time.\ndata stored in /dev/shm will be lost after reboot.\nafter months, if not years, you might blend in with this project.\nmany websites may match the structural complexity of yours.",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:147-179"
+        "location": "/pyjom/README.md:1-15"
     },
     "121": {
-        "file_id": 18,
-        "content": "The code defines a function 'openRedBag' that takes parameters such as RedBaginfoDict, group_id, RedBaginfo, delay, prefix and forbiddenKeywords. It determines the bag type based on RedBaginfoDict[\"RedType\"] and checks if the bag type is either 4, 6 or 12. If so, it randomly selects a sleep time from the given delay range, sleeps for that amount of time, and then prints the message with prefix and sleep time to stderr. It also filters the title by checking if any keyword from forbiddenKeywords is present in the title (ignoring spaces).",
+        "file_id": 9,
+        "content": "The code discusses the challenges of a censored internet and half-automated media project, requiring manual interfaces for data selection and labeling. It aims for future automation improvements and mentions data storage in /dev/shm.",
         "type": "comment"
     },
     "122": {
-        "file_id": 18,
-        "content": "            stderrPrint(\"refuse to open red bag:\", title.__repr__())\n            return\n        if bag_type == 12:\n            action.sendGroupText(group=group_id, content=title)\n        for trial in range(3):  # try three times till we get there.\n            if exit_event.is_set():\n                break\n            try:\n                answer = action.openRedBag(RedBaginfo)\n                print(prefix, \"RESULT:\", answer, file=sys.stderr)\n                print(prefix, \"TRIAL %d: COLLECTED RED BAG\" % trial, file=sys.stderr)\n                assert answer[\"Ret\"] == 0  # assert no problem here.\n                break\n            except:\n                print(\"_____________RedPacket Exception____________\")\n                traceback.print_exc()\n                print(\"_____________RedPacket Exception____________\")\n                sleep_time = random.randint(*delay)\n                time.sleep(sleep_time)\ndef startThread(target, args=(), kwargs={}):\n    thread = threading.Thread(target=target, args=args, kwargs=kwargs, daemon=False)",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:180-202"
+        "file_id": 10,
+        "content": "/pyjom/requirements.txt",
+        "type": "filepath"
     },
     "123": {
-        "file_id": 18,
-        "content": "This code is trying to open a red bag and collect items. If the operation fails, it will attempt three times before giving up. The function uses a try-except block for error handling and includes logging and sleep time for backoff strategy. A startThread function is also defined which can be used to create new threads in the codebase.",
-        "type": "comment"
+        "file_id": 10,
+        "content": "This code specifies dependencies for a Python project. It requires the 'parse', 'requests', and 'command-spawner' packages, along with a custom package named 'nudenet' which provides nude detection functionality in video or picture files.",
+        "type": "summary"
     },
     "124": {
-        "file_id": 18,
-        "content": "    thread.start()\ndef asyncThread(func):\n    def new_func(*args, **kwargs):\n        startThread(func, args=args, kwargs=kwargs)\n    return new_func",
+        "file_id": 10,
+        "content": "parse\nrequests\ncommand-spawner\nnudenet # nude detection in video/picture",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:203-210"
+        "location": "/pyjom/requirements.txt:1-4"
     },
     "125": {
-        "file_id": 18,
-        "content": "This code defines an asyncThread decorator function that starts a new thread when called, using the startThread function to execute the original func function in a separate thread.",
+        "file_id": 10,
+        "content": "This code specifies dependencies for a Python project. It requires the 'parse', 'requests', and 'command-spawner' packages, along with a custom package named 'nudenet' which provides nude detection functionality in video or picture files.",
         "type": "comment"
     },
     "126": {
-        "file_id": 19,
-        "content": "/tasks/qq/qq_red_packet_collect/adtools.py",
+        "file_id": 11,
+        "content": "/pyjom/mathlib.py",
         "type": "filepath"
     },
     "127": {
-        "file_id": 19,
-        "content": "The code uses image classification, conversation recording, and Neo4j driver for detecting cat and dog lovers, and generates ads from video dictionaries with cover images. It has various features like rate limiting, debug mode, and handles unimplemented styles randomly.",
+        "file_id": 11,
+        "content": "This code uses a Kalman Filter for time series smoothing, provides utility functions, manages overlapping intervals, handles range merging and sorting, includes Bezier curve function, applies exponential network to multiple inputs, and has a window-based maximum average finding function.",
         "type": "summary"
     },
     "128": {
-        "file_id": 19,
-        "content": "import rich\ncatSignals = [\"喵喵\", \"猫\", \"猫咪\", \"喵\"]\ndogSignals = [\n    \"狗狗\",\n    \"狗\",\n    \"汪汪\",\n    \"修勾\",\n    \"汪\",\n    \"狗子\",\n]\n# def getQueryWordFromSignals(signals:list):\n#     msignals = signals.copy()\n#     msignals.sort(key=lambda x: len(x))\n#     response = []\n#     for s in msignals:\n#         if s not in \" \".join(response):\n#             response.append(s)\n#     return \" \".join(response)\ncatDogElemDict = {\"cat\": catSignals, \"dog\": dogSignals}\n# catQueryWord = getQueryWordFromSignals(catSignals)\n# dogQueryWord = getQueryWordFromSignals(dogSignals)\n# # print(\"DOG QUERY WORD?\",dogQueryWord)\n# catDogQueryWords = {\"cat\": catQueryWord,\"dog\":dogQueryWord}\n# TODO: detect if some \"dog\" or \"cat\" lover is talking\ndef checkIsCatOrDogLover(qq_user_id):\n    # if both, return either one.\n    # TODO: for more topics, sort topics by popularity and views\n    ...\n# TODO: record those who talks to other.\n# TODO: decay this relationship counter by 0.8 everyday\ndef recordQQUserTalkingToAnotherUser(\n    former_speaker: dict, later_speaker: dict, threshold: int = 60",
+        "file_id": 11,
+        "content": "# moved to lazero.utils.mathlib\nfrom lazero.utils.mathlib import *\n# # not overriding math.\n# # do some ranged stuff here...\n# from pykalman import KalmanFilter\n# import numpy as np\n# def superMean(mList:list,default=0):\n#     if len(mList) == 0: return  default\n#     return np.mean(mList)\n# def superMax(mList:list,default=0):\n#     if len(mList) == 0: return default\n#     return max(mList)\n# def superMin(mList:list,default=0):\n#     if len(mList) == 0: return default\n#     return min(mList)\n# def uniq(mList, ordered=True, random=False):\n#     if ordered:\n#         result = []\n#         for elem in mList:\n#             if elem not in result:\n#                 result.append(elem)\n#     else:\n#         result = list(set(mList))\n#     if random:\n#         import random\n#         random.shuffle(result)\n#     return result\n# def get1DArrayEMA(mArray, N=5):\n#     weights = np.exp(np.linspace(0, 1, N))\n#     weights = weights / np.sum(weights)\n#     ema = np.convolve(weights, mArray, mode=\"valid\")\n#     return ema\n# def Kalman1D(observations, damping=0.2):",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:1-39"
+        "location": "/pyjom/mathlib.py:1-40"
     },
     "129": {
-        "file_id": 19,
-        "content": "This code defines a function that detects if a QQ user is a cat or dog lover, and includes functions to generate query words from signals for cats and dogs, and record users talking to each other. The code also sorts topics by popularity and views, and decays relationship counters daily.",
+        "file_id": 11,
+        "content": "This code defines several utility functions for numerical operations, including mean, max, min, unique values (with optional ordering and shuffling), Exponential Moving Average (EMA), and a Kalman Filter. It imports necessary libraries like numpy and pykalman.",
         "type": "comment"
     },
     "130": {
-        "file_id": 19,
-        "content": "):\n    # only record those who answers within the time.\n    if former_speaker[\"UserID\"] != later_speaker[\"UserID\"]:\n        if abs(former_speaker[\"SpeakTime\"] - later_speaker[\"SpeakTime\"]) <= threshold:\n            # make the connection\n            ...\n# [DONE]: detect \"cat\" or \"dog\" image.\n# [DONE]: rate limit\n# from ratelimiter import RateLimiter\n# def rateLimitReached(until):\n#     raise Exception(f\"rate limit reached. wait {until} seconds\")\n# # this can slow me down.\n# @RateLimiter(max_calls=1, period=5,callback=rateLimitReached )\nimport time\nrateLimits = {}\nimport sys\ndef checkIsCatOrDogImage(\n    image_url,\n    download_timeout=2,\n    timeout=4,\n    port=4675,\n    endpoint=\"analyzeImage\",\n    rateLimitPeriod=5,\n    threshold=0.4,\n    debug=True\n):\n    lastRun = rateLimits.get(\"checkIsCatOrDogImage\", 0)\n    now = time.time()\n    if now - lastRun > rateLimitPeriod:\n        rateLimits[\"checkIsCatOrDogImage\"] = now\n    else:\n        raise Exception(\n            f\"Rate limit exceeded. One request per {rateLimitPeriod} seconds.\"",
+        "file_id": 11,
+        "content": "#     # To return the smoothed time series data\n#     observation_covariance = damping\n#     initial_value_guess = observations[0]\n#     transition_matrix = 1\n#     transition_covariance = 0.1\n#     initial_value_guess\n#     kf = KalmanFilter(\n#         initial_state_mean=initial_value_guess,\n#         initial_state_covariance=observation_covariance,\n#         observation_covariance=observation_covariance,\n#         transition_covariance=transition_covariance,\n#         transition_matrices=transition_matrix,\n#     )\n#     pred_state, state_cov = kf.smooth(observations)\n#     return pred_state\n# def getContinualNonSympyMergeResult(inputMSetCandidates):\n#     # basically the same example.\n#     # assume no overlapping here.\n#     import sympy\n#     def unionToTupleList(myUnion):\n#         unionBoundaries = list(myUnion.boundary)\n#         unionBoundaries.sort()\n#         leftBoundaries = unionBoundaries[::2]\n#         rightBoundaries = unionBoundaries[1::2]\n#         return list(zip(leftBoundaries, rightBoundaries))",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:40-77"
+        "location": "/pyjom/mathlib.py:41-66"
     },
     "131": {
-        "file_id": 19,
-        "content": "This function checks if an image is of a cat or dog. It also includes rate limiting to prevent overloading the server by allowing only one request per 5 seconds. The threshold parameter determines how close in time two users must respond for their answers to be connected. Debug mode can be enabled to provide additional information during testing.",
+        "file_id": 11,
+        "content": "The code snippet initializes a KalmanFilter object for smoothing time series data. It defines the observation_covariance, transition_covariance, and other parameters before creating the KalmanFilter instance. The function then calls `kf.smooth(observations)` to perform the smoothing operation and returns the smoothed state. Additionally, there's a helper function that converts a sympy Union set to a list of (left_boundary, right_boundary) tuples.",
         "type": "comment"
     },
     "132": {
-        "file_id": 19,
-        "content": "        )\n    try:\n        import requests\n        # img_bytes = requests.get(image_url, \n        # # timeout=download_timeout\n        # # also some damn timeout. fuck.\n        # ).content\n        # import cv2\n        # import numpy as np\n        # import numpy_serializer\n        # nparr = np.fromstring(img_bytes, np.uint8)\n        # img_np = cv2.imdecode(nparr, flags=1)  # cv2.IMREAD_COLOR in OpenCV 3.1\n        # np_array_bytes = numpy_serializer.to_bytes(img_np)\n        api_url = f\"http://localhost:{port}/{endpoint}\"\n        params = dict(isBytes=False)\n        # params = dict(isBytes=True)\n        before_request = time.time()\n        if debug:\n            print(\"DOG_CAT REQ SENT\",file=sys.stderr)\n        r = requests.post(\n            api_url, \n            data={\"image\":image_url}, \n            # data={\"image\": np_array_bytes}, \n            # timeout=timeout,\n            # oh shit.\n            params=params, proxies=None\n        )\n        result = r.json()\n        after_request = time.time()\n        if debug:\n            print(\"DOG_CAT REQ RECV\",file=sys.stderr)",
+        "file_id": 11,
+        "content": "#     def tupleSetToUncertain(mSet):\n#         mUncertain = None\n#         for start, end in mSet:\n#             if mUncertain is None:\n#                 mUncertain = sympy.Interval(start, end)\n#             else:\n#                 mUncertain += sympy.Interval(start, end)\n#         typeUncertain = type(mUncertain)\n#         return mUncertain, typeUncertain\n#     def mergeOverlappedInIntervalTupleList(intervalTupleList):\n#         mUncertain, _ = tupleSetToUncertain(intervalTupleList)\n#         mUncertainBoundaryList = list(mUncertain.boundary)\n#         mUncertainBoundaryList.sort()\n#         mergedIntervalTupleList = list(\n#             zip(mUncertainBoundaryList[::2], mUncertainBoundaryList[1::2])\n#         )\n#         return mergedIntervalTupleList\n#     # mSet = mergeOverlappedInIntervalTupleList([(0, 1), (2, 3)])\n#     # mSet2 = mergeOverlappedInIntervalTupleList([(0.5, 1.5), (1.6, 2.5)])\n#     # print(\"MSET\", mSet)\n#     # print(\"MSET2\", mSet2)\n#     mSetCandidates = [\n#         mergeOverlappedInIntervalTupleList(x) for x in inputMSetCandidates",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:78-110"
+        "location": "/pyjom/mathlib.py:68-94"
     },
     "133": {
-        "file_id": 19,
-        "content": "This code is making a request to an API endpoint using the requests library. It attempts to send the image data as bytes or content depending on the value of `isBytes` parameter. If debug is set, it prints messages for request sending and receiving. The time taken for the request is also recorded.",
+        "file_id": 11,
+        "content": "This code defines two functions: \"tupleSetToUncertain\" and \"mergeOverlappedInIntervalTupleList\". The first function takes a set of intervals represented as tuples, converts them into a Sympy Interval object representing the union of these intervals, and returns both the object and its type. The second function merges overlapping intervals from a list of interval tuples and returns the merged intervals as a list of start-end pairs. It uses the first function to convert the input intervals into a Sympy Interval object, extracts the boundary points, sorts them, and then zips them back into start-end pairs for the output list.",
         "type": "comment"
     },
     "134": {
-        "file_id": 19,
-        "content": "            print(\"RESULT?\", file=sys.stderr)\n            print(result, file=sys.stderr)\n        if debug:\n            print(f\"DOG/CAT SERVER REQUEST TAKING TIME: {(after_request-before_request):.3f}s\",file=sys.stderr)\n        for species in result:\n            name = species[\"identity\"]\n            if name in [\"cat\", \"dog\"]:\n                conf = species[\"confidence\"]\n                if conf > threshold:\n                    if debug:\n                        print(\"CAT/DOG RESULT:\", name, file=sys.stderr)\n                    return name\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"Error when downloading and detecting image content if is cat or dog\")\n    return None\ndef checkCatOrDog(Content: str):\n    # cat? dog? None?\n    for key, elems in catDogElemDict.items():\n        for elem in elems:\n            if elem in Content.lower():\n                return key\n    return None\n# pip3 install python_cypher\n# pip3 install neo4j\nfrom functools import lru_cache\nNEO4J_PORT = 7687\n@lru_cache(maxsize=1)",
+        "file_id": 11,
+        "content": "#     ]\n#     mSetUnified = [x for y in mSetCandidates for x in y]\n#     leftBoundaryList = set([x[0] for x in mSetUnified])\n#     rightBoundaryList = set([x[1] for x in mSetUnified])\n#     # they may freaking overlap.\n#     # if want nearby-merge strategy, simply just expand all intervals, merge them with union and shrink the individual intervals inside union respectively.\n#     markers = {\n#         \"enter\": {k: [] for k in leftBoundaryList},\n#         \"exit\": {k: [] for k in rightBoundaryList},\n#     }\n#     for index, mSetCandidate in enumerate(mSetCandidates):\n#         leftBoundaryListOfCandidate = [x[0] for x in mSetCandidate]\n#         rightBoundaryListOfCandidate = [x[1] for x in mSetCandidate]\n#         for leftBoundaryOfCandidate in leftBoundaryListOfCandidate:\n#             markers[\"enter\"][leftBoundaryOfCandidate].append(index)  # remap this thing!\n#         for rightBoundaryOfCandidate in rightBoundaryListOfCandidate:\n#             markers[\"exit\"][rightBoundaryOfCandidate].append(index)  # remap this thing!",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:111-148"
+        "location": "/pyjom/mathlib.py:95-113"
     },
     "135": {
-        "file_id": 19,
-        "content": "Function `checkCatOrDog` checks if the given input string contains words related to cat or dog and returns \"cat\" or \"dog\" accordingly, otherwise it returns None. The function also utilizes `catDogElemDict`.\n\nThe code snippet uses an exception handling mechanism where if any error occurs during image downloading and content detection, it prints the error message and returns None. It imports traceback for printing the exception details. \n\nIt imports the necessary libraries for working with Neo4j: pip3 install python_cypher and pip3 install neo4j.\n\nThe `@lru_cache(maxsize=1)` decorator is used to cache the results of a function call, which can improve performance by avoiding redundant computations for the same inputs. In this case, it's applied to some function (not shown in the code snippet).",
+        "file_id": 11,
+        "content": "This code creates a dictionary of markers for left and right boundaries. It first combines all set candidates into one list, then creates sets for the left and right boundary lists. It then populates the \"enter\" and \"exit\" dictionaries with the indices where each boundary is encountered. This information can be used for further processing, such as merging nearby intervals or identifying overlapping boundaries.",
         "type": "comment"
     },
     "136": {
-        "file_id": 19,
-        "content": "def getNeo4jDriver(\n    address=\"neo4j://localhost:{}\".format(NEO4J_PORT),\n    username=\"neo4j\",\n    password=\"kali\",\n    debug=False,\n):  # so we bruteforced it. thanks to chatgpt.\n    from neo4j import GraphDatabase\n    driver = GraphDatabase.driver(address, auth=(username, password))\n    if debug:\n        print(\"login successful: username:%s password:%s\" % (username, password))\n    return driver\nfrom pypher import Pypher\ndef makeCatOrDogConnections(\n    group_id: str,\n    sender_id: str,\n    cat_or_dog: str,\n    debug: bool = False,\n    delete: bool = False,\n):  # whatever.\n    # Create a new Pypher object\n    with getNeo4jDriver().session() as session:\n        p = Pypher()\n        if delete:\n            p.MATCH.node(\"n1\", labels=\"qq_group\", group_id=group_id)\n            p.MATCH.node(\"n2\", labels=\"qq_user\", user_id=sender_id)\n            p.MATCH.node(\"n3\", labels=\"ad_keyword\", keyword=cat_or_dog)  # fine.\n            p.DETACHDELETE.node(\"n1\").DETACHDELETE.node(\"n2\").DETACHDELETE.node(\"n3\")\n        # Use the MERGE clause to create the nodes if they do not already exist",
+        "file_id": 11,
+        "content": "#     # now, iterate through the boundaries of mSetUnified.\n#     unifiedBoundaryList = leftBoundaryList.union(\n#         rightBoundaryList\n#     )  # call me a set instead of a list please? now we must sort this thing\n#     unifiedBoundaryList = list(unifiedBoundaryList)\n#     unifiedBoundaryList.sort()\n#     unifiedBoundaryMarks = {}\n#     finalMappings = {}\n#     # print(\"MARKERS\", markers)\n#     # breakpoint()\n#     for index, boundary in enumerate(unifiedBoundaryList):\n#         previousMark = unifiedBoundaryMarks.get(index - 1, [])\n#         enterList = markers[\"enter\"].get(boundary, [])\n#         exitList = markers[\"exit\"].get(boundary, [])\n#         currentMark = set(previousMark + enterList).difference(set(exitList))\n#         currentMark = list(currentMark)\n#         unifiedBoundaryMarks.update({index: currentMark})\n#         # now, handle the change? or not?\n#         # let's just deal those empty ones, shall we?\n#         if previousMark == []:  # inside it is empty range.\n#             # elif currentMark == []:",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:149-182"
+        "location": "/pyjom/mathlib.py:115-136"
     },
     "137": {
-        "file_id": 19,
-        "content": "The function `getNeo4jDriver()` returns a Neo4j driver with the provided address, username, password, and debug option. The function `makeCatOrDogConnections()` uses Pypher to create or delete connections between nodes based on group_id, sender_id, cat_or_dog, debug, and delete options. It establishes a Neo4j session using the driver returned by `getNeo4jDriver()`.",
+        "file_id": 11,
+        "content": "This code is iterating through the boundaries of two lists, unifying them into a sorted list called `unifiedBoundaryList`. It then creates empty dictionaries `unifiedBoundaryMarks` and `finalMappings`. The `markers` dictionary is used to determine which markers correspond to the current boundary. The code calculates the current mark by combining previous markers, entering markers for the current boundary, and removing any exiting markers for the current boundary. It then updates `unifiedBoundaryMarks` with the new index and current marker list. If the previous marker list was empty (indicating an empty range), it does something (code missing).",
         "type": "comment"
     },
     "138": {
-        "file_id": 19,
-        "content": "        else:\n            p.MERGE.node(\"n1\", labels=\"qq_group\", group_id=group_id)\n            p.MERGE.node(\"n2\", labels=\"qq_user\", user_id=sender_id)\n            p.MERGE.node(\"n3\", labels=\"ad_keyword\", keyword=cat_or_dog)\n            # Use the MERGE clause to create the relationship between the nodes if it does not already exist\n            p.MERGE.node(\"n1\").rel_out(\"r\", labels=\"includes\").node(\"n2\")\n            p.MERGE.node(\"n2\").rel_out(\"r1\", labels=\"talks_of\").node(\"n3\")\n        # Generate the Cypher query string\n        query = str(p)\n        if debug:\n            print(\"QUERY?\", query)\n            print(\"QUERY TYPE?\", type(query))\n            # how to roll back?\n        # Execute the query using the Neo4j driver\n        result = session.run(query, parameters=p.bound_params)\n        if debug:\n            print(\"RESULT?\", result)\nfrom lazero.network.checker import waitForServerUp\nBILIBILI_RECOMMENDATION_SERVER_PORT = 7341\nwaitForServerUp(BILIBILI_RECOMMENDATION_SERVER_PORT, \"bilibili recommendation server\")",
+        "file_id": 11,
+        "content": "#             if index == 0:\n#                 continue  # just the start, no need to note this down.\n#             else:\n#                 finalMappings.update(\n#                     {\n#                         \"empty\": finalMappings.get(\"empty\", [])\n#                         + [(unifiedBoundaryList[index - 1], boundary)]\n#                     }\n#                 )\n#             # the end of previous mark! this interval belongs to previousMark\n#         else:\n#             key = previousMark.copy()\n#             key.sort()\n#             key = tuple(key)\n#             finalMappings.update(\n#                 {\n#                     key: finalMappings.get(key, [])\n#                     + [(unifiedBoundaryList[index - 1], boundary)]\n#                 }\n#             )\n#             # also the end of previous mark! belongs to previousMark.\n#     ### NOW THE FINAL OUTPUT ###\n#     finalCats = {}\n#     for key, value in finalMappings.items():\n#         # value is an array containing subInterval tuples.\n#         value = mergeOverlappedInIntervalTupleList(value)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:183-208"
+        "location": "/pyjom/mathlib.py:137-163"
     },
     "139": {
-        "file_id": 19,
-        "content": "The code checks if a user is in a group and creates necessary nodes and relationships using the MERGE clause. It generates a Cypher query, prints it for debugging purposes (if enabled), and executes it with the Neo4j driver. Additionally, it waits for the BILIBILI_RECOMMENDATION_SERVER to be up before running the code.",
+        "file_id": 11,
+        "content": "This code appears to be working with a list of intervals and categorizing them into different types. It checks for the start of each interval, updates a dictionary (finalMappings) accordingly, and then handles the end of an interval by assigning it to the previous category. Finally, it processes the finalMappings dictionary to create the final output (finalCats).",
         "type": "comment"
     },
     "140": {
-        "file_id": 19,
-        "content": "import requests\n# import random\nfrom bilibili_api.search import bilibiliSearchParams\n# you might just want some delay when searching online.\nfrom typing import Literal\ndef getCatOrDogAd(\n    cat_or_dog: str,\n    server: str = \"http://localhost:{}\".format(BILIBILI_RECOMMENDATION_SERVER_PORT),\n    debug: bool = False,\n    method: Literal[\"bm25\", \"online\"] = \"bm25\",\n):\n    # how do we get one? by label? by category? by name?\n    url = server + \"/searchUserVideos\"\n    # queryWord = catDogQueryWords.get(cat_or_dog,None)\n    queryWords = catDogElemDict.get(cat_or_dog, None)\n    try:\n        assert queryWords is not None\n    except Exception as e:\n        print(\"Could not find topic with keyword:\", cat_or_dog)\n        raise e\n    animalTid = bilibiliSearchParams.video.tids.动物圈.tid\n    # myTids = {\"cat\":bilibiliSearchParams.video.tids.动物圈.喵星人,\"dog\":bilibiliSearchParams.video.tids.动物圈.汪星人}\n    # myTid = myTids[cat_or_dog]\n    # queryWord = random.choice([\"\",random.choice(queryWords)]) # you can still have things without query",
+        "file_id": 11,
+        "content": "#         valueCorrected = [(mStart, mEnd) for mStart, mEnd in value if mStart < mEnd]\n#         finalCats.update({key: valueCorrected})\n#     # print(\"______________FINAL CATS______________\")\n#     # print(finalCats)\n#     return finalCats\n# def getContinualMappedNonSympyMergeResult(mRangesDict, concatSymbol=\"|\", noEmpty=True):\n#     mKeyMaps = list(mRangesDict.keys())\n#     mSetCandidates = [mRangesDict[key] for key in mKeyMaps]\n#     # the next step will automatically merge all overlapped candidates.\n#     finalCats = getContinualNonSympyMergeResult(mSetCandidates)\n#     finalCatsMapped = {\n#         concatSymbol.join([mKeyMaps[k] for k in mTuple]): finalCats[mTuple]\n#         for mTuple in finalCats.keys()\n#         if type(mTuple) == tuple\n#     }\n#     if not noEmpty:\n#         finalCatsMapped.update(\n#             {k: finalCats[k] for k in finalCats.keys() if type(k) != tuple}\n#         )\n#     return finalCatsMapped\n#     # default not to output empty set?\n# def getContinualMappedNonSympyMergeResultWithRangedEmpty(",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:210-240"
+        "location": "/pyjom/mathlib.py:164-190"
     },
     "141": {
-        "file_id": 19,
-        "content": "This code defines a function called getCatOrDogAd that searches for user videos related to cats or dogs. It takes the type of animal as input, along with server details, search method, and debug flag as optional parameters. The function constructs the URL for the API call and retrieves the query words based on the animal type. It then performs an assertion to ensure that valid query words are provided. If not, it raises an exception with a relevant error message.",
+        "file_id": 11,
+        "content": "This code defines two functions, `getContinualMappedNonSympyMergeResult` and `getContinualMappedNonSympyMergeResultWithRangedEmpty`. These functions merge overlapping ranges of values into a single range. They can be used to handle cases where the input is a list of ranges, and we want to merge all ranges that overlap. The merged result is returned as a dictionary with keys being concatenated keys (in the first function) or including non-tuple keys if `noEmpty` flag is set (in the second function).",
         "type": "comment"
     },
     "142": {
-        "file_id": 19,
-        "content": "    # queryWord = \" \".join(queryWords)\n    # queryWord = {\"cat\":'猫',\"dog\":'狗'}[cat_or_dog] # Whatever. fuck it. replace it with semantic search later? or you use multiple searches.\n    # you cannot just ignore the queryWord in bm25\n    responses = []\n    for queryWord in queryWords:\n        # data = {\"query\":queryWord,\"tid\":random.choice([0]*20+[animalTid]*10+[myTid]*5)} # you can specify my user id. you may make that empty?\n        data = {\"query\": queryWord, \"tid\": animalTid, \"method\": method}\n        if debug:\n            print(\"POSTING DATA:\")\n            rich.print(data)\n        r = requests.post(url, json=data)\n        response = r.json()\n        for elem in response:\n            if elem not in responses:\n                responses.append(elem)\n    responses.sort(key=lambda elem: -elem.get(\"pubdate\", -1))\n    if debug:\n        print(\"RESPONSES?\")\n        rich.print(responses)\n    return responses  # select one such response.\nfrom ad_template_2_functional import (\n    TMP_DIR_PATH,\n    generateBilibiliVideoAd,",
+        "file_id": 11,
+        "content": "#     mRangesDict, start, end, concatSymbol=\"|\"\n# ):\n#     import uuid\n#     emptySetName = str(uuid.uuid4())\n#     newRangesDict = mRangesDict.copy()\n#     newRangesDict.update({emptySetName: [(start, end)]})\n#     newRangesDict = getContinualMappedNonSympyMergeResult(\n#         newRangesDict, concatSymbol=\"|\", noEmpty=True\n#     )\n#     newRangesDict = {\n#         key: [\n#             (mStart, mEnd)\n#             for mStart, mEnd in newRangesDict[key]\n#             if mStart >= start and mEnd <= end and mStart < mEnd\n#         ]\n#         for key in newRangesDict.keys()\n#     }\n#     newRangesDict = {\n#         key: newRangesDict[key]\n#         for key in newRangesDict.keys()\n#         if newRangesDict[key] != []\n#     }\n#     finalNewRangesDict = {}\n#     for key in newRangesDict.keys():\n#         mergedEmptySetName = \"{}{}\".format(concatSymbol, emptySetName)\n#         if mergedEmptySetName in key:\n#             newKey = key.replace(mergedEmptySetName,\"\")\n#             finalNewRangesDict.update({newKey:newRangesDict[key]})",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:241-267"
+        "location": "/pyjom/mathlib.py:191-219"
     },
     "143": {
-        "file_id": 19,
-        "content": "The code fetches relevant data for multiple query words, posts the data to a URL, filters and sorts the responses based on the publication date, and returns the filtered responses. The debug option allows printing of the posted data and response for troubleshooting purposes.",
+        "file_id": 11,
+        "content": "This code creates a new dictionary by filtering and merging overlapping ranges. It copies the input dictionary, adds an empty set range, filters non-overlapping ranges, removes empty sets, and finally merges overlapping empty sets.",
         "type": "comment"
     },
     "144": {
-        "file_id": 19,
-        "content": "    getAdLock,\n)  # use the lock during sending the ad.\ndef generateAdFromVideoInfo(videoInfo):  # which style you want the most?\n    # selected video info.\n    bvid, pic, title = videoInfo[\"bvid\"], videoInfo[\"pic\"], videoInfo[\"title\"]\n    import os\n    extension = pic.split(\"?\")[0].split(\".\")[-1]\n    cover_download_path = os.path.join(TMP_DIR_PATH, \"video_cover.{}\".format(extension))\n    (\n        output_path,\n        output_standalone,\n        output_masked_path,\n    ), link = generateBilibiliVideoAd(bvid, title, pic, cover_download_path)\n    return (\n        output_path,\n        output_standalone,\n        output_masked_path,\n    ), link  # which one you want?\nfrom botoy import Action\nfrom typing import Literal\nimport random\n# you can send it to qq user, qq group, channels, qzone, email\n# if send by json, qzone, channels, email that will be ajax. set up another server to handle ajax requests.\ndef getBase64StringFromFilePath(\n    filePath: str, binary: bool = False, encoding: str = \"utf-8\"\n):\n    import os\n    assert os.path.isfile(filePath)",
+        "file_id": 11,
+        "content": "#         elif key == emptySetName:\n#             finalNewRangesDict.update({'empty':newRangesDict[key]})\n#         else:\n#             finalNewRangesDict.update({key:newRangesDict[key]})\n#     return finalNewRangesDict\n# def mergedRangesToSequential(renderDict):\n#     renderList = []\n#     for renderCommandString in renderDict.keys():\n#         commandTimeSpans = renderDict[renderCommandString].copy()\n#         # commandTimeSpan.sort(key=lambda x: x[0])\n#         for commandTimeSpan in commandTimeSpans:\n#             mStart, mEnd = commandTimeSpan\n#             if mStart < mEnd:\n#                 renderList.append([renderCommandString, commandTimeSpan].copy())\n#     renderList.sort(key=lambda x: x[1][0])\n#     return renderList\n#     # for renderCommandString, commandTimeSpan in renderList:\n#     #     print(renderCommandString, commandTimeSpan)\n#     # so this is arranged as such:\n#     # [(renderCommandString, commandTimeSpan), ...]\n# def sequentialToMergedRanges(sequence):\n#     mergedRanges = {}\n#     for commandString, commandTimeSpan in sequence:",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:268-305"
+        "location": "/pyjom/mathlib.py:220-244"
     },
     "145": {
-        "file_id": 19,
-        "content": "This function `generateAdFromVideoInfo` takes a `videoInfo` dictionary as input, extracts the required fields (bvid, pic, and title), downloads the cover image if necessary, and generates three ad paths (output_path, output_standalone, output_masked_path) along with an associated link. These ads can be sent to various platforms like QQ user, group, channels, Qzone, or email. If sending via JSON, Qzone, channels, or email, a separate server is required to handle AJAX requests. The function `getBase64StringFromFilePath` converts a file path into a Base64 string, which can be used for sending images.",
+        "file_id": 11,
+        "content": "This code seems to handle the merging and sorting of ranges for a set of commands based on their start and end times. It appears that `mergedRangesToSequential` takes a dictionary of command strings and time spans, sorts the command time spans by start time, and then creates a new list with each command and its sorted time span. The code also includes functions for updating a dictionary based on specific conditions and converting a sorted sequence back into merged ranges.",
         "type": "comment"
     },
     "146": {
-        "file_id": 19,
-        "content": "    import base64\n    with open(filePath, \"rb\") as img_file:\n        b64_string = base64.b64encode(img_file.read())\n    if not binary:\n        b64_string = b64_string.decode(encoding)\n    return b64_string\ndef sendCatOrDogAdToQQGroup(\n    group_id: str,\n    cat_or_dog: str,\n    action: Action,\n    style: Literal[\n        \"single_qr\", \"text_link\", \"image_link\", \"json\", \"random\", \"random_not_json\"\n    ] = \"random\",\n    recentLimits: int = 20,\n):  # many things not implemented yet.\n    totalStyles = [\n        \"single_qr\",\n        \"text_link\",\n        \"image_link\",\n        \"json\",\n        \"random\",\n        \"random_not_json\",\n    ]\n    notImplementedStyles = [\n        \"image_link\",\n        \"json\",\n    ]  # if json, first we search for avaliable json messages, if missing, we search for android devices, unlock the device then send the message. if failed, use other non-json methods.\n    usableStyles = [s for s in totalStyles if s not in notImplementedStyles]\n    nonRandomStyles = [s for s in usableStyles if not s.startswith(\"random\")]",
+        "file_id": 11,
+        "content": "#         mergedRanges.update({commandString: mergedRanges.get(commandString,[])+[commandTimeSpan]})\n#     mergedRanges = getContinualMappedNonSympyMergeResult(mergedRanges)\n#     return mergedRanges\n# import bezier\n# def bezierCurve(start=(0, 0), end=(1, 1), skew=0):\n#     # skew: (-0.5,0.5) otherwise this shit will look ugly.\n#     assert skew >= -0.5\n#     assert skew <= 0.5\n#     x_start, y_start = start\n#     x_end, y_end = end\n#     x_diff = x_end - x_start\n#     y_diff = y_end - y_start\n#     nodes1 = np.asfortranarray(\n#         [\n#             [x_start, x_diff * (0.5 + skew), x_end],\n#             [y_start, y_diff * (0.5 - skew), y_end],\n#         ]\n#     )\n#     curve1 = bezier.Curve(nodes1, degree=2)\n#     curve_params = {\"x_start\": x_start, \"x_diff\": x_diff, \"x_end\": x_end}\n#     return curve1, curve_params\n# def evaluateBezierCurve(input_value: float, curve, curve_params: dict):\n#     x_start = curve_params[\"x_start\"]\n#     x_end = curve_params[\"x_end\"]\n#     assert x_start <= input_value\n#     assert x_end >= input_value",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:306-339"
+        "location": "/pyjom/mathlib.py:245-274"
     },
     "147": {
-        "file_id": 19,
-        "content": "Function takes a file path, encodes its content in base64, and returns the string. It does not specify encoding type if binary is False.\nFunction sends a cat or dog ad to a QQ group with multiple available styles, but some features are currently unimplemented.",
+        "file_id": 11,
+        "content": "This code defines a function `bezierCurve` that takes three arguments: start, end, and skew. It then uses the given values to create a Bezier curve by defining nodes based on the input parameters and returns the created curve along with a dictionary of curve parameters. The separate function `evaluateBezierCurve` is defined to evaluate a previously created Bezier curve at a specific input value, taking as arguments the input value, the created curve, and the dictionary of curve parameters. The function checks if the input value falls within the start and end points of the curve before returning the evaluated x-coordinate.",
         "type": "comment"
     },
     "148": {
-        "file_id": 19,
-        "content": "    nonRandomNorJsonStyles = [s for s in nonRandomStyles if s is not \"json\"]\n    def noSuchStyle(style: str):\n        raise NotImplementedError(\"Not implemented style: '{}'\".format(style))\n    if style in notImplementedStyles:\n        noSuchStyle(style)\n    if style == \"random\":\n        style = random.choice(nonRandomStyles)\n    elif style == \"random_not_json\":\n        style = random.choice(nonRandomNorJsonStyles)\n    responses = getCatOrDogAd(cat_or_dog)\n    success = False\n    with getAdLock():\n        if responses != []:\n            videoInfo = random.choice(responses[:recentLimits])\n            title_text = videoInfo[\"title\"]\n            (\n                output_path,\n                output_standalone,\n                output_masked_path,  # what is this?\n            ), link = generateAdFromVideoInfo(videoInfo)\n            if style == \"single_qr\":\n                content = \"\"\n                picturePath = output_path\n            elif style == \"text_link\":\n                # you must censor that.\n                from censorApis import censorReply",
+        "file_id": 11,
+        "content": "#     x_diff = curve_params[\"x_diff\"]\n#     s = (input_value - x_start) / x_diff\n#     points = curve.evaluate(s)\n#     # we only get the single point.\n#     point = points.T[0]\n#     x, y = point\n#     result = y\n#     return result\n# def multiParameterExponentialNetwork(\n#     *args,\n#     input_bias=0.05,\n#     curve_function=bezierCurve,\n#     curve_function_kwargs={\"start\": (0, 0), \"end\": (1, 1), \"skew\": 0},\n#     evaluate_function=evaluateBezierCurve\n# ):\n#     curve, curve_params = curve_function(**curve_function_kwargs)\n#     value = evaluate_function(input_bias, curve, curve_params)\n#     for index, input_value in enumerate(args):\n#         apply_list = [input_value] * (index + 1)\n#         for apply_item in apply_list:\n#             value += (1 - value) * evaluate_function(apply_item, curve, curve_params)\n#     return value\n# def getCursorOfMaxAverageInWindow(referenceData, windowSize, dataDuration, superSampleRate=8):\n#     assert windowSize<dataDuration\n#     # we supersample this reference data?\n#     fp = referenceData",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:340-370"
+        "location": "/pyjom/mathlib.py:275-303"
     },
     "149": {
-        "file_id": 19,
-        "content": "This code snippet checks the specified style for an ad and generates different types of ads based on the style. It handles unimplemented styles, selects random non-JSON styles, and generates outputs (paths, links) using a helper function generateAdFromVideoInfo(). It also mentions censoring a reply using another function censorReply() from censorApis module.",
+        "file_id": 11,
+        "content": "The code defines a function `multiParameterExponentialNetwork` that takes multiple inputs and applies an exponential network function to each of them. The result is the average value after applying the function to all inputs. Another function, `getCursorOfMaxAverageInWindow`, calculates the cursor of maximum average in a given window size for a dataset, asserting that the window size is less than the data duration.",
         "type": "comment"
     },
     "150": {
-        "file_id": 19,
-        "content": "                title_text = censorReply(title_text)\n                content = \"观看视频:\\n{}\\n{}\".format(link, title_text)\n                picturePath = output_standalone\n            else:\n                noSuchStyle(style)\n            picBase64Buf = getBase64StringFromFilePath(picturePath)\n            sendMessageStatus = action.sendGroupPic(\n                group=int(group_id), content=content, picBase64Buf=picBase64Buf\n            )\n            # stderrPrint(\"SENT AD STATUS:\",sendMessageStatus)\n            success = (\n                sendMessageStatus.get(\"ErrMsg\", None) is \"\"\n                or sendMessageStatus.get(\"Msg\", None) is \"\"\n                or sendMessageStatus.get(\"Ret\", None) is 0\n            )\n    return success",
+        "file_id": 11,
+        "content": "#     xp = np.linspace(0,dataDuration, len(fp))\n#     interpolated_xp = np.linspace(0, dataDuration, len(fp)*superSampleRate)\n#     fp = np.array(fp)\n#     interpolated_fp = []\n#     for x in interpolated_xp:\n#         interpolated_value = np.interp(x, xp, fp)\n#         interpolated_fp.append(interpolated_value)\n#     interpolated_fp = np.array(interpolated_fp)\n#     moving_sum_span = 0\n#     for index, value in enumerate(interpolated_xp):\n#         if value - windowSize >=0: break\n#         moving_sum_span = index\n#     moving_sum_span +=1\n#     moving_sum = np.convolve(interpolated_fp, np.ones(moving_sum_span),'valid')\n#     max_index = np.argmax(moving_sum)\n#     cursor = interpolated_fp[max_index]\n#     cursor = min(dataDuration-windowSize,cursor)\n#     return cursor",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:372-388"
+        "location": "/pyjom/mathlib.py:304-322"
     },
     "151": {
-        "file_id": 19,
-        "content": "The code censors reply text and creates a message with a video link and title. If no style is provided, it uses noSuchStyle function. It then sends a group picture message using the sendGroupPic action and returns whether the message was sent successfully based on the response's error message or return value.",
+        "file_id": 11,
+        "content": "This code interpolates data, applies a moving average window, and returns the cursor value at the peak of the smoothed signal.",
         "type": "comment"
     },
     "152": {
-        "file_id": 20,
-        "content": "/tasks/qq/qq_red_packet_collect/launch.sh",
+        "file_id": 12,
+        "content": "/pyjom/lyrictoolbox.py",
         "type": "filepath"
     },
     "153": {
-        "file_id": 20,
-        "content": "Starts a new TMUX session, kills the previously running session with the name \"qq_red_packet\", and then loads the red_packet.yaml configuration file to set up the session environment.",
+        "file_id": 12,
+        "content": "The code imports modules, uses APIs for censoring and translation, applies effects, renders customizable lyrics, formats ASS files, handles errors, and provides previewing and conversion functions using lyrictools and pylrc libraries.",
         "type": "summary"
     },
     "154": {
-        "file_id": 20,
-        "content": "tmux kill-session -t qq_red_packet\ntmuxp load red_packet.yaml",
+        "file_id": 12,
+        "content": "import pylrc\nfrom MediaInfo import MediaInfo\nfrom pyonfx import *\nfrom typing import Literal\n# wildcard not allowed in function\nfrom pyjom.commons import redisLRUCache\n# change the lyric font and font size for hanzi and romaji\nimport os\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\nimport string\nimport zhon.hanzi\nenglishPuncturals = string.punctuation\nchinesePuncturals = zhon.hanzi.punctuation\ndef removeChinesePunctuation(text):\n    for elem in chinesePuncturals:\n        text = text.replace(elem, \"\")\n    return text\ndef removeLeadingAndTrailingPunctuation(text):\n    for elem in englishPuncturals + chinesePuncturals:\n        if text.startswith(elem):\n            text = text[1:]\n        if text.endswith(elem):\n            if elem == \".\":\n                continue\n            text = text[:-1]\n    return text\ndef removeUnnecessaryPunctuation(text):\n    text = removeChinesePunctuation(text)\n    text = removeLeadingAndTrailingPunctuation(text)\n    return text\ndef getMusicDuration(musicPath):\n    info = MediaInfo(filename=musicPath)  # the music path is not right.",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/launch.sh:1-2"
+        "location": "/pyjom/lyrictoolbox.py:1-47"
     },
     "155": {
-        "file_id": 20,
-        "content": "Starts a new TMUX session, kills the previously running session with the name \"qq_red_packet\", and then loads the red_packet.yaml configuration file to set up the session environment.",
+        "file_id": 12,
+        "content": "The code imports various modules, sets proxy environment variables, and defines functions for removing Chinese punctuation, leading/trailing punctuation, and unnecessary punctuation. The \"getMusicDuration\" function uses MediaInfo to get the duration of a music file at a given path.",
         "type": "comment"
     },
     "156": {
-        "file_id": 21,
-        "content": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py",
-        "type": "filepath"
+        "file_id": 12,
+        "content": "    info = info.getInfo()\n    # print(info)\n    # breakpoint()\n    length = info[\"duration\"]\n    length = float(length)\n    return length\ndef lrcToTextArray(musicPath, lrcPath):\n    assert lrcPath.endswith(\".lrc\")\n    musicDuration = getMusicDuration(musicPath)\n    with open(lrcPath) as lrc_file:\n        lrc_string = \"\".join(lrc_file.readlines())\n    # lrc_file.close()\n    subs = pylrc.parse(lrc_string)\n    lyricDurationThresholds = (0.3, 4)\n    textArray = []\n    for sub in subs:\n        startTime = sub.time\n        text = sub.text\n        textArray.append((startTime, text))\n    textArray.sort(key=lambda x: x[0])\n    lastStartTime = textArray[0][0]\n    newTextArray = [{\"start\": textArray[0][0], \"text\": textArray[0][1]}]\n    for startTime, text in textArray[1:]:\n        if startTime - lastStartTime < lyricDurationThresholds[0]:\n            continue\n        else:\n            lastStartTime = startTime\n            newTextArray.append({\"text\": text, \"start\": startTime})\n    # now calculate the end time, please?\n    # you may want to translate this if you have to.",
+        "type": "code",
+        "location": "/pyjom/lyrictoolbox.py:48-88"
     },
     "157": {
-        "file_id": 21,
-        "content": "The code initializes libraries, creates temp dirs, and defines functions for Bilibili short links and ad locking. It generates a Bilibili video ad with provided parameters, creates an ad cover image, detects QR codes using Pyzbar and OpenCV, removes them if necessary, adjusts positions and colors, and returns the final image for viewing.",
-        "type": "summary"
+        "file_id": 12,
+        "content": "This function reads an LRC file and extracts lyrics into a text array. It calculates music duration, parses the LRC string using pylrc library, defines lyric duration thresholds, and creates a sorted list of time-stamped lyrics. If consecutive lyrics are too close together, it combines them into one entry. The function could benefit from calculating the end times of each lyric segment.",
+        "type": "comment"
     },
     "158": {
-        "file_id": 21,
-        "content": "import pixie\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\ndef getImageW2H(image_path):\n    image = cv2.imread(image_path)\n    height, width = image.shape[:2]\n    w2h = width / height\n    return w2h\nTMP_DIR_PATH = \"/dev/shm/qq_ad\"\nimport shutil\nimport os\nif os.path.exists(TMP_DIR_PATH):\n    shutil.rmtree(TMP_DIR_PATH)\nos.mkdir(TMP_DIR_PATH)\nimport random\ndef generateFakeVideoStats():\n    play_count = \"{:.1f}万\".format(\n        random.randint(100, 1000) * 0.1\n    )  # anyway both int and str are compatible\n    comment_count = random.randint(100, 1000)\n    danmaku_count = random.randint(500, 3000)\n    return play_count, comment_count, danmaku_count\nRESOURCE_PATH = \"/root/Desktop/works/pyjom/tests/bilibili_video_recommendation_server\"\nQRCODE_PATH = \"MyQRCode1.png\"\nFONT_PATH = \"wqy-microhei0.ttf\"\nFONT_BOLD_PATH = \"wqy-microhei1.ttf\"\nCOVER_PATH = \"sample_cover.jpg\"\nPLAY_BUTTON_PATH = \"play_white_b.png\"\nBILIBILI_LOGO_PATH = \"bili_white_b_cropped.png\"\nAD_LOCK = \"ad_lock.lock\"\nimport filelock",
+        "file_id": 12,
+        "content": "    # when it does not contains anything in chinese.\n    # using deepl?\n    # put that aside please? focus on this shit...\n    import numpy as np\n    lyricDurations = [np.mean(lyricDurationThresholds)]\n    for index, elem in enumerate(newTextArray):\n        text = elem[\"text\"]\n        start = elem[\"start\"]\n        nextIndex = index + 1\n        if nextIndex < len(newTextArray):\n            nextElem = newTextArray[nextIndex]\n            nextStart = nextElem[\"start\"]\n            end = nextStart - start\n            if end > lyricDurationThresholds[0] and end < lyricDurationThresholds[1]:\n                lyricDurations.append(end)\n            end = min(end, lyricDurationThresholds[1], musicDuration - start) + start\n        else:\n            end = np.mean(lyricDurations) + start\n            end = min(musicDuration, end)\n        newTextArray[index].update({\"end\": end})\n    return newTextArray\n    # [{'text':text,'start':start,'end':end}, ...]\ndef lastSpaceSpliter(text):\n    text = text.strip()\n    # index = 0\n    for index in range(len(text) - 1, -1, -1):",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:1-46"
+        "location": "/pyjom/lyrictoolbox.py:89-119"
     },
     "159": {
-        "file_id": 21,
-        "content": "The code initializes necessary libraries and functions, creates a temporary directory for storing images and files, generates random video stats, defines file paths, and locks the ad using FileLock.",
+        "file_id": 12,
+        "content": "This function iterates through an array of lyrics and calculates the duration of each lyric. If a lyric's duration falls within a specified range, its end time is updated accordingly. The function then returns the modified array with each element containing 'text', 'start', and 'end' information.",
         "type": "comment"
     },
     "160": {
-        "file_id": 21,
-        "content": "def getAdLock(lockPath: str = os.path.join(TMP_DIR_PATH, AD_LOCK)):\n    return filelock.FileLock(lockPath)\n# use this decorator outside. not here. not any function written in here.\ndef withAdLock(func):\n    def innerFunc(*args, **kwargs):\n        with getAdLock():\n            return func(*args, **kwargs)\n    return innerFunc\nRESOURCES_RELATIVE_PATH = [\n    FONT_PATH,\n    FONT_BOLD_PATH,\n    COVER_PATH,\n    PLAY_BUTTON_PATH,\n    BILIBILI_LOGO_PATH,\n]\nOUTPUT_STANDALONE = \"ad_2_standalone_cover.png\"\nOUTPUT_PATH = \"ad_2.png\"\nOUTPUT_MASKED_PATH = \"ad_2_mask.png\"\nimport progressbar\ndef prepareMaterials(tmpDirPath: str = TMP_DIR_PATH, resourcePath: str = RESOURCE_PATH):\n    print(\"Preparing materials...\")\n    for path in progressbar.progressbar(RESOURCES_RELATIVE_PATH):\n        shutil.copy(os.path.join(resourcePath, path), os.path.join(tmpDirPath, path))\nprepareMaterials()\ndef generateBilibiliShortLinkMethod2(videoLink: str):\n    apiUrl = (\n        \"https://service-ijd4slqi-1253419200.gz.apigw.tencentcs.com/release/short_url\"",
+        "file_id": 12,
+        "content": "        # print(index)\n        elem = text[index]\n        if elem == \" \":\n            print(\"LAST SPACE FOUND AT %d\", index)\n            # do it right now, and return the value here.\n            mTuple = (text[0:index].strip(), text[index:].strip())\n            return mTuple, True\n    return text, False  # not a list.\n# if there is a single shit failed to pass this 'lastSpaceSpliter' test, this is not a bilingual lrc file from netease.\ndef getJiebaCuttedText(text):\n    import jieba\n    textList = jieba.lcut(text)\n    textList = [elem.strip() for elem in textList]\n    textList = [elem for elem in textList if len(elem) > 0]\n    return textList\n# from loadLingua_pyjnius import pyjniusLinguaDetectLanguageLabel\n# from loadLingua_jpype import getLinguaDetectedLanguageLabel as pyjniusLinguaDetectLanguageLabel\ndef pyjniusLinguaDetectLanguageLabel(text):\n    import requests\n    url = \"http://localhost:{}/langid\".format(8978)\n    with requests.get(url, params={\"text\": text}) as r:\n        response = r.json()\n        if response[\"code\"] == 200:",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:49-89"
+        "location": "/pyjom/lyrictoolbox.py:120-150"
     },
     "161": {
-        "file_id": 21,
-        "content": "This code defines a function `getAdLock` for acquiring a file lock, a decorator `withAdLock` to use the lock around a function execution, and prepares materials by copying resources to a temporary directory. The code also includes a function `generateBilibiliShortLinkMethod2` that calls an API endpoint to generate a short link on Bilibili using a given video link.",
+        "file_id": 12,
+        "content": "Function getJiebaCuttedText takes a text input and returns a list of words after cutting the text using jieba. The list contains only non-empty words with length greater than 0. This function is used to split the input text into individual words for further analysis.\n\nThe code snippet checks if a space character is found in the input text. If a space is found, it prints the index of the last space and returns a tuple containing the substrings before and after the last space, along with a boolean indicating that the input text is a lyric. If no space is found, it returns the original text and sets the boolean to False.\n\nThe function pyjniusLinguaDetectLanguageLabel sends a GET request to a local server (http://localhost:8978) with the input text as a parameter. It expects the server to return a JSON response containing language detection information. If the code of the response is 200, it implies a successful detection and the function returns the detected language label.",
         "type": "comment"
     },
     "162": {
-        "file_id": 21,
-        "content": "    )\n    # longUrl = \"https://www.bilibili.com/video/BV1Wv41157Wz\"\n    longUrl = videoLink\n    import urllib.parse as urlparse\n    # params = {\"url\": longUrl}\n    params = {\n        \"url\": urlparse.quote(longUrl).replace(\"/\", \"%2F\"),\n        \"href\": \"https://xiaojuzi.fun/bili-short-url/\",\n    }\n    # print(params)\n    # exit()\n    headers = {\n        \"accept\": \"*/*\",\n        \"accept-language\": \"en-US,en;q=0.9\",\n        \"if-none-match\": 'W/\"35-oPDNsqBGaZKqGe83GW6wem+lkww\"',\n        \"sec-ch-ua\": '\"Google Chrome\";v=\"105\", \"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"105\"',\n        \"sec-ch-ua-mobile\": \"?0\",\n        \"sec-ch-ua-platform\": '\"macOS\"',\n        \"sec-fetch-dest\": \"empty\",\n        \"sec-fetch-mode\": \"cors\",\n        \"sec-fetch-site\": \"cross-site\",\n        \"Referer\": \"https://xiaojuzi.fun/\",\n        \"Referrer-Policy\": \"strict-origin-when-cross-origin\",\n        \"user-agent\": \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36\",  # this is important.\n    }",
+        "file_id": 12,
+        "content": "            return response[\"result\"]\n        else:\n            print(\"ERROR WHEN FETCHING LANGUAGE ID\")\n            print(response)\n            breakpoint()\nnativeLangFlagStandard = \"CHINESE\"\n# need to make this thing totally bilingual if we have to.\n# for test in tests:\ndef getLyricsLanguageType(test):\n    isBilingual = False\n    needToTranslate = True  # not useful for our bilingual shit.\n    print(\"_______________TEST SUBJECT_______________\")\n    for elem in test:\n        print(elem)\n    print(\"_______________TEST SUBJECT_______________\")\n    flags = [int(flag) for _, flag in [lastSpaceSpliter(elem) for elem in test]]\n    print(flags)\n    if sum(flags) < len(flags) * 0.8:\n        print(\"NOT A BILIGUAL LYRICS FILE\")\n    else:\n        # having the potential of being a bilingual shit.\n        # process this shit separately.\n        # double check if this is really bilingual.\n        foreignLangList = []\n        nativeLangList = []\n        for elem in test:\n            text, flag = lastSpaceSpliter(elem)\n            if flag:",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:90-116"
+        "location": "/pyjom/lyrictoolbox.py:151-182"
     },
     "163": {
-        "file_id": 21,
-        "content": "This code snippet is preparing a request to shorten a video link. It defines the long URL, uses URL parsing to format the parameters, and sets headers for the HTTP request. The goal is to obtain a shortened version of the provided video link using the \"https://xiaojuzi.fun/bili-short-url/\" API.",
+        "file_id": 12,
+        "content": "This code seems to check if a given text is bilingual or not. It does this by iterating through the test data, splitting each element into text and flag. If the sum of flags in the test is less than 80% of the total number of elements, it concludes that the lyrics are not bilingual. Otherwise, it processes the data separately to determine if it is truly bilingual.",
         "type": "comment"
     },
     "164": {
-        "file_id": 21,
-        "content": "    import requests\n    request_url = apiUrl + \"?url={url}&href={href}\".format(**params)\n    # request_url = 'https://service-ijd4slqi-1253419200.gz.apigw.tencentcs.com/release/short_url?url=https%3A%2F%2Fwww.bilibili.com%2Fvideo%2FBV1Wv41157Wz&href=https://xiaojuzi.fun/bili-short-url/'\n    # print(request_url)\n    r = requests.get(request_url, headers=headers)\n    if r.status_code == 200:\n        # print(r.json())\n        r_json = r.json()\n        success = r_json.get(\"success\", False)\n        if success:\n            short_url = r_json.get(\"short_url\", None)\n            print(short_url)\n            return short_url\n    # starts with 'https://b23.tv'\ndef generateBilibiliShortLinkMethod1(\n    videoLink: str,\n):  # get bilibili user email address by asking them from chat. if they give the email address, send setu as gift. for other users, you may improvise. send video link, recommendations\n    url = \"https://api.bilibili.com/x/share/click\"\n    # burl = \"https://www.bilibili.com/read/cv19232041\" # my article with e-begging",
+        "file_id": 12,
+        "content": "                # this line might be bilingual.\n                foreignLang, nativeLang = text\n                foreignLangList.append(foreignLang)\n                nativeLangList.append(nativeLang)\n        foreignLangString = \" \".join(foreignLangList)\n        nativeLangString = \" \".join(nativeLangList)\n        # import whatlang\n        # nativeLangFlagStandard = \"Cmn\"\n        # foreignLangFlag = whatlang.detect_language(foreignLangString)\n        # nativeLangFlag = whatlang.detect_language(nativeLangString)\n        # import cld3\n        # nativeLangFlagStandard = \"zh\"\n        # foreignLangFlag = cld3.get_language(foreignLangString)\n        # nativeLangFlag = cld3.get_language(nativeLangString)\n        # from textblob import TextBlob\n        # nativeLangFlagStandard = \"zh\"\n        # foreignLangFlag = TextBlob(foreignLangString).detect_language()\n        # nativeLangFlag = TextBlob(nativeLangString).detect_language()\n        # import langid\n        # nativeLangFlagStandard = \"zh\"\n        # foreignLangFlag = langid.classify(foreignLangString)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:118-139"
+        "location": "/pyjom/lyrictoolbox.py:183-207"
     },
     "165": {
-        "file_id": 21,
-        "content": "Code imports requests library, constructs a request URL with provided parameters, sends a GET request to the Bilibili API, and checks if the status code is 200. If so, it retrieves the short link from the response JSON and returns or prints it.",
+        "file_id": 12,
+        "content": "This code snippet is likely trying to determine the language of a given text. It attempts this by using different libraries such as whatlang, cld3, TextBlob and langid. The nativeLangFlagStandard is set to \"Cmn\" or \"zh\" for comparison with the detected languages from these libraries.",
         "type": "comment"
     },
     "166": {
-        "file_id": 21,
-        "content": "    burl = videoLink\n    data = {\n        \"build\": 6700300,\n        \"buvid\": 0,\n        \"oid\": burl,\n        \"platform\": \"android\",\n        \"share_channel\": \"COPY\",\n        \"share_id\": \"public.webview.0.0.pv\",\n        \"share_mode\": 3,\n    }\n    import requests\n    headers = {\n        \"user-agent\": \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36\"\n    }\n    r = requests.post(\n        url, data=data, headers=headers\n    )  # maybe you two share the same user agent!\n    # we have the link!\n    if r.status_code == 200:\n        # print(r.content)\n        r_json = r.json()\n        code = r_json[\"code\"]\n        if code == 0:\n            link = r_json[\"data\"][\"content\"]\n            print(link)\n            return link\n    # fail, obviously.\ndef generateBilibiliShortLink(videoLink: str):\n    link = None\n    try:\n        link = generateBilibiliShortLinkMethod1(videoLink)\n        assert link is not None\n    except:\n        import traceback\n        traceback.print_exc()",
+        "file_id": 12,
+        "content": "        # nativeLangFlag = langid.classify(nativeLangString)\n        foreignLangFlag = (pyjniusLinguaDetectLanguageLabel(foreignLangString), 1)\n        nativeLangFlag = (pyjniusLinguaDetectLanguageLabel(nativeLangString), 1)\n        # there's no probability out there! WTF?\n        print(foreignLangFlag)\n        print(nativeLangFlag)\n        # breakpoint()\n        if (\n            foreignLangFlag[0] != nativeLangFlagStandard\n            and nativeLangFlag[0] == nativeLangFlagStandard\n        ):\n            # this is for sure the bilingual shit.\n            isBilingual = True\n            print(\"BILINGUAL LYRIC FILE IDENTIFIED.\")\n            # then? how shall we judge this?\n            # let the jieba.lcut to handle the cutting. please?\n            # remove all blanks in the list.\n        else:\n            print(\"NOT A BILIGUAL LYRICS FILE\")\n    # what you are going to do with this shit?\n    if not isBilingual:\n        print(\"checking main language\")\n        lyricString = \" \".join(test)\n        mainLanguage = pyjniusLinguaDetectLanguageLabel(lyricString)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:140-178"
+        "location": "/pyjom/lyrictoolbox.py:208-233"
     },
     "167": {
-        "file_id": 21,
-        "content": "This code is trying to generate a Bilibili short link for a given videoLink. It first defines the necessary data, sets headers using a user-agent, and then sends a POST request to get the short link. If successful (status_code 200), it extracts the link from the returned JSON, prints it, and returns it. In case of failure or exceptions, it prints the traceback.",
+        "file_id": 12,
+        "content": "The code uses the pyjniusLinguaDetectLanguageLabel function to classify the foreign and native language strings of a lyric file. If the foreign language does not match the native language standard, it assumes the file is bilingual. It then prints whether it is a bilingual or non-bilingual lyrics file. If non-bilingual, it checks the main language using the same function.",
         "type": "comment"
     },
     "168": {
-        "file_id": 21,
-        "content": "        link = generateBilibiliShortLinkMethod2(videoLink)\n        assert link is not None\n    return link\ndef makeQRCode(content: str, savePath: str):\n    # Importing library\n    import qrcode\n    # Encoding data using make() function\n    def makeAndSaveQrcode(data, save_path, debug=False):\n        img = qrcode.make(data)\n        if debug:\n            print(\"image type:\", type(img))\n        img.save(save_path)\n    data = content\n    save_path = savePath\n    makeAndSaveQrcode(data, save_path)\ndef generateQRCodeFromBVID(\n    bvid: str, qrCodeSavePath: str = os.path.join(TMP_DIR_PATH, QRCODE_PATH)\n):\n    videoLink = \"https://www.bilibili.com/video/{}\".format(bvid)\n    shortLink = generateBilibiliShortLink(videoLink)\n    makeQRCode(shortLink, qrCodeSavePath)\n    return shortLink\ndef generateBilibiliVideoAd(\n    bvid: str,\n    title_text: str,\n    image_link: str,\n    cover_path: str = os.path.join(TMP_DIR_PATH, COVER_PATH),\n):\n    import requests\n    r = requests.get(image_link)\n    with open(cover_path, \"wb\") as f:\n        c = r.content",
+        "file_id": 12,
+        "content": "        print(\"main language id:\", mainLanguage)\n        if mainLanguage == nativeLangFlagStandard:\n            print(\"no need to translate\")\n            needToTranslate = False\n        else:\n            print(\"need to translate\")\n    return isBilingual, needToTranslate\ndef translate(text: str, backend=\"baidu\"):  # deepl is shit. fucking shit.\n    # import time\n    # time.sleep(delay)\n    import requests\n    url = \"http://localhost:8974/translate\"\n    mTranslate = lambda text, backend, timeout: requests.get(\n        url, params={\"backend\": backend, \"text\": text}, timeout=timeout\n    )\n    backendList = [\"deepl\", \"baidu\"]\n    if backend == \"random\":\n        import random\n        backend = random.choice(backendList)\n    assert backend in backendList\n    translatedText = text\n    if text.strip() == \"\":\n        return text\n    try:\n        with mTranslate(text, backend, timeout=10) as conn:\n            result = conn.json()\n            print(\"TRANSLATOR RESULT:\", result)\n            if result[\"code\"] == 200:\n                translatedText = result[\"result\"]",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:179-219"
+        "location": "/pyjom/lyrictoolbox.py:234-266"
     },
     "169": {
-        "file_id": 21,
-        "content": "The code is used to generate a bilibili video ad. It imports the qrcode library, generates a QR code from the BVID, retrieves the short link of the video, and then saves it along with an image in the TMP_DIR_PATH directory. The image is downloaded using requests module and saved as a cover for the ad.",
+        "file_id": 12,
+        "content": "The code defines a function `translate` which takes a text and an optional backend parameter. It checks if the text is empty, returns it as is if so. If not, it sends a GET request to a local server for translation using the specified backend (default is 'baidu'). It also has an option to use a random backend from the available options. The function returns the translated text if the translation is successful (status code 200), or the original text otherwise.",
         "type": "comment"
     },
     "170": {
-        "file_id": 21,
-        "content": "        f.write(c)\n    link = generateQRCodeFromBVID(bvid)\n    return (generateVideoAdUniversal(\n        videoStats=generateFakeVideoStats(),\n        title_text=title_text,\n        cover_path=cover_path,\n    ), link)\n# you must have some lock outside while using this.\ndef generateVideoAdUniversal(\n    videoStats=None,  # will it work?\n    night_mode: bool = True,\n    title_text: str = \"\",\n    framework_only: bool = False,\n    ad_width: int = 1000,\n    ad_height: int = 1000,\n    font_path: str = os.path.join(TMP_DIR_PATH, FONT_PATH),\n    font_bold_path: str = os.path.join(TMP_DIR_PATH, FONT_BOLD_PATH),\n    cover_path: str = os.path.join(TMP_DIR_PATH, COVER_PATH),\n    qrcode_path: str = os.path.join(TMP_DIR_PATH, QRCODE_PATH),\n    play_button_path: str = os.path.join(TMP_DIR_PATH, PLAY_BUTTON_PATH),\n    output_path: str = os.path.join(TMP_DIR_PATH, OUTPUT_PATH),\n    output_standalone: str = os.path.join(TMP_DIR_PATH, OUTPUT_STANDALONE),\n    output_masked_path: str = os.path.join(TMP_DIR_PATH, OUTPUT_MASKED_PATH),",
+        "file_id": 12,
+        "content": "            else:\n                print(\"SOME ERROR DURING TRANSLATION, PLEASE CHECK SERVER\")\n            # it just never return.\n    except:\n        import traceback\n        traceback.print_exc()\n    return translatedText\n    # we know the translator cannot respond the same shit to us right?\ndef waitForServerUp(port, message, timeout=1):\n    import requests\n    while True:\n        try:\n            url = \"http://localhost:{}\".format(port)\n            with requests.get(url, timeout=timeout, proxies=None) as r:\n                if type(message) == str:\n                    text = r.text.strip('\"').strip(\"'\")\n                else:\n                    text = r.json()\n                print(\"SERVER AT PORT %d RESPONDS:\" % port, [text])\n                assert text == message\n                print(\"SERVER AT PORT %d IS UP\" % port)\n                break\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"SERVER AT PORT %d MIGHT NOT BE UP\" % port)\n            print(\"EXPECTED MESSAGE:\", [message])",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:220-244"
+        "location": "/pyjom/lyrictoolbox.py:267-298"
     },
     "171": {
-        "file_id": 21,
-        "content": "This function generates a video ad using the provided parameters. It writes the code to a file, generates a QR code, and returns a tuple containing the generated video ad and the QR code link. The function uses temporary directory paths for various resources.",
+        "file_id": 12,
+        "content": "This function checks if a server is up and running by continuously sending requests to it on a specified port. If the server responds correctly, it returns success. Otherwise, it prints an error message and continues waiting until the timeout is reached or the server becomes active.",
         "type": "comment"
     },
     "172": {
-        "file_id": 21,
-        "content": "    bilibili_logo_path: str = os.path.join(TMP_DIR_PATH, BILIBILI_LOGO_PATH),\n):\n    # fake these numbers.\n    # one extra space.\n    assert videoStats is not None\n    play_count, comment_count, danmaku_count = videoStats\n    assert title_text != \"\"\n    stats_text = \" {}播放 {}评论 {}弹幕\".format(play_count, comment_count, danmaku_count)\n    qrcode_scan_text = \"\\n\" + \"\\n\".join(list(\"扫码观看\"))\n    white = pixie.Color(1, 1, 1, 1)\n    black = pixie.Color(0, 0, 0, 1)\n    image = pixie.Image(ad_width, ad_height)\n    # we are creating this, not replacing qr code.\n    if not framework_only:\n        if night_mode:\n            image.fill(black)\n            # irreversible!\n        else:\n            image.fill(white)\n    else:\n        image2 = image.copy()  # as mask.\n    # place the cover.\n    cover_w2h = getImageW2H(cover_path)\n    cover_width = int(ad_width * 0.9)\n    cover_height = int(cover_width / cover_w2h)\n    cover_round_corner_radius = int(ad_width * 0.05)\n    cover = pixie.read_image(cover_path)\n    cover = cover.resize(cover_width, cover_height)",
+        "file_id": 12,
+        "content": "            import time\n            time.sleep(1)\nwaitForServerUp(8974, \"unified translator hooked on some clash server\")\nwaitForServerUp(8978, \"say hello to jpype fastapi server\")\nwaitForServerUp(8677, \"clash update controller\", timeout=10)  # probe the clash updator\nwaitForServerUp(\n    8932, {\"response\": \"DFAFilter based Chinese text filter(censor)\"}\n)  # this is text filter.\ndef censorTextWithTextFilter(text):\n    port = 8932\n    import requests\n    url = \"http://localhost:{}/filter\".format(port)\n    with requests.get(url, params={\"text\": text}) as r:\n        data = r.json()\n        return data[\"response\"]\n@redisLRUCache()\ndef getTextListTranslated(test, translate_method=\"baidu\"):\n    newLyricArray = []\n    import progressbar\n    isBilingual, needToTranslate = getLyricsLanguageType(test)\n    if isBilingual:\n        for elem in progressbar.progressbar(test):\n            text, flag = lastSpaceSpliter(elem)\n            if flag:  # splited!\n                foreignText, nativeText = text\n            else:\n                foreignText = text",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:245-274"
+        "location": "/pyjom/lyrictoolbox.py:299-334"
     },
     "173": {
-        "file_id": 21,
-        "content": "This code is setting up an image with various elements such as play count, comment count, danmaku count, and a QR code. It creates a white or black background depending on the night mode option, copies the image to create a mask, reads a cover image, and resizes it. The code uses Pixie for image manipulation, os for file paths, and other libraries for formatting and image reading.",
+        "file_id": 12,
+        "content": "The code imports necessary modules, sets up servers, and defines functions for censoring text with a text filter, translating lyrics, and handles bilingual lyrics. It uses a progress bar and calls external APIs for translation and censoring. The code waits for specific server ports to be active before proceeding.",
         "type": "comment"
     },
     "174": {
-        "file_id": 21,
-        "content": "    # cover gradient.\n    gradient_paint = pixie.Paint(pixie.LINEAR_GRADIENT_PAINT)\n    gradient_paint.gradient_handle_positions.append(\n        pixie.Vector2(100, int(cover_height) * 0.8)\n    )\n    gradient_paint.gradient_handle_positions.append(pixie.Vector2(100, cover_height))\n    gradient_paint.gradient_stops.append(pixie.ColorStop(pixie.Color(0, 0, 0, 0), 0))\n    gradient_paint.gradient_stops.append(pixie.ColorStop(pixie.Color(0, 0, 0, 0.3), 1))\n    cover_mask_path = pixie.Path()\n    cover_mask_path.rounded_rect(\n        0, 0, cover_width, cover_height, *([cover_round_corner_radius] * 4)\n    )\n    stroke_param = 100\n    stroke_width = int(ad_width / stroke_param)\n    stroke_width_half = int(ad_width / stroke_param / 2)\n    cover_mask_path2 = pixie.Path()\n    cover_round_corner_radius2 = int(cover_round_corner_radius * 0.85)\n    cover_mask_path2.rounded_rect(\n        stroke_width_half,\n        stroke_width_half,\n        cover_width - stroke_width,\n        cover_height - stroke_width,\n        *([cover_round_corner_radius2] * 4)",
+        "file_id": 12,
+        "content": "                nativeText = translate(foreignText, backend=translate_method)\n            if foreignText != nativeText:\n                newLyricArray.append((foreignText, nativeText))\n            else:\n                newLyricArray.append((foreignText,))\n    else:\n        if needToTranslate:\n            for elem in progressbar.progressbar(test):\n                foreignText = elem\n                nativeText = translate(foreignText, backend=translate_method)\n                if not nativeText == foreignText:\n                    newLyricArray.append((foreignText, nativeText))\n                else:\n                    newLyricArray.append((foreignText,))\n        else:\n            newLyricArray = [(elem,) for elem in test.copy()]\n    return newLyricArray\ndef textArrayWithTranslatedListToAss(\n    textArray,\n    translatedList,\n    assPath,\n    shiftAdjust=600,\n    censor=True,\n    puncturalRemoval=True,\n    template_path=\"/root/Desktop/works/pyjom/tests/karaoke_effects/in2.ass.j2\",  # but the style. you know.\n    # aegisub use system fonts. you pass font name into it.",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:275-302"
+        "location": "/pyjom/lyrictoolbox.py:335-362"
     },
     "175": {
-        "file_id": 21,
-        "content": "Creating a gradient paint for the cover and defining its positions and color stops. Defining paths and rectangles with rounded corners for cover mask creation, adjusting stroke parameters based on ad width.",
+        "file_id": 12,
+        "content": "The code is a function that takes an array of text and translates it using the specified backend method. If there's a translation difference, it adds the original and translated text to the newLyricArray. If not, it just adds the original text. If no needToTranslate, it creates newLyricArray with elements from test. The function returns the newLyricArray after processing.",
         "type": "comment"
     },
     "176": {
-        "file_id": 21,
-        "content": "    )\n    # path = cover_mask_path\n    # cover.fill_path(cover_mask_path, gradient_paint)\n    cover_mask = pixie.Mask(cover_width, cover_height)\n    cover_mask.fill_path(cover_mask_path)\n    cover.mask_draw(cover_mask)\n    cover_transform_width = cover_transform_height = int((ad_width - cover_width) / 2)\n    cover_transform = pixie.translate(cover_transform_width, cover_transform_height)\n    if framework_only:\n        # image2.fill(black)\n        image2_paint = pixie.Paint(pixie.SOLID_PAINT)\n        image2_paint.color = white\n        image2.fill_path(cover_mask_path, image2_paint, cover_transform)\n    cover_stroke_paint = pixie.Paint(pixie.SOLID_PAINT)\n    cover_stroke_paint.color = pixie.parse_color(\"#FC427B\")\n    image.stroke_path(\n        cover_mask_path,\n        cover_stroke_paint,\n        cover_transform,\n        stroke_width=stroke_width,\n    )\n    if not framework_only:\n        image.draw(cover, cover_transform)  # you can choose to discard the cover\n    image.fill_path(cover_mask_path2, gradient_paint, cover_transform)",
+        "file_id": 12,
+        "content": "    ass_template_configs={},\n    assStyleConfig={},\n    tempdir=\"/dev/shm/medialang/lyrictoolbox\"\n    # editly does not support to put the .ass subtitle directly.\n):\n    defaultStyleConfig = {\n        \"original\": {\n            \"method\": \"romaji\",\n            \"style\": \"Romaji\",\n            \"cutOneByOne\": False,\n            \"charShift\": 35,\n        },  # this is default. you can change this.\n        \"translated\": {\n            \"method\": \"kanji\",\n            \"style\": \"Kanji\",\n            \"cutOneByOne\": True,\n            \"charShift\": 25,  # smaller?\n        },\n    }\n    # newTextArray = [] # dummy shit. must be removed immediately.\n    styleConfig = defaultStyleConfig.copy()\n    for key in styleConfig.keys():\n        styleConfig[key].update(assStyleConfig.get(key, {}))\n    import random\n    import math\n    import jinja2\n    from lazero.filesystem.io import readFile\n    default_template_configs = {\n        \"defaultFontname\": \"Arial\",\n        \"defaultFontsize\": 48,  # integer?\n        \"translationFontname\": \"Migu 1P\",\n        \"translationFontsize\": 48,",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:303-334"
+        "location": "/pyjom/lyrictoolbox.py:363-395"
     },
     "177": {
-        "file_id": 21,
-        "content": "This code creates a mask, applies it to an image, and fills the resulting path with a gradient paint. It also has an optional step for white-filling another image, and discards the cover if not required.",
+        "file_id": 12,
+        "content": "This code is initializing default and style configurations for subtitles, handling both original and translated languages. It uses a copy of the defaultStyleConfig, merges it with assStyleConfig, and assigns the result to styleConfig. The code imports necessary libraries and defines default_template_configs for font names and sizes.",
         "type": "comment"
     },
     "178": {
-        "file_id": 21,
-        "content": "    # now place the bilibili logo.\n    bilibili_logo = pixie.read_image(bilibili_logo_path)\n    bilibili_logo_w2h = getImageW2H(bilibili_logo_path)\n    bilibili_logo_width = int(ad_width * 0.2)\n    bilibili_logo_height = int(bilibili_logo_width / bilibili_logo_w2h)\n    bilibili_logo = bilibili_logo.resize(bilibili_logo_width, bilibili_logo_height)\n    bilibili_logo_transform = pixie.translate(\n        cover_transform_width + int(bilibili_logo_height / 8),\n        int(cover_transform_width + (bilibili_logo_height / 4)),\n    )\n    # bilibili_logo_transform = pixie.translate(\n    #     cover_transform_width, 0\n    # )\n    image.draw(bilibili_logo, bilibili_logo_transform)\n    # now place the play button.\n    play_button = pixie.read_image(play_button_path)\n    play_button_w2h = getImageW2H(play_button_path)\n    play_button_width = play_button_height = int(ad_width * 0.2)\n    play_button = play_button.resize(play_button_width, play_button_height)\n    play_button_transform = pixie.translate(\n        int(cover_transform_width + (cover_width - play_button_width) / 2),",
+        "file_id": 12,
+        "content": "        \"kanjiFontname\": \"Migu 1P\",\n        \"kanjiFontsize\": 60,  # 46,  # increase. make 'kanji' one char at a time.\n        \"romajiFontname\": \"Migu 1P\",\n        \"romajiFontsize\": 60,  # 38,  # increase to 60. expand the space!\n    }\n    mTemplateConfigs = default_template_configs.copy()\n    mTemplateConfigs.update(ass_template_configs)\n    template = jinja2.Template(source=readFile(template_path))\n    template_configured = template.render(**mTemplateConfigs)\n    from lazero.filesystem.temp import (\n        tmpfile,\n        getRandomFileNameUnderDirectoryWithExtension,\n    )\n    from lazero.filesystem.io import writeFile\n    template_configured_savedPath = getRandomFileNameUnderDirectoryWithExtension(\n        \"ass\", tempdir, check=False\n    )\n    with tmpfile(template_configured_savedPath):\n        writeFile(template_configured_savedPath, template_configured)\n        io = Ass(template_configured_savedPath, path_output=assPath)\n    meta, styles, lines = io.get_data()\n    # Creating the star and extracting all the color changes from the input file",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:336-361"
+        "location": "/pyjom/lyrictoolbox.py:396-420"
     },
     "179": {
-        "file_id": 21,
-        "content": "This code resizes bilibili logo and play button images according to ad width, and positions them on the image using Pixie library.",
+        "file_id": 12,
+        "content": "The code sets default template configuration, updates it with additional ass-specific configurations. It then renders the updated template and saves it to a temporary file path. Finally, it reads the rendered template from the temporary file and initializes an Ass object using the path to the saved template. The data (meta, styles, lines) is extracted from this object.",
         "type": "comment"
     },
     "180": {
-        "file_id": 21,
-        "content": "        int(cover_transform_width + (cover_height - play_button_height) / 2),\n    )\n    image.draw(play_button, play_button_transform)\n    # place some stats.\n    font = pixie.read_font(font_path)\n    font.size = int(ad_width * 0.04)\n    font.paint.color = pixie.Color(1, 1, 1, 1)\n    stats_transform = pixie.translate(\n        int(cover_transform_width * 1.3),\n        cover_transform_width + cover_height - int(font.size * 2),\n    )\n    image.fill_text(font, stats_text, transform=stats_transform)\n    # place the qrcode.\n    qrcode = pixie.read_image(qrcode_path)\n    qrcode_width = qrcode_height = int(0.3 * ad_width)\n    qrcode = qrcode.resize(qrcode_width, qrcode_height)\n    font = pixie.read_font(font_path)\n    font.size = int(ad_width * 0.04)\n    if night_mode:\n        font.paint.color = pixie.Color(1, 1, 1, 1)\n    else:\n        font.paint.color = pixie.Color(0, 0, 0, 1)\n    qrcode_scan_text_transform_x = int(ad_width - qrcode_width * 1.1 - font.size * 1)\n    qrcode_scan_text_transform = pixie.translate(\n        qrcode_scan_text_transform_x + qrcode_width,",
+        "file_id": 12,
+        "content": "    star = Shape.star(5, 4, 10)\n    CU = ColorUtility(lines)\n    # test this elsewhere. please?\n    def romaji(line, l):\n        # Setting up a delay, we will use it as duration time of the leadin and leadout effects\n        delay = 100\n        # Setting up offset variables, we will use them for the \\move in leadin and leadout effects\n        off_x = 35\n        off_y = 15\n        # Leadin Effect\n        mDelay = 0\n        # lastStartTime = line.start_time\n        for syl in Utils.all_non_empty(line.syls):\n            l.layer = 0\n            # l.start_time = syl.end_time\n            l.start_time = line.start_time\n            # l.start_time = (\n            #     line.start_time + 25 * syl.i - delay - 80\n            # )  # Remove 80 to start_time to let leadin finish a little bit earlier than the main effect of the first syllable\n            # l.end_time = lastStartTime # wtf?\n            # lastStartTime = syl.start_time\n            l.end_time = syl.start_time\n            # l.end_time = line.start_time + syl.start_time # wtf?",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:362-390"
+        "location": "/pyjom/lyrictoolbox.py:421-447"
     },
     "181": {
-        "file_id": 21,
-        "content": "This code is placing a play button, statistics text, and QR code on an image. It adjusts the position of each element based on the image size and ad width. The font size and color are set according to night mode.",
+        "file_id": 12,
+        "content": "This code defines a function `romaji` that takes in a line of lyrics and its associated data, and applies leadin and leadout effects to the syllables within the line. It sets up delay and offset variables for timing and positioning the effect, and iterates through each syllable in the line to apply the effects accordingly.",
         "type": "comment"
     },
     "182": {
-        "file_id": 21,
-        "content": "        int(ad_height - qrcode_height * 1.1),\n    )\n    image.fill_text(font, qrcode_scan_text, transform=qrcode_scan_text_transform)\n    qrcode_transform = pixie.translate(\n        int(ad_width - qrcode_width * 1.1 - font.size * 1.2),\n        int(ad_height - qrcode_height * 1.1),\n    )\n    qrcode_rounded_corner = int(0.05 * ad_width)\n    qrcode_stroke_path = pixie.Path()\n    qrcode_stroke_path.rounded_rect(\n        0, 0, qrcode_width, qrcode_height, *([qrcode_rounded_corner] * 4)\n    )\n    image.stroke_path(\n        qrcode_stroke_path,\n        cover_stroke_paint,\n        qrcode_transform,\n        stroke_width=stroke_width,\n    )\n    qrcode_mask = pixie.Mask(qrcode_width, qrcode_width)\n    qrcode_mask.fill_path(qrcode_stroke_path)\n    qrcode.mask_draw(qrcode_mask)\n    image.draw(qrcode, qrcode_transform)\n    # now for the title\n    font = pixie.read_font(font_bold_path)\n    font.size = int(ad_width * 0.06)\n    if night_mode:\n        font.paint.color = pixie.parse_color(\"#B0B0B0\")\n    else:\n        font.paint.color = pixie.parse_color(\"#4F4F4F\")",
+        "file_id": 12,
+        "content": "            l.dur = l.end_time - l.start_time\n            if l.dur <= 0:\n                continue\n            l.text = (\n                \"{\\\\an5\\\\move(%.3f,%.3f,%.3f,%.3f,0,%d)\\\\blur2\\\\t(0,%d,\\\\blur0)\\\\fad(%d,0)}%s\"\n                % (\n                    syl.center + math.cos(syl.i / 2) * off_x,\n                    syl.middle + math.sin(syl.i / 4) * off_y,\n                    syl.center,\n                    syl.middle,\n                    delay,\n                    delay,\n                    delay,\n                    syl.text,\n                )\n            )\n            io.write_line(l)\n        # Main Effect\n        for syl in Utils.all_non_empty(line.syls):\n            l.layer = 1\n            l.start_time = syl.start_time\n            # l.start_time = line.start_time + syl.start_time\n            l.end_time = syl.end_time + 100\n            l.dur = l.end_time - l.start_time\n            c1 = \"&H81F4FF&\"\n            c3 = \"&H199AAA&\"\n            # Change color if inline_fx is m1\n            if syl.inline_fx == \"m1\":",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:391-425"
+        "location": "/pyjom/lyrictoolbox.py:448-480"
     },
     "183": {
-        "file_id": 21,
-        "content": "This code generates a QR code for an ad and applies a mask to it, adjusting its size, position, corner radius, stroke width, and color based on ad dimensions. The font and color of the text are also set according to night mode or daylight conditions.",
+        "file_id": 12,
+        "content": "This code is setting up lyrics animation for a specific line in a song. It calculates the duration and position of each syllable, applies animations based on their timing, and writes the effect data to be processed by the renderer. The inline_fx parameter determines the color change if the syllable has the \"m1\" effect applied.",
         "type": "comment"
     },
     "184": {
-        "file_id": 21,
-        "content": "    # use some gray text.\n    # font.paint.color = pixie.parse_color(\"#4F42B5\")\n    # font.paint.color = pixie.parse_color(\"#FC427B\")\n    # font.paint.color = pixie.Color(0,0,0,1)\n    title_text_transform = pixie.translate(\n        int(font.size * 0.8), int(ad_height - qrcode_height * 1.1)\n    )\n    title_text_bounds = pixie.Vector2(\n        int(qrcode_scan_text_transform_x - font.size * 1.1), int(qrcode_height)\n    )\n    image.fill_text(\n        font, title_text, bounds=title_text_bounds, transform=title_text_transform\n    )\n    delta = int(cover_width * 0.02)\n    sub_image_params = (\n        cover_transform_width - delta,\n        cover_transform_height - delta,\n        cover_width + 2 * delta,\n        cover_height + 2 * delta,\n    )\n    standalone_cover_image = image.sub_image(*sub_image_params)\n    standalone_cover_image.write_file(output_standalone)\n    image.write_file(output_path)  # make sure you write to desired temp path.\n    if framework_only:\n        image2.sub_image(*sub_image_params).write_file(output_masked_path)",
+        "file_id": 12,
+        "content": "                c1 = \"&H8282FF&\"\n                c3 = \"&H191AAA&\"\n            on_inline_effect_2 = \"\"\n            # Apply rotation if inline_fx is m2\n            if syl.inline_fx == \"m2\":\n                on_inline_effect_2 = \"\\\\t(0,%d,\\\\frz%.3f)\\\\t(%d,%d,\\\\frz0)\" % (\n                    l.dur / 4,\n                    random.uniform(-40, 40),\n                    l.dur / 4,\n                    l.dur,\n                )\n            l.text = (\n                \"{\\\\an5\\\\pos(%.3f,%.3f)%s\\\\t(0,80,\\\\fscx105\\\\fscy105\\\\1c%s\\\\3c%s)\\\\t(80,%d,\\\\fscx100\\\\fscy100\\\\1c%s\\\\3c%s)}%s\"\n                % (\n                    syl.center,\n                    syl.middle,\n                    on_inline_effect_2,\n                    c1,\n                    c3,\n                    l.dur - 80,\n                    line.styleref.color1,\n                    line.styleref.color3,\n                    syl.text,\n                )\n            )\n            io.write_line(l)\n            # Animating star shape that jumps over the syllables\n            # Jump-in to the first syl",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:426-450"
+        "location": "/pyjom/lyrictoolbox.py:481-512"
     },
     "185": {
-        "file_id": 21,
-        "content": "This code generates an image with a QR code and text on top of it. It then creates two versions - one with the entire image, and another without any framework elements. The transformed QR code and text are placed on the image, and then saved in specified output files.",
+        "file_id": 12,
+        "content": "This code applies a rotation effect to inline_fx \"m2\", sets the on_inline_effect_2 variable, and constructs a formatted string for text with animation and color properties. It writes this line to an io file while also creating a jumping star shape animation for syllables.",
         "type": "comment"
     },
     "186": {
-        "file_id": 21,
-        "content": "    return (\n        output_path,\n        output_standalone,\n        output_masked_path,\n    )  # well, pick up if you want.\nIMAGE_WITH_QRCODE_PATH = \"image_with_qrcode.png\"\nOUTPUT_WITH_QRCODE_PATH = \"output_with_qrcode.png\"\ndef removeQRCodes(\n    image_with_qrcode_path: str = os.path.join(TMP_DIR_PATH, IMAGE_WITH_QRCODE_PATH)\n):\n    # use best method to remove qrcode.\n    # import cv2\n    # import imutils\n    from PIL import Image\n    from pyzbar.pyzbar import decode, ZBarSymbol\n    # @function 'detect_qr' detect and decode qrcode from frame using pyzbar lib\n    # @param 'inputFrame' type <class 'numpy.ndarray'>\n    # @return if detected type 'bool'\n    import numpy as np\n    def detect_qr(inputFrame):\n        img = Image.fromarray(inputFrame)  # fuck?\n        decodedImg = decode(img, symbols=[ZBarSymbol.QRCODE])\n        # it reads the content. but where is the code?\n        print(\"total %d qrcode detected\" % len(decodedImg))\n        # breakpoint()\n        # length: 2\n        if len(decodedImg) > 0:\n            polygons = []",
+        "file_id": 12,
+        "content": "            jump_height = 18\n            if syl.i == 0:\n                FU = FrameUtility(line.start_time - line.leadin / 2, line.start_time)\n                for s, e, i, n in FU:\n                    l.start_time = s\n                    l.end_time = e\n                    frame_pct = i / n\n                    x = syl.center - syl.width * (1 - frame_pct)\n                    y = syl.top - math.sin(frame_pct * math.pi) * jump_height\n                    alpha = 255\n                    alpha += FU.add(0, syl.duration, -255)\n                    alpha = Convert.alpha_dec_to_ass(int(alpha))\n                    l.text = (\n                        \"{\\\\alpha%s\\\\pos(%.3f,%.3f)\\\\bord1\\\\blur1\\\\1c%s\\\\3c%s\\\\p1}%s\"\n                        % (alpha, x, y, c1, c3, star)\n                    )\n                    io.write_line(l)\n            # Jump to the next syl or to the end of line\n            jump_width = (\n                line.syls[syl.i + 1].center - syl.center\n                if syl.i != len(line.syls) - 1\n                else syl.width",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:451-485"
+        "location": "/pyjom/lyrictoolbox.py:513-538"
     },
     "187": {
-        "file_id": 21,
-        "content": "This code defines a function to remove QR codes from an image. It uses the Pyzbar library for QR code detection and removal. The function takes the path of the image with QR codes as input and returns the output path without QR codes, the standalone output path, and the masked output path. The code also includes a helper function called \"detect_qr\" which detects and decodes the QR codes from an input frame.",
+        "file_id": 12,
+        "content": "This code calculates the positions and alpha values for text overlays on each syllable in a line, using FrameUtility to determine the timing. It applies a sinusoidal function to adjust y-coordinates based on frame percentage, and handles alpha values by adding them over time from FU. It also checks if it's the first syllable of the line to initialize FrameUtility correctly.",
         "type": "comment"
     },
     "188": {
-        "file_id": 21,
-        "content": "            for code in decodedImg:\n                decodedBytes = code.data\n                # stringData = decodedBytes.decode(\"utf-8\")\n                # print(\"QRCode content:\")\n                # print(stringData)\n                polygon = code.polygon\n                # print('POLYGON CONTENT:')\n                # print(polygon)\n                mpolygon = []\n                for point in polygon:\n                    mpolygon.append([point.x, point.y])\n                #     print('POINT:',point.x,point.y)\n                polygons.append(np.array(mpolygon, dtype=np.int32))\n            return polygons\n        else:\n            return []\n    def getInputFrameFromImagePath(imagePath: str):\n        inputFrame = cv2.imread(imagePath)\n        return inputFrame\n    inputFrame = getInputFrameFromImagePath(image_with_qrcode_path)\n    QRCodeCoordinates = detect_qr(inputFrame)\n    img = cv2.imread(image_with_qrcode_path)\n    if QRCodeCoordinates != []:\n        mask_image = np.zeros((*img.shape[:2], 1), dtype=img.dtype)\n        for poly in QRCodeCoordinates:",
+        "file_id": 12,
+        "content": "            )\n            # FU = FrameUtility(\n            #     line.start_time + syl.start_time, line.start_time + syl.end_time\n            # )\n            FU = FrameUtility(syl.start_time, syl.end_time)\n            for s, e, i, n in FU:\n                l.start_time = s\n                l.end_time = e\n                frame_pct = i / n\n                x = syl.center + frame_pct * jump_width\n                y = syl.top - math.sin(frame_pct * math.pi) * jump_height\n                alpha = 0\n                # Last jump should fade-out\n                if syl.i == len(line.syls) - 1:\n                    alpha += FU.add(0, syl.duration, 255)\n                alpha = Convert.alpha_dec_to_ass(int(alpha))\n                l.text = (\n                    \"{\\\\alpha%s\\\\pos(%.3f,%.3f)\\\\bord1\\\\blur1\\\\1c%s\\\\3c%s\\\\p1}%s\"\n                    % (\n                        alpha,\n                        x,\n                        y,\n                        c1,\n                        c3,\n                        star,\n                    )",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:486-513"
+        "location": "/pyjom/lyrictoolbox.py:539-567"
     },
     "189": {
-        "file_id": 21,
-        "content": "The code iterates over decoded QR codes and extracts their data, polygon coordinates, and converts them to a numpy array. The function returns the polygons if any QR code is detected; otherwise, it returns an empty list. There is also a separate function to read input frames from image paths and detect QRCodeCoordinates using the detect_qr function.",
+        "file_id": 12,
+        "content": "This code generates lyric information for each syllable in a line, including start and end times, position on screen, and alpha transparency. It also handles the last jump with a fade-out effect. The code uses FrameUtility to calculate frame percentage, adjusts y-coordinate based on frame percentage using sine function, and applies specific colors for text.",
         "type": "comment"
     },
     "190": {
-        "file_id": 21,
-        "content": "            cv2.fillPoly(mask_image, [poly], 255)\n        inpainted_im = cv2.inpaint(img, mask_image, 3, cv2.INPAINT_TELEA)\n    else:\n        inpainted_im = img\n    return QRCodeCoordinates, inpainted_im\nfrom typing import Union\ndef removeAndInsertQRCode(\n    image_with_qrcode_path: str = os.path.join(TMP_DIR_PATH, IMAGE_WITH_QRCODE_PATH),\n    qrcode_path: str = os.path.join(TMP_DIR_PATH, QRCODE_PATH),\n    output_with_qrcode_path: Union[None, str] = os.path.join(\n        TMP_DIR_PATH, OUTPUT_WITH_QRCODE_PATH\n    ),\n):  # remove all detected QRCodes. add qrcode nevertheless.\n    # TODO: use more advanced models to detect QRCodes.\n    # TODO: increase the size of the original image if too small.\n    QRImage = cv2.imread(qrcode_path)\n    import math\n    def get_rotation_angle_and_center(p1, p2, p3, p4):\n        # Find the center of the rectangle\n        center_x = int((p1[0] + p3[0]) / 2 + (p2[0] + p4[0]) / 2) / 2\n        center_y = int((p1[1] + p3[1]) / 2 + (p2[1] + p4[1]) / 2) / 2\n        center = (center_x, center_y)",
+        "file_id": 12,
+        "content": "                )\n                io.write_line(l)\n        # Leadout Effect\n        for syl in Utils.all_non_empty(line.syls):\n            l.layer = 0\n            l.start_time = syl.end_time\n            # l.start_time = line.start_time + syl.end_time + 100\n            l.end_time = line.end_time\n            # l.end_time = line.end_time - 25 * (len(line.syls) - syl.i) + delay + 100\n            # l.end_time = line.end_time - 25 * (len(line.syls) - syl.i) + delay + 100\n            l.dur = l.end_time - l.start_time\n            if l.dur <= 0:\n                continue\n            l.text = (\n                \"{\\\\an5\\\\move(%.3f,%.3f,%.3f,%.3f,%d,%d)\\\\t(%d,%d,\\\\blur2)\\\\fad(0,%d)}%s\"\n                % (\n                    syl.center,\n                    syl.middle,\n                    syl.center + math.cos(syl.i / 2) * off_x,\n                    syl.middle + math.sin(syl.i / 4) * off_y,\n                    l.dur - delay,\n                    l.dur,\n                    l.dur - delay,\n                    l.dur,\n                    delay,",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:514-540"
+        "location": "/pyjom/lyrictoolbox.py:568-595"
     },
     "191": {
-        "file_id": 21,
-        "content": "The code reads an image with a QR code and removes all detected QR codes while adding the specified QR code to the output image. It also calculates the rotation angle and center of a rectangle formed by four points. The function takes paths for the input image, QR code image, and the desired output image path. It uses OpenCV for image processing operations like reading images, inpainting, and applying transformations.",
+        "file_id": 12,
+        "content": "This code adjusts the start and end times of each lyric line to create a leadout effect, where subsequent lines fade in after the previous ones have finished. It iterates over each syllable in a line, sets their duration based on the line's start and end times, and applies animation properties for the lyric display.",
         "type": "comment"
     },
     "192": {
-        "file_id": 21,
-        "content": "        width = math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)\n        height = math.sqrt((p2[0] - p3[0]) ** 2 + (p2[1] - p3[1]) ** 2)\n        # Calculate the slope of one of the edges\n        slope = (p2[1] - p1[1]) / (p2[0] - p1[0])\n        # Calculate the angle of the edge from the x-axis\n        angle = (math.pi / 2) - math.atan(\n            slope\n        )  # correct the angle. according to opencv.\n        while True:\n            if angle > math.pi / 2:\n                angle -= math.pi / 2\n            elif angle < 0:\n                angle += math.pi / 2\n            else:\n                break\n        return angle, center, width, height\n    QRCodeCoordinates, img = removeQRCodes(image_with_qrcode_path)\n    hasQRCode = len(QRCodeCoordinates) > 0\n    from shapely.geometry import Polygon\n    import numpy as np\n    if hasQRCode:  # put the biggest one there.\n        QRCodeCoordinates.sort(key=lambda x: -Polygon(x.tolist()).area)\n        biggest_polygon = QRCodeCoordinates[0]\n        cv2.fillPoly(img, [biggest_polygon], (0, 0, 0))",
+        "file_id": 12,
+        "content": "                    syl.text,\n                )\n            )\n            io.write_line(l)\n    def kanji(line, l):\n        # Setting up a delay, we will use it as duration time of the leadin and leadout effects\n        delay = 300\n        # Setting up offset variables, we will use them for the \\move in leadin and leadout effects\n        off_x = 35\n        off_y = 15\n        # Leadin Effect\n        for syl in Utils.all_non_empty(line.syls):\n            l.layer = 0\n            l.start_time = line.start_time\n            # l.start_time = (\n            #     line.start_time + 25 * syl.i - delay - 80\n            # )  # Remove 80 to start_time to let leadin finish a little bit earlier than the main effect of the first syllable\n            l.end_time = syl.start_time\n            # l.end_time = line.start_time + syl.start_time\n            l.dur = l.end_time - l.start_time\n            if l.dur <= 0:\n                continue\n            l.text = (\n                \"{\\\\an5\\\\move(%.3f,%.3f,%.3f,%.3f,0,%d)\\\\blur2\\\\t(0,%d,\\\\blur0)\\\\fad(%d,0)}%s\"",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:541-568"
+        "location": "/pyjom/lyrictoolbox.py:596-624"
     },
     "193": {
-        "file_id": 21,
-        "content": "Calculates angle, width, and height of a polygon formed by points p1, p2, and p3. Sorts QRCodeCoordinates based on their area and draws the largest one using cv2.",
+        "file_id": 12,
+        "content": "This code calculates the start and end times for a lead-in effect in a lyric animation, with adjustable delay, offsets, and duration. It iterates through syllables, setting the layer, start time, and end time accordingly while applying specific formatting to the text.",
         "type": "comment"
     },
     "194": {
-        "file_id": 21,
-        "content": "        angle, center, width, height = get_rotation_angle_and_center(\n            *biggest_polygon.tolist()\n        )  # will fail?\n        QRWidth, QRHeight = int(width), int(height)\n        startingPoint = [int(center[0] - QRWidth / 2), int(center[1] - QRHeight / 2)]\n    else:\n        # randomly select one place to insert the shit.\n        height, width = img.shape[:2]\n        QRSize = min(height, width) / 5\n        QRHeight, QRWidth = QRImage.shape[:2]\n        if QRWidth > QRHeight:\n            QRHeight = int((QRHeight / QRWidth) * QRSize)\n            QRWidth = int(QRSize)\n        else:\n            QRWidth = int((QRWidth / QRHeight) * QRSize)\n            QRHeight = int(QRSize)\n        startingPoint = [\n            random.randint(0, math.floor(width - QRWidth)),\n            random.randint(0, math.floor(height - QRHeight)),\n        ]\n        angle, center = 0, [\n            startingPoint[0] + int(QRWidth / 2),\n            startingPoint[1] + int(QRHeight / 2),\n        ]\n        biggest_polygon = np.array(\n            [",
+        "file_id": 12,
+        "content": "                % (\n                    syl.center + math.cos(syl.i / 2) * off_x,\n                    syl.middle + math.sin(syl.i / 4) * off_y,\n                    syl.center,\n                    syl.middle,\n                    delay,\n                    delay,\n                    delay,\n                    syl.text,\n                )\n            )\n            io.write_line(l)\n        # Main Effect\n        for syl in Utils.all_non_empty(line.syls):\n            l.layer = 1\n            l.start_time = syl.start_time\n            # l.start_time = line.start_time + syl.start_time\n            l.end_time = syl.end_time + 100\n            l.dur = l.end_time - l.start_time\n            c1 = \"&H81F4FF&\"\n            c3 = \"&H199AAA&\"\n            # Change color if effect field is m1\n            if line.effect == \"m1\":\n                c1 = \"&H8282FF&\"\n                c3 = \"&H191AAA&\"\n            on_inline_effect_2 = \"\"\n            # Apply rotation if effect field is m2\n            if line.effect == \"m2\":\n                on_inline_effect_2 = \"\\\\t(0,%d,\\\\frz%.3f)\\\\t(%d,%d,\\\\frz0)\" % (",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:569-594"
+        "location": "/pyjom/lyrictoolbox.py:625-658"
     },
     "195": {
-        "file_id": 21,
-        "content": "This code is responsible for determining the position and size of a QR code image to be inserted into an image. It first checks if there's a polygon present, and if so, it calculates the angle, center, width, and height based on the given polygon. If not, it randomly selects a place to insert the QR code by adjusting its size to fit within 5% of the image size and then determines the starting point and other parameters. The code is written in Python with libraries like numpy and random for numerical operations and generating random numbers.",
+        "file_id": 12,
+        "content": "This code seems to be responsible for generating lines of text with effects based on the input lyrics and effect fields. It calculates the position of each line using sine and cosine functions, sets the start and end times, adjusts colors depending on the effect field, and applies rotation if the effect is set to \"m2\". The code then writes these lines with their respective properties to a file.",
         "type": "comment"
     },
     "196": {
-        "file_id": 21,
-        "content": "                startingPoint,\n                [startingPoint[0], startingPoint[1] + QRHeight],\n                [startingPoint[0] + QRWidth, startingPoint[1] + QRHeight],\n                [startingPoint[0] + QRWidth, startingPoint[1]],\n            ]\n        )\n        cv2.fillPoly(img, [biggest_polygon], (0, 0, 0))\n    QRImage = cv2.resize(QRImage, (QRWidth, QRHeight), interpolation=cv2.INTER_LINEAR)\n    # then we expand the image.\n    expanded_QR = np.zeros(img.shape, dtype=img.dtype)\n    height, width = QRImage.shape[:2]\n    slice_x_start, slice_x_end = startingPoint[1], height + startingPoint[1]\n    slice_y_start, slice_y_end = startingPoint[0], width + startingPoint[0]\n    # print(\"SLICES?\", slice_x_start, slice_x_end , slice_y_start, slice_y_end )\n    # print(\"IMAGE SHAPE?\",QRImage.shape)\n    expanded_QR[slice_x_start:slice_x_end, slice_y_start:slice_y_end] = QRImage\n    # then rotate.\n    if angle == 0:\n        rotated_im = expanded_QR\n    else:\n        angle_deg = 180 * (angle / np.pi)  # rotation error.",
+        "file_id": 12,
+        "content": "                    l.dur / 4,\n                    random.uniform(-40, 40),\n                    l.dur / 4,\n                    l.dur,\n                )\n            l.text = (\n                \"{\\\\an5\\\\pos(%.3f,%.3f)%s\\\\t(0,80,\\\\fscx105\\\\fscy105\\\\1c%s\\\\3c%s)\\\\t(80,%d,\\\\fscx100\\\\fscy100\\\\1c%s\\\\3c%s)}%s\"\n                % (\n                    syl.center,\n                    syl.middle,\n                    on_inline_effect_2,\n                    c1,\n                    c3,\n                    l.dur - 80,\n                    line.styleref.color1,\n                    line.styleref.color3,\n                    syl.text,\n                )\n            )\n            io.write_line(l)\n        # Leadout Effect\n        for syl in Utils.all_non_empty(line.syls):\n            l.layer = 0\n            l.start_time = syl.end_time + 100\n            # l.start_time = line.start_time + syl.end_time + 100\n            l.end_time = line.end_time\n            # l.end_time = line.end_time - 25 * (len(line.syls) - syl.i) + delay + 100\n            l.dur = l.end_time - l.start_time",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:595-617"
+        "location": "/pyjom/lyrictoolbox.py:659-690"
     },
     "197": {
-        "file_id": 21,
-        "content": "This code detects QR codes, creates a bounding box around them, fills the polygon with black color, resizes and expands the image, and then rotates it by 180 degrees if angle is not zero. The purpose is to prepare a QR code image for further operations in an image processing pipeline.",
+        "file_id": 12,
+        "content": "This code appears to handle the rendering of lyrics for a song, applying various effects and positioning them on the screen. It seems to involve manipulating line durations, layer positions, and colors based on different parameters such as syllable positions and timing. The \"Leadout Effect\" suggests that it may also handle transitions or overlays between lines of lyrics.",
         "type": "comment"
     },
     "198": {
-        "file_id": 21,
-        "content": "        rotation_matrix = cv2.getRotationMatrix2D(center, angle_deg, 1)\n        rotated_im = cv2.warpAffine(\n            expanded_QR, rotation_matrix, (img.shape[1], img.shape[0])\n        )\n    # combine. what?\n    output_img = rotated_im + img\n    # regularize\n    output_img.put(np.where(output_img > 255), 255)\n    output_img.put(np.where(output_img < 0), 0)\n    # save the image.\n    if output_with_qrcode_path is not None:\n        cv2.imwrite(output_with_qrcode_path, output_img)\n    return output_img  # for viewing.",
+        "file_id": 12,
+        "content": "            if l.dur <= 0:\n                continue\n            l.text = (\n                \"{\\\\an5\\\\move(%.3f,%.3f,%.3f,%.3f,%d,%d)\\\\t(%d,%d,\\\\blur2)\\\\fad(0,%d)}%s\"\n                % (\n                    syl.center,\n                    syl.middle,\n                    syl.center + math.cos(syl.i / 2) * off_x,\n                    syl.middle + math.sin(syl.i / 4) * off_y,\n                    l.dur - delay,\n                    l.dur,\n                    l.dur - delay,\n                    l.dur,\n                    delay,\n                    syl.text,\n                )\n            )\n            io.write_line(l)\n    def sub(line, l):\n        # Translation Effect\n        l.layer = 0\n        l.start_time = line.start_time - line.leadin / 2\n        l.end_time = line.end_time + line.leadout / 2\n        l.dur = l.end_time - l.start_time\n        # Getting interpolated color changes (notice that we do that only after having set up all the times, that's important)\n        colors = CU.get_color_change(l)\n        # Base text\n        l.text = \"{\\\\an5\\\\pos(%.3f,%.3f)\\\\fad(%d,%d)}%s\" % (",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:618-633"
+        "location": "/pyjom/lyrictoolbox.py:691-724"
     },
     "199": {
-        "file_id": 21,
-        "content": "This code rotates an image using OpenCV, combines the rotated and original images, applies a regularization to pixel values, saves the resulting image if necessary, and returns it for viewing.",
+        "file_id": 12,
+        "content": "The code calculates the duration and positioning of lyrics on a timeline based on syllable information. It then applies text formatting and color changes to create a visual effect. The function sub sets the layer, start time, end time, and duration for each line of lyrics, taking into account leadin and leadout times. It also retrieves interpolated color changes for the line using a utility function CU.get_color_change().",
         "type": "comment"
     }
 }

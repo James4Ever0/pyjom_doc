@@ -1,539 +1,538 @@
 {
     "2400": {
-        "file_id": 253,
-        "content": "# - which params should remain on gpus - the larger the value the smaller the offload size\n#\n# For indepth info on Deepspeed config see\n# https://huggingface.co/docs/transformers/main/main_classes/deepspeed\n# keeping the same format as json for consistency, except it uses lower case for true/false\n# fmt: off\nds_config = {\n    \"fp16\": {\n        \"enabled\": True # to half the model precision.\n    },\n    \"zero_optimization\": {\n        \"stage\": 3,\n        \"offload_param\": {\n            \"device\": \"cpu\",\n            \"pin_memory\": True\n        },\n        \"overlap_comm\": True,\n        \"contiguous_gradients\": True,\n        \"reduce_bucket_size\": model_hidden_size * model_hidden_size,\n        \"stage3_prefetch_bucket_size\": 0.9 * model_hidden_size * model_hidden_size,\n        \"stage3_param_persistence_threshold\": 10 * model_hidden_size\n    },\n    \"steps_per_print\": 2000,\n    \"train_batch_size\": train_batch_size,\n    \"train_micro_batch_size_per_gpu\": 1,\n    \"wall_clock_breakdown\": False\n}\n# fmt: on\n# next line instructs transformers to partition the model directly over multiple gpus using",
+        "file_id": 256,
+        "content": "    ]\n    desc_without_link_per_line = [x for x in desc_without_link_per_line if len(x) > 0]\n    bgms = []\n    final_desc_list = []\n    if not extract_bgm:\n        final_desc_list = desc_without_link_per_line\n    else:\n        for line in desc_without_link_per_line:\n            bgmCandidateTemplates = [\"{}：\", \"{}:\", \"{} \"]\n            fixers = [x.format(\"\") for x in bgmCandidateTemplates]\n            bgmCandidates = [x.format(\"bgm\") + \"(.+)\" for x in bgmCandidateTemplates]\n            has_bgm = False\n            for candidate in bgmCandidates:\n                bgm_parse_result = re.findall(candidate, line.lower())\n                if len(bgm_parse_result) > 0:\n                    has_bgm = True\n                    # bgm = line[len(bgmCandidates) :]\n                    bgm = bgm_parse_result[0]\n                    bgm = bgm.strip()\n                    for fixer in fixers:\n                        bgm = bgm.strip(fixer)\n                    if len(bgm) > 0:\n                        bgms.append(bgm)\n                    break",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:93-123"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:38-61"
     },
     "2401": {
-        "file_id": 253,
-        "content": "This code snippet is initializing a Deepspeed configuration for model training with specific settings. The configuration includes enabling FP16 (half precision) for the model, setting zero optimization stage to 3, and configuring offload parameters such as device and pin memory. Additionally, it specifies steps per print, train batch size, train micro-batch size per GPU, and whether to display wall clock breakdown. This configuration aims to optimize model training on multiple GPUs efficiently.",
+        "file_id": 256,
+        "content": "This code extracts background music (BGMs) from a list of descriptions. It checks each description line for specific patterns using regular expressions and adds them to the bgms list if found. If no BGMs are found, it stores all the description lines without links in final_desc_list.",
         "type": "comment"
     },
     "2402": {
-        "file_id": 253,
-        "content": "# deepspeed.zero.Init when model's `from_pretrained` method is called.\n#\n# **it has to be run before loading the model AutoModelForSeq2SeqLM.from_pretrained(model_name)**\n#\n# otherwise the model will first be loaded normally and only partitioned at forward time which is\n# less efficient and when there is little CPU RAM may fail\ndschf = HfDeepSpeedConfig(ds_config)  # keep this object alive\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# now a model can be loaded.\n# model = AutoModelForSeq2SeqLM.from_pretrained(model_name)\nmodel = M2M100ForConditionalGeneration.from_pretrained(modelpath)\n# this will not fuck shit up.\n# initialise Deepspeed ZeRO and store only the engine object\nds_engine = deepspeed.initialize(model=model, config_params=ds_config)[0]\nds_engine.module.eval()  # inference\n# Deepspeed ZeRO can process unrelated inputs on each GPU. So for 2 gpus you process 2 inputs at once.\n# If you use more GPUs adjust for more.\n# And of course if you have just one input to process you then need to pass the same string to both gpus",
+        "file_id": 256,
+        "content": "            if not has_bgm:\n                final_desc_list.append(line)\n    desc_without_link = \"\\n\".join(final_desc_list)\n    return links, bgms, desc_without_link\ndef videoDurationStringToSeconds(durationString):\n    if type(durationString) == int:\n        return durationString  # not string at all.\n    if type(durationString) != str:\n        print(\"unknown durationString type: %s\" % type(durationString))\n        return None\n    durationString = durationString.strip()\n    mList = durationString.split(\":\")[::-1]\n    if len(mList) > 3:\n        print(\"DURATION STRING TOO LONG\")\n        return None\n    seconds = 0\n    for index, elem in enumerate(mList):\n        elem = int(elem)\n        seconds += (60**index) * elem\n    return seconds\ndef clearHtmlTags(htmlObject):\n    a = BeautifulSoup(htmlObject, features=\"lxml\")\n    return a.text\ndef detectAuthorRelatedKeywords(title_tag, author_keywords):\n    abandon = False\n    for keyword in author_keywords:\n        if len(keyword) > 1:\n            if keyword in title_tag:\n                abandon = True  # detected this thing.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:124-146"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:62-96"
     },
     "2403": {
-        "file_id": 253,
-        "content": "The code initializes Deepspeed ZeRO before loading the model and sets the engine object for parallel processing. This ensures efficient usage of resources by partitioning the model at initialization rather than during forward pass, and allows handling multiple inputs on each GPU if available.",
+        "file_id": 256,
+        "content": "The code contains functions for parsing video descriptions, converting duration strings to seconds, and detecting related keywords. It also handles cases where a background music (BGM) is or isn't present. The final description without links is returned along with the links and BGMs.",
         "type": "comment"
     },
     "2404": {
-        "file_id": 253,
-        "content": "# # If you use only one GPU, then you will have only rank 0.\n# rank = torch.distributed.get_rank()\n# if rank == 0:\n#     text_in = \"Is this review positive or negative? Review: this is the best cast iron skillet you will ever buy\"\n# elif rank == 1:\n#     text_in = \"Is this review positive or negative? Review: this is the worst restaurant ever\"\n# tokenizer = AutoTokenizer.from_pretrained(model_name)\n# sentence = \"你吃饭了没有\" # You have eaten. from m2m100 418M\ntokenizer = M2M100Tokenizer.from_pretrained(modelpath,src_lang=\"en\",tgt_lang=\"zh\")\n# source = tokenizer.get_lang_id(\"zh\")\n# tokenizer.src_lang = source\nmdevice = torch.device(\"cuda\")\n# tokenizer.to(mdevice)\n# inputs = tokenizer.encode(text_in, return_tensors=\"pt\").to(device=local_rank)\ndef get_response(sentence):\n    text_to_translate =sentence\n    model_inputs = tokenizer(text_to_translate, return_tensors=\"pt\")\n    # inputs = model.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"en\"))\n    model_inputs = {k:model_inputs[k].to(mdevice) for k in model_inputs.keys()}",
+        "file_id": 256,
+        "content": "                break\n    return abandon\ndef getAuthorKeywords(author):\n    author = author.strip()\n    import jieba\n    author_keywords = jieba.lcut(author)\n    author_keywords = [x.strip() for x in author_keywords]\n    author_keywords = [x for x in author_keywords if len(x) > 0]\n    return author_keywords\ndef removeAuthorRelatedTags(description_or_title, author):\n    templates = [\"【{}】\", \"@{}\", \"{}\"]\n    tags = [template.format(author) for template in templates]\n    for tag in tags:\n        description_or_title = description_or_title.replace(tag, \"\")\n    return description_or_title\ndef splitTitleTags(title, author_keywords):\n    import re\n    pattern = r\"【.+】\"\n    title_tags = re.findall(pattern, title)\n    title = re.sub(pattern, \"\", title)\n    title_tags = [x.lstrip(\"【\").rstrip(\"】\").strip() for x in title_tags]\n    title_tags = [x for x in title_tags if len(x) > 0]\n    final_title_tags = []\n    for title_tag in title_tags:\n        detected = detectAuthorRelatedKeywords(title_tag, author_keywords)\n        if not detected:",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:147-174"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:97-131"
     },
     "2405": {
-        "file_id": 253,
-        "content": "This code is setting up the environment for a machine translation task using the M2M100 model. It assigns GPU ranks to different tasks, initializes the tokenizer, and defines a function called \"get_response\" that takes a sentence as input, tokenizes it, prepares inputs for the model, and performs translation. The code is specifically tailored for a CUDA device, meaning it will utilize GPUs for processing.",
+        "file_id": 256,
+        "content": "This code performs the following tasks:\n1. Extracts author keywords using Jieba segmentation and removes leading/trailing whitespace, while discarding empty strings.\n2. Removes author-related tags from the description or title by replacing them with an empty string.\n3. Splits the title into tags, removing any leading/trailing brackets, and eliminating empty strings.\n4. Detects if each tag contains any of the author's keywords and adds it to a list called \"final_title_tags\" only if it does.",
         "type": "comment"
     },
     "2406": {
-        "file_id": 253,
-        "content": "    with torch.no_grad():\n        # outputs = ds_engine.module.generate(inputs, synced_gpus=True)\n        while True:\n            try:\n                gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True).cpu() # whatever. no too heavy lifting.\n                # gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True,top_k=0,num_beams=8,num_return_sequences=1,no_repeat_ngram_size=2,temperature=1.4).cpu() # whatever.\n                # gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True,top_k=0,top_p=0.92,num_beams=5,num_return_sequences=5,no_repeat_ngram_size=2,temperature=0.7).cpu() # whatever.\n                break\n            except:\n                import traceback\n                traceback.print_exc()\n                breakpoint() # translate speed is slow as hell. must do some summarization. or you cover them all.",
+        "file_id": 256,
+        "content": "            final_title_tags.append(title_tag)\n    return title, title_tags\ndef parseVideoSearchItem(video, disableList: list = [], debug=False):\n    bvid = video[\"bvid\"]\n    pubdate = video['pubdate']\n    if \"author\" not in disableList:\n        author = video[\"author\"]\n        author_id = video[\"mid\"] # this is important. may let us able to find out the fans count.\n    else:\n        author = \"\"\n        author_id = -1\n    author_keywords = getAuthorKeywords(author)\n    if \"tag\" not in disableList:\n        tag = video[\"tag\"]\n        tags = tag.split(\",\")\n        tags = [\n            tag for tag in tags if not detectAuthorRelatedKeywords(tag, author_keywords)\n        ]\n    else:\n        tags = []\n    if \"typeid\" not in disableList and \"typename\" not in disableList:\n        categoryId = int(video.get(\"typeid\", video.get(\"type_id\")))\n        categoryName = video.get(\"typename\", video.get(\"type_name\"))\n    else:\n        categoryId = 0\n        categoryName = \"\"\n    title = video[\"title\"]  # remove those markers, please?",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:176-187"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:132-160"
     },
     "2407": {
-        "file_id": 253,
-        "content": "This code uses deepspeed engine to generate translated text using a model. It employs different generate() calls with varying parameters (top_k, top_p, num_beams) in a while loop, likely for experimentation purposes. The loop continues until a successful generation is achieved without any exceptions or until a breakpoint is hit, and it handles exceptions by printing the traceback and breaking out of the loop.",
+        "file_id": 256,
+        "content": "The function takes a video object, optional disabled list for author and tag keywords, and debug flag as input. It extracts the bvid and pubdate from the video object. If author is not in disableList, it retrieves the author name and id. The author's keywords are obtained using getAuthorKeywords function. If tag is not in disableList, it splits the tags and removes any related to author keywords. The typeid and typename are also extracted if not in disableList, otherwise set to default values. Finally, title removal markers are applied.",
         "type": "comment"
     },
     "2408": {
-        "file_id": 253,
-        "content": "                # you may do this for pictures.\n    # text_out = tokenizer.decode(outputs[0], skip_special_tokens=True)\n    print(\"TRANSLATED:\")\n    return tokenizer.batch_decode(gen_tokens, skip_special_tokens=True)\n# print(get_response(\"你吃饭了没有\"))\n# print(\"PROMPT READY.\")\n# print(\"type exit to exit.\")\n# while True:\n#     targetSentence = input(\"\\nprompt>\")\n#     if \"exit\" not in targetSentence:\n#         result = get_response(targetSentence)\n#         print(result) # this is goddamly working. fuck!\n#     else:\n#         break\n# import time\n# values = []\n# for _ in range(3):\n#     a = time.time()\n#     translate_once()\n#     b = time.time()\n#     value = b-a\n#     # value = timeit.timeit(stmt=\"translate_once()\")\n#     print(\"TIME COST: {}\".format(value))\n#     values.append(value)\n# print(\"TOTAL COST:\",values)\n# print(\"AVERAGE COST:\",sum(values)/len(values))\n# stuck at the end.\n# TOTAL COST: [6.2853310108184814, 4.705244541168213, 4.688654661178589]\n# AVERAGE COST: 5.226410071055095\n# better not to use swap.",
+        "file_id": 256,
+        "content": "    title = clearHtmlTags(title)\n    title = removeAuthorRelatedTags(title, author)\n    title, title_tags = splitTitleTags(\n        title, author_keywords\n    )  # use author for filtering unwanted title tags.\n    duration = video[\"duration\"]  # this is not recommended. we need seconds.\n    play = video.get(\"play\", video.get(\"view\"))  # select some hot videos.\n    cover = video[\"pic\"]\n    cover = linkFixer(cover)\n    if \"description\" not in disableList:\n        description = video.get(\"description\", video.get(\"desc\"))\n        description = clearHtmlTags(description)\n        description = removeAuthorRelatedTags(description, author)\n    else:\n        description = \"\"\n    links_in_description, bgms, description = extractLinks(description)\n    duration_seconds = videoDurationStringToSeconds(duration)\n    resultTuple = (\n        author,\n        author_id,\n        bvid,\n        tags,\n        categoryId,\n        categoryName,\n        title,\n        duration_seconds,\n        play,\n        cover,\n        description,\n        links_in_description,",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:188-220"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:161-190"
     },
     "2409": {
-        "file_id": 253,
-        "content": "This code is a functional implementation of a DL translator, likely for Chinese to English translation. It takes user input in the form of text and returns the translated output. The code includes batch decoding of tokenizer outputs and handles user input within a while loop. It also measures the time cost and average cost per iteration of the function.",
+        "file_id": 256,
+        "content": "This code parses video data from a bilibili search API response and extracts relevant information such as author, title, duration, play count, cover image, and description. It applies filters to remove unwanted HTML tags and uses author keywords for filtering. It converts duration strings to seconds and extracts links from the description.",
         "type": "comment"
     },
     "2410": {
-        "file_id": 254,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py",
-        "type": "filepath"
+        "file_id": 256,
+        "content": "        bgms,\n        title_tags,\n        pubdate\n    )\n    if debug:\n        for metadata in resultTuple:\n            print(metadata)\n    from lazero.utils.logger import sprint\n    if debug:\n        sprint()\n    return resultTuple\n# you might want the creater's name, to filter out unwanted parts.\ndef iterateResultList(resultList, debug=False):\n    for video in resultList:\n        # be warned cause all these things might fail.\n        try:\n            if video[\"type\"] == \"video\":\n                yield parseVideoSearchItem(video, debug=debug)\n        except:\n            traceError(\"error iterating video metadata\")\n            continue\ndef parseSearchAllResult(data, debug=False):\n    # if not generator:\n    #     return generatorToList(parseSearchAllResult(data, debug=debug,generator=True))\n    results = data[\"result\"]\n    for elem in results:\n        try:\n            if elem[\"result_type\"] == \"video\":\n                resultList = elem[\"data\"]\n                for videoMetadata in iterateResultList(resultList, debug=debug):",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:191-227"
     },
     "2411": {
-        "file_id": 254,
-        "content": "The code uses video processing libraries to read a source video, apply Chinese translation and color reduction to frames, save the processed frames in a dictionary, write JSON result to file, and finally saves the final video with h.264 codec.",
-        "type": "summary"
+        "file_id": 256,
+        "content": "This code defines a function `parseSearchAllResult` that takes in data and a boolean debug parameter. It extracts the \"result\" list from the data, then iterates through each element checking if its type is 'video'. For each video, it yields a parsed video metadata using the `iterateResultList` function, while handling any exceptions that may occur. The `iterateResultList` function iterates over a result list of video items, yielding the parsed data for videos and handling exceptions related to parsing video metadata.",
+        "type": "comment"
     },
     "2412": {
-        "file_id": 254,
-        "content": "from functional_redraw_chinese_text_offline2 import redraw_english_to_chinese2\nimport cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_json = \"japan_day.json\"\noutput_video = \"japan_day_change_color3.mp4\"\nimport os\nif os.path.exists(output_video): os.remove(output_video)\n# OOM for local translation!\n# this will not work. fucking shit. though ocr is speedy.\n# in this we will get no audio.\n# use ffmpeg and time strencher.\n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\nfourcc = cv2.VideoWriter_fourcc(*'H264') # h.264 # this will fail.\n# fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264\nvideo_writer = cv2.VideoWriter(output_video,fourcc,fps,frame_size)",
+        "file_id": 256,
+        "content": "                    yield videoMetadata\n        except:\n            traceError(\"error iterating data results\")\ndef parseSearchVideoResult(data, debug=False):\n    # if not generator:\n    #     return generatorToList(parseSearchVideoResult(data, debug=debug,generator=True))\n    try:\n        resultList = data[\"result\"]\n        try:\n            for videoMetadata in iterateResultList(resultList, debug=debug):\n                try:\n                    yield videoMetadata\n                except:\n                    traceError(\"error iterating video metadata\")\n        except:\n            traceError(\"error iterating result list\")\n    except:\n        traceError(\"error parsing search video result\")\ndef parseVideoInfo(videoInfo, debug=False):\n    data = videoInfo\n    # no tag out here.\n    secondaryVideoInfoList = []\n    data_copy = data.copy()\n    data_copy.update({\"author\": data[\"owner\"][\"name\"], \"mid\": data[\"owner\"][\"mid\"]})\n    data_copy.update(data[\"stat\"])\n    primaryVideoInfo = parseVideoSearchItem(\n        data_copy, disableList=[\"tag\", \"typeid\", \"typename\"], debug=debug",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:1-32"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:228-258"
     },
     "2413": {
-        "file_id": 254,
-        "content": "This code imports the necessary modules and sets up variables for video processing. It removes any existing output file, initializes a VideoCapture object to read the source video, determines the video's FPS, frame size, and total frames count, and creates a VideoWriter object with h.264 codec for the output video file.",
+        "file_id": 256,
+        "content": "The code defines two functions, `parseSearchVideoResult` and `parseVideoInfo`, which are responsible for parsing video search results and video information respectively. The code utilizes exception handling to handle errors while iterating over data and result lists. It also includes a function `iterateResultList` to iterate over the result list.",
         "type": "comment"
     },
     "2414": {
-        "file_id": 254,
-        "content": "# frame_index_counter = 0\n# this is determinism.\n# or you could use framedifference? come on...\n# while True:\nimport json\nmjson_result = open(output_json, 'r',encoding='utf8').read()\nmjson_result = json.loads(mjson_result)\nimport copy\n# use some tweening? pytweening?\n# from test_curve_converter import curve_converter\n    # for index, (orig, target) in enumerate(curve_function):\n    #     if value <= orig:\n    #         forig,ftarget = curve_function[index+1]\n    #         if value == orig: return target\n    #         elif value <=forig:\n    #             if value ==forig: return ftarget\n    #             else:\n    #                 loc = (value-orig)/(forig-orig)\n    #                 new_diff = loc*(ftarget-target)\n    #                 new_value = target+new_diff\n    #                 return new_value\n    # return curve_function[-1][1]\n# def remove_much_red(image,curve_function):\n#     target = copy.copy(image[:,:,2])\n#     target = curve_converter(target,curve_function)\n#     image[:,:,2] = target\n#     return image",
+        "file_id": 256,
+        "content": "    )\n    # videoInfoList.append(primaryVideoInfo)\n    season = data.get(\"ugc_season\", {})  # we only care about this thing.\n    season_cover = season.get(\"cover\", None)  # it could be noting.\n    sections = season.get(\"sections\", [])\n    for section in sections:\n        for episode in section[\"episodes\"]:\n            # print(episode.keys())\n            # breakpoint()\n            arc = episode[\"arc\"]\n            stat = arc[\"stat\"]\n            videoInfo = episode.copy()\n            videoInfo.update(stat)\n            videoInfo.update(arc)\n            authorRelatedVideoInfo = parseVideoSearchItem(\n                videoInfo,\n                disableList=[\"tag\", \"typeid\", \"typename\", \"description\", \"author\"],\n                debug=debug,\n            )  # author is the same as the original video.\n            secondaryVideoInfoList.append(authorRelatedVideoInfo)\n            # BV1Cb4y1s7em\n            # []\n            # 0\n            # 这次真的燃起来了！！！\n            # 217\n            # 27911\n            # http://i2.hdslb.com/bfs/archive/c5a0d18ee077fb6a4ac0970ccb0a3788e137d14f.jpg",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:34-62"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:259-286"
     },
     "2415": {
-        "file_id": 254,
-        "content": "Code imports json and copy libraries, reads a JSON file and converts its contents. It defines a function for curve conversion and a potential function for removing excessive red from an image.",
+        "file_id": 256,
+        "content": "Code iterates through season episodes, extracts arc and stat information from each episode, creates a videoInfo dictionary with episode and arc data, updates the author-related video information by parsing the original video, and appends it to secondaryVideoInfoList.",
         "type": "comment"
     },
     "2416": {
-        "file_id": 254,
-        "content": "def remove_much_red_with_rate(image,reduce_rate = 0.8):\n    target = copy.copy(image[:,:,2])\n    target = target*(1-reduce_rate)\n    image[:,:,2] = target\n    return image\n# curve_function = [[0,0],[40,30],[100,50],[150,100],[255,130]]\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?\n    success, frame = video_cap.read() # let's just use 1, no frame skip.\n    if not success: break\n    # print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file\n    string_frame_index_counter = str(frame_index_counter)  #inpainting is still slow somehow. freaking shit. though i have the freaking shit.\n    # maybe you can improvise.\n    # this is done purely in CPU.\n    processed_frame_data = mjson_result[string_frame_index_counter]# fucking string key.\n    processed_frame = redraw_english_to_chinese2(frame,processed_frame_data) # step 1\n    processed_frame = remove_much_red_with_rate(processed_frame)\n    # mjson_result.update({frame_index_counter:processed_frame_data})",
+        "file_id": 256,
+        "content": "    return primaryVideoInfo, secondaryVideoInfoList\ndef parseVideoRelated(videoRelatedData, debug=False):\n    data = videoRelatedData\n    # if not generator:\n    #     return generatorToList(parseVideoRelated(data, debug=debug,generator=True))\n    try:\n        for videoInfo in data:\n            try:\n                videoInfo2 = videoInfo.copy()\n                videoInfo2.update({\"author\": videoInfo[\"owner\"][\"name\"]})\n                videoInfo2.update({\"mid\": videoInfo[\"owner\"][\"mid\"]})\n                # also update the stat.\n                videoInfo2.update(videoInfo[\"stat\"])\n                try:\n                    yield parseVideoSearchItem(\n                        videoInfo2,\n                        disableList=[\"tag\", \"typeid\", \"typename\"],\n                        debug=debug,\n                    )\n                    # print(videoMetadata)\n                except:\n                    traceError()\n            except:\n                traceError()\n    except:\n        traceError()\nif __name__ == \"__main__\":\n    # test_subject = \"search_video\"",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:64-83"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:287-318"
     },
     "2417": {
-        "file_id": 254,
-        "content": "The code reads a video frame by frame and applies two transformations: redrawing English to Chinese (step 1) and reducing the intensity of red color with a certain rate. The progress bar indicates the processing progress, and the processed frames are stored in a dictionary using frame index as the key.",
+        "file_id": 256,
+        "content": "This code defines a function `parseVideoRelated` that parses video-related data and yields parsed video information, and also includes an if block for generator handling. It updates the video info with author name and mid, and applies the `parseVideoSearchItem` to each item in the data list. If any error occurs during processing, it traces the error.",
         "type": "comment"
     },
     "2418": {
-        "file_id": 254,
-        "content": "    video_writer.write(processed_frame) # what frame?\n    # frame_index_counter+=1\n    # cv2.imshow(\"image\",processed_frame) #\n    # # cv2.waitKey(1) # not wait infinitely.\n    # if cv2.waitKey(20) == ord('q'):\n    #     break\n# with open(output_json,\"w+\",encoding=\"utf-8\") as f:\n#     data = json.dumps(mjson_result,indent=4)\n#     f.write(data)\n# cv2.close\nprint(\"VIDEO DONE. SAVED AT:\",output_video)",
+        "file_id": 256,
+        "content": "    # test_subject = \"search_all\"\n    # test_subject = 'video_related'\n    test_subject = \"video_info\"\n    # test_subject = 'extract_links'\n    if test_subject == \"search_all\":\n        with open(\"search_result_all.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for mresult in parseSearchAllResult(data):\n            print(\"RESULT:\")\n            sprint(mresult)\n    elif test_subject == \"search_video\":\n        with open(\"search_by_type_result_video.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for mresult in parseSearchVideoResult(data):\n            print(\"VIDEO SEARCH RESULT:\")\n            sprint(mresult)\n    elif test_subject == \"video_info\":\n        with open(\"video_info.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        primaryVideoInfo, secondaryVideoInfoList = parseVideoInfo(data)\n        videoInfoList = [primaryVideoInfo] + secondaryVideoInfoList\n        for mVideoInfo in videoInfoList:",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:84-95"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:319-343"
     },
     "2419": {
-        "file_id": 254,
-        "content": "This code writes the processed frame to the video, increments the frame index counter, displays the processed frame using OpenCV's imshow function, waits for a 'q' key press to break the loop, and finally writes the JSON result data to the file. The video is then saved at the specified output_video location.",
+        "file_id": 256,
+        "content": "This code is testing different APIs by reading JSON files and parsing the data. It tests \"search_all\", \"search_video\", and \"video_info\" sections. For each section, it reads a corresponding JSON file, loads the data, and then prints the results after parsing. This appears to be part of API testing for a video search application.",
         "type": "comment"
     },
     "2420": {
-        "file_id": 255,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py",
-        "type": "filepath"
+        "file_id": 256,
+        "content": "            print(mVideoInfo)\n            sprint()\n    elif test_subject == \"video_related\":\n        with open(\"video_related.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for videoMetadata in parseVideoRelated(data):\n            print(videoMetadata)\n            sprint()\n    elif test_subject == \"extract_links\":\n        description = (\n            \"http://www.toutiao.com/a6347649852365897986/ 男子送走从小养大的狗，狗狗用泪汪汪的眼神看着他\\n\"\n            + \"https://www.youtube.com/watch?v=r724w57oXyU\"\n            + \" https://www.youtube.com/shorts/UYCy8HD1C7o\"\n        )\n        links, desc = extractLinks(description)\n        print(links)\n        print(desc)\n    else:\n        raise Exception(\"unknown test_subject:\", test_subject)",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:344-363"
     },
     "2421": {
-        "file_id": 255,
-        "content": "The code translates text, applies color correction, and processes frames from a video using ffmpeg and OpenCV for display and waiting for user input.",
-        "type": "summary"
-    },
-    "2422": {
-        "file_id": 255,
-        "content": "from functional_redraw_chinese_text_offline2 import redraw_english_to_chinese2\nimport cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_json = \"japan_day.json\"\noutput_video = \"japan_day_change_color2.mp4\"\nimport os\nif os.path.exists(output_video): os.remove(output_video)\n# OOM for local translation!\n# this will not work. fucking shit. though ocr is speedy.\n# in this we will get no audio.\n# use ffmpeg and time strencher.\n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\n# fourcc = cv2.VideoWriter_fourcc(*'H264') # h.264\n# fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264 \n# this is builtin ffmpeg. not external shits.\n# video_writer = cv2.VideoWriter(output_video,fourcc,fps,frame_size)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:1-33"
-    },
-    "2423": {
-        "file_id": 255,
-        "content": "The code is preparing to process a video file frame by frame for translation. It imports necessary libraries, checks if the output video exists and deletes it, obtains video properties, and sets up variables for further processing. The code also comments on possible issues and suggests using ffmpeg for audio and video processing.",
+        "file_id": 256,
+        "content": "The code snippet appears to handle different test subjects, each with a specific task. For \"video_related\", it reads data from a JSON file and processes it using the parseVideoRelated function, then prints videoMetadata for each videoMetadata in the parsed data. The \"extract_links\" subject extracts links from a given description and prints them. Unknown test subjects will raise an Exception.",
         "type": "comment"
     },
+    "2422": {
+        "file_id": 257,
+        "content": "/tests/bilibili_search_api_modification_section_params_get_related_videos/recursive_search_bilibili_test.py",
+        "type": "filepath"
+    },
+    "2423": {
+        "file_id": 257,
+        "content": "The code changes directory, initializes OpenCV, and fetches video metadata for production. It imports necessary modules and displays an image using imshow, pausing until a keyboard event occurs for visualization purposes.",
+        "type": "summary"
+    },
     "2424": {
-        "file_id": 255,
-        "content": "# frame_index_counter = 0\n# this is determinism.\n# or you could use framedifference? come on...\n# while True:\nimport json\nmjson_result = open(output_json, 'r',encoding='utf8').read()\nmjson_result = json.loads(mjson_result)\nimport copy\n# use some tweening? pytweening?\nfrom test_curve_converter import curve_converter\n    # for index, (orig, target) in enumerate(curve_function):\n    #     if value <= orig:\n    #         forig,ftarget = curve_function[index+1]\n    #         if value == orig: return target\n    #         elif value <=forig:\n    #             if value ==forig: return ftarget\n    #             else:\n    #                 loc = (value-orig)/(forig-orig)\n    #                 new_diff = loc*(ftarget-target)\n    #                 new_value = target+new_diff\n    #                 return new_value\n    # return curve_function[-1][1]\ndef remove_much_red(image,curve_function):\n    target = copy.copy(image[:,:,2])\n    target = curve_converter(target,curve_function)\n    image[:,:,2] = target\n    return image\ndef remove_much_red_with_rate(image,reduce_rate = 0.8):",
+        "file_id": 257,
+        "content": "import sys\nimport os\nos.chdir(\"../../\")\nsys.path.append(\".\")\n# ignore the global proxy now, we are not going to use that.\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\nfrom pyjom.platforms.bilibili.postMetadata import getBilibiliPostMetadataForDogCat\n# metatopic = {\n#     \"optional\": [\n#         [\n#             \"狗狗\",\n#             \"狗\",\n#             \"汪汪\",\n#             \"修勾\",\n#             \"汪\",\n#             \"狗子\",\n#         ],\n#         [\"喵喵\", \"猫\", \"猫咪\", \"喵\"],\n#     ],\n#     \"dynamic\": [[\"可爱\", \"萌\", \"萌宠\", \"行为\", \"燃\"]],\n# }\n# maybe this is not task specific. just maybe.\nif __name__ == \"__main__\":\n    for (\n        mCover,\n        mTagSeries,\n        mTitle,\n        mBgm,\n        mDescription,\n        dog_or_cat,\n    ) in getBilibiliPostMetadataForDogCat():\n        print(\"FETCHED VIDEO METADATA FOR PRODUCTION:\")\n        videoMetadata = mCover, mTagSeries, mTitle, mBgm, mDescription, dog_or_cat\n        print(videoMetadata)\n        mCover2 = cv2.resize(mCover, (int(1920 / 2), int(1080 / 2)))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:35-65"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/recursive_search_bilibili_test.py:1-45"
     },
     "2425": {
-        "file_id": 255,
-        "content": "The code defines a function, `remove_much_red`, which takes an image and curve function as parameters. It applies the given curve function to the red channel of the image, effectively reducing the intensity of red colors. The code also includes another function, `remove_much_red_with_rate`, that allows for adjusting the reduction rate of red colors in images. Both functions modify the image by changing the values of its red channel based on a given curve function or reduction rate.",
+        "file_id": 257,
+        "content": "The code changes the directory, appends the current path to Python's sys.path, and removes the global proxy environment variables. It then initializes OpenCV with a custom build and imports necessary modules. Finally, it loops through fetched video metadata for production, resizing the cover image, and prints the metadata.",
         "type": "comment"
     },
     "2426": {
-        "file_id": 255,
-        "content": "    target = copy.copy(image[:,:,2])\n    target = target*(1-reduce_rate)\n    image[:,:,2] = target\n    return image\ncurve_function = [[0,0],[40,30],[100,50],[150,100],[255,130]]\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?\n    success, frame = video_cap.read() # let's just use 1, no frame skip.\n    if not success: break\n    # print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file\n    string_frame_index_counter = str(frame_index_counter)  #inpainting is still slow somehow. freaking shit. though i have the freaking shit.\n    # maybe you can improvise.\n    # this is done purely in CPU.\n    processed_frame_data = mjson_result[string_frame_index_counter]# fucking string key.\n    processed_frame = redraw_english_to_chinese2(frame,processed_frame_data) # step 1\n    processed_frame = remove_much_red(processed_frame,curve_function)\n    # mjson_result.update({frame_index_counter:processed_frame_data})\n    # video_writer.write(processed_frame) # what frame?",
+        "file_id": 257,
+        "content": "        cv2.imshow(\"COVER\", mCover2)\n        cv2.waitKey(0)\n        breakpoint()",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:66-85"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/recursive_search_bilibili_test.py:46-48"
     },
     "2427": {
-        "file_id": 255,
-        "content": "The code reads frames from a video and applies color correction using a curve function. It also translates text on the frames and processes them. The progress bar shows the current frame being processed, and if a frame can't be read, the loop breaks. Finally, the processed frames are saved to an output file.",
+        "file_id": 257,
+        "content": "The code snippet displays an image using OpenCV's imshow function, pauses the execution until a keyboard event occurs with waitKey, and then terminates the loop with breakpoint. It is used for visualizing an image, potentially during debugging or analysis.",
         "type": "comment"
     },
     "2428": {
-        "file_id": 255,
-        "content": "    # frame_index_counter+=1\n    cv2.imshow(\"image\",processed_frame) #\n    # # cv2.waitKey(1) # not wait infinitely.\n    if cv2.waitKey(20) == ord('q'):\n        break\n# with open(output_json,\"w+\",encoding=\"utf-8\") as f:\n#     data = json.dumps(mjson_result,indent=4)\n#     f.write(data)\n# cv2.close\nprint(\"VIDEO DONE. SAVED AT:\",output_video)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:87-96"
-    },
-    "2429": {
-        "file_id": 255,
-        "content": "This code displays a processed frame on the screen, waits for 20 milliseconds for input to break the loop, and saves the final video. It uses OpenCV to display frames and wait for user input to stop the process.",
-        "type": "comment"
-    },
-    "2430": {
-        "file_id": 256,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor.py",
+        "file_id": 258,
+        "content": "/tests/bilibili_search_api_modification_section_params_get_related_videos/load_json5_render_template.py",
         "type": "filepath"
     },
-    "2431": {
-        "file_id": 256,
-        "content": "This code reads frames from a video, translates each frame using the redraw_english_to_chinese function, updates a dictionary with frame data, and saves the processed frames to an output JSON file. The process stops when no more frames can be read or if 'q' is pressed.",
+    "2429": {
+        "file_id": 258,
+        "content": "The code reads a JSON5 file named 'channelConfig.json5' and a Jinja2 template file named 'template.j2'. It then parses the JSON5 data to obtain channel information such as name and tid. For each channel, it tries to extract subChannel information (name and tid). If successful, it appends them to a list called subChannels. The code renders the Jinja2 template with the extracted channel and subchannel information, and then prints the rendered data.",
         "type": "summary"
     },
-    "2432": {
-        "file_id": 256,
-        "content": "import cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_json = \"japan_day.json\"\n# output_video = \"japan_day_translated.mp4\"\n# OOM for local translation!\n# in this we will get no audio.\n# use ffmpeg and time strencher.\nfrom functional_redraw_chinese_text_offline import redraw_english_to_chinese\n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\nfourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264\n# video_writer =cv2.VideoWriter(output_video,fourcc,fps,frame_size)\n# frame_index_counter = 0\n# this is determinism.\n# or you could use framedifference? come on...\n# while True:\nimport json\nmjson_result = {}\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?",
+    "2430": {
+        "file_id": 258,
+        "content": "import json5\nimport jinja2\ntemplate = open('template.j2','r').read()\ntemplate = jinja2.Template(template)\ndata = open(\"channelConfig.json5\",'r').read()\ndata = json5.loads(data)\nchannelList = data['channelList']\nfor channel in channelList:\n    try:\n        channelName = channel['name']\n        channelTid = channel['tid']\n        subChannels = []\n        for subChannel in channel['sub']:\n            try:\n                subChannelName = subChannel['name']\n                subChannelTid = subChannel['tid']\n                subChannels.append((subChannelName, subChannelTid))\n            except:\n                continue\n        rendered_data = template.render(channelName=channelName, channelTid=channelTid, subChannels=subChannels)\n        print(rendered_data)\n    except:\n        continue",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor.py:1-34"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/load_json5_render_template.py:1-26"
     },
-    "2433": {
-        "file_id": 256,
-        "content": "The code is reading a video file, extracting frame-by-frame information including FPS, frame width, height, and the total number of frames. It initializes variables for output JSON result and a potential output video (currently commented out). The code uses progress bar to iterate through each frame, but the actual translation process is missing from the given code snippet. The original task seems to be long and might require a lot of computation resources.",
+    "2431": {
+        "file_id": 258,
+        "content": "The code reads a JSON5 file named 'channelConfig.json5' and a Jinja2 template file named 'template.j2'. It then parses the JSON5 data to obtain channel information such as name and tid. For each channel, it tries to extract subChannel information (name and tid). If successful, it appends them to a list called subChannels. The code renders the Jinja2 template with the extracted channel and subchannel information, and then prints the rendered data.",
         "type": "comment"
     },
+    "2432": {
+        "file_id": 259,
+        "content": "/tests/editly_test_video_render_with_bgm/test.sh",
+        "type": "filepath"
+    },
+    "2433": {
+        "file_id": 259,
+        "content": "This code sets up a headless Linux machine to run test cases for the Editly application using xvfb-run and specifying test parameters in a json5 file. It also discusses potential alternative methods and options for audio handling, resolution, and file playback.",
+        "type": "summary"
+    },
     "2434": {
-        "file_id": 256,
-        "content": "    success, frame = video_cap.read() # let's just use 1, no frame skip.\n    if not success: break\n    print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file\n    processed_frame_data= redraw_english_to_chinese(frame) # step 1\n    mjson_result.update({frame_index_counter:processed_frame_data})\n    # video_writer.write(processed_frame) # what frame?\n    # frame_index_counter+=1\n    # if cv2.waitKey(20) == ord('q'):\n        # break\nwith open(output_json,\"w+\",encoding=\"utf-8\") as f:\n    data = json.dumps(mjson_result,indent=4)\n    f.write(data)\nprint(\"VIDEO DONE ANALYSING. SAVED AT:\",output_json)",
+        "file_id": 259,
+        "content": "# run in headless linux machine! test both xvfp specs?\nxvfb-run -s \"-ac -screen 0 1280x1024x24\" editly test.json5  # this will suffice. json5 will specify all specs? or use our GUI service run specifications (envs)?\n# sometimes we have weird issues with the ffplay. use 'open' instead? does quicktime automatically repair the file by itself?\n# xvfb-run -s \"-ac -screen 0 1920x1080x24\" editly test.json5 --fast # this will suffice. json5 will specify all specs? this 'fast' setting definitely reduced the output resolution to 334x188 15fps, which just saves my time in final production or remote preview from n2n/frp\n# without --keep-source-audio, will we not hear anything from the source video?\n# json5: json for humans\n# this much likely to bring python dict and json objects into a single readable format.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor.py:35-48"
+        "location": "/tests/editly_test_video_render_with_bgm/test.sh:1-11"
     },
     "2435": {
-        "file_id": 256,
-        "content": "This code reads frames from a video, processes one frame at a time by translating it using the redraw_english_to_chinese function, updates a dictionary with frame data, and saves the processed frames to an output JSON file. The process stops when no more frames can be read or if 'q' is pressed.",
+        "file_id": 259,
+        "content": "This code sets up a headless Linux machine to run test cases for the Editly application using xvfb-run and specifying test parameters in a json5 file. It also discusses potential alternative methods and options for audio handling, resolution, and file playback.",
         "type": "comment"
     },
     "2436": {
-        "file_id": 257,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_iterator_copy.py",
+        "file_id": 260,
+        "content": "/tests/bilibili_tag_recommend_activities/README.md",
         "type": "filepath"
     },
     "2437": {
-        "file_id": 257,
-        "content": "This code reads video frames, prints their indices, and writes them to an output file using video_writer. It tracks progress with a progress bar and checks for keypresses to exit. Upon completion, it displays the saved location as VIDEO DONE message.",
+        "file_id": 260,
+        "content": "Code snippet provides a link to another file, \"bilibili_up.py\", which contains information on how to get the 'upload_id' in bilibili API.",
         "type": "summary"
     },
     "2438": {
-        "file_id": 257,
-        "content": "import cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_video = \"japan_day_copy.mp4\"\n# in this we will get no audio.\n# use ffmpeg and time strencher.\n# from functional_redraw_chinese_text_offline import \n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\nfourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264\nvideo_writer =cv2.VideoWriter(output_video,fourcc,fps,frame_size)\n# frame_index_counter = 0\n# while True:\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?\n    success, frame = video_cap.read()\n    if not success: break\n    print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file",
+        "file_id": 260,
+        "content": "[how to get upload_id](https://github.com/xunsword/bilibil/blob/2abf66a9771daebc12c181f88d8af82613975548/bilibili_up.py)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_iterator_copy.py:1-31"
+        "location": "/tests/bilibili_tag_recommend_activities/README.md:1-1"
     },
     "2439": {
-        "file_id": 257,
-        "content": "This code reads a video file, gets its frame properties like FPS and dimensions, creates an output video file with the same format, then iterates through each frame of the input video, printing its index while processing it. It uses a progress bar for tracking frame index in a loop, but there's a potential issue with the usage of the range function (the video might not have that many frames). Finally, it writes each processed frame to the output file.",
+        "file_id": 260,
+        "content": "Code snippet provides a link to another file, \"bilibili_up.py\", which contains information on how to get the 'upload_id' in bilibili API.",
         "type": "comment"
     },
     "2440": {
-        "file_id": 257,
-        "content": "    video_writer.write(frame) # what frame?\n    # frame_index_counter+=1\n    # if cv2.waitKey(20) == ord('q'):\n        # break\nprint(\"VIDEO DONE. SAVED AT:\",output_video)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_iterator_copy.py:32-36"
-    },
-    "2441": {
-        "file_id": 257,
-        "content": "Writes frames to video file using video_writer, counts frame index, checks for keypress to exit. VIDEO DONE message with saved location output_video.",
-        "type": "comment"
-    },
-    "2442": {
-        "file_id": 258,
-        "content": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py",
+        "file_id": 261,
+        "content": "/tests/dump_python_dependencies/dump.py",
         "type": "filepath"
     },
-    "2443": {
-        "file_id": 258,
-        "content": "This code converts text to speech audio using PaddleSpeech, merges and normalizes audio segments, generates voice and video files, and exports final videos with background music.",
+    "2441": {
+        "file_id": 261,
+        "content": "This code generates a timestamp, creates a directory for storing logs, and uses os.system() to execute the \"pip3 list\" command, saving the output to a log file in the specified directory with the current timestamp as part of the filename.",
         "type": "summary"
     },
-    "2444": {
-        "file_id": 258,
-        "content": "import os\nfrom test_common import *\ndef split_sentences(sent):\n    spliters = \"\\n，。、\"\n    cursent = \"\"\n    results = []\n    for elem in sent:\n        cursent += elem\n        if elem in spliters:\n            results.append(cursent)\n            cursent = \"\"\n    if len(cursent) > 0:\n        results.append(cursent)\n    return results\ndef get_speech(sent,output):\n    assert output.endswith(\".wav\")\n    with open(\"temp.txt\", \"w+\",encoding=\"utf-8\") as f:\n        f.write(sent)\n    os.system(\"cat temp.txt | paddlespeech tts --output {}\".format(output))\nfrom pydub import AudioSegment\nfrom functional_gen_typo_video_seq import gen_video\ndef merge_audio(asegs):\n    audio_3 = AudioSegment.empty() #shit\n    for seg in asegs:\n        try:\n            audio_3 = audio_3.append(seg,crossfade=100) # also shit.\n        except:\n            audio_3 = audio_3.append(seg,crossfade=0) # also shit.\n    return audio_3\n    # audio_3.export(\"audio_3.wav\", format=\"wav\")\nif __name__ == \"__main__\":\n    sents = split_sentences(demo_text)\n    # breakpoint()",
+    "2442": {
+        "file_id": 261,
+        "content": "import datetime\nlog_dir = \"logs\"\nnow = datetime.datetime.now().isoformat().replace(\".\",\"_\").replace(\" \",\"_\")\nprint('DUMP TIME:',now)\ncmd = \"pip3 list > {}/py3_deps_{}.log\".format(log_dir,now)\nimport os\nif not os.path.exists(log_dir):\n    os.mkdir(log_dir)\nos.system(cmd)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:1-38"
+        "location": "/tests/dump_python_dependencies/dump.py:1-13"
     },
-    "2445": {
-        "file_id": 258,
-        "content": "This code performs text-to-speech (TTS) conversion and merges audio segments. It first splits a given sentence into individual sentences, then uses PaddleSpeech to convert the text to speech audio, which is saved with .wav extension. The resulting audio segments are merged using PyDub's AudioSegment module, allowing for seamless crossfades between audio chunks.",
+    "2443": {
+        "file_id": 261,
+        "content": "This code generates a timestamp, creates a directory for storing logs, and uses os.system() to execute the \"pip3 list\" command, saving the output to a log file in the specified directory with the current timestamp as part of the filename.",
         "type": "comment"
     },
+    "2444": {
+        "file_id": 262,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs",
+        "type": "filepath"
+    },
+    "2445": {
+        "file_id": 262,
+        "content": "The code downloads videos using Webtorrent, handles temporary directories and exceptions but has string concatenation issues. It suggests Unix domain sockets for performance improvement, uses FFmpeg to download segments, handles progress/errors and terminates upon torrent completion, though unpipe is unused and readstream may show progress issues.",
+        "type": "summary"
+    },
     "2446": {
-        "file_id": 258,
-        "content": "    voice_dir = \"voice\"\n    video_dir = \"video\"\n    os.system(\"rm -rf {}\".format(voice_dir))\n    os.system(\"rm -rf {}\".format(video_dir))\n    os.mkdir(\"{}\".format(voice_dir))\n    os.mkdir(\"{}\".format(video_dir))\n    index = 0\n    voice_clips = []\n    video_names = []\n    for i,sent in enumerate(sents):\n        print(\"READING:\",sent)\n        aname = \"{}/{}.wav\".format(voice_dir,i)\n        get_speech(sent,aname)\n        seg = AudioSegment.from_wav(aname)\n        duration = seg.duration_seconds\n        voice_clips.append(seg)\n        # get the duration you fuck.\n        # breakpoint()\n        lsent = len(sent)\n        current_indexs = list(range(index,index+lsent))\n        index += lsent\n        # you can generate video for it.\n        vname = \"{}/{}.mp4\".format(video_dir,i)\n        gen_video(vname,current_indexs,duration)\n        video_names.append(vname)\n    # and finally?\n    final_video = \"{}/final_video.mp4\".format(video_dir)\n    final_audio = \"{}/final_audio.wav\".format(voice_dir)\n    audio_merged = merge_audio(voice_clips)",
+        "file_id": 262,
+        "content": "// webtorrent@^1.5.8\n// version mismatch?\n// nope. check how webtorrent-cli works. your code sucks.\n// now: 2.0.1\n// you make countdowns. you use managed temporary directories. you use port within range.\n// you might want a single, unified server instance. in that case you will manage resources within server, which could be error prone?\nvar torrentPath=\"/Users/jamesbrown/Downloads/anime_download/[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p].torrent\"\nvar selectedFilePath=\"[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]/SPs/[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [CM01][Ma10p_1080p][x265_flac].mkv\" // this is the goddamnly short mkv.\n// var selectedFilePath=\"[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]/[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [OVA][Ma10p_1080p][x265_flac].mkv\" // this is long\n// require_esm = require('esm')(module)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:39-68"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:2-18"
     },
     "2447": {
-        "file_id": 258,
-        "content": "This code clears the \"voice\" and \"video\" directories, creates new ones, reads each sentence from the input, converts it to audio, generates a video for each sentence, appends the corresponding audio clip and video name to their respective lists, and then merges all audio clips. The final video and audio files are named accordingly.",
+        "file_id": 262,
+        "content": "This code sets the torrent path and selected file path for a video download using Webtorrent. It uses managed temporary directories and considers using a single server instance, which could potentially manage resources within the server and lead to error-prone situations.",
         "type": "comment"
     },
     "2448": {
-        "file_id": 258,
-        "content": "    bgm_path = \"/root/Desktop/works/bilibili_tarot/some_bgm.mp3\"\n    bgm = AudioSegment.from_mp3(bgm_path)\n    # duration2 = audio_merged.duration_seconds\n    # bgm = bgm[:duration2*1000] # really?\n    # breakpoint()\n    # audio_merged = audio_merged.overlay(audio_merged,bgm,loop=True)  #wtf?\n    audio_merged = audio_merged.overlay(bgm,loop=True)\n    # audio_merged = audio_merged.normalize()\n    # is it needed?\n    # shit.\n    audio_merged.export(final_audio, format=\"wav\")\n    final_video2 = \"{}/final_video2.mp4\".format(video_dir)\n    with open(\"mylist.txt\",\"w+\") as f:\n        for n in video_names:\n            f.write(\"file \"+n+\"\\n\")\n    os.system(\"ffmpeg -f concat -safe 0 -i mylist.txt -c copy {}\".format(final_video))\n    os.system(\"ffmpeg -i {} -i {} -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 {}\".format(final_video,final_audio,final_video2))",
+        "file_id": 262,
+        "content": "// const{WebTorrent} = require_esm('webtorrent').default\n// console.log('IMPORT PATH?',process.env.NODE_PATH)\n// this system sucks. it does not support string concatenation.\n// maybe you can execute command to symlink global node_modules automatically? nope in javascript but in shell script, or it will not run as expected, since the import statements are running before anything would. \nimport ffmpeg from 'fluent-ffmpeg'\nimport fs from 'fs'\n// try {\nfs.rmdirSync('./[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]',{recursive: true})\n// maybe we shall not catch this exception? handle it yourself!\n// }\n// catch(e) { // you can omit the (e)\n//     // console.log(\"GIVEN DIRECTORY DOES NOT EXIST\")\n//     // it will execute even if the directory does not exist.\n//     console.log(\"UNKNOWN ERROR WHILE REMOVING DIRECTORY:\")\n//     console.log(e)\n// }\n// fuck it. let's symlink the NODE_PATH to here.\n// https://github.com/nodejs/node/issues/38687\n// https://nodejs.org/api/esm.html#esm_no_node_path",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:69-87"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:19-41"
     },
     "2449": {
-        "file_id": 258,
-        "content": "The code imports audio files, merges them, normalizes the volume, and exports the final audio as a wav file. It then creates a mylist.txt file containing the video names, and uses ffmpeg to concatenate videos with the background music and export the final video2 in mp4 format.",
+        "file_id": 262,
+        "content": "This code attempts to import `WebTorrent` and `fluent-ffmpeg`, remove a directory, and symlink the NODE_PATH to the current location. It seems to be encountering issues with the system not supporting string concatenation in imports and handling exceptions.",
         "type": "comment"
     },
     "2450": {
-        "file_id": 259,
-        "content": "/tests/bilibili_practices/bilibili_tarot/test_common.py",
-        "type": "filepath"
+        "file_id": 262,
+        "content": "// https://nodejs.org/api/esm.html\n// no template string available. shit.\n// import { Readable } from 'stream'\nimport WebTorrent from 'webtorrent'\n// // const WebTorrent = await import('webtorrent')\nconsole.log(\"WEBTORRENT OBJECT?\",WebTorrent)\nconst client=new WebTorrent({dht: true}) // nothing reading out. guess this is fucked.\n// please cache files under some KNOWN directories. otherwise, i will be fucked.\nconst serverPort=8970\nconst instance=client.createServer()\ninstance.server.listen(serverPort) // not random port? not zero? \nconst config={}\n// https://github.com/webtorrent/webtorrent/blob/master/docs/api.md#clientaddtorrentid-opts-function-ontorrent-torrent-\nconfig.path=process.cwd() // download to current directory?\n// pass different temp directory name for different torrents to prevent name clash? but what about the streaming URL?\n// default=`/tmp/webtorrent/`\n// now i fucking got you!\n// add trackers?\n// config.announce=[\"\"]\nclient.add(torrentPath,config,(torrent) => {\n    var selectedFile=torrent.files.find(file => {",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:42-72"
     },
     "2451": {
-        "file_id": 259,
-        "content": "The code sets the http and https proxies to empty strings, preventing any proxy usage, and assigns a demo text for use in testing.",
-        "type": "summary"
+        "file_id": 262,
+        "content": "Code imports WebTorrent, creates a new client with DHT enabled, starts a server on port 8970, adds a torrent from the specified path using the default configuration, and searches for the desired file in the torrent's files.",
+        "type": "comment"
     },
     "2452": {
-        "file_id": 259,
-        "content": "import os\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\ndemo_text = \"事情的开始，行动的改变，熟练的技术及技巧，贯彻我的意志，运用自然的力量来达到野心。\"",
+        "file_id": 262,
+        "content": "        // console.log(\"FILENAME?\", file.name)\n        // it will only select the first file matching the criterion.\n        // return file.name.endsWith('.mkv')\n        return file.path==selectedFilePath\n    })\n    // console.log(\"SELECTED FILE?\")\n    // console.log(selectedFile)\n    // exit here?\n    // process.exit()\n    // now pass to fluent-ffmpeg.\n    // https://github.com/leeroybrun/webtorrent-transcode\n    setInterval(() => {console.log(\"SPEED?\",client.downloadSpeed)},2000) // why speed is zero now? wtf? are you finished?\n    // *******************READSTREAM RELATED*******************\n    // https://github.com/webtorrent/webtorrent/issues/2464\n    // const stream = Readable.from(selectedFile) // are you sure?\n    // this sucks. pipe is not seekable. consider something else? (like unix domain socket)\n    // var stream=selectedFile.createReadStream() // not working! fuck.\n    // // // var stream = fs.createReadStream(\"/Users/jamesbrown/Downloads/anime_download/[Sakurato] Onii-chan wa Oshimai! [01][AVC-8bit 1080p AAC][CHT].mp4\")",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/test_common.py:1-6"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:73-95"
     },
     "2453": {
-        "file_id": 259,
-        "content": "The code sets the http and https proxies to empty strings, preventing any proxy usage, and assigns a demo text for use in testing.",
+        "file_id": 262,
+        "content": "The code is filtering files based on their name or path to match a predetermined file. It then logs the download speed periodically and attempts to create a readable stream from the selected file. The comments indicate frustration with non-working solutions, suggesting alternative approaches like Unix domain sockets or other methods for better performance.",
         "type": "comment"
     },
     "2454": {
-        "file_id": 260,
-        "content": "/tests/bilibili_practices/bilibili_tarot/test_command.sh",
-        "type": "filepath"
+        "file_id": 262,
+        "content": "    // stream.unpipe=(nodeStream) => { } //doing nothing?\n    // stream.on('error',function(err) {\n    //     console.log('STREAM ERROR?',err);\n    //     // just ignore it?\n    // })\n    // console.log(\"STREAM?\",stream)\n    // while(true) {\n    //     var buffer=stream.read(200)\n    //     console.log(\"READING:\",buffer)\n    // }\n    // var reading=false\n    // stream.on('readable',function() {\n    //     if(!reading) {\n    //         reading=true\n    //         console.log(\"STREAM READABLE\")\n    //         ffmpeg(stream).ffprobe((err,data) => {\n    //             if(err) {\n    //                 console.log(\"FFPROBE ERROR:\",err)\n    //             } else {\n    //                 console.log(\"FFPROBE METADATA:\",data)\n    //             }\n    //             process.exit()\n    //         })\n    //     }\n    // })\n    // duration is fake.\n    // ffmpeg(stream).ffprobe((err,data) => {\n    //     if(err) {\n    //         console.log(\"FFPROBE ERROR:\",err)\n    //     } else {\n    //         console.log(\"FFPROBE METADATA:\",data)",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:96-130"
     },
     "2455": {
-        "file_id": 260,
-        "content": "This code is using the melt command to combine multiple screenshots into a single video file with transitions. It uses the \"composite\" and \"mix\" transitions, applies distortion effects, and outputs the final result at 60 FPS. The output is saved as a consumer XML file.",
-        "type": "summary"
+        "file_id": 262,
+        "content": "This code appears to be attempting to read a stream using ffmpeg and retrieve metadata. It handles potential errors, but the unpipe function seems unused, and it might be designed for testing purposes or handling partial downloads. The while loop for continuous reading may not be functional as well.",
+        "type": "comment"
     },
     "2456": {
-        "file_id": 260,
-        "content": "melt -track \"color:#000000\" out=0 -track /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0000.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -track -blank :0.570312 /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0001.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -track -blank :1.140625 /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0002.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -track -blank :1.710938 /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0003.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -transition composite distort=0 a_track=0 b_track=1 -transition mix a_track=0 b_track=1 -transition composite distort=0 a_track=0 b_track=2 -transition mix a_track=0 b_track=2 -transition composite distort=0 a_track=0 b_track=3 -transition mix a_track=0 b_track=3 -transition composite distort=0 a_track=0 b_track=4 -transition mix a_track=0 b_track=4 -consumer xml",
+        "file_id": 262,
+        "content": "    //     }\n    //     // process.exit()\n    // })\n    // ffmpeg(stream).seekInput('0:10').duration(\"0:15\").on('progress',function(progress) {\n    //     // why not showing progress?\n    //     console.log('FFmpeg Processing: '+progress.percent+'% done');\n    // }).on('end',() => {\n    //     console.log(\"FFMPEG EXECUTION COMPLETE?\")\n    //     // let's rerun.\n    //     // instance.close()\n    //     client.destroy()\n    //     process.exit()\n    //     // the time range simply does not exist.\n    // }).outputOptions(['-c copy','-y']).output('output.mkv').run() // still not working?\n    // *******************READSTREAM RELATED*******************\n    // how about let's use url?\n    // how to urlencode?\n    // var urlSuffix = encodeURIComponent(selectedFilePath)\n    var fileRequestUrl=`http://localhost:${serverPort}`+selectedFile.streamURL\n    // console.log(\"STREAMING URL?\",fileRequestUrl)\n    // http://localhost:8970/webtorrent/421d78cadb5e1bb4fc1fec9dc2d6680e810c13c2/%5BKamigami&VCB-Studio%5D%20Yahari%",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/test_command.sh:1-1"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:131-158"
     },
     "2457": {
-        "file_id": 260,
-        "content": "This code is using the melt command to combine multiple screenshots into a single video file with transitions. It uses the \"composite\" and \"mix\" transitions, applies distortion effects, and outputs the final result at 60 FPS. The output is saved as a consumer XML file.",
+        "file_id": 262,
+        "content": "This code snippet attempts to download a video file, process it using FFmpeg and stream it over Webtorrent. It encodes the streaming URL for the video and logs progress during the FFmpeg processing. The code may have issues with the FFmpeg processing not showing progress and potential problems in the readstream implementation.",
         "type": "comment"
     },
     "2458": {
-        "file_id": 261,
-        "content": "/tests/bilibili_practices/bilibili_tarot/temp.txt",
-        "type": "filepath"
+        "file_id": 262,
+        "content": "20Ore%20no%20Seishun%20Lovecome%20wa%20Machigatte%20Iru.%20%5BMa10p_1080p%5D/SPs/%5BKamigami&VCB-Studio%5D%20Yahari%20Ore%20no%20Seishun%20Lovecome%20wa%20Machigatte%20Iru.%20%5BCM01%5D%5BMa10p_1080p%5D%5Bx265_flac%5D.mkv\n    //shit?\n    // ffmpeg(fileRequestUrl).ffprobe((err,data) => {\n    //     if(err) {\n    //         console.log(\"FFPROBE ERROR:\",err)\n    //     } else {\n    //         console.log(\"FFPROBE METADATA:\",data)\n    //         var duration=data.format.duration\n    //         console.log(\"VIDEO DURATION?\",duration)\n    //         // you'd better read this. you fuck!\n    //         // i ask for 10 secs.\n    //         // output still contains metadata. but do we have subtitles?\n    //         // seeking is not so accurate but in minutes? easy.\n    //         // for file under 1 minute, please do not seek ok? (seek locally?)\n    //         // do not seek for segments that are too short. seek larger segments!\n    ffmpeg(fileRequestUrl).seekInput('0:10').duration(\"0:15\").on('progress',function(progress) {",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:158-176"
     },
     "2459": {
-        "file_id": 261,
-        "content": "This code appears to be a message encouraging users to follow and continue, possibly in the context of social media or a platform like Bilibili. It could be used as a prompt for engagement or interaction.",
-        "type": "summary"
+        "file_id": 262,
+        "content": "This code uses FFmpeg to seek and download a video segment from the given URL. It seeks to 10 seconds, sets the duration to 15 seconds, and handles progress updates.",
+        "type": "comment"
     },
     "2460": {
-        "file_id": 261,
-        "content": "点个关注再走吧～",
+        "file_id": 262,
+        "content": "        console.log('FFmpeg Processing: '+progress.percent+'% done');\n    }).on('end',() => {\n        console.log(\"FFMPEG EXECUTION COMPLETE?\")\n        // let's rerun.\n        instance.close()\n        client.destroy()\n        process.exit()\n        // the time range simply does not exist.\n    }).outputOptions(['-c copy',\n        '-y']).output('output.mkv').run()\n    // not top-level function or async function. fuck.\n})",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/temp.txt:1-1"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:177-188"
     },
     "2461": {
-        "file_id": 261,
-        "content": "This code appears to be a message encouraging users to follow and continue, possibly in the context of social media or a platform like Bilibili. It could be used as a prompt for engagement or interaction.",
+        "file_id": 262,
+        "content": "The code is closing the FFmpeg instance and destroying the client after a torrent download completes. It also logs progress updates during the download process and ends the program execution upon completion.",
         "type": "comment"
     },
     "2462": {
-        "file_id": 262,
-        "content": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py",
+        "file_id": 263,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/torrent_analyzer.py",
         "type": "filepath"
     },
     "2463": {
-        "file_id": 262,
-        "content": "This code provides Tarot card interpretations for Rider-Waite deck, focusing on career, relationships, and personal growth. The Tower (XVI) represents change and urging embracing it for a better future.",
+        "file_id": 263,
+        "content": "The code snippet imports libraries, defines paths and analyzes a torrent file using torrent_parser. It prints the data, checks for multiple files, stores their names and lengths (if applicable), formats size, prints file details, writes filenames to JSON, and prepares the file for further processing.",
         "type": "summary"
     },
     "2464": {
-        "file_id": 262,
-        "content": "mdict = {0: \"\"\"【0】愚者（The Fool，0)\n正位释义：\n事情的开始，行动的改变，熟练的技术及技巧，贯彻我的意志，运用自然的力量来达到野心。\n逆位释义：\n意志力薄弱，起头难，走入错误的方向，知识不足，被骗和失败。\"\"\", 1: \"\"\"【1】魔术师（The Magician，I)\n牌面为罗马神话的诸神传信使墨丘利，有着自信的笑容和炯炯有神的眼睛。 牌的桌面摆了宇宙四要素∶权杖（火）、剑（风）、星币（土）、圣杯（水）魔术师头顶上有个无限的符号，腰带为一头尾相接的蛇，是精神永恒的象征。\n魔术师右手拿着权杖指向天空，左手指着地面，代表权力的交流和精神的赠与。魔术师脚底下为玫瑰和百合，表示人类的动机，反映神的意志，指挥天地。 玫瑰代表生，百合代表死亡。 魔术师为第一张牌，也暗示着你本身也是个魔术师，自己能操纵宇宙的力量。白色长袍代表纯洁的内心，深红色斗篷代表魔术师的活动意义深远。\"\"\", 2: \"\"\"【2】女祭司（The High Priestess，II)\n开发出内在的神秘潜力，前途将有所变化的预言，深刻地思考，敏锐的洞察力，准确的直觉。\n过于洁癖，无知，贪心，目光短浅，自尊心过高，偏差的判断，有勇无谋，自命不凡。\"\"\", 3: \"\"\"【3】女皇（The Empress，III)\n幸福，成功，收获，无忧无虑，圆满的家庭生活，良好的环境，美貌，艺术，与大自然接触，愉快的旅行，休闲。\n倒转解释：\n不活泼，缺乏上进心，散漫的生活习惯，无法解决的事情，不能看到成果，担于享乐，环境险恶，与家人发生纠纷。\"\"\", 4: \"\"\"【4】皇帝（The Emperor，IV)\n光荣，权力，胜利，握有领导权，坚强的意志，达成目标，父亲的责任，精神上的孤单。\n幼稚，无力，独裁，撒娇任性，平凡，没有自信，行动力不足，意志薄弱，被支配。\"\"\", 5: \"\"\"【5】教皇（The Hierophant，or the Pope，V)\n援助，同情，宽宏大量，可信任的人给予的劝告，良好的商量对象，得到精神上的满足，遵守规则，志愿者。信心十足，能正确理解事物本质，工作上外来压力过多，使你有被束缚的感觉。寻找新的工作方法，尽管会面对很大的阻力，但结果会证明这样做是值得的。爱情上屈从于他人的压力，只会按照对方的要求来盲目改变自己，自以为这是必要的付出，其实不过是被迫的选择。伴侣也不会对你保持忠诚，并很难满足双方真实的需要。\n错",
+        "file_id": 263,
+        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nimport os\n# single file.\n# torrent_path = \"[桜都字幕組] 不當哥哥了！ _ Onii-chan wa Oshimai! [01][1080p][繁體內嵌].torrent\"\ntorrent_path = \"[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p].torrent\"\nbasepath = \"/Users/jamesbrown/Downloads/anime_download\"\ntorrent_path = os.path.join(basepath, torrent_path)\n# analyze this torrent file.\nimport torrent_parser as tp\ndata = tp.parse_torrent_file(torrent_path)\nimport rich\nrich.print(data)\n# will be complete name later?\nsingle_file = not('files' in data['info'].keys())\n# data['info']['name'] \n# length will be total length?\n# data['info']['length']\n# breakpoint()\n# does it preserve the order?\n# import humanize\n# well.\nfnames=[]\nimport json\nfrom humanfriendly import format_size\nif not single_file:\n    for index, fileInfo in enumerate(data['info']['files']):\n        aria2c_index = index+1\n        length = fileInfo['length']\n        path = fileInfo['path'] # multiple strings in a list\n        joined_path = \"/\".join(path)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py:1-31"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/torrent_analyzer.py:1-41"
     },
     "2465": {
-        "file_id": 262,
-        "content": "```python\n# tarot descriptions, each key-value pair represents a tarot card with its meaning and interpretations\nmdict = {\n    0: \"Tarot 0: The Fool - start of something, change, mastery, will, natural power\",\n    1: \"Tarot 1: The Magician - magic, confidence, universal connection, command\",\n    2: \"Tarot 2: The High Priestess - intuition, inner potential, insight, misguided pride\",\n    3: \"Tarot 3: The Empress - harmony, success, fulfillment, family, environment, beauty\",\n    4: \"Tarot 4: The Emperor - authority, strength, victory, fatherhood, isolation\",\n    5: \"Tarot 5: The Hierophant - guidance, compassion, spiritual growth, rule-following, sacrifice\"\n}\n```",
+        "file_id": 263,
+        "content": "Code snippet imports necessary libraries, defines a torrent file path and basepath for downloads, joins the paths, analyzes the torrent file using torrent_parser, prints the parsed data, checks if the torrent contains multiple files or not, stores the name and length of each file (if applicable), converts file paths to single string format, and finally prepares the file for further processing.",
         "type": "comment"
     },
     "2466": {
-        "file_id": 262,
-        "content": "误的讯息，恶意的规劝，上当，援助被中断，愿望无法达成，被人利用，被放弃。事业上多了些灵活的态度，不再刻板遵循旧有的方式，勇于创新形成自己独特的理念，为自己的真实想法而活、而工作。感情上开始正视自己对感情的真实感受与做法，尽管依旧会听取对方的意见，但以不会全盘接受。当你感到无法接受对方的意见时，会及时与其沟通，找出改善关系的做法。\"\"\", 6: \"\"\"【6】恋人（The Lovers，VI)\n撮合，爱情，流行，兴趣，充满希望的未来，魅力，增加朋友。感情和肉体对爱的渴望，它暗示恋情将向彼此关系更亲密的方向发展。事业上将面临重大的抉择，它将关系到你的未来前途。\n禁不起诱惑，纵欲过度，反覆无常，友情变淡，厌倦，争吵，华丽的打扮，优柔寡断。感情上表现幼稚，对成长虽有期待与希望，却希望永远躲避危险，逃避责任。事业上总保持着很高的戒心，让人感到很不舒服，不愿同你合作。\"\"\", 7: \"\"\"【7】战车（The Chariot，VII)\n努力而获得成功，胜利，克服障碍，行动力，自立，尝试，自我主张，年轻男子，交通工具，旅行运大吉。事业上显示出才能，办事卓有成效。自信而富理智的你将让客户更有信心，愿意与你共同合作。在感情上正在努力控制自己的情绪，而且控制得很好，这让你的感情发展得更顺利。\n争论失败，发生纠纷，阻滞，违返规则，诉诸暴力，顽固的男子，突然的失败，不良少年，挫折和自私自利。放弃以往在事业上所坚持的，结局将会更加完美。感情上失去方向，你已经没有以往的冷静，这让对方在心中产生了不信任感，也许你要反省一下自己的所作所为了。\"\"\", 8: \"\"\"【8】力量（Strength，VIII）\n大胆的行动，有勇气的决断，新发展，大转机，异动，以意志力战胜困难，健壮的女人。在事业上你不断突破自我，上司和客户都对你有充分的信心，成就接踵而来。在爱情上，你将发展一段真正亲密的感情，你们全心投入，相互倾诉，丝毫没有距离感。\n胆小，输给强者，经不起诱惑，屈服在权威与常识之下，没有实践便告放弃，虚荣，懦弱，没有耐性。内心的恐惧使你畏首畏尾，进而遭遇事业的瓶颈，感到失去了自信。在爱情上患得患失，失去清醒的判断。\"\"\", 9: \"\"\"【9】隐者（The Hermit，IX)\n隐藏的事实，个别的行动，倾听他人的意见，享受孤独，自己的丢化，有益的警戒，年长者，避开危险，祖父，乡间生活。你在事业黄金时期引退，旁人都不了解这不过是你在为下一次黄金时期的到来进行休息。感情方面你将深刻思考自己在这段感情中的角色和地位，并探索彼此之间的关系。",
+        "file_id": 263,
+        "content": "        filesize_human_readable = format_size(length)\n        print(f\"[{aria2c_index}] ** [{filesize_human_readable}] ** {path[-1]}\")\n        # the index is right.\n        fnames.append(path[-1])\n        print(f\"FULLPATH: {joined_path}\")\nwith open(\"test_filenames.json\",'w+') as f:\n    f.write(json.dumps(fnames))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py:31-45"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/torrent_analyzer.py:42-49"
     },
     "2467": {
-        "file_id": 262,
-        "content": "Code represents tarot card descriptions for the Rider-Waite tarot deck, with each numbered section corresponding to a specific tarot card. The descriptions provide insights into areas of life such as career, relationships, and personal growth based on the card's symbolism and interpretation.",
+        "file_id": 263,
+        "content": "This code snippet formats the file size in human-readable format and prints it along with the aria2c index, file name, and full path. It then stores the filenames in a list and writes them to a JSON file named \"test_filenames.json\".",
         "type": "comment"
     },
     "2468": {
-        "file_id": 262,
-        "content": "无视警，憎恨孤独，自卑，担心，幼稚思想，过于慎重导致失败，偏差，不宜旅行。在事业中过多的投入已经让你不愿面对其它事情，因而事业有了突破性的进展。在感情方面，用工作繁忙来逃避这段感情的发展，对伴侣态度冷淡，因为害怕感情的发展而在关键时刻退缩，使对方心寒。\"\"\", 10: \"\"\"【10】命运之轮（The Wheel of Fortune，X)\n关键性的事件，有新的机会，因的潮流，环境的变化，幸运的开端，状况好转，问题解决，幸运之神降临。命运之轮正转到了你人生最低迷的时刻，也许你有些无法接受，但是若能以平常心来看待，这无疑是你成长的最好时机，需要认真面对。感情方面所受到的挫折近乎让你崩溃，然而你还在不断努力。\n虽然你面前是无数的荆棘，但坚持过去将是平坦的大道。你会发现以前所付出的无谓努力，而今反而成了你前进的动力，先前的付出终于有了回报。命运之轮是由命运女神转动的，所以你俩之前的风风雨雨都将过去，关系将进入稳定的发展阶段。\n边疆的不行，挫折，计划泡汤，障碍，无法修正方向，往坏处发展，恶性循环，中断。\"\"\", 11: \"\"\"【11】正义（Justice，XI）\n公正、中立、诚实、心胸坦荡、表里如一、身兼二职、追求合理化、协调者、与法律有关、光明正大的交往、感情和睦。事业上你不会有其它太多的感觉，只是按照以前的计划认真地执行。你对感情生活相当满意，对于你的选择对方都是接受的态度。\n失衡、偏见、纷扰、诉讼、独断专行、问心有愧、无法两全、表里不一、男女性格不合、情感波折、无视社会道德的恋情。长时间的压抑使你在事业最关键的时刻倒下了，需要认真修整一番才能再次前进。感情上你一直忍让着，然而这次你却爆发了，开始指责对方的不是，你们的感情将会有很大的波折。\"\"\", 12: \"\"\"【12】倒吊人（The Hanged Man，XII)\n接受考验、行动受限、牺牲、不畏艰辛、不受利诱、有失必有得、吸取经验教训、浴火重生、广泛学习、奉献的爱。当牌面正立时，你的事业会有短暂的停顿，但你很清楚其中的原因，再次确认自己的目标，做好出发的准备。感情上同样需要反省的时间，你对爱情的牺牲对会给对方很大的触动，也会成为你们关系发展的催化剂。\n无谓的牺牲、骨折、厄运、不够努力、处于劣势、任性、利己主义者、缺乏耐心、受惩罚、逃避爱情、没有结果的恋情。当牌面倒立时，事业上缺乏远见，迷失了努力的目标。感情上你没有了为对方付出的念头，而对方对你的态度依旧，这使你更想逃避。你已经忽略了内心深处正确的判断力，这让你开始遇到很多失败。\"\"\", 13: \"\"\"【13】 死神（Death，XIII)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py:47-61"
+        "file_id": 264,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/subtitle_extractor.py",
+        "type": "filepath"
     },
     "2469": {
-        "file_id": 262,
-        "content": "Code snippet for Tarot card descriptions.",
-        "type": "comment"
+        "file_id": 264,
+        "content": "This code references three different tools for extracting subtitles from a video file: mkvextract, ffmpeg, and optical character recognition (OCR). It suggests using the appropriate tool based on the source being processed, with the assumption that it's easier to extract subtitles from fixed locations in Bangumi videos.",
+        "type": "summary"
     },
     "2470": {
-        "file_id": 262,
-        "content": "失败、接近毁灭、生病、失业、维持停滞状态、持续的损害、交易停止、枯燥的生活、别离、重新开始、双方有很深的鸿沟、恋情终止。事业上你将放弃一些得到的利益，并获得全新的发展机会。在感情上，你将会发生深刻的变化，将开始新的阶段，接受事实你们会有更加美好的旅程。\n抱有一线希望、起死回生、回心转意、摆脱低迷状态、挽回名誉、身体康复、突然改变计划、逃避现实、斩断情丝、与旧情人相逢。事业上你在试图“两全其美”，希望能够发生奇迹。在感情上，对方已经接受了改变，而你却在逃避现实，你俩的距离正在越来越大。\"\"\", 14: \"\"\"【14】节制（Temperance，XIV)\n单纯、调整、平顺、互惠互利、好感转为爱意、纯爱、深爱。你在事业上小心翼翼，因为处事理智让你的同事感到十分放心。当下你们的感情简简单单，一切都是这么的单纯、平静，正是因为彼此的沟通才让这段感情之路如此通畅。\n消耗、下降、疲劳、损失、不安、不融洽、爱情的配合度不佳。在事业上，你陷入了朝令夕改的怪圈，不妨效仿一下愚人勇往直前，或许能够取得更大的成功。感情上彼此虽然还在不断尝试着沟通，但每次之后总是感觉没有收获，正因为如此你们之间的距离才会越拉越大。\"\"\", 15: \"\"\"【15】恶魔（The Devil ，XV)\n被束缚、堕落、生病、恶意、屈服、欲望的俘虏、不可抗拒的诱惑、颓废的生活、举债度日、不可告人的秘密、私密恋情。你将在事业中得到相当大的名声与财富，你心中的事业就是一切，财富就是你的目标。感情上你们开始被彼此束缚，却不希望改善这种关系，情愿忍受彼此的牵连和不满。\n逃离拘束、解除困扰、治愈病痛、告别过去、暂停、别离、拒绝诱惑、舍弃私欲、别离时刻、爱恨交加的恋情。事业上理性开始支配欲望，找到真正值得努力的目标。感情上开始尝试与对方进行沟通，这让你俩的感情更加牢固。\"\"\", 16: \"\"\"【16】塔（The Tower，XVI)\n破产、逆境、被开除、急病、致命的打击、巨大的变动、受牵连、信念崩溃、玩火自焚、纷扰不断、突然分离，破灭的爱。事业上的困难显而易见，回避不是办法，要勇于挑战，尽管它貌似强大。在感情方面，突然的改变让你陷入深深的痛苦中，接受改变可以让你或你们双方在未来的人生旅途中走得更好。\n困境、内讧、紧迫的状态、状况不佳、趋于稳定、骄傲自大将付出代价、背水一战、分离的预感、爱情危机。事业上开始有稳定的迹象，你不要盲目抵抗改变的发生",
+        "file_id": 264,
+        "content": "# use mkvextract:\n# https://github.com/jorti/extract-subs/blob/master/extract-subs.py\n# use ffmpeg:\n# https://github.com/fdenivac/ffextract-subtitles/blob/master/ffextract-subtitles.py\n# use ocr to extract subtitles. since this is bangumi, it is easy to extract from fixed location.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py:63-77"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/subtitle_extractor.py:1-7"
     },
     "2471": {
-        "file_id": 262,
-        "content": "这段代码是从pyjom/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py文件中截取的，用于描述塔（The Tower，XVI）这张毒诺牌的含义。在事业和感情方面都提到了突然的改变、困难、痛苦等内容，强调接受改变才能在未来的人生旅途中走得更好。",
+        "file_id": 264,
+        "content": "This code references three different tools for extracting subtitles from a video file: mkvextract, ffmpeg, and optical character recognition (OCR). It suggests using the appropriate tool based on the source being processed, with the assumption that it's easier to extract subtitles from fixed locations in Bangumi videos.",
         "type": "comment"
     },
     "2472": {
-        "file_id": 262,
-        "content": "，这只会导致更大的改变，无论你如何抵抗，改变终究会发生。在感情上双方的情绪终于平静下来，虽然沟通上还有些困难，但不会有太大的变化了，也许你做些让步，会让你们的感情更融洽。\"\"\", 17: \"\"\"【17】星星（The Star，XVII)\n前途光明、充满希望、想象力、创造力、幻想、满足愿望、水准提高、理想的对象、美好的恋情。代表当你在事业上得到希望的能量时，前途会无比光明。在感情方面，你对自己很有信心，对两人的关系也抱有乐观的态度，相信自己能把握主动权，并努力追求对方，你们很可能就是命中注定的那一对。\n挫折、失望、好高骛远、异想天开、仓皇失措、事与愿违、工作不顺心、情况悲观、秘密恋情、缺少爱的生活。在事业上，你不要全部依靠别人的给予，因为你还有希望在心中燃烧，只有靠自己才有真正的发展动力。感情方面你俩无法彼此信任，感觉无法把自己托付给对方，也许你们退一步，都冷静一下就能找出解决问题的途径，因为答案就在你们的心中。\"\"\", 18: \"\"\"【18】月亮（The Moon，XVIII)\n不安、迷惑、动摇、谎言、欺骗、鬼迷心窍、动荡的爱、三角关系。在事业上，你可能有些不满足，希望能够把自己内在的力量全使出来，于是你开始想要晚上的时间。感情方面，你很敏感害怕被伤害，尽管有伴侣的承诺，你仍然犹豫不决，甚至有逃避的想法。\n逃脱骗局、解除误会、状况好转、预知危险、等待、正视爱情的裂缝。在事业上，你因为外界的压力开始退缩了，并对自己的既定目标产生了怀疑。在感情上，你们之间的问题开始浮现，虽然有些痛，但是只要共同面对存在的困难，问题就解决一半了。\"\"\", 19: \"\"\"【19】太阳（The Sun，XIX)\n活跃、丰富的生命力、充满生机、精力充沛、工作顺利、贵人相助、幸福的婚姻、健康的交际。事业上会有贵人相助，将会有更好的发展机遇。在感情方面，你们已经走出坎坷的感情之路，前面将是洒满歌声和欢乐的坦途，你们将开始规划未来的生活。\n消沉、体力不佳、缺乏连续性、意气消沉、生活不安、人际关系不好、感情波动、离婚。事业上竞争心太急切了，把对手都吓跑了，然而也让合作伙伴感到害怕，或许你该放松些。感情上两人间出现一些小变化，开始在乎对方的态度和自己的付出，这些怀疑也许都是没必要的。\"\"\", 20: \"\"\"【20】审判（Judgement，XX)\n复活的喜悦、康复、坦白、好消息、好运气、初露锋芒、复苏的爱、重逢、爱的奇迹。当牌面正立时，事业上你超越了自我，在过去努力的基础上取得了成功。感情上双方都在认真学习和成长，虽然表面上的变化并不大，但内在的改变已经很大了。",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py:77-91"
+        "file_id": 265,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_torrent_file_list.py",
+        "type": "filepath"
     },
     "2473": {
-        "file_id": 262,
-        "content": "This Python code contains descriptions for the 17, 18, 19, and 20 tarot cards. It provides brief interpretations of each card's meaning in terms of future prospects, career, relationships, and personal growth.",
-        "type": "comment"
+        "file_id": 265,
+        "content": "This code fetches data from the Nyaa.si website using requests library, parses it using NyaaPy's utils and torrent modules, and prints the parsed JSON data and the corresponding data class object.",
+        "type": "summary"
     },
     "2474": {
-        "file_id": 262,
-        "content": "一蹶不振、幻灭、隐瞒、坏消息、无法决定、缺少目标、没有进展、消除、恋恋不舍。在事业上缺乏清晰的判断，试图用物质填充精神的空虚。在感情上，不断地回忆着过去的美好时光，不愿意去正视眼前的问题，你们的关系已经是貌合神离了。\"\"\", 21: \"\"\"【21】世界（The World，XXI)\n完成、成功、完美无缺、连续不断、精神亢奋、拥有毕生奋斗的目标、完成使命、幸运降临、快乐的结束、模范情侣。在事业上因为努力工作，所以回报丰厚。感情上，你们在彼此的承诺中持续着美好的关系。\n未完成、失败、准备不足、盲目接受、一时不顺利、半途而废、精神颓废、饱和状态、合谋、态度不够融洽、感情受挫。在事业的路上有巨大的障碍，你精神不振，丧失了挑战的动力。感情上，你们不再重视承诺，只是盲目接受对方。彼此最好能沟通一下，不要让痛苦继续纠缠着你们。\"\"\"}\nsmdict = {0: \"【权杖】（The Leangle)代表元素火，象征激情、能量和创造。\", 1: \"【星币】（The Garren)代表元素土，象征金钱、物质和享受。\",\n          2: \"【圣杯】（The Chalice)代表元素水，象征情感、关系、爱和灵感。\", 3: \"【宝剑】（The Blade)代表元素风，象征思想、智慧、交流和冲突。\"}\nsmdict2 = {1:\"COINS\",2:\"CUP\",3:\"SWORDS\",0:\"WANDS\"}\n#mdict 21, smdict 3\n# class py_solution:\ndef int_to_Roman(num):\n    lookup = [\n        (1000, 'M'),\n        (900, 'CM'),\n        (500, 'D'),\n        (400, 'CD'),\n        (100, 'C'),\n        (90, 'XC'),\n        (50, 'L'),\n        (40, 'XL'),\n        (10, 'X'),\n        (9, 'IX'),\n        (5, 'V'),\n        (4, 'IV'),\n        (1, 'I'),\n    ]\n    res = ''\n    for (n, roman) in lookup:\n        (d, num) = divmod(num, n)\n        res += roman * d",
+        "file_id": 265,
+        "content": "url = \"https://nyaa.si/view/1627038\"\nimport requests\nfrom NyaaPy import utils, torrent\nr = requests.get(url)\nSITE = utils.TorrentSite.NYAASI\njson_data = utils.parse_single(request_text=r.text, site=SITE)\ndata_class = torrent.json_to_class(json_data)\nimport rich\n# json_data['seeders']\n# json_data['title']\n# json_data['files']\nrich.print(json_data)\nprint()\nprint(\"_\"*20)\nprint()\nrich.print(data_class)\nbreakpoint()",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py:93-125"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_torrent_file_list.py:1-25"
     },
     "2475": {
-        "file_id": 262,
-        "content": "This code is mapping the Tarot card descriptions and their corresponding numbers to different elements and card suits. It also includes a function int_to_Roman that converts an integer to its Roman numeral representation using lookup values for each Roman numeral value.",
+        "file_id": 265,
+        "content": "This code fetches data from the Nyaa.si website using requests library, parses it using NyaaPy's utils and torrent modules, and prints the parsed JSON data and the corresponding data class object.",
         "type": "comment"
     },
     "2476": {
-        "file_id": 262,
-        "content": "    return res",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py:126-126"
-    },
-    "2477": {
-        "file_id": 262,
-        "content": "This code is returning the result (res) after some operation or function execution. It indicates that the previous code block was performing a calculation, query, or transformation, and now it's ready to deliver the outcome.",
-        "type": "comment"
-    },
-    "2478": {
-        "file_id": 263,
-        "content": "/tests/bilibili_practices/bilibili_tarot/tarot_correspondences.py",
+        "file_id": 266,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_api_connector.py",
         "type": "filepath"
     },
-    "2479": {
-        "file_id": 263,
-        "content": "This code loads tarot card images, maps them to numbers, checks for matches in directories, and prints the major/minor tarot cards along with their corresponding values.",
+    "2477": {
+        "file_id": 266,
+        "content": "The Python script uses requests and BeautifulSoup to search the Nyaa torrent site for anime with 7+ seeders, retrieves results, stores in \"output.html\", and checks if more pages exist using a template and NyaaPy library for torrent handling.",
         "type": "summary"
     },
-    "2480": {
-        "file_id": 263,
-        "content": "dirs =[\"tarot_pictures\",\"tarot_pictures2\"] \nimport os\nfrom tarot_descriptions import *\nmtarget_0 = {k:None for k in mdict.keys()}\nmtarget_1 = {k:None for k in smdict.keys()}\nfn = []\nfor d in dirs:\n    fnames = os.listdir(d)\n    fnames = [os.path.join(d,f) for f in fnames]\n    fn+= fnames\npopdict = []\nfor k in mtarget_0.keys():\n    if k == 0:\n        kv = \"0\"\n    else:\n        kv = int_to_Roman(k)\n    for f in fn:\n        fb = os.path.basename(f)\n        f0 = fb.split(\".\")[0].split(\"_\")[0]\n        if f0.upper() == kv:\n            mtarget_0[k] = f\n            break\n    if mtarget_0[k] is None:\n        popdict.append(k)\nfor k in popdict:\n    mtarget_0.pop(k)\npopdict = []\nfor k in mtarget_1.keys():\n    kv =  smdict2[k]\n    for f in fn:\n        fb = os.path.basename(f)\n        f0 = fb.split(\".\")[0].split(\"_\")[-1]\n        if kv.upper() in f0.upper():\n            mtarget_1[k] = f\n            break\n    if mtarget_1[k] is None:\n        popdict.append(k)\nfor k in popdict:\n    mtarget_1.pop(k)\n# print()\n# ########printing.\n# pretty good.",
+    "2478": {
+        "file_id": 266,
+        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nimport requests\nurl = \"https://nyaa.si\" # change this to mirror sites.\nMIN_SEEDERS=7 # must be greater than this.\nquery = \"oniichan wa oshimai! 01\"\nsort_term = \"seeders\"\nanime_categories = {\n    \"Anime\": \"1_0\",\n    \"Anime - Anime Music Video\": \"1_1\",\n    \"Anime - English-translated\": \"1_2\",\n    \"Anime - Non-English-translated\": \"1_3\",\n    \"Anime - Raw\": \"1_4\",\n}\ncategory_code = anime_categories[\"Anime\"]  # anime\npage = 1  # start page: 1\nend_of_page = False\n# better not to use rss version since it will not sort terms.\nparams = dict(f=0, c=category_code, q=query, s=sort_term, o=\"desc\", p=page)\n# better parse it yourself first huh?\n# r = requests.get(url, params=params)\n# assert r.code == 200\n# text = r.text\nwith open(\"output.html\", \"r\") as f:\n    text = f.read()\nfrom bs4 import BeautifulSoup\n# with open(\"output.html\",'w+') as f:\n#    f.write(text)\nsoup = BeautifulSoup(text, \"html.parser\")\n# breakpoint()\nimport parse\ntemplate = \"Displaying results {start:d}-{end:d} out of {total:d} results.\"",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_correspondences.py:1-48"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_api_connector.py:1-48"
+    },
+    "2479": {
+        "file_id": 266,
+        "content": "The code is a Python script that uses the requests library to make an API request to the Nyaa torrent site. It searches for a specific anime with 7 or more seeders, retrieves the results, and stores them in a file named \"output.html\". The BeautifulSoup library is used to parse the HTML response, and the parse module seems to be utilized for further processing.",
+        "type": "comment"
+    },
+    "2480": {
+        "file_id": 266,
+        "content": "banner = soup.find(\"div\", class_=\"pagination-page-info\").text\npagination_info = banner.split(\"\\n\")[0]\npagination_info_result = parse.parse(template, pagination_info)\nif pagination_info_result:\n    if pagination_info_result[\"total\"] == pagination_info_result[\"end\"]:\n        print(\"Reached end of page.\")\n        end_of_page = True\nfrom NyaaPy import utils\nSITE = utils.TorrentSite.NYAASI\njson_info = utils.parse_nyaa(request_text=text, limit=None, site=SITE)\nimport rich\nrich.print(json_info)\n# breakpoint()\nfor videoInfo in json_info:\n    seeders = int(videoInfo['seeders'])\n    seeders_enough = seeders>=MIN_SEEDERS\n    print('seeders?',seeders)\n    print(\"seeders enough?\", seeders_enough)\n    # videoInfo['id'] -> \"https://nyaa.si/view/{}\"\n# you can also download torrent file for only file info.",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_api_connector.py:50-77"
     },
     "2481": {
-        "file_id": 263,
-        "content": "This code is loading tarot card images and mapping them to their respective numbers. It first defines the directories containing the image files, then iterates over each directory, lists the files, and checks if the file name matches the corresponding tarot card number in Roman or Arabic numeral form. If a match is found, it assigns that image file to the respective dictionary (mtarget_0 for Arabic numbers, mtarget_1 for tarot card names). Finally, it removes any missing mappings from the dictionaries.",
+        "file_id": 266,
+        "content": "The code retrieves the banner from a webpage, extracts pagination information, and checks if it has reached the end of the page. It then parses the response using a template and determines if there are enough seeders for each video info. The code prints the number of seeders and whether they are enough based on a minimum seeders threshold. The code uses the NyaaPy library for site-specific torrent handling.",
         "type": "comment"
     },
     "2482": {
-        "file_id": 263,
-        "content": "# if __name__ == \"__main__\":\n#     for k in mtarget_0.keys():\n#         print(\"MAJOR\",k,mtarget_0[k])\n#     for k in mtarget_1.keys():\n#         print(\"MINOR\",k,mtarget_1[k])",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_correspondences.py:49-53"
-    },
-    "2483": {
-        "file_id": 263,
-        "content": "Code checks keys in mtarget_0 and mtarget_1 dictionaries, printing \"MAJOR\" followed by key and its value for mtarget_0, and \"MINOR\" followed by key and its value for mtarget_1.",
-        "type": "comment"
-    },
-    "2484": {
-        "file_id": 264,
-        "content": "/tests/bilibili_practices/bilibili_tarot/scriptable_generate_typography_with_voice_underline_subtitle.py",
+        "file_id": 267,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/name_resolution_parsing_chapter_recognition.py",
         "type": "filepath"
     },
-    "2485": {
-        "file_id": 264,
-        "content": "This code imports necessary modules and sets up the environment for typography generation using voice underscore subtitle. It reads a demo text, creates a directory to save generated images, sets font and size, and draws each character on the screen with optional rotation and filling options.",
+    "2483": {
+        "file_id": 267,
+        "content": "The code utilizes ffmpeg to extract subtitles, sets anime series constants, filters series names, and reads filenames from a JSON. It checks for bangume names, identifies episode index location, compares with expected position, and prints the episode index or displays \"EPISODE?\" if not recognized.",
         "type": "summary"
     },
-    "2486": {
-        "file_id": 264,
-        "content": "from p5 import *\nimport os\n# from test_common import demo_text\ndemo_text = open(\"demo_text.log\",\"r\",encoding=\"utf-8\").read()\nos.system(\"rm screenshot*\")\ntarget_dir = \"demo_typography\"\nos.system(\"rm -rf {}\".format(target_dir))\nos.system(\"mkdir {}\".format(target_dir))\ntsize = 100\ncounterx = 0\nscrwidth = 1920\nxcoord = int(scrwidth/2) # how to get this shit?\nscrheight = 1080\nycoord = scrheight - tsize - 75\nlineNum = 0\n# what fucking ever.\ns = demo_text\ns0 = [\"\"]\ndef setup():\n    size(scrwidth,scrheight)\n    # text_font(create_font('./fonts/Fonts/博洋行书3500.ttf', size=tsize))\n    # text_font(create_font('./fonts/Fonts/书体坊兰亭体I.ttf', size=tsize))\n    text_font(create_font('./SimHei.ttf', size=tsize))\nimport random\ndef draw():\n    global counterx,xcoord,ycoord,s,s0,scrheight,scrwidth,lineNum,target_dir\n    #force override.\n    background(0)\n    if counterx > len(s)-1:\n        exit()\n    s1 = s[:counterx]\n    counterx+=1\n    mtext_width = text_width(s1)\n    try:\n        text9 = s1\n        # else:\n        #     text9 = \" \"\n        # l = len(s0)-1",
+    "2484": {
+        "file_id": 267,
+        "content": "subtitle_types = [\"ass\", \"srt\"]\nvideo_types = [\n    \"mkv\",\n    \"mov\",\n    \"mp4\",\n    \"flv\",\n    \"avi\",\n    \"ogv\",\n    \"webm\",\n    \"ts\",\n    \"wmv\",\n    \"webm\",\n    \"m4v\",\n    \"3gp\",\n]\n# use ffmpeg for subtitle extraction?\nfiletypes = {\"subtitle\": subtitle_types, \"video\": video_types}\nBangumi_Name = \"Yahari Ore no Seishun Lovecome wa Machigatte Iru.\".strip()\nepisodeIndex = 3\nchinese_simplified_sub_types = [\"chs\", \"简体\", \"简日\"]\nchinese_traditional_sub_types = [\"繁日\", \"繁体\", \"繁體\", \"cht\"]\nimport json\n# replace non-alphanumeric charcters.\nepisode_formatter = lambda episode_index: str(episode_index).zfill(2)\nimport re\n# also replace all double spaces.\ndef double_space_replacer(chars: str):\n    if \"  \" in chars:\n        chars = chars.replace(\"  \", \" \")\n        return double_space_replacer(chars)\n    else:\n        return chars\nalphanumeric_filter = lambda chars: double_space_replacer(\n    re.sub(r\"[^a-z0-9]\", \" \", chars)\n)\nbangume_name_lower_alphanumeric = alphanumeric_filter(Bangumi_Name.lower())\nwith open(\"test_filenames.json\", \"r\") as f:",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/scriptable_generate_typography_with_voice_underline_subtitle.py:1-46"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/name_resolution_parsing_chapter_recognition.py:1-46"
+    },
+    "2485": {
+        "file_id": 267,
+        "content": "This code defines file types for subtitles and videos, uses ffmpeg for subtitle extraction, defines constants related to a specific anime series, applies an alphanumeric filter to the anime name, and reads filenames from a JSON file.",
+        "type": "comment"
+    },
+    "2486": {
+        "file_id": 267,
+        "content": "    fnames = json.loads(f.read())\nfor fname in fnames:\n    fname_lower = fname.lower()\n    fname_lower_alphanumeric = alphanumeric_filter(fname_lower)\n    file_extension = fname_lower.split(\".\")[-1]\n    current_file_type = \"unknown\"\n    for filetype, file_extensions in filetypes.items():\n        if file_extension in file_extensions:\n            current_file_type = filetype\n            break\n    print(f\"<{current_file_type}> {fname}\")\n    print(fname_lower_alphanumeric)\n    substring_location_start = fname_lower_alphanumeric.find(\n        bangume_name_lower_alphanumeric\n    )\n    if substring_location_start!=-1:\n        substring_location_end = substring_location_start + len(\n        bangume_name_lower_alphanumeric\n    )\n        assert fname_lower_alphanumeric[substring_location_start: substring_location_end] == bangume_name_lower_alphanumeric\n        episodeIndexLocation = fname_lower_alphanumeric.find(f\" {episode_formatter(episodeIndex)} \")\n        if episodeIndexLocation!=-1:\n            if episodeIndexLocation+1>=substring_location_end:",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/name_resolution_parsing_chapter_recognition.py:47-71"
     },
     "2487": {
-        "file_id": 264,
-        "content": "This code is importing necessary modules and setting up the environment for generating typography with voice underscore subtitle. It reads a demo text, creates a directory to save the generated images, sets up font and size, and begins drawing each character from the text on the screen.",
+        "file_id": 267,
+        "content": "Reading file names from a JSON, filtering, and determining their types. Checking if the bangume name substring is present in the filename. Identifying the episode index location and comparing it with the expected position.",
         "type": "comment"
     },
     "2488": {
-        "file_id": 264,
-        "content": "        # rotate = random.randint(-15,15)\n        # rotate = random.choice([random.randint(-20,-10),random.randint(10,20)])\n        rotate = 0\n        # r1 = random.randint(220,255)\n        # r2 = random.randint(220,255)\n        # r3 = random.randint(220,255)\n        # r4 = random.randint(220,255)\n        r1 = r2 = r3 = r4 = 255\n        fill(red=r1, green=r2, blue=r3, alpha=r4)\n        text(text9, (xcoord-int(mtext_width/2), ycoord,),rotate = rotate)  # add str() to key\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"SHIT HAPPENED\")\n        pass\n    save_frame(\"{}/screenshot.png\".format(target_dir))\nrun()\nprint(\"EXITED.\")",
+        "file_id": 267,
+        "content": "                print(\"EPISODE?\") # this is the index we want\n                print(episodeIndex)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/scriptable_generate_typography_with_voice_underline_subtitle.py:47-65"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/name_resolution_parsing_chapter_recognition.py:72-73"
     },
     "2489": {
-        "file_id": 264,
-        "content": "This code sets the rotate value to 0 and RGB values to 255 for filling text. It then displays the text at specified coordinates with optional rotation. If an exception occurs, it prints the traceback and a message before saving a screenshot. The program exits and prints \"EXITED.\"",
+        "file_id": 267,
+        "content": "Code snippet checks the episode index and prints it. If the desired index is not recognized, it displays \"EPISODE?\" for clarification.",
         "type": "comment"
     },
     "2490": {
-        "file_id": 265,
-        "content": "/tests/bilibili_practices/bilibili_tarot/scriptable_generate_typography_with_voice.py",
+        "file_id": 268,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/name_fuzzy.py",
         "type": "filepath"
     },
     "2491": {
-        "file_id": 265,
-        "content": "The code manages text display, handles line wrapping and background color updates, reads a file for processing, generates typography text with voice, applies random rotation and colors, saves screenshot or displays error message, then exits.",
+        "file_id": 268,
+        "content": "This code initializes two empty lists, 'filenames' and 'bangumi_names'. 'bangumi_names' contains two string values representing anime titles.",
         "type": "summary"
     },
     "2492": {
-        "file_id": 265,
-        "content": "from p5 import *\nimport os\n# from test_common import demo_text\ndemo_text = open(\"demo_text.log\",\"r\",encoding=\"utf-8\").read()\nos.system(\"rm screenshot*\")\ntarget_dir = \"demo_typography\"\nos.system(\"rm -rf {}\".format(target_dir))\nos.system(\"mkdir {}\".format(target_dir))\ntsize = 70\ncounterx = 0\nxcoord = 20\nycoord = 75\nscrwidth = 1920\nscrheight = 1080\nlineNum = 0\n# what fucking ever.\ns = demo_text\ns0 = [\"\"]\ndef setup():\n    size(scrwidth,scrheight)\n    # text_font(create_font('./fonts/Fonts/博洋行书3500.ttf', size=tsize))\n    text_font(create_font('./fonts/Fonts/书体坊兰亭体I.ttf', size=tsize))\n    # text_font(create_font('./SimHei.ttf', size=tsize))\nimport random\ndef draw():\n    global counterx,xcoord,ycoord,s,s0,scrheight,scrwidth,lineNum,target_dir\n    if len(s0) ==1:\n        if len(s0[0]) == 0:\n            background(0)\n    if counterx > len(s)-1:\n        exit()\n    s1 = s[counterx]\n    returnFlag = False\n    if s1 == \"\\n\":\n        # this is return!\n        returnFlag = True\n        lineNum +=1\n        stemp0 = \"\" # this is nothing.\n        tw = text_width(stemp0)",
+        "file_id": 268,
+        "content": "filenames = []\nbangumi_names= [\"Yahari Ore no Seishun Lovecome wa Machigatte Iru.\",\"Yahari Ore no Seishun Love Come wa Machigatteiru.\"]",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/scriptable_generate_typography_with_voice.py:1-47"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/name_fuzzy.py:1-3"
     },
     "2493": {
-        "file_id": 265,
-        "content": "The code reads a text file, clears the target directory, sets up the screen size and font, and starts drawing characters onto the screen. It checks for line breaks and keeps track of the current position and text content. If there is no more text to process, it exits.",
+        "file_id": 268,
+        "content": "This code initializes two empty lists, 'filenames' and 'bangumi_names'. 'bangumi_names' contains two string values representing anime titles.",
         "type": "comment"
     },
     "2494": {
-        "file_id": 265,
-        "content": "        th = tsize*(lineNum+1) + tsize*0.2*(lineNum)\n        if (ycoord+th> scrheight):\n            # stemp0 = s1\n            s0 = [stemp0]\n            clear()\n            background(0)\n            lineNum = 0\n        else:\n            s0.append(stemp0)\n    else:\n        stemp0 = s0[-1]+s1\n        tw = text_width(stemp0)\n        th = tsize*(lineNum+1) + tsize*0.2*lineNum\n        if (tw + xcoord+ tsize*0.5> scrwidth):\n            stemp0 = s1\n            s0.append(stemp0)\n            lineNum +=1\n            th = tsize*(lineNum+1) + tsize*0.2*lineNum\n            if (ycoord+th> scrheight):\n                # stemp0 = s1\n                s0 = [stemp0]\n                background(0)\n                lineNum = 0\n        else:\n            s0[-1]= stemp0\n        # no_loop()\n        # clear\n    # s0 = stemp0\n        # end all evil.\n    counterx+=1\n    # load_font(\"SimHei.ttf\")\n    # print(\"text w/h:\",tw,th)\n    # for l, text9 in enumerate(s0):\n    if len(s0) == 1 and len(s0[0])<=1: # whatever.\n        # breakpoint()\n        clear()\n        background(0)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/scriptable_generate_typography_with_voice.py:48-85"
+        "file_id": 269,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/make_node_symlink.sh",
+        "type": "filepath"
     },
     "2495": {
-        "file_id": 265,
-        "content": "This code is handling text wrapping and line breaking for a text display system. It checks the text width and height, splitting lines when necessary and adjusting the number of lines based on available space. The code also clears the screen and updates the background color when needed to ensure proper visuals.",
-        "type": "comment"
+        "file_id": 269,
+        "content": "This script creates a symbolic link named \"node_modules\" pointing to the $NODE_PATH, presumably to resolve or fix an issue with file locations.",
+        "type": "summary"
     },
     "2496": {
-        "file_id": 265,
-        "content": "    # if not returnFlag:\n    # print(s0)\n    try:\n        text9 = s0[-1][-1]\n        # else:\n        #     text9 = \" \"\n        l = len(s0)-1\n        # rotate = random.randint(-15,15)\n        rotate = random.choice([random.randint(-20,-10),random.randint(10,20)])\n        r1 = random.randint(200,255)\n        r2 = random.randint(200,255)\n        r3 = random.randint(200,255)\n        r4 = random.randint(200,255)\n        fill(red=r1, green=r2, blue=r3, alpha=r4)\n        text(text9, (xcoord+text_width(s0[-1][:-1]), ycoord+ l*(tsize*1.2),),rotate = rotate)  # add str() to key\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"SHIT HAPPENED\")\n        pass\n    save_frame(\"{}/screenshot.png\".format(target_dir))\nrun()\nprint(\"EXITED.\")",
+        "file_id": 269,
+        "content": "ln -s $NODE_PATH node_modules # to fix shit.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/scriptable_generate_typography_with_voice.py:86-109"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/make_node_symlink.sh:1-1"
     },
     "2497": {
-        "file_id": 265,
-        "content": "This code generates a typography text with voice and applies random rotation, colors, and adjusts position based on the length of the text. It saves a screenshot if no exception occurs, otherwise prints \"SHIT HAPPENED\" and continues. Finally, it exits and prints \"EXITED.\"",
+        "file_id": 269,
+        "content": "This script creates a symbolic link named \"node_modules\" pointing to the $NODE_PATH, presumably to resolve or fix an issue with file locations.",
         "type": "comment"
     },
     "2498": {
-        "file_id": 266,
-        "content": "/tests/bilibili_practices/bilibili_tarot/pooling.py",
+        "file_id": 270,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/kill_aria2c.sh",
         "type": "filepath"
     },
     "2499": {
-        "file_id": 266,
-        "content": "This code creates a \"final_output\" directory and moves files from specified directories (\"major\", \"minor\", \"typo_0\", and \"typo_1\") to it, appending their filenames with the directory name. It also moves two specific video files to the same directory.",
+        "file_id": 270,
+        "content": "This command is killing the aria2c process with a SIGINT signal, specifically targeting the specified anime episode titled 'Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]' from the Kamigami & VCB-Studio group.",
         "type": "summary"
     }
 }

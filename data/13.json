@@ -1,543 +1,541 @@
 {
     "1300": {
-        "file_id": 106,
-        "content": "            mitem = \"{}={}\".format(key, mitem)\n            mitem = mitem.split(\"\\n\")\n            for mitem0 in mitem:\n                trial_item = \", \".join([item_lines[-1], mitem0])\n                if len(trial_item) < line_max_char:\n                    item_lines[-1] = trial_item\n                else:\n                    item_lines.append(mitem0)\n        item_lines = \",\\n{}\".format((1 + level) * self.indent).join(item_lines)\n        # print(\"item_lines:\",item_lines)\n        item_lines = \"{}({}\\n{})\\n\".format(\n            level * self.indent, item_lines, level * self.indent\n        )\n        item_lines = item_lines.replace(\",,\", \",\")\n        item_lines = item_lines.replace(\"[,\", \"[\")\n        item_lines = item_lines.replace(\", }\", \"}\")\n        item_lines = item_lines.replace(\", ]\", \"]\")\n        item_lines = item_lines.replace(\"{,\", \"{\")\n        return item_lines\n    def generate(self, script_obj):\n        # default prettify the target\n        script = \"\"\n        for line_obj in script_obj.dump():\n            for level, item_obj in enumerate(line_obj.dump()):",
+        "file_id": 98,
+        "content": "                        frame_width, frame_height\n                    )\n                    if ratio < ratio_limit:\n                        continue\n                    start, end = framework[\"start\"], framework[\"end\"]\n                    if end == \"FINAL\":\n                        end = metadata[\"duration\"]\n                    duration = end - start\n                    if duration < duration_limit:\n                        continue\n                    # now append your cuts. are they overlapping?\n                    framework2 = {\n                        \"coords\": framework[\"coords\"],\n                        \"timespan\": (start, end),\n                    }\n                    avaliable_cuts.append(framework2)\n                cuts.update({filter_name: avaliable_cuts})\n            if abandon_flag: # is this duplicated?\n                break\n        # print(cuts)\n        # print(\"CUTS:\")\n        filtered_info.update({file_path: cuts})\n        # breakpoint()\n        # # what the fuck? # #\n        # if abandon_flag:\n        #     continue  # abandon those without qualification info.",
         "type": "code",
-        "location": "/pyjom/medialang/core.py:165-189"
+        "location": "/pyjom/modules/contentProducing/localProducer.py:115-140"
     },
     "1301": {
-        "file_id": 106,
-        "content": "This code is generating a formatted string from nested lists, ensuring that the lines are within character limits and properly indented. It also replaces unnecessary commas with correct formatting for a more readable output.",
+        "file_id": 98,
+        "content": "This code filters and stores video cuts based on their dimensions, ratio, duration, and if they overlap. It updates the \"cuts\" dictionary with available cuts for each filter name and stores the information in \"filtered_info\" dictionary under file path. If abandon_flag is set, it breaks or continues to the next iteration.",
         "type": "comment"
     },
     "1302": {
-        "file_id": 106,
-        "content": "                unit = self.generate_item(item_obj, level=level)\n                # print(\"unit:\",unit)\n                script += unit\n            script += \"\\n\"\n        script = script.replace(\",,\", \",\")\n        script = script.replace(\"[,\", \"[\")\n        script = script.replace(\", }\", \"}\")\n        script = script.replace(\", ]\", \"]\")\n        script = script.replace(\"{,\", \"{\")\n        i = 0\n        maxIndent = 0\n        # script = script.replace(\"'\",'\"') # no freaking single quotes.\n        while True:\n            if i == 0:\n                script = script.replace(\",\\n]\", \"\\n]\")\n                script = script.replace(\",\\n]\", \"\\n]\")\n            else:\n                indentStr = self.indent * i\n                if indentStr in script:\n                    script = script.replace(\n                        \",\\n{}]\".format(indentStr), \"\\n{}]\".format(indentStr)\n                    )\n                    script = script.replace(\n                        \",\\n{}\".format(indentStr) + \"}\", \"\\n{}\".format(indentStr) + \"}\"\n                    )",
+        "file_id": 98,
+        "content": "        # # what the fuck? # #\n        # breakpoint()\n    return filtered_info\n@decorator\ndef FilesystemProducer(\n    processed_info,\n    filters={},\n    template=None,\n    template_config={},\n):\n    # print(processed_info) # why we only have one single goddamn path?\n    # breakpoint()\n    filtered_info = FilesystemInfoFilter(processed_info, filters=filters)\n    template_function = getProducerTemplate(template)\n    meta_info = {\n        k: processed_info[k][\"meta\"] for k in processed_info.keys()\n    }  # so there is no additional \"meta\" key.\n    # print(filtered_info)  # empty! shit.\n    # print(meta_info)\n    # breakpoint()\n    output = template_function(filtered_info, meta_info, config=template_config)\n    # you need to handle the title and something all over this freaking place.\n    # must be ready for posting.\n    return output",
         "type": "code",
-        "location": "/pyjom/medialang/core.py:190-215"
+        "location": "/pyjom/modules/contentProducing/localProducer.py:141-169"
     },
     "1303": {
-        "file_id": 106,
-        "content": "This code generates a script by creating units of code from item objects, adds indentation and replaces unnecessary commas and quotes. It also handles specific formatting issues like replacing multiple newlines with single ones and ensuring correct syntax for closing brackets or braces.",
+        "file_id": 98,
+        "content": "This function, FilesystemProducer, takes in processed_info and applies the FilesystemInfoFilter. It then gets a template_function and uses it to combine filtered_info with meta_info. The output is returned, but it seems there are issues with handling titles and other elements throughout the code.",
         "type": "comment"
     },
     "1304": {
-        "file_id": 106,
-        "content": "                else:\n                    maxIndent = i - 1\n                    break\n            i += 1\n        for index0 in range(maxIndent):\n            indentStr = self.indent * (maxIndent - index0)\n            if indentStr in script:\n                script = script.replace(\n                    \"{}], \".format(indentStr),\n                    \"{}],\\n{}\".format(indentStr, indentStr),\n                )\n                script = script.replace(\n                    \"{}\".format(indentStr) + \"}, \",\n                    \"{}\".format(indentStr) + \"},\\n\" + \"{}\".format(indentStr),\n                )\n        for index in range(maxIndent):\n            indentStr = self.indent * (maxIndent - index)\n            if indentStr in script:\n                # print(\"running\", len(indentStr))\n                script = script.replace(\n                    \"[{}\".format(indentStr),\n                    \"[\",\n                )\n                script = script.replace(\n                    \",{}\".format(indentStr),\n                    \",\",\n                )",
-        "type": "code",
-        "location": "/pyjom/medialang/core.py:216-242"
+        "file_id": 99,
+        "content": "/pyjom/modules/contentProducing/dummyProducer.py",
+        "type": "filepath"
     },
     "1305": {
-        "file_id": 106,
-        "content": "This code finds the maximum indent level in a script and replaces occurrences of newline-separated items with the appropriate indentation. It also removes extra indentation from list or tuple elements and removes extra indentation after commas.",
-        "type": "comment"
+        "file_id": 99,
+        "content": "The code imports necessary modules and defines a dummyProducer function using a decorator. It returns a dictionary with information related to \"husky\" including title, article, video, and summary.",
+        "type": "summary"
     },
     "1306": {
-        "file_id": 106,
-        "content": "                script = script.replace(\n                    \"{\" + \"{}\".format(indentStr),\n                    \"{\",\n                )\n        script = script.replace(\",,\", \",\")\n        script = script.replace(\"[,\", \"[\")\n        script = script.replace(\", }\", \"}\")\n        script = script.replace(\", ]\", \"]\")\n        script = script.replace(\"{,\", \"{\")\n        script = script.replace(\"{ {\", \"{{\")\n        script = script.replace(\"} }\", \"}}\")\n        script = script.replace(\"] ]\", \"]]\")\n        script = script.replace(\"[ [\", \"[[\")\n        script = script.replace(\"[ \", \"[\")\n        if script.endswith(\"\\n\\n\"):\n            script = script[:-2]\n        if script.startswith(\"\\n\"):\n            script = script[1:]\n        return script\n    def detectGrammar(self, line):\n        result = line.replace(\"\\n\", \"\").replace(\" \", \"\").replace(\"\\t\", \"\")\n        return len(result) != 0\n    def getItems(self, line):\n        # assume there will not be enclosed brackets in string?\n        values = {\"(\": +1, \")\": -1}\n        base = 0\n        items = []",
+        "file_id": 99,
+        "content": "from pyjom.commons import *\n@decorator\ndef dummyProducer(processed_info):\n    return {\n        \"husky\": {\n            \"title\": \"<a million husky videos>\",\n            \"article\": \"husky is so darn cute\",\n            \"video\": \"<myvideo>\",\n            \"summary\": \"this is my husky\",\n        }\n    }",
         "type": "code",
-        "location": "/pyjom/medialang/core.py:243-271"
+        "location": "/pyjom/modules/contentProducing/dummyProducer.py:1-13"
     },
     "1307": {
-        "file_id": 106,
-        "content": "The code is performing a series of string replacements to ensure that the script adheres to proper syntax. It removes extra brackets and newline characters, and detects non-empty lines. The getItems function assumes no nested enclosed brackets in strings.",
+        "file_id": 99,
+        "content": "The code imports necessary modules and defines a dummyProducer function using a decorator. It returns a dictionary with information related to \"husky\" including title, article, video, and summary.",
         "type": "comment"
     },
     "1308": {
-        "file_id": 106,
-        "content": "        item = \"\"\n        for char in line:\n            value = 0 if char not in values.keys() else values[char]\n            base += value\n            if base > 0:\n                item += char\n            if base == 0 and value != 0:\n                item += char\n                items.append(item)\n                item = \"\"\n        return items\n    def parseItem(self, item):\n        # have dangerous eval.\n        body = item.strip()\n        body = item[1:-1]\n        # print(\"body length:\",len(body))\n        path = re.findall(r'^\"([^\"]+)\"', body)[0]\n        # print(\"found path:\",path)\n        mdict = body[len(path) + 2 :]\n        mdict = mdict.strip()\n        if self.detectGrammar(mdict):\n            mdict = mdict[1:]  # omit the comma.\n            text = \"\"\n            mdict2 = \"\"\n            values = {\"(\": +1, \")\": -1}\n            base = 0\n            try:\n                assert mdict[-1] != \",\"\n            except:\n                raise Exception(\"Found trailing comma:\\n\", mdict)\n            for index, char in enumerate(mdict):",
-        "type": "code",
-        "location": "/pyjom/medialang/core.py:272-303"
+        "file_id": 100,
+        "content": "/pyjom/modules/contentProducing/__init__.py",
+        "type": "filepath"
     },
     "1309": {
-        "file_id": 106,
-        "content": "This code parses a string by iterating over each character, accumulating characters that have corresponding values in a dictionary and creating items based on the accumulated value. It also includes a function to parse an item which uses regex to find a path and then processes the remaining string according to specific rules. The code raises an exception if there is a trailing comma in the processed string.",
-        "type": "comment"
+        "file_id": 100,
+        "content": "This code is importing modules from the \"pyjom\" library, specifically for content production. It includes three different types of producers: dummy, local, and online.",
+        "type": "summary"
     },
     "1310": {
-        "file_id": 106,
-        "content": "                lineEnd = index == (len(mdict) - 1)\n                value = 0 if char not in values.keys() else values[char]\n                base += value\n                if char == \"=\":\n                    key = text.strip()\n                    assert not key.startswith(\"#\")\n                    mdict2 += '\"{}\":'.format(key)\n                    text = \"\"\n                elif (char == \",\" and base == 0) or lineEnd:\n                    if lineEnd:\n                        text += char\n                    mtext = text.strip()\n                    # print(\"mtext:\",mtext)\n                    if mtext in [\"False\", \"True\"]:\n                        mtext = mtext.lower()\n                    mdict2 += \"{}\".format(mtext)\n                    if not lineEnd:\n                        mdict2 += \",\"\n                    text = \"\"\n                    if lineEnd:\n                        break\n                else:\n                    text += char\n            # print(\"mdict:\",mdict)\n            mdict2 = mdict2.replace(\"(\", \"[\").replace(\")\", \"]\")",
+        "file_id": 100,
+        "content": "from pyjom.modules.contentProducing.dummyProducer import *\nfrom pyjom.modules.contentProducing.localProducer import *\nfrom pyjom.modules.contentProducing.onlineProducer import *",
         "type": "code",
-        "location": "/pyjom/medialang/core.py:304-328"
+        "location": "/pyjom/modules/contentProducing/__init__.py:1-3"
     },
     "1311": {
-        "file_id": 106,
-        "content": "This code processes a string, line by line, and converts it into a dictionary format. It handles key-value pairs separated by \":\" and comma-separated values. If the value is not found in given keys, it defaults to 0. If the value is \"True\" or \"False\", it converts it to lowercase before adding to the dictionary. The code also handles line endings and removes leading \"#\" from keys. Finally, it replaces parentheses with square brackets before returning the processed dictionary.",
+        "file_id": 100,
+        "content": "This code is importing modules from the \"pyjom\" library, specifically for content production. It includes three different types of producers: dummy, local, and online.",
         "type": "comment"
     },
     "1312": {
-        "file_id": 106,
-        "content": "            mdict = \"{\" + mdict2 + \"}\"  # might be empty somehow.\n            # print(mdict)\n            mdict = json.loads(mdict)\n        else:\n            mdict = {}\n        item_obj = lexicalItem(path, **mdict)\n        return item_obj\n    def parse(self, script):\n        # will raise exception on unparseable lines.\n        script_obj = lexicalScript()\n        lines = script.split(\"\\n\\n\")\n        lines = [x for x in lines if self.detectGrammar(x)]\n        for line in lines:\n            line_obj = lexicalGroup()\n            # first let's remove all comments.\n            comment_expression = re.compile(r\"#[^\\n]+\")\n            newLine = \"\"\n            for elem in comment_expression.split(line):\n                if not comment_expression.match(elem):\n                    newLine+=elem\n            line = newLine\n            line = line.replace(\"\\n\", \"\").replace(\"\\t\", \"\")\n            line = line.strip()  # have extra spacings.\n            for item in self.getItems(line):\n                if self.detectGrammar(item):\n                    # print(\"item:\",item)",
-        "type": "code",
-        "location": "/pyjom/medialang/core.py:329-355"
+        "file_id": 101,
+        "content": "/tasks/README.md",
+        "type": "filepath"
     },
     "1313": {
-        "file_id": 106,
-        "content": "This code defines two functions, \"parse\" and \"__init__\". The \"__init__\" function initializes a class with a path argument. The \"parse\" function takes a script as input, splits it into lines, filters out unparseable lines, and creates objects for each line that is parseable. It removes comments, trims whitespace, and checks if the resulting items are parseable. If so, it adds them to a lexicalGroup object, which will then be added to a lexicalScript object. The code also contains a method to get items from a line of code.",
-        "type": "comment"
+        "file_id": 101,
+        "content": "Code snippet describes the importance of having adequate actions for a project to avoid serious problems. It also mentions utilizing the entire project in practical ways, including the old AutoUP repo, to extract knowledge and data persistently.",
+        "type": "summary"
     },
     "1314": {
-        "file_id": 106,
-        "content": "                    # print(\"item length:\",len(item))\n                    # breakpoint()\n                    try:\n                        item_obj = self.parseItem(item)\n                        line_obj.append(item_obj)\n                    except:\n                        traceback.print_exc()\n                        error_msg = \"Error found in:\\n{}\".format(item)\n                        if self.script_path:\n                            error_msg += \"\\nScript at:\\n{}\".format(self.script_path)\n                        raise Exception(error_msg)\n            script_obj.append(line_obj)\n        return script_obj\n    def prettify(self, script=None, inplace=False):\n        if script == None:\n            assert self.script is not None\n            script = self.script\n        if self.script_obj is None:\n            script_obj = self.parse(script)\n        else:\n            script_obj = self.script_obj\n        script = self.generate(script_obj)\n        if self.script_path is not None:\n            if inplace:\n                with open(self.script_path, \"w+\", encoding=self.encoding) as f:",
+        "file_id": 101,
+        "content": "Modules are good. Tests are good. In fact, everything could be good. But the shortage of actions will lead to serious problems.\nThis will make use of the entire project in every way, in practical manners, including the old AutoUP repo.\nThis will bring about the grit out of the project, running persistently to get practical knowledge/data.",
         "type": "code",
-        "location": "/pyjom/medialang/core.py:356-381"
+        "location": "/tasks/README.md:1-5"
     },
     "1315": {
-        "file_id": 106,
-        "content": "The code is parsing a script and handling any errors that occur during the process. It appends lines to a script object, checks if the script_obj exists, generates the script based on the script_obj, and writes it to the specified file (if inplace=True).",
+        "file_id": 101,
+        "content": "Code snippet describes the importance of having adequate actions for a project to avoid serious problems. It also mentions utilizing the entire project in practical ways, including the old AutoUP repo, to extract knowledge and data persistently.",
         "type": "comment"
     },
     "1316": {
-        "file_id": 106,
-        "content": "                    f.write(script)\n        return script\n    def checkItemType(self, item):\n        assert type(item) == lexicalItem  # you really should learn how to rest.\n        path = item.path\n        if path.startswith(\".\"):\n            return \"output\"\n        for key in medialangProtocols:\n            for elem in medialangProtocols[key]:\n                if path.startswith(elem):\n                    return key\n        if os.path.exists(path):\n            return \"input\"\n        return \"output\"\n    def objectAssertion(self, previous, objectType):\n        assert objectType in [\"input\", \"output\"]\n        if objectType == \"output\":\n            assert previous is not None\n    def objectExecutor(self, item, previous=None):\n        objectType = self.checkItemType(item)\n        path = item.path\n        args = item.args\n        self.objectAssertion(previous, objectType)\n        result = {}  # how to ensure it will do?\n        if objectType == \"output\":\n            if path.startswith(\".\"):\n                function = dotProcessors[path]",
-        "type": "code",
-        "location": "/pyjom/medialang/core.py:382-411"
+        "file_id": 102,
+        "content": "/tasks/qq/login_opq_arm64_another_account.sh",
+        "type": "filepath"
     },
     "1317": {
-        "file_id": 106,
-        "content": "This code contains various utility functions used in the medialang module. The 'checkItemType' function determines if an item is an input, output, or protocol file based on its path. The 'objectAssertion' function ensures that the specified object type is either \"input\" or \"output\". Lastly, the 'objectExecutor' function executes a specific action depending on the object type by calling appropriate functions.",
-        "type": "comment"
+        "file_id": 102,
+        "content": "The code initiates the login process on an ARM64 platform using Firefox browser. It navigates to a specific URL (localhost:8784/v1/Login/GetQRcode) and may require removing credential files for relogin.",
+        "type": "summary"
     },
     "1318": {
-        "file_id": 106,
-        "content": "                result = function(item, previous, verbose=self.verbose, medialangTmpDir=self.medialangTmpDir)\n        else:\n            if os.path.exists(path):\n                data = fsProcessor(item, previous=previous, verbose=self.verbose, medialangTmpDir = self.medialangTmpDir)\n                result = data\n            else:\n                pass\n                # inputs. handle with protocols?\n        return result\n    def scriptStructExecutor(self, script_struct):\n        script_type = script_struct[\"type\"]\n        resources = script_struct[\"resource\"]\n        targets = script_struct[\"target\"]\n        data_array = []\n        data = None\n        print(\"Medialang script type:\", script_type)\n        if script_type == \"input\":\n            for item in targets.items:\n                data = self.objectExecutor(item, previous=data)\n            for resource in resources:\n                mdata = copy.deepcopy(data)\n                for item in resource.items:\n                    mdata = self.objectExecutor(item, previous=mdata)",
+        "file_id": 102,
+        "content": "# arm64\nfirefox http://localhost:8784/v1/Login/GetQRcode\n# if want to relogin must remove credential files. maybe it supports multi logins.",
         "type": "code",
-        "location": "/pyjom/medialang/core.py:412-435"
+        "location": "/tasks/qq/login_opq_arm64_another_account.sh:1-4"
     },
     "1319": {
-        "file_id": 106,
-        "content": "The code is implementing a script execution function. It checks the type of script and executes it accordingly, handling inputs, resources, and targets. The scriptStructExecutor function determines the type of script (input) and iterates through its targets and resources to execute objects using the objectExecutor function. If the path exists, it calls the fsProcessor function; otherwise, it does nothing.",
+        "file_id": 102,
+        "content": "The code initiates the login process on an ARM64 platform using Firefox browser. It navigates to a specific URL (localhost:8784/v1/Login/GetQRcode) and may require removing credential files for relogin.",
         "type": "comment"
     },
     "1320": {
-        "file_id": 106,
-        "content": "                data_array.append(mdata)\n        else:\n            for index0, resource in enumerate(resources):\n                # print(\"RESOURCE ENUMERATE\",index0, resource)\n                # breakpoint()\n                mdata = None\n                mdata_array = []\n                for index1, item in enumerate(resource.items):\n                    mdata = self.objectExecutor(item, previous=mdata)\n                    if self.verbose:\n                        print(\"input {}-{}:\".format(index0, index1), mdata) # this is the wrong data array!\n                    mdata_array.append({\"item\":item, \"cache\": mdata}) # where you store all the intermediate files per clip.\n                data_array.append(copy.deepcopy(mdata_array))\n            data = copy.deepcopy(data_array) # so this is your freaking data! let's decide your approach all inside that dotProcessor instead of generating trash here!\n            for item in targets.items:\n                data = self.objectExecutor(item, previous=data)\n        return data, data_array # why you return this!",
-        "type": "code",
-        "location": "/pyjom/medialang/core.py:436-452"
+        "file_id": 103,
+        "content": "/tasks/qq/login_opq_arm64.sh",
+        "type": "filepath"
     },
     "1321": {
-        "file_id": 106,
-        "content": "This code appears to be part of a larger program that processes media resources. It seems to create arrays of intermediate data for each clip, deep copy them into the main data array, and then execute objects on the main data array. The function returns two values: data and data_array. The purpose or use of these returned values is unclear in this context.",
-        "type": "comment"
+        "file_id": 103,
+        "content": "This code appears to be for an ARM64 system, likely running a Linux distribution. It launches Firefox and navigates it to a QR code login endpoint (localhost:8780/v1/Login/GetQRcode). It suggests that removing credential files may be necessary for relogin, possibly supporting multi-logins.",
+        "type": "summary"
     },
     "1322": {
-        "file_id": 106,
-        "content": "        # currently, data is now the editly json, and data_array is the medialang items array\n        # what about the slient flag? deal with it later!\n    def execute(self):\n        script_obj_lines = self.script_obj.lines\n        assert len(script_obj_lines) >= 1\n        script_struct = {\n            \"target\": script_obj_lines[0],\n            \"resource\": script_obj_lines[1:],\n        }\n        first_target = script_struct[\"target\"].items[0]\n        script_type = self.checkItemType(first_target)\n        script_struct[\"type\"] = script_type\n        item_types = [\"input\", \"output\"]\n        for item_type in item_types:\n            if script_type == item_type:\n                # this is analysis type mediascript. all following shall be output.\n                for line in script_struct[\"resource\"]:\n                    elem = line.items[\n                        0\n                    ]  # only make sure the first item of each line is in agreement with the type rules.\n                    this_item_type = self.checkItemType(elem)",
+        "file_id": 103,
+        "content": "# arm64\nfirefox http://localhost:8780/v1/Login/GetQRcode\n# if want to relogin must remove credential files. maybe it supports multi logins.",
         "type": "code",
-        "location": "/pyjom/medialang/core.py:453-474"
+        "location": "/tasks/qq/login_opq_arm64.sh:1-4"
     },
     "1323": {
-        "file_id": 106,
-        "content": "This code defines a function that executes a script object, splits it into target and resource sections, determines the type of the script (input or output), and checks the item type for each line in the resource section.",
+        "file_id": 103,
+        "content": "This code appears to be for an ARM64 system, likely running a Linux distribution. It launches Firefox and navigates it to a QR code login endpoint (localhost:8780/v1/Login/GetQRcode). It suggests that removing credential files may be necessary for relogin, possibly supporting multi-logins.",
         "type": "comment"
     },
     "1324": {
-        "file_id": 106,
-        "content": "                    try:\n                        assert this_item_type is not item_type\n                    except:\n                        traceback.print_exc()\n                        print(\"Medialang Error when parsing resource:\")\n                        print(line)\n                        print(\"Medialang itemtype:\", this_item_type)\n                        print(elem)\n                        if self.script_path:\n                            print(\"Medialang Script path:\", self.script_path)\n                        os.abort()\n                result = self.scriptStructExecutor(script_struct)\n                return result  # tuple (data, data_array)",
-        "type": "code",
-        "location": "/pyjom/medialang/core.py:475-487"
-    },
-    "1325": {
-        "file_id": 106,
-        "content": "This code segment is part of a script that handles parsing resources in a Medialang environment. If the item type doesn't match, it prints an error message and aborts the script. Afterwards, it executes the script structure and returns a tuple containing data and data_array.",
-        "type": "comment"
-    },
-    "1326": {
-        "file_id": 107,
-        "content": "/pyjom/medialang/commons.py",
+        "file_id": 104,
+        "content": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py",
         "type": "filepath"
     },
-    "1327": {
-        "file_id": 107,
-        "content": "This code defines functions for serializing SRT objects, handling fatal errors in Medialang, and generating temporary media file names. It also sets the default temporary media directory and uses UUIDs to generate unique filenames.",
+    "1325": {
+        "file_id": 104,
+        "content": "The code initializes libraries, creates temp dirs, and defines functions for Bilibili short links and ad locking. It generates a Bilibili video ad with provided parameters, creates an ad cover image, detects QR codes using Pyzbar and OpenCV, removes them if necessary, adjusts positions and colors, and returns the final image for viewing.",
         "type": "summary"
     },
-    "1328": {
-        "file_id": 107,
-        "content": "from pyjom.commons import *\ndef serializeSRT(srtObj):\n    index = srtObj.index\n    start = srtObj.start.total_seconds()\n    end = srtObj.end.total_seconds()\n    content = srtObj.content\n    data = {\"index\": index, \"timespan\": [start, end], \"content\": content}\n    return data\ndef medialangFatalError(error_msg, script_file):\n    print(\"Medialang fatal error:\", os.path.abspath(script_file))\n    print(error_msg)\n    os.abort()\nmedialangTmpDir = \"/dev/shm/medialang\"\ndef getTmpMediaName(medialangTmpDir = medialangTmpDir):\n    while True:\n        uniq_id = str(uuid.uuid4())\n        uniq_id = uniq_id.replace(\"-\", \"\")\n        fname = \"{}.ts\".format(uniq_id)\n        fpath = os.path.join(medialangTmpDir, fname) # why no respect to the medialang config!\n        if not os.path.exists(fpath):\n            return fpath",
+    "1326": {
+        "file_id": 104,
+        "content": "import pixie\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\ndef getImageW2H(image_path):\n    image = cv2.imread(image_path)\n    height, width = image.shape[:2]\n    w2h = width / height\n    return w2h\nTMP_DIR_PATH = \"/dev/shm/qq_ad\"\nimport shutil\nimport os\nif os.path.exists(TMP_DIR_PATH):\n    shutil.rmtree(TMP_DIR_PATH)\nos.mkdir(TMP_DIR_PATH)\nimport random\ndef generateFakeVideoStats():\n    play_count = \"{:.1f}万\".format(\n        random.randint(100, 1000) * 0.1\n    )  # anyway both int and str are compatible\n    comment_count = random.randint(100, 1000)\n    danmaku_count = random.randint(500, 3000)\n    return play_count, comment_count, danmaku_count\nRESOURCE_PATH = \"/root/Desktop/works/pyjom/tests/bilibili_video_recommendation_server\"\nQRCODE_PATH = \"MyQRCode1.png\"\nFONT_PATH = \"wqy-microhei0.ttf\"\nFONT_BOLD_PATH = \"wqy-microhei1.ttf\"\nCOVER_PATH = \"sample_cover.jpg\"\nPLAY_BUTTON_PATH = \"play_white_b.png\"\nBILIBILI_LOGO_PATH = \"bili_white_b_cropped.png\"\nAD_LOCK = \"ad_lock.lock\"\nimport filelock",
         "type": "code",
-        "location": "/pyjom/medialang/commons.py:1-29"
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:1-46"
+    },
+    "1327": {
+        "file_id": 104,
+        "content": "The code initializes necessary libraries and functions, creates a temporary directory for storing images and files, generates random video stats, defines file paths, and locks the ad using FileLock.",
+        "type": "comment"
+    },
+    "1328": {
+        "file_id": 104,
+        "content": "def getAdLock(lockPath: str = os.path.join(TMP_DIR_PATH, AD_LOCK)):\n    return filelock.FileLock(lockPath)\n# use this decorator outside. not here. not any function written in here.\ndef withAdLock(func):\n    def innerFunc(*args, **kwargs):\n        with getAdLock():\n            return func(*args, **kwargs)\n    return innerFunc\nRESOURCES_RELATIVE_PATH = [\n    FONT_PATH,\n    FONT_BOLD_PATH,\n    COVER_PATH,\n    PLAY_BUTTON_PATH,\n    BILIBILI_LOGO_PATH,\n]\nOUTPUT_STANDALONE = \"ad_2_standalone_cover.png\"\nOUTPUT_PATH = \"ad_2.png\"\nOUTPUT_MASKED_PATH = \"ad_2_mask.png\"\nimport progressbar\ndef prepareMaterials(tmpDirPath: str = TMP_DIR_PATH, resourcePath: str = RESOURCE_PATH):\n    print(\"Preparing materials...\")\n    for path in progressbar.progressbar(RESOURCES_RELATIVE_PATH):\n        shutil.copy(os.path.join(resourcePath, path), os.path.join(tmpDirPath, path))\nprepareMaterials()\ndef generateBilibiliShortLinkMethod2(videoLink: str):\n    apiUrl = (\n        \"https://service-ijd4slqi-1253419200.gz.apigw.tencentcs.com/release/short_url\"",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:49-89"
     },
     "1329": {
-        "file_id": 107,
-        "content": "This code defines functions for serializing SRT objects, handling fatal errors in Medialang, and generating temporary media file names. It also sets the default temporary media directory and uses UUIDs to generate unique filenames.",
+        "file_id": 104,
+        "content": "This code defines a function `getAdLock` for acquiring a file lock, a decorator `withAdLock` to use the lock around a function execution, and prepares materials by copying resources to a temporary directory. The code also includes a function `generateBilibiliShortLinkMethod2` that calls an API endpoint to generate a short link on Bilibili using a given video link.",
         "type": "comment"
     },
     "1330": {
-        "file_id": 108,
-        "content": "/pyjom/medialang/__main__.py",
-        "type": "filepath"
+        "file_id": 104,
+        "content": "    )\n    # longUrl = \"https://www.bilibili.com/video/BV1Wv41157Wz\"\n    longUrl = videoLink\n    import urllib.parse as urlparse\n    # params = {\"url\": longUrl}\n    params = {\n        \"url\": urlparse.quote(longUrl).replace(\"/\", \"%2F\"),\n        \"href\": \"https://xiaojuzi.fun/bili-short-url/\",\n    }\n    # print(params)\n    # exit()\n    headers = {\n        \"accept\": \"*/*\",\n        \"accept-language\": \"en-US,en;q=0.9\",\n        \"if-none-match\": 'W/\"35-oPDNsqBGaZKqGe83GW6wem+lkww\"',\n        \"sec-ch-ua\": '\"Google Chrome\";v=\"105\", \"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"105\"',\n        \"sec-ch-ua-mobile\": \"?0\",\n        \"sec-ch-ua-platform\": '\"macOS\"',\n        \"sec-fetch-dest\": \"empty\",\n        \"sec-fetch-mode\": \"cors\",\n        \"sec-fetch-site\": \"cross-site\",\n        \"Referer\": \"https://xiaojuzi.fun/\",\n        \"Referrer-Policy\": \"strict-origin-when-cross-origin\",\n        \"user-agent\": \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36\",  # this is important.\n    }",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:90-116"
     },
     "1331": {
-        "file_id": 108,
-        "content": "The code sets up argument parsing for a medialang file path, initializes a Medialang object with the parsed script_path, and if the script_obj is not None, it prettifies the script in-place and prints the path of the prettified script.",
-        "type": "summary"
+        "file_id": 104,
+        "content": "This code snippet is preparing a request to shorten a video link. It defines the long URL, uses URL parsing to format the parameters, and sets headers for the HTTP request. The goal is to obtain a shortened version of the provided video link using the \"https://xiaojuzi.fun/bili-short-url/\" API.",
+        "type": "comment"
     },
     "1332": {
-        "file_id": 108,
-        "content": "from pyjom.medialang.core import *\nif __name__ == \"__main__\":\n    import argparse\n    arg_parser = argparse.ArgumentParser()\n    arg_parser.add_argument(\n        \"-f\",\n        \"--file\",\n        help=\"medialang file path that needed to be formatted.\",\n        type=str,\n        required=True,\n    )\n    parse_result = arg_parser.parse_args()\n    file_path = parse_result.file\n    mdl = Medialang(script_path=file_path)  # will be parsed.\n    if mdl.script_obj is not None:\n        mdl.prettify(inplace=True)\n        print(\"prettified: \", mdl.script_path)\n    # pass",
+        "file_id": 104,
+        "content": "    import requests\n    request_url = apiUrl + \"?url={url}&href={href}\".format(**params)\n    # request_url = 'https://service-ijd4slqi-1253419200.gz.apigw.tencentcs.com/release/short_url?url=https%3A%2F%2Fwww.bilibili.com%2Fvideo%2FBV1Wv41157Wz&href=https://xiaojuzi.fun/bili-short-url/'\n    # print(request_url)\n    r = requests.get(request_url, headers=headers)\n    if r.status_code == 200:\n        # print(r.json())\n        r_json = r.json()\n        success = r_json.get(\"success\", False)\n        if success:\n            short_url = r_json.get(\"short_url\", None)\n            print(short_url)\n            return short_url\n    # starts with 'https://b23.tv'\ndef generateBilibiliShortLinkMethod1(\n    videoLink: str,\n):  # get bilibili user email address by asking them from chat. if they give the email address, send setu as gift. for other users, you may improvise. send video link, recommendations\n    url = \"https://api.bilibili.com/x/share/click\"\n    # burl = \"https://www.bilibili.com/read/cv19232041\" # my article with e-begging",
         "type": "code",
-        "location": "/pyjom/medialang/__main__.py:1-20"
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:118-139"
     },
     "1333": {
-        "file_id": 108,
-        "content": "The code sets up argument parsing for a medialang file path, initializes a Medialang object with the parsed script_path, and if the script_obj is not None, it prettifies the script in-place and prints the path of the prettified script.",
+        "file_id": 104,
+        "content": "Code imports requests library, constructs a request URL with provided parameters, sends a GET request to the Bilibili API, and checks if the status code is 200. If so, it retrieves the short link from the response JSON and returns or prints it.",
         "type": "comment"
     },
     "1334": {
-        "file_id": 109,
-        "content": "/pyjom/medialang/__init__.py",
-        "type": "filepath"
+        "file_id": 104,
+        "content": "    burl = videoLink\n    data = {\n        \"build\": 6700300,\n        \"buvid\": 0,\n        \"oid\": burl,\n        \"platform\": \"android\",\n        \"share_channel\": \"COPY\",\n        \"share_id\": \"public.webview.0.0.pv\",\n        \"share_mode\": 3,\n    }\n    import requests\n    headers = {\n        \"user-agent\": \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36\"\n    }\n    r = requests.post(\n        url, data=data, headers=headers\n    )  # maybe you two share the same user agent!\n    # we have the link!\n    if r.status_code == 200:\n        # print(r.content)\n        r_json = r.json()\n        code = r_json[\"code\"]\n        if code == 0:\n            link = r_json[\"data\"][\"content\"]\n            print(link)\n            return link\n    # fail, obviously.\ndef generateBilibiliShortLink(videoLink: str):\n    link = None\n    try:\n        link = generateBilibiliShortLinkMethod1(videoLink)\n        assert link is not None\n    except:\n        import traceback\n        traceback.print_exc()",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:140-178"
     },
     "1335": {
-        "file_id": 109,
-        "content": "This code imports necessary modules from 'pyjom.medialang.core' and 'pyjom.medialang.commons' to facilitate media language processing in the application.",
-        "type": "summary"
+        "file_id": 104,
+        "content": "This code is trying to generate a Bilibili short link for a given videoLink. It first defines the necessary data, sets headers using a user-agent, and then sends a POST request to get the short link. If successful (status_code 200), it extracts the link from the returned JSON, prints it, and returns it. In case of failure or exceptions, it prints the traceback.",
+        "type": "comment"
     },
     "1336": {
-        "file_id": 109,
-        "content": "from pyjom.medialang.core import *\nfrom pyjom.medialang.commons import *",
+        "file_id": 104,
+        "content": "        link = generateBilibiliShortLinkMethod2(videoLink)\n        assert link is not None\n    return link\ndef makeQRCode(content: str, savePath: str):\n    # Importing library\n    import qrcode\n    # Encoding data using make() function\n    def makeAndSaveQrcode(data, save_path, debug=False):\n        img = qrcode.make(data)\n        if debug:\n            print(\"image type:\", type(img))\n        img.save(save_path)\n    data = content\n    save_path = savePath\n    makeAndSaveQrcode(data, save_path)\ndef generateQRCodeFromBVID(\n    bvid: str, qrCodeSavePath: str = os.path.join(TMP_DIR_PATH, QRCODE_PATH)\n):\n    videoLink = \"https://www.bilibili.com/video/{}\".format(bvid)\n    shortLink = generateBilibiliShortLink(videoLink)\n    makeQRCode(shortLink, qrCodeSavePath)\n    return shortLink\ndef generateBilibiliVideoAd(\n    bvid: str,\n    title_text: str,\n    image_link: str,\n    cover_path: str = os.path.join(TMP_DIR_PATH, COVER_PATH),\n):\n    import requests\n    r = requests.get(image_link)\n    with open(cover_path, \"wb\") as f:\n        c = r.content",
         "type": "code",
-        "location": "/pyjom/medialang/__init__.py:1-2"
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:179-219"
     },
     "1337": {
-        "file_id": 109,
-        "content": "This code imports necessary modules from 'pyjom.medialang.core' and 'pyjom.medialang.commons' to facilitate media language processing in the application.",
+        "file_id": 104,
+        "content": "The code is used to generate a bilibili video ad. It imports the qrcode library, generates a QR code from the BVID, retrieves the short link of the video, and then saves it along with an image in the TMP_DIR_PATH directory. The image is downloaded using requests module and saved as a cover for the ad.",
         "type": "comment"
     },
     "1338": {
-        "file_id": 110,
-        "content": "/pyjom/medialang/processors/__init__.py",
-        "type": "filepath"
+        "file_id": 104,
+        "content": "        f.write(c)\n    link = generateQRCodeFromBVID(bvid)\n    return (generateVideoAdUniversal(\n        videoStats=generateFakeVideoStats(),\n        title_text=title_text,\n        cover_path=cover_path,\n    ), link)\n# you must have some lock outside while using this.\ndef generateVideoAdUniversal(\n    videoStats=None,  # will it work?\n    night_mode: bool = True,\n    title_text: str = \"\",\n    framework_only: bool = False,\n    ad_width: int = 1000,\n    ad_height: int = 1000,\n    font_path: str = os.path.join(TMP_DIR_PATH, FONT_PATH),\n    font_bold_path: str = os.path.join(TMP_DIR_PATH, FONT_BOLD_PATH),\n    cover_path: str = os.path.join(TMP_DIR_PATH, COVER_PATH),\n    qrcode_path: str = os.path.join(TMP_DIR_PATH, QRCODE_PATH),\n    play_button_path: str = os.path.join(TMP_DIR_PATH, PLAY_BUTTON_PATH),\n    output_path: str = os.path.join(TMP_DIR_PATH, OUTPUT_PATH),\n    output_standalone: str = os.path.join(TMP_DIR_PATH, OUTPUT_STANDALONE),\n    output_masked_path: str = os.path.join(TMP_DIR_PATH, OUTPUT_MASKED_PATH),",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:220-244"
     },
     "1339": {
-        "file_id": 110,
-        "content": "This code imports the \"dotProcessor\" and \"mediaProcessor\" modules from the \"pyjom.medialang.processors\" package. These processors may be used for processing data related to dots or media in the medialang context.",
-        "type": "summary"
+        "file_id": 104,
+        "content": "This function generates a video ad using the provided parameters. It writes the code to a file, generates a QR code, and returns a tuple containing the generated video ad and the QR code link. The function uses temporary directory paths for various resources.",
+        "type": "comment"
     },
     "1340": {
-        "file_id": 110,
-        "content": "from pyjom.medialang.processors.dotProcessor import *\nfrom pyjom.medialang.processors.mediaProcessor import *",
+        "file_id": 104,
+        "content": "    bilibili_logo_path: str = os.path.join(TMP_DIR_PATH, BILIBILI_LOGO_PATH),\n):\n    # fake these numbers.\n    # one extra space.\n    assert videoStats is not None\n    play_count, comment_count, danmaku_count = videoStats\n    assert title_text != \"\"\n    stats_text = \" {}播放 {}评论 {}弹幕\".format(play_count, comment_count, danmaku_count)\n    qrcode_scan_text = \"\\n\" + \"\\n\".join(list(\"扫码观看\"))\n    white = pixie.Color(1, 1, 1, 1)\n    black = pixie.Color(0, 0, 0, 1)\n    image = pixie.Image(ad_width, ad_height)\n    # we are creating this, not replacing qr code.\n    if not framework_only:\n        if night_mode:\n            image.fill(black)\n            # irreversible!\n        else:\n            image.fill(white)\n    else:\n        image2 = image.copy()  # as mask.\n    # place the cover.\n    cover_w2h = getImageW2H(cover_path)\n    cover_width = int(ad_width * 0.9)\n    cover_height = int(cover_width / cover_w2h)\n    cover_round_corner_radius = int(ad_width * 0.05)\n    cover = pixie.read_image(cover_path)\n    cover = cover.resize(cover_width, cover_height)",
         "type": "code",
-        "location": "/pyjom/medialang/processors/__init__.py:1-2"
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:245-274"
     },
     "1341": {
-        "file_id": 110,
-        "content": "This code imports the \"dotProcessor\" and \"mediaProcessor\" modules from the \"pyjom.medialang.processors\" package. These processors may be used for processing data related to dots or media in the medialang context.",
+        "file_id": 104,
+        "content": "This code is setting up an image with various elements such as play count, comment count, danmaku count, and a QR code. It creates a white or black background depending on the night mode option, copies the image to create a mask, reads a cover image, and resizes it. The code uses Pixie for image manipulation, os for file paths, and other libraries for formatting and image reading.",
         "type": "comment"
     },
     "1342": {
-        "file_id": 111,
-        "content": "/pyjom/medialang/processors/mediaProcessor/filesystemProcessor.py",
-        "type": "filepath"
+        "file_id": 104,
+        "content": "    # cover gradient.\n    gradient_paint = pixie.Paint(pixie.LINEAR_GRADIENT_PAINT)\n    gradient_paint.gradient_handle_positions.append(\n        pixie.Vector2(100, int(cover_height) * 0.8)\n    )\n    gradient_paint.gradient_handle_positions.append(pixie.Vector2(100, cover_height))\n    gradient_paint.gradient_stops.append(pixie.ColorStop(pixie.Color(0, 0, 0, 0), 0))\n    gradient_paint.gradient_stops.append(pixie.ColorStop(pixie.Color(0, 0, 0, 0.3), 1))\n    cover_mask_path = pixie.Path()\n    cover_mask_path.rounded_rect(\n        0, 0, cover_width, cover_height, *([cover_round_corner_radius] * 4)\n    )\n    stroke_param = 100\n    stroke_width = int(ad_width / stroke_param)\n    stroke_width_half = int(ad_width / stroke_param / 2)\n    cover_mask_path2 = pixie.Path()\n    cover_round_corner_radius2 = int(cover_round_corner_radius * 0.85)\n    cover_mask_path2.rounded_rect(\n        stroke_width_half,\n        stroke_width_half,\n        cover_width - stroke_width,\n        cover_height - stroke_width,\n        *([cover_round_corner_radius2] * 4)",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:275-302"
     },
     "1343": {
-        "file_id": 111,
-        "content": "This code segment processes media files based on type (video, audio, or image) and returns the processed file path. It handles media processing by selecting appropriate function and printing media type if verbose is True.",
-        "type": "summary"
+        "file_id": 104,
+        "content": "Creating a gradient paint for the cover and defining its positions and color stops. Defining paths and rectangles with rounded corners for cover mask creation, adjusting stroke parameters based on ad width.",
+        "type": "comment"
     },
     "1344": {
-        "file_id": 111,
-        "content": "from pyjom.medialang.commons import *\nimport ffmpeg\ndef videoFsProcessor(videoPath,args={},previous = None, medialangTmpDir = medialangTmpDir):\n    if args == {}:\n        return videoPath\n    newVideoPath = getTmpMediaName(medialangTmpDir = medialangTmpDir)\n    return newVideoPath\ndef audioFsProcessor(audioPath,args={},previous = None, medialangTmpDir = medialangTmpDir):\n    if args == {}:\n        return audioPath\n    newAudioPath = getTmpMediaName(medialangTmpDir = medialangTmpDir)\n    return newAudioPath\ndef imageFsProcessor(imagePath,args={},previous = None, medialangTmpDir = medialangTmpDir):\n    if args == {}:\n        return imagePath\n    newImagePath = getTmpMediaName(medialangTmpDir = medialangTmpDir)\n    return newImagePath\ndef fsProcessor(item,previous=None, verbose=True, medialangTmpDir = medialangTmpDir):\n    path = item.path # it exists!\n    fbase = os.path.basename(path)\n    args = item.args\n    mediatype = getFileType(fbase) # mediatype not sure yet.\n    if verbose:\n        print(\"media path:\",path)",
+        "file_id": 104,
+        "content": "    )\n    # path = cover_mask_path\n    # cover.fill_path(cover_mask_path, gradient_paint)\n    cover_mask = pixie.Mask(cover_width, cover_height)\n    cover_mask.fill_path(cover_mask_path)\n    cover.mask_draw(cover_mask)\n    cover_transform_width = cover_transform_height = int((ad_width - cover_width) / 2)\n    cover_transform = pixie.translate(cover_transform_width, cover_transform_height)\n    if framework_only:\n        # image2.fill(black)\n        image2_paint = pixie.Paint(pixie.SOLID_PAINT)\n        image2_paint.color = white\n        image2.fill_path(cover_mask_path, image2_paint, cover_transform)\n    cover_stroke_paint = pixie.Paint(pixie.SOLID_PAINT)\n    cover_stroke_paint.color = pixie.parse_color(\"#FC427B\")\n    image.stroke_path(\n        cover_mask_path,\n        cover_stroke_paint,\n        cover_transform,\n        stroke_width=stroke_width,\n    )\n    if not framework_only:\n        image.draw(cover, cover_transform)  # you can choose to discard the cover\n    image.fill_path(cover_mask_path2, gradient_paint, cover_transform)",
         "type": "code",
-        "location": "/pyjom/medialang/processors/mediaProcessor/filesystemProcessor.py:1-28"
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:303-334"
     },
     "1345": {
-        "file_id": 111,
-        "content": "The code contains three functions: videoFsProcessor, audioFsProcessor, and imageFsProcessor. Each function takes a media file path, optional arguments, and temporary directory as inputs. If the arguments are empty, the function returns the original file path; otherwise, it generates a new temporary file path using getTmpMediaName and returns that instead. The fsProcessor function determines the media type (video, audio, or image) based on the file's extension, selects the appropriate processor function, and applies it to the file path. If verbose is True, it prints the media path.",
+        "file_id": 104,
+        "content": "This code creates a mask, applies it to an image, and fills the resulting path with a gradient paint. It also has an optional step for white-filling another image, and discards the cover if not required.",
         "type": "comment"
     },
     "1346": {
-        "file_id": 111,
-        "content": "        print(\"media type:\",mediatype)\n    # handle to ffmpeg.\n    mediaFunctions = {\"video\":videoFsProcessor,\"audio\":audioFsProcessor,\"image\":imageFsProcessor}\n    data = mediaFunctions[mediatype](path,args=args,previous=previous, medialangTmpDir = medialangTmpDir)\n    return data",
+        "file_id": 104,
+        "content": "    # now place the bilibili logo.\n    bilibili_logo = pixie.read_image(bilibili_logo_path)\n    bilibili_logo_w2h = getImageW2H(bilibili_logo_path)\n    bilibili_logo_width = int(ad_width * 0.2)\n    bilibili_logo_height = int(bilibili_logo_width / bilibili_logo_w2h)\n    bilibili_logo = bilibili_logo.resize(bilibili_logo_width, bilibili_logo_height)\n    bilibili_logo_transform = pixie.translate(\n        cover_transform_width + int(bilibili_logo_height / 8),\n        int(cover_transform_width + (bilibili_logo_height / 4)),\n    )\n    # bilibili_logo_transform = pixie.translate(\n    #     cover_transform_width, 0\n    # )\n    image.draw(bilibili_logo, bilibili_logo_transform)\n    # now place the play button.\n    play_button = pixie.read_image(play_button_path)\n    play_button_w2h = getImageW2H(play_button_path)\n    play_button_width = play_button_height = int(ad_width * 0.2)\n    play_button = play_button.resize(play_button_width, play_button_height)\n    play_button_transform = pixie.translate(\n        int(cover_transform_width + (cover_width - play_button_width) / 2),",
         "type": "code",
-        "location": "/pyjom/medialang/processors/mediaProcessor/filesystemProcessor.py:29-33"
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:336-361"
     },
     "1347": {
-        "file_id": 111,
-        "content": "This code segment handles media processing based on the type. It prints the media type, creates a dictionary of function handlers for video, audio, and image, processes the media using the corresponding function, and returns the result.",
+        "file_id": 104,
+        "content": "This code resizes bilibili logo and play button images according to ad width, and positions them on the image using Pixie library.",
         "type": "comment"
     },
     "1348": {
-        "file_id": 112,
-        "content": "/pyjom/medialang/processors/mediaProcessor/__init__.py",
-        "type": "filepath"
+        "file_id": 104,
+        "content": "        int(cover_transform_width + (cover_height - play_button_height) / 2),\n    )\n    image.draw(play_button, play_button_transform)\n    # place some stats.\n    font = pixie.read_font(font_path)\n    font.size = int(ad_width * 0.04)\n    font.paint.color = pixie.Color(1, 1, 1, 1)\n    stats_transform = pixie.translate(\n        int(cover_transform_width * 1.3),\n        cover_transform_width + cover_height - int(font.size * 2),\n    )\n    image.fill_text(font, stats_text, transform=stats_transform)\n    # place the qrcode.\n    qrcode = pixie.read_image(qrcode_path)\n    qrcode_width = qrcode_height = int(0.3 * ad_width)\n    qrcode = qrcode.resize(qrcode_width, qrcode_height)\n    font = pixie.read_font(font_path)\n    font.size = int(ad_width * 0.04)\n    if night_mode:\n        font.paint.color = pixie.Color(1, 1, 1, 1)\n    else:\n        font.paint.color = pixie.Color(0, 0, 0, 1)\n    qrcode_scan_text_transform_x = int(ad_width - qrcode_width * 1.1 - font.size * 1)\n    qrcode_scan_text_transform = pixie.translate(\n        qrcode_scan_text_transform_x + qrcode_width,",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:362-390"
     },
     "1349": {
-        "file_id": 112,
-        "content": "Importing filesystemProcessor module from pyjom.medialang.processors.mediaProcessor package.",
-        "type": "summary"
+        "file_id": 104,
+        "content": "This code is placing a play button, statistics text, and QR code on an image. It adjusts the position of each element based on the image size and ad width. The font size and color are set according to night mode.",
+        "type": "comment"
     },
     "1350": {
-        "file_id": 112,
-        "content": "from pyjom.medialang.processors.mediaProcessor.filesystemProcessor import *",
+        "file_id": 104,
+        "content": "        int(ad_height - qrcode_height * 1.1),\n    )\n    image.fill_text(font, qrcode_scan_text, transform=qrcode_scan_text_transform)\n    qrcode_transform = pixie.translate(\n        int(ad_width - qrcode_width * 1.1 - font.size * 1.2),\n        int(ad_height - qrcode_height * 1.1),\n    )\n    qrcode_rounded_corner = int(0.05 * ad_width)\n    qrcode_stroke_path = pixie.Path()\n    qrcode_stroke_path.rounded_rect(\n        0, 0, qrcode_width, qrcode_height, *([qrcode_rounded_corner] * 4)\n    )\n    image.stroke_path(\n        qrcode_stroke_path,\n        cover_stroke_paint,\n        qrcode_transform,\n        stroke_width=stroke_width,\n    )\n    qrcode_mask = pixie.Mask(qrcode_width, qrcode_width)\n    qrcode_mask.fill_path(qrcode_stroke_path)\n    qrcode.mask_draw(qrcode_mask)\n    image.draw(qrcode, qrcode_transform)\n    # now for the title\n    font = pixie.read_font(font_bold_path)\n    font.size = int(ad_width * 0.06)\n    if night_mode:\n        font.paint.color = pixie.parse_color(\"#B0B0B0\")\n    else:\n        font.paint.color = pixie.parse_color(\"#4F4F4F\")",
         "type": "code",
-        "location": "/pyjom/medialang/processors/mediaProcessor/__init__.py:1-1"
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:391-425"
     },
     "1351": {
-        "file_id": 112,
-        "content": "Importing filesystemProcessor module from pyjom.medialang.processors.mediaProcessor package.",
+        "file_id": 104,
+        "content": "This code generates a QR code for an ad and applies a mask to it, adjusting its size, position, corner radius, stroke width, and color based on ad dimensions. The font and color of the text are also set according to night mode or daylight conditions.",
         "type": "comment"
     },
     "1352": {
-        "file_id": 113,
-        "content": "/pyjom/medialang/processors/dotProcessor/jsonProcessor.py",
-        "type": "filepath"
+        "file_id": 104,
+        "content": "    # use some gray text.\n    # font.paint.color = pixie.parse_color(\"#4F42B5\")\n    # font.paint.color = pixie.parse_color(\"#FC427B\")\n    # font.paint.color = pixie.Color(0,0,0,1)\n    title_text_transform = pixie.translate(\n        int(font.size * 0.8), int(ad_height - qrcode_height * 1.1)\n    )\n    title_text_bounds = pixie.Vector2(\n        int(qrcode_scan_text_transform_x - font.size * 1.1), int(qrcode_height)\n    )\n    image.fill_text(\n        font, title_text, bounds=title_text_bounds, transform=title_text_transform\n    )\n    delta = int(cover_width * 0.02)\n    sub_image_params = (\n        cover_transform_width - delta,\n        cover_transform_height - delta,\n        cover_width + 2 * delta,\n        cover_height + 2 * delta,\n    )\n    standalone_cover_image = image.sub_image(*sub_image_params)\n    standalone_cover_image.write_file(output_standalone)\n    image.write_file(output_path)  # make sure you write to desired temp path.\n    if framework_only:\n        image2.sub_image(*sub_image_params).write_file(output_masked_path)",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:426-450"
     },
     "1353": {
-        "file_id": 113,
-        "content": "This function dotJsonProcessor takes an item, a previous item, and optional verbose and medialangTmpDir parameters. It extracts the processor name from the item's arguments, gets the corresponding Medialang function using getMedialangFunction, checks if it exists or not, and then applies the processor on the previous item using keywordDecorator. The output of this processing is returned.",
-        "type": "summary"
+        "file_id": 104,
+        "content": "This code generates an image with a QR code and text on top of it. It then creates two versions - one with the entire image, and another without any framework elements. The transformed QR code and text are placed on the image, and then saved in specified output files.",
+        "type": "comment"
     },
     "1354": {
-        "file_id": 113,
-        "content": "from pyjom.medialang.functions import *\nfrom pyjom.medialang.commons import *\ndef dotJsonProcessor(item, previous, verbose=True, medialangTmpDir=\"/dev/shm/medialang/\"):\n    # must contain something.\n    args = item.args\n    processorName = args[\"processor\"]\n    processor = getMedialangFunction(processorName)\n    if processor is None:\n        medialangFatalError(\"processor {} not found.\".format(processorName), __file__)\n    print(\"Using JSON processor:\", processorName)\n    args.pop(\"processor\")\n    # breakpoint()\n    output = keywordDecorator(processor, **args)(previous)  # what is this shit?\n    return output",
+        "file_id": 104,
+        "content": "    return (\n        output_path,\n        output_standalone,\n        output_masked_path,\n    )  # well, pick up if you want.\nIMAGE_WITH_QRCODE_PATH = \"image_with_qrcode.png\"\nOUTPUT_WITH_QRCODE_PATH = \"output_with_qrcode.png\"\ndef removeQRCodes(\n    image_with_qrcode_path: str = os.path.join(TMP_DIR_PATH, IMAGE_WITH_QRCODE_PATH)\n):\n    # use best method to remove qrcode.\n    # import cv2\n    # import imutils\n    from PIL import Image\n    from pyzbar.pyzbar import decode, ZBarSymbol\n    # @function 'detect_qr' detect and decode qrcode from frame using pyzbar lib\n    # @param 'inputFrame' type <class 'numpy.ndarray'>\n    # @return if detected type 'bool'\n    import numpy as np\n    def detect_qr(inputFrame):\n        img = Image.fromarray(inputFrame)  # fuck?\n        decodedImg = decode(img, symbols=[ZBarSymbol.QRCODE])\n        # it reads the content. but where is the code?\n        print(\"total %d qrcode detected\" % len(decodedImg))\n        # breakpoint()\n        # length: 2\n        if len(decodedImg) > 0:\n            polygons = []",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/jsonProcessor.py:1-16"
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:451-485"
     },
     "1355": {
-        "file_id": 113,
-        "content": "This function dotJsonProcessor takes an item, a previous item, and optional verbose and medialangTmpDir parameters. It extracts the processor name from the item's arguments, gets the corresponding Medialang function using getMedialangFunction, checks if it exists or not, and then applies the processor on the previous item using keywordDecorator. The output of this processing is returned.",
+        "file_id": 104,
+        "content": "This code defines a function to remove QR codes from an image. It uses the Pyzbar library for QR code detection and removal. The function takes the path of the image with QR codes as input and returns the output path without QR codes, the standalone output path, and the masked output path. The code also includes a helper function called \"detect_qr\" which detects and decodes the QR codes from an input frame.",
         "type": "comment"
     },
     "1356": {
-        "file_id": 114,
-        "content": "/pyjom/medialang/processors/dotProcessor/__init__.py",
-        "type": "filepath"
+        "file_id": 104,
+        "content": "            for code in decodedImg:\n                decodedBytes = code.data\n                # stringData = decodedBytes.decode(\"utf-8\")\n                # print(\"QRCode content:\")\n                # print(stringData)\n                polygon = code.polygon\n                # print('POLYGON CONTENT:')\n                # print(polygon)\n                mpolygon = []\n                for point in polygon:\n                    mpolygon.append([point.x, point.y])\n                #     print('POINT:',point.x,point.y)\n                polygons.append(np.array(mpolygon, dtype=np.int32))\n            return polygons\n        else:\n            return []\n    def getInputFrameFromImagePath(imagePath: str):\n        inputFrame = cv2.imread(imagePath)\n        return inputFrame\n    inputFrame = getInputFrameFromImagePath(image_with_qrcode_path)\n    QRCodeCoordinates = detect_qr(inputFrame)\n    img = cv2.imread(image_with_qrcode_path)\n    if QRCodeCoordinates != []:\n        mask_image = np.zeros((*img.shape[:2], 1), dtype=img.dtype)\n        for poly in QRCodeCoordinates:",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:486-513"
     },
     "1357": {
-        "file_id": 114,
-        "content": "The code imports necessary classes from jsonProcessor and videoProcessor modules, then creates a dictionary called dotProcessors, which maps file extensions to their respective processors. The .json extension is associated with the dotJsonProcessor, while .mp4 is associated with the keywordDecorator-decorated dotVideoProcessor.",
-        "type": "summary"
+        "file_id": 104,
+        "content": "The code iterates over decoded QR codes and extracts their data, polygon coordinates, and converts them to a numpy array. The function returns the polygons if any QR code is detected; otherwise, it returns an empty list. There is also a separate function to read input frames from image paths and detect QRCodeCoordinates using the detect_qr function.",
+        "type": "comment"
     },
     "1358": {
-        "file_id": 114,
-        "content": "from pyjom.medialang.processors.dotProcessor.jsonProcessor import *\nfrom pyjom.medialang.processors.dotProcessor.videoProcessor import *\nfrom pyjom.commons import keywordDecorator\ndotProcessors = {\".json\":dotJsonProcessor, \".mp4\": keywordDecorator(dotVideoProcessor,format=\"mp4\")}",
+        "file_id": 104,
+        "content": "            cv2.fillPoly(mask_image, [poly], 255)\n        inpainted_im = cv2.inpaint(img, mask_image, 3, cv2.INPAINT_TELEA)\n    else:\n        inpainted_im = img\n    return QRCodeCoordinates, inpainted_im\nfrom typing import Union\ndef removeAndInsertQRCode(\n    image_with_qrcode_path: str = os.path.join(TMP_DIR_PATH, IMAGE_WITH_QRCODE_PATH),\n    qrcode_path: str = os.path.join(TMP_DIR_PATH, QRCODE_PATH),\n    output_with_qrcode_path: Union[None, str] = os.path.join(\n        TMP_DIR_PATH, OUTPUT_WITH_QRCODE_PATH\n    ),\n):  # remove all detected QRCodes. add qrcode nevertheless.\n    # TODO: use more advanced models to detect QRCodes.\n    # TODO: increase the size of the original image if too small.\n    QRImage = cv2.imread(qrcode_path)\n    import math\n    def get_rotation_angle_and_center(p1, p2, p3, p4):\n        # Find the center of the rectangle\n        center_x = int((p1[0] + p3[0]) / 2 + (p2[0] + p4[0]) / 2) / 2\n        center_y = int((p1[1] + p3[1]) / 2 + (p2[1] + p4[1]) / 2) / 2\n        center = (center_x, center_y)",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/__init__.py:1-5"
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:514-540"
     },
     "1359": {
-        "file_id": 114,
-        "content": "The code imports necessary classes from jsonProcessor and videoProcessor modules, then creates a dictionary called dotProcessors, which maps file extensions to their respective processors. The .json extension is associated with the dotJsonProcessor, while .mp4 is associated with the keywordDecorator-decorated dotVideoProcessor.",
+        "file_id": 104,
+        "content": "The code reads an image with a QR code and removes all detected QR codes while adding the specified QR code to the output image. It also calculates the rotation angle and center of a rectangle formed by four points. The function takes paths for the input image, QR code image, and the desired output image path. It uses OpenCV for image processing operations like reading images, inpainting, and applying transformations.",
         "type": "comment"
     },
     "1360": {
-        "file_id": 115,
-        "content": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py",
-        "type": "filepath"
+        "file_id": 104,
+        "content": "        width = math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)\n        height = math.sqrt((p2[0] - p3[0]) ** 2 + (p2[1] - p3[1]) ** 2)\n        # Calculate the slope of one of the edges\n        slope = (p2[1] - p1[1]) / (p2[0] - p1[0])\n        # Calculate the angle of the edge from the x-axis\n        angle = (math.pi / 2) - math.atan(\n            slope\n        )  # correct the angle. according to opencv.\n        while True:\n            if angle > math.pi / 2:\n                angle -= math.pi / 2\n            elif angle < 0:\n                angle += math.pi / 2\n            else:\n                break\n        return angle, center, width, height\n    QRCodeCoordinates, img = removeQRCodes(image_with_qrcode_path)\n    hasQRCode = len(QRCodeCoordinates) > 0\n    from shapely.geometry import Polygon\n    import numpy as np\n    if hasQRCode:  # put the biggest one there.\n        QRCodeCoordinates.sort(key=lambda x: -Polygon(x.tolist()).area)\n        biggest_polygon = QRCodeCoordinates[0]\n        cv2.fillPoly(img, [biggest_polygon], (0, 0, 0))",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:541-568"
     },
     "1361": {
-        "file_id": 115,
-        "content": "The code utilizes Editly and Fmpeg for video filtering, detects text/logos, crop regions, and handles errors while generating UUIDs, storing temp videos, modifying clip properties, setting layer durations, adding clips to templates, and executes with formatted output.",
-        "type": "summary"
+        "file_id": 104,
+        "content": "Calculates angle, width, and height of a polygon formed by points p1, p2, and p3. Sorts QRCodeCoordinates based on their area and draws the largest one using cv2.",
+        "type": "comment"
     },
     "1362": {
-        "file_id": 115,
-        "content": "from pyjom.medialang.functions import *\nfrom pyjom.medialang.commons import *\nfrom pyjom.mathlib import *\nfrom pyjom.videotoolbox import *\nimport tempfile\nimport ffmpeg\ndef executeEditlyScript(medialangTmpDir, editly_json):\n    editlyJsonSavePath = os.path.join(medialangTmpDir, \"editly.json\")\n    with open(editlyJsonSavePath, \"w+\", encoding=\"utf8\") as f:\n        f.write(json.dumps(editly_json, ensure_ascii=False))\n    print(\"EXECUTING EDITLY JSON AT %s\" % editlyJsonSavePath)\n    commandline = [\"xvfb-run\", \"editly\", \"--json\", editlyJsonSavePath]\n    print(commandline)\n    status = subprocess.run(commandline)  # is it even successful?\n    returncode = status.returncode\n    assert returncode == 0\n    print(\"RENDER SUCCESSFUL\")\nfrom typing import Literal, List\ndef ffmpegVideoPreProductionFilter(\n    filepath,  # this is actually a video path. must be video here.\n    start=None,\n    end=None,\n    cachePath=None,\n    audio=False,\n    epsilon=0.000001,\n    filters: List[\n        Literal[\n            \"minterpolate\",  # add time-saver option for this shit. use 'blend' instead of motion vector based compensation.",
+        "file_id": 104,
+        "content": "        angle, center, width, height = get_rotation_angle_and_center(\n            *biggest_polygon.tolist()\n        )  # will fail?\n        QRWidth, QRHeight = int(width), int(height)\n        startingPoint = [int(center[0] - QRWidth / 2), int(center[1] - QRHeight / 2)]\n    else:\n        # randomly select one place to insert the shit.\n        height, width = img.shape[:2]\n        QRSize = min(height, width) / 5\n        QRHeight, QRWidth = QRImage.shape[:2]\n        if QRWidth > QRHeight:\n            QRHeight = int((QRHeight / QRWidth) * QRSize)\n            QRWidth = int(QRSize)\n        else:\n            QRWidth = int((QRWidth / QRHeight) * QRSize)\n            QRHeight = int(QRSize)\n        startingPoint = [\n            random.randint(0, math.floor(width - QRWidth)),\n            random.randint(0, math.floor(height - QRHeight)),\n        ]\n        angle, center = 0, [\n            startingPoint[0] + int(QRWidth / 2),\n            startingPoint[1] + int(QRHeight / 2),\n        ]\n        biggest_polygon = np.array(\n            [",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:1-34"
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:569-594"
     },
     "1363": {
-        "file_id": 115,
-        "content": "The code is a Python script that contains functions for video processing using the Editly library and FFmpeg. It defines the `executeEditlyScript` function which takes a temporary directory and an Editly JSON object, saves it to disk, executes the Editly command line tool with the saved JSON file, and asserts that the operation was successful. The script also includes the `ffmpegVideoPreProductionFilter` function which processes video files using FFmpeg filters, optional start/end time parameters, audio flag, and a list of filter options like \"minterpolate\".",
+        "file_id": 104,
+        "content": "This code is responsible for determining the position and size of a QR code image to be inserted into an image. It first checks if there's a polygon present, and if so, it calculates the angle, center, width, and height based on the given polygon. If not, it randomly selects a place to insert the QR code by adjusting its size to fit within 5% of the image size and then determines the starting point and other parameters. The code is written in Python with libraries like numpy and random for numerical operations and generating random numbers.",
         "type": "comment"
     },
     "1364": {
-        "file_id": 115,
-        "content": "            \"removegrain\",\n            \"bilateral\",\n            \"randomFlip\",\n            \"superResolution\",\n            \"pipCrop\",\n            \"textRemoval\",\n            \"logoRemoval\",\n            \"minterpolate_mi_mode=blend\",\n        ]\n    ] = [  # what is slowing us down?\n        \"pipCrop\",\n        \"textRemoval\",  # we got a problem here?\n        \"logoRemoval\",\n        \"randomFlip\",  # these are common\n        \"superResolution\",  # optional below\n        # \"minterpolate\",\n        # \"minterpolate_mi_mode=blend\", # this might be the problem.\n        # \"removegrain\",\n        # \"bilateral\",\n    ],\n    preview=True,\n    # padding=True,\n    paddingBlur=True,\n    output_width: int = 1920,\n    output_height: int = 1080,\n):  # what is the type of this shit?\n    # enable that 'fast' flag? or we use low_resolution ones? not good since that will ruin our detection system!\n    # anyway it will get processed? or not?\n    # uncertain. very uncertain.\n    def paddingBlurFilter(stream, mWidth=1920, mHeight=1080):\n        # video_stream = stream.video",
+        "file_id": 104,
+        "content": "                startingPoint,\n                [startingPoint[0], startingPoint[1] + QRHeight],\n                [startingPoint[0] + QRWidth, startingPoint[1] + QRHeight],\n                [startingPoint[0] + QRWidth, startingPoint[1]],\n            ]\n        )\n        cv2.fillPoly(img, [biggest_polygon], (0, 0, 0))\n    QRImage = cv2.resize(QRImage, (QRWidth, QRHeight), interpolation=cv2.INTER_LINEAR)\n    # then we expand the image.\n    expanded_QR = np.zeros(img.shape, dtype=img.dtype)\n    height, width = QRImage.shape[:2]\n    slice_x_start, slice_x_end = startingPoint[1], height + startingPoint[1]\n    slice_y_start, slice_y_end = startingPoint[0], width + startingPoint[0]\n    # print(\"SLICES?\", slice_x_start, slice_x_end , slice_y_start, slice_y_end )\n    # print(\"IMAGE SHAPE?\",QRImage.shape)\n    expanded_QR[slice_x_start:slice_x_end, slice_y_start:slice_y_end] = QRImage\n    # then rotate.\n    if angle == 0:\n        rotated_im = expanded_QR\n    else:\n        angle_deg = 180 * (angle / np.pi)  # rotation error.",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:35-65"
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:595-617"
     },
     "1365": {
-        "file_id": 115,
-        "content": "This code defines a function `paddingBlurFilter` that takes a video stream as input and applies padding and blur effects if the `paddingBlur` parameter is set to `True`. The video stream's width and height are set to 1920x1080 unless specified otherwise. The code also provides a list of processing steps, where some are marked as common, optional, or potentially causing problems.",
+        "file_id": 104,
+        "content": "This code detects QR codes, creates a bounding box around them, fills the polygon with black color, resizes and expands the image, and then rotates it by 180 degrees if angle is not zero. The purpose is to prepare a QR code image for further operations in an image processing pipeline.",
         "type": "comment"
     },
     "1366": {
-        "file_id": 115,
-        "content": "        video_stream = stream\n        video_stream_split = video_stream.split()\n        output_width = mWidth\n        output_height = mHeight\n        layer_0 = (\n            video_stream_split[0]\n            .filter(\"scale\", w=output_width, h=output_height)\n            .filter(\"gblur\", sigma=9)\n        )\n        layer_1 = video_stream_split[1].filter(\n            \"scale\",\n            w=\"min(floor(iw*{}/ih),{})\".format(output_height, output_width),\n            h=\"min(floor(ih*{}/iw),{})\".format(output_width, output_height),\n        )\n        output_stream = layer_0.overlay(layer_1, x=\"floor((W-w)/2)\", y=\"floor((H-h)/2)\")\n        return output_stream\n    def paddingFilter(stream, mWidth=1920, mHeight=1080):\n        width = \"max(iw, ceil(ih*max({}/{}, iw/ih)))\".format(mWidth, mHeight)\n        height = \"max(ih, ceil(iw*max({}/{}, ih/iw)))\".format(mHeight, mWidth)\n        x = \"max(0,floor(({}-iw)/2))\".format(width)\n        y = \"max(0,floor(({}-ih)/2))\".format(height)\n        return (\n            stream.filter(\n                \"pad\", width=width, height=height, x=x, y=y, color=\"black\"",
+        "file_id": 104,
+        "content": "        rotation_matrix = cv2.getRotationMatrix2D(center, angle_deg, 1)\n        rotated_im = cv2.warpAffine(\n            expanded_QR, rotation_matrix, (img.shape[1], img.shape[0])\n        )\n    # combine. what?\n    output_img = rotated_im + img\n    # regularize\n    output_img.put(np.where(output_img > 255), 255)\n    output_img.put(np.where(output_img < 0), 0)\n    # save the image.\n    if output_with_qrcode_path is not None:\n        cv2.imwrite(output_with_qrcode_path, output_img)\n    return output_img  # for viewing.",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:66-90"
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:618-633"
     },
     "1367": {
-        "file_id": 115,
-        "content": "This code defines two functions: `videoProcessor` and `paddingFilter`. The `videoProcessor` function takes a video stream, scales and blurs the first layer of the split video, scales the second layer maintaining aspect ratio, then overlays both layers with padding. The `paddingFilter` function calculates the width and height for padding to center the video. Both functions take optional parameters `mWidth` and `mHeight` for the output resolution.",
+        "file_id": 104,
+        "content": "This code rotates an image using OpenCV, combines the rotated and original images, applies a regularization to pixel values, saves the resulting image if necessary, and returns it for viewing.",
         "type": "comment"
     },
     "1368": {
-        "file_id": 115,
-        "content": "            )  # here to control the padding logic, decide how to 'blur' the thing!\n            .filter(\"scale\", w=mWidth, h=mHeight)\n            .filter(\"setsar\", 1)\n        )\n    assert cachePath is not None\n    assert start is not None\n    assert end is not None\n    # from 4 to 10 seconds?\n    defaultWidth, defaultHeight = getVideoWidthHeight(filepath)\n    previewRatio = 1\n    if preview:\n        previewWidth, previewHeight = getVideoPreviewPixels(filepath)\n        previewRatio = previewWidth / defaultWidth\n        def previewFilter(stream):\n            # maintain original ratio?\n            return stream.filter(\n                \"scale\",\n                \"ceil((iw*{})/4)*4\".format(previewRatio),\n                \"ceil((ih*{})/4)*4\".format(previewRatio),\n            )\n    # stream = ffmpeg.hflip(stream)\n    # this fliping may be useful for copyright evasion, but not very useful for filtering. it just adds more computational burden.\n    # we just need to crop this.\n    # stream = ffmpeg.output(stream, cachePath)",
-        "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:91-117"
+        "file_id": 105,
+        "content": "/tasks/qq/qq_red_packet_collect/README.md",
+        "type": "filepath"
     },
     "1369": {
-        "file_id": 115,
-        "content": "Code snippet performs video processing operations including scaling, setting aspect ratio, and potentially applying a preview filter based on the input filepath. It also considers cropping instead of flipping for improved efficiency and removes any unnecessary computational burden.",
-        "type": "comment"
+        "file_id": 105,
+        "content": "This code provides the URLs to relogin for two users, Yukio and Miaomiao, as well as a command to clear the group chat log using either `cat` or (deprecated) `echo` commands.",
+        "type": "summary"
     },
     "1370": {
-        "file_id": 115,
-        "content": "    # ffmpeg.run(stream, overwrite_output=True)\n    # procedureList = []\n    # stream = ffmpeg.input\n    # no_processing = True # change this flag if anything need to change in original video according to filter results.\n    # logo removal/text removal first, pipCrop last.\n    # if overlap, we sort things.\n    # if not, no sorting is needed.\n    mDict = {}\n    def delogoFilter(stream, commandParams):\n        return stream.filter(\n            \"delogo\",\n            x=commandParams[\"x\"],\n            y=commandParams[\"y\"],\n            w=commandParams[\"w\"],\n            h=commandParams[\"h\"],\n        )\n    def cropFilter(stream, commandParams):\n        return stream.filter(\n            \"crop\",\n            x=commandParams[\"x\"],\n            y=commandParams[\"y\"],\n            w=commandParams[\"w\"],\n            h=commandParams[\"h\"],\n        )\n    def filterCommandStringParser(filterCommandString):\n        args_with_kwargs = filterCommandString.split(\":\")\n        args = []\n        kwargs = {}\n        for elem in args_with_kwargs:",
+        "file_id": 105,
+        "content": "to relogin, go to:\nfor yukio:\nhttp://localhost:8780/v1/Login/GetQRcode\nfor miaomiao:\nhttp://localhost:8784/v1/Login/GetQRcode\nto clear group chat log:\n```bash\ncat /dev/null > redPacketLog_0.log \n```\n(deprecated)\n```bash\necho > redPacketLog_0.log\n```",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:118-151"
+        "location": "/tasks/qq/qq_red_packet_collect/README.md:1-20"
     },
     "1371": {
-        "file_id": 115,
-        "content": "This code defines functions for applying filters to video streams using ffmpeg. It defines delogoFilter() and cropFilter() functions that take stream and commandParams as input, apply respective filters using ffmpeg, and return the filtered stream. The filterCommandStringParser() function parses filter command strings into arguments and keyword arguments.",
+        "file_id": 105,
+        "content": "This code provides the URLs to relogin for two users, Yukio and Miaomiao, as well as a command to clear the group chat log using either `cat` or (deprecated) `echo` commands.",
         "type": "comment"
     },
     "1372": {
-        "file_id": 115,
-        "content": "            if \"=\" in elem:\n                key, value = elem.split(\"=\")\n                kwargs.update({key: value})\n            else:\n                args.append(elem)\n        return args, kwargs\n    def ffmpegStringFilter(stream, commandString):\n        filterName = commandString.split(\"_\")[0]\n        filterPrefix = \"{}_\".format(filterName)\n        filterCommandString = commandString[len(filterPrefix) :]\n        args, kwargs = filterCommandStringParser(filterCommandString)\n        # print(commandString)\n        # print(args, kwargs)\n        # breakpoint()\n        return stream.filter(\"scale\", *args, **kwargs)\n    # TODO: FIX THIS SHIT!\n    # raise Exception(\"TODO: FIX THIS SHIT!\")\n    # these things are ordered to be the last ones. just flags.\n    from caer.video.frames_and_fps import get_duration\n    video_start = 0\n    video_end = get_duration(filepath)\n    if \"randomFlip\" in filters:\n        if random.random() > 0.5:\n            mDict.update({\"hflip\": [(start, end)]})\n    if \"superResolution\" in filters:",
-        "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:152-180"
+        "file_id": 106,
+        "content": "/tasks/qq/qq_red_packet_collect/launch.sh",
+        "type": "filepath"
     },
     "1373": {
-        "file_id": 115,
-        "content": "The code defines a function `ffmpegStringFilter` which takes in a stream and command string. It splits the command string into its filter name, filter prefix, and filter command string. Then it calls another function `filterCommandStringParser` to parse the filter command string into arguments (args) and keyword arguments (kwargs). Finally, it returns the filtered video stream using the parsed arguments. Additionally, there are two TODO comments to fix some issues later on.",
-        "type": "comment"
+        "file_id": 106,
+        "content": "Starts a new TMUX session, kills the previously running session with the name \"qq_red_packet\", and then loads the red_packet.yaml configuration file to set up the session environment.",
+        "type": "summary"
     },
     "1374": {
-        "file_id": 115,
-        "content": " # not working for extremely poor quality images. however, we can fetch these video elsewhere. no need to repair.\n        mDict.update({\"scale_w=iw*2:h=ih*2:flags=lanczos\": [(start, end)]})\n        # how to parse this shit?\n    simpleFilters = [\"minterpolate\", \"removegrain\", \"bilateral\"]\n    for filterName in simpleFilters:\n        for myFilter in filters:\n            if myFilter.startswith(filterName):\n                # if filterName == \"minterpolate\":\n                # filterName += \"_mi_mode=blend\"\n                # print(\"FILTER NAME:\", filterName)\n                # breakpoint()\n                mDict.update({filterName: [(start, end)]})\n    pipCropDicts = None\n    if \"pipCrop\" in filters:\n        # remember: if pip crop makes any of our logoRemoval or textRemoval filters invalid, we do not execute them.\n        # also it will affect parameters of logoRemoval.\n        pipCropDicts = detectPipRegionOverTime(filepath, start, end)\n        mDict.update(pipCropDicts)  # using default settings?\n        # pass",
+        "file_id": 106,
+        "content": "tmux kill-session -t qq_red_packet\ntmuxp load red_packet.yaml",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:180-199"
+        "location": "/tasks/qq/qq_red_packet_collect/launch.sh:1-2"
     },
     "1375": {
-        "file_id": 115,
-        "content": "Code snippet is updating a dictionary with specified filters and their corresponding time intervals. It checks if any 'pipCrop' filter is present, and if so, it retrieves the PIP crop regions over time using a separate function 'detectPipRegionOverTime'. The retrieved crop regions are then added to the dictionary using default settings.",
+        "file_id": 106,
+        "content": "Starts a new TMUX session, kills the previously running session with the name \"qq_red_packet\", and then loads the red_packet.yaml configuration file to set up the session environment.",
         "type": "comment"
     },
     "1376": {
-        "file_id": 115,
-        "content": "    if \"textRemoval\" in filters:\n        # process the video, during that duration. fast seek avaliable?\n        mDict.update(detectTextRegionOverTime(filepath, start, end))\n        # pass\n    if \"logoRemoval\" in filters:\n        # dual safe? no?\n        # the dict is not hashable. warning!\n        stationaryLogoDicts = detectStationaryLogoOverTime(\n            filepath, start, end, pipCropDicts=pipCropDicts\n        )  # this need to be improvised. if it is long, we need to do another check.\n        if video_end > 30:\n            stationaryLogoDicts.update(\n                detectStationaryLogoOverTime(\n                    filepath, video_start, video_end, cornersOnly=False, top_k=5\n                )  # are you sure? wtf?\n                # i mean area size similar than one of the corners.\n            )\n        # reprocess these things. really?\n        mDict.update(stationaryLogoDicts)  # output logo mask. or not.\n        # estimate the shape with multiple rectangles? packing algorithm?\n        # polygon to rectangle? decomposition?",
-        "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:200-220"
+        "file_id": 107,
+        "content": "/tasks/qq/qq_red_packet_collect/deprecated_botoy_redpacket_collect_account_2.py",
+        "type": "filepath"
     },
     "1377": {
-        "file_id": 115,
-        "content": "The code checks if \"textRemoval\" and \"logoRemoval\" are in the filters. If \"textRemoval\" is present, it detects text regions over time for the given video filepath, start, and end duration. If \"logoRemoval\" is present, it detects stationary logos using detectStationaryLogoOverTime function and updates mDict with the results, but only if the video length is greater than 30 seconds. It also considers updating mDict with additional stationary logos if needed by calling detectStationaryLogoOverTime again. Finally, it updates mDict with the stationary logo dictionaries and suggests using a packing algorithm to estimate shapes with multiple rectangles.",
-        "type": "comment"
+        "file_id": 107,
+        "content": "This code is for the arm64 version of opqbot, disabling a 复读机 plugin and using the same config. It listens for group messages and processes red packet information, starting a daemon thread if a red packet is received.",
+        "type": "summary"
     },
     "1378": {
-        "file_id": 115,
-        "content": "        # pass\n    MAX_INT = 999999\n    commandValueMap = {\n        \"empty\": -1,\n        \"delogo\": 0,\n        \"crop\": 1,\n        \"removegrain\": 2,\n        \"bilateral\": 2,\n        \"scale\": 3,  ## wtf?\n        \"minterpolate\": 4,\n        \"hflip\": MAX_INT,\n        \"vflip\": MAX_INT,\n    }  # no scale filter shall present. we do not provide such creep. editly will handle it.\n    # commandValueMap.update(simpleFiltersValueMap)\n    renderDict = getContinualMappedNonSympyMergeResultWithRangedEmpty(mDict, start, end)\n    # now we consider the rendering process. how?\n    # shall we line it up?\n    if (\n        list(renderDict.keys()) == [\"empty\"] and not preview\n    ):  # not preview! so we need not to downscale this thing.\n        # nothing happens. just return the original shit.\n        return filepath\n    renderList = mergedRangesToSequential(renderDict)\n    renderVideoStreamList = []\n    if audio:\n        # we may want audio sometime, but not this time.\n        renderAudioStream = ffmpeg.input(filepath, ss=start, to=end).audio",
+        "file_id": 107,
+        "content": "# for arm64 version of opqbot\n# disable that 复读机 plugin.\n# disable this shit. we use the same config.\nfrom base_opq import *\n@bot.on_group_msg\ndef group(ctx: GroupMsg):\n    # print('收到群消息，群号为', ctx.FromGroupId)\n    data_dict = ctx.data  # recommend to use this json object. or not?\n    group_id = data_dict[\"FromGroupId\"]\n    RedBaginfo = data_dict[\"RedBaginfo\"]\n    if RedBaginfo is not None:\n        print(\"RECEIVED RED PACKET\")\n        startDaemonThread(openRedBag, (RedBaginfo, group_id))\n    # breakpoint()\nif __name__ == \"__main__\":\n    bot.run()\n# do not send porn shits or you need to relogin.",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:221-248"
+        "location": "/tasks/qq/qq_red_packet_collect/deprecated_botoy_redpacket_collect_account_2.py:1-26"
     },
     "1379": {
-        "file_id": 115,
-        "content": "The code defines a commandValueMap for different video processing commands and checks if the renderDict contains only \"empty\" key. If it does, it returns the original file path without any processing. If not, it converts merged rendering ranges into sequential format and creates a list of renderVideoStreams (excluding audio if specified).",
+        "file_id": 107,
+        "content": "This code is for the arm64 version of opqbot, disabling a 复读机 plugin and using the same config. It listens for group messages and processes red packet information, starting a daemon thread if a red packet is received.",
         "type": "comment"
     },
     "1380": {
-        "file_id": 115,
-        "content": "    # for elem in renderList:\n    #     print(elem)\n    # breakpoint()\n    # videoDuration = getVideoDuration(videoPath)\n    for renderCommandIndex, (renderCommandString, commandTimeSpan) in enumerate(\n        renderList\n    ):\n        print(\"#{}\".format(renderCommandIndex), renderCommandString, commandTimeSpan)\n        mStart, mEnd = commandTimeSpan\n        mStart = max(start, mStart)\n        mEnd = min(mEnd, end)\n        clipDuration = mEnd - mStart\n        if clipDuration < epsilon:\n            continue  # if so, this clip is shit.\n        # print(\"CLIP TIMESPAN:\", mStart, mEnd)\n        stream = ffmpeg.input(\n            filepath, ss=mStart, to=mEnd, hwaccel=\"vulkan\"\n        ).video  # no audio? seriously?\n        # this is video stream.\n        if renderCommandString == \"empty\":\n            pass  # do not continue since maybe we have preview filter below?\n            # still need to append shit below. we cannot skip this loop.\n        # do nothing.\n        else:\n            renderCommands = renderCommandString.split(\"|\")",
-        "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:249-274"
+        "file_id": 108,
+        "content": "/tasks/qq/qq_red_packet_collect/commons.py",
+        "type": "filepath"
     },
     "1381": {
-        "file_id": 115,
-        "content": "The code iterates through a list of render commands, each with a time span. It prints each command and the corresponding timespan, skips any clip duration less than epsilon, and gets the video stream using ffmpeg for specified start and end times. If the command is \"empty\", it does nothing; otherwise, it splits the command into separate render commands.",
-        "type": "comment"
+        "file_id": 108,
+        "content": "The code has functions for replacing consecutive characters, checking a \"trace_source\" key, and improving sentence processing. It also handles text manipulation, generates weighted random yields, and shuffles elements if desired.",
+        "type": "summary"
     },
     "1382": {
-        "file_id": 115,
-        "content": "            # sort all commands?\n            renderCommands.sort(\n                key=lambda command: commandValueMap[command.split(\"_\")[0]]\n            )\n            from pyjom.mathlib import uniq\n            for renderCommand in uniq(renderCommands):\n                # print('RENDER COMMAND:',renderCommand, \"SPAN\", mStart, mEnd)\n                # breakpoint()\n                if renderCommand == \"empty\":\n                    # yeah we have failsafe.\n                    continue\n                if \"_\" not in renderCommand:\n                    stream = stream.filter(renderCommand)\n                elif \"=\" in renderCommand:\n                    stream = ffmpegStringFilter(\n                        stream, renderCommand\n                    )  # do not check for validity!\n                else:\n                    # non standard filter formats below. be warned.\n                    for prefix, keyword in [\n                        (\"{}_\".format(k), k) for k in [\"delogo\", \"crop\"]\n                    ]:\n                        if renderCommand.startswith(prefix):",
+        "file_id": 108,
+        "content": "import random\nimport re\nfrom string import punctuation\nfrom base_opq import stderrPrint\ndef keywordDecorator(func, **kwargs2):\n    def mytarget(*margs, **kwargs):\n        if \"trace_source\" in kwargs.keys():\n            if kwargs2[\"trace_source\"]:\n                return func(*margs, **kwargs, **kwargs2), \".\".join(\n                    [__name__, func.__name__]\n                )\n        return func(*margs, **kwargs, **kwargs2)\n    return mytarget\ndef replaceDuplicateChar(sentence: str, char=\" \", maxRepeat: int = 3):\n    assert maxRepeat >= 0\n    source = char * (maxRepeat + 1)\n    target = char * maxRepeat\n    # c=0\n    while True:\n        # c+=1\n        # stderrPrint(\"RETRYING\",c)\n        if source in sentence:\n            # stderrPrint(len(source), len(target))\n            sentence = sentence.replace(source, target)\n        else:\n            break  # freaking important!\n    return sentence\ndef replaceDuplicateChars(sentence: str, maxRepeat: int = 3):\n    chars = set(list(sentence))\n    for char in chars:\n        sentence = replaceDuplicateChar(sentence, char, maxRepeat=maxRepeat)",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:275-298"
+        "location": "/tasks/qq/qq_red_packet_collect/commons.py:1-38"
     },
     "1383": {
-        "file_id": 115,
-        "content": "Code is sorting commands based on a given key and applying them to the stream. If a command doesn't have an operator or contains non-standard filter formats, it applies prefix-based actions. The code handles different types of filters including 'delogo', 'crop', etc., and applies them accordingly to the stream.",
+        "file_id": 108,
+        "content": "This code defines a function `replaceDuplicateChar` that replaces consecutive characters with the specified character and maximum repeats, and a function `replaceDuplicateChars` that applies this operation to all characters in the sentence. The code also includes a decorator `keywordDecorator` which checks if a \"trace_source\" key exists in the kwargs dictionary and performs an action accordingly.",
         "type": "comment"
     },
     "1384": {
-        "file_id": 115,
-        "content": "                            import parse\n                            commandParams = parse.parse(\n                                keyword + \"_{x:d}_{y:d}_{w:d}_{h:d}\", renderCommand\n                            )\n                            # print(defaultWidth, defaultHeight)\n                            mX, mY, mW, mH = (\n                                commandParams[\"x\"],\n                                commandParams[\"y\"],\n                                commandParams[\"w\"],\n                                commandParams[\"h\"],\n                            )\n                            status, XYWH = checkXYWH(\n                                (mX, mY, mW, mH), (defaultWidth, defaultHeight)\n                            )\n                            if not status:\n                                # cannot process this delogo filter since its parameters are outraged.\n                                # shall we warn you?\n                                # print(\"SOMEHOW DELOGO IS NOT WORKING PROPERLY\")\n                                # breakpoint()",
+        "file_id": 108,
+        "content": "    return sentence\n# this is not replaceDuplicateWords. this is removeDuplicateWords\n# don't know how to implement replaceDuplicateWords yet... use markov network? use CPM?\ndef removeDuplicateWords(sentence: str, removeWordLengthThreshold: int = 2):\n    # TODO: remove duplicate words inside, using jieba.\n    import jieba\n    wordList = jieba.lcut(sentence)\n    newWordList = []\n    for word in wordList:\n        if len(word) >= removeWordLengthThreshold:\n            if word in newWordList:\n                continue\n        newWordList.append(word)\n    # TODO: collect the candidateWordList from chat history.\n    # TODO: force replace mode: at least replace (n) words inside sentence\n    # TODO: mark words as replaceble by word type.\n    return \"\".join(newWordList)\ndef cutIncompleteSentenceTail(\n    sentence: str, threshold: int = len(\"这个群是我老公，你要是让我管管你老公\")\n):  # wtf?\n    if len(sentence) > threshold:\n        pun = \"，。……——“”‘’！； \" + punctuation  # with english space and puncs.\n        punList = list(set(list(pun)))",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:299-318"
+        "location": "/tasks/qq/qq_red_packet_collect/commons.py:39-66"
     },
     "1385": {
-        "file_id": 115,
-        "content": "The code imports the \"parse\" module and parses a command string using a specific format. It then extracts x, y, w, and h values from the parsed command and checks if they match the default width and height. If not, it cannot process this delogo filter and may warn or raise an issue.",
+        "file_id": 108,
+        "content": "This code contains two functions: `removeDuplicateWords` and `cutIncompleteSentenceTail`. The first function aims to remove duplicate words from a sentence using the jieba library. It also mentions potential future improvements like collecting candidate word lists from chat history, replacing words based on their type, and enforcing a minimum number of replacements in the sentence. The second function is for cutting incomplete sentences that exceed a certain length threshold. It utilizes punctuation to separate the sentence into potentially complete segments. There are also mentions of potential improvements like collecting candidate word lists from chat history and replacing words based on their type.",
         "type": "comment"
     },
     "1386": {
-        "file_id": 115,
-        "content": "                                # maybe it's not because of out of bounds error\n                                print(\"_\" * 30)\n                                print(\n                                    \"ABNORMAL {} FILTER PARAMS:\".format(\n                                        keyword.upper()\n                                    ),\n                                    commandParams,\n                                )\n                                print(\n                                    \"maxX: {} maxY: {}\".format(\n                                        commandParams[\"x\"] + commandParams[\"w\"],\n                                        commandParams[\"y\"] + commandParams[\"h\"],\n                                    )\n                                )\n                                print(\"VALID BOUNDARIES:\", defaultWidth, defaultHeight)\n                                print(\"_\" * 30)\n                                continue\n                            else:\n                                (mX, mY, mW, mH) = XYWH",
+        "file_id": 108,
+        "content": "        pattern = re.compile(\n            \"|\".join([re.escape(punctualChar) for punctualChar in punList])\n        )\n        resultList = re.split(pattern, sentence)\n        resultList = [x for x in resultList if len(x) > 0]\n        for index in range(\n            1, len(resultList)\n        ):  # will return first sentence nevertheless.\n            if pattern.match(resultList[-index]):  # suspected punctual element.\n                sentence = \"\".join(resultList)[:-index]\n                return sentence\n        sentence = resultList[0]  # failsafe.\n    return sentence\ndef generatedSentenceFixer(sentence, threshold=len(\"这个群是我老公，你要是让我管管你老公\"), maxRepeat=3):\n    sentence = replaceDuplicateChars(sentence, maxRepeat=maxRepeat)\n    sentence = cutIncompleteSentenceTail(sentence, threshold=threshold)\n    return sentence\ndef weightedRandomYielder(\n    elemList: list, elemWeights: list, shuffle=True, no_repeat=True, single=False\n):\n    assert len(elemList) >= 2\n    assert len(elemWeights) == len(elemList)\n    baseList = []",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:319-337"
+        "location": "/tasks/qq/qq_red_packet_collect/commons.py:67-93"
     },
     "1387": {
-        "file_id": 115,
-        "content": "If out of bounds error occurs, it prints abnormal filter params and boundary information before continuing execution.",
+        "file_id": 108,
+        "content": "The code contains functions for manipulating text, specifically for cutting incomplete sentences and fixing generated sentences. It also includes a function to generate a weighted random yield from two lists of equal length.",
         "type": "comment"
     },
     "1388": {
-        "file_id": 115,
-        "content": "                                commandParams = {\"x\": mX, \"y\": mY, \"w\": mW, \"h\": mH}\n                            # mX1, mY1 = mX+mW, mY+mH\n                            # if mX1>defaultWidth or mY1>defaultHeight: # opecv to be blamed?\n                            #     print(\"DELOGO ERROR:\")\n                            #     print(mX1,defaultWidth,mY1,defaultHeight)\n                            #     breakpoint()\n                            # we also need to consider if this is necessary.\n                            if keyword == \"delogo\":\n                                stream = delogoFilter(stream, commandParams)\n                            elif keyword == \"crop\":\n                                stream = cropFilter(stream, commandParams)\n                                # TODO: the main shit happens here is that if pip region is detected, it (the crop region) will not maintain the width to height ratio. you might need padding, and that's what we about to do here. you may also extract that clip as standalone material.",
+        "file_id": 108,
+        "content": "    for elem, weight in zip(elemList, elemWeights):\n        assert weight > 0\n        assert type(weight) == int\n        baseList += [elem] * weight\n    if shuffle:\n        random.shuffle(baseList)\n    usedElem = []\n    for elem in baseList:\n        if single:\n            return elem\n        if not no_repeat:\n            yield elem\n        elif elem in usedElem:\n            continue\n        else:\n            usedElem.append(elem)\n            yield elem",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:338-349"
+        "location": "/tasks/qq/qq_red_packet_collect/commons.py:94-110"
     },
     "1389": {
-        "file_id": 115,
-        "content": "This code checks if the keyword is \"delogo\" or \"crop\". If it's \"crop\", it applies a crop filter to the stream and checks if the pipeline region is detected. If so, it might need padding or could be extracted as standalone material.",
+        "file_id": 108,
+        "content": "Iterates through elements and their weights, adds elements to base list accordingly. If shuffle is True, randomizes the order of baseList. Iterates through baseList, yielding elements one at a time while handling non-repeating elements and avoiding repeats.",
         "type": "comment"
     },
     "1390": {
-        "file_id": 115,
-        "content": "                                # more inspection is needed for comprehensive reasoning.\n        if paddingBlur:\n            stream = paddingBlurFilter(\n                stream, mWidth=output_width, mHeight=output_height\n            )\n        else:\n            stream = paddingFilter(stream, mWidth=output_width, mHeight=output_height)\n        if preview:  # final filter? need us to crop this?\n            stream = previewFilter(\n                stream\n            )  # just preview, no need to set output width/height!\n            # do nothing here! (no fx.)\n        # and?\n        # we need to concat these shit!\n        # print(stream)\n        # print(dir(stream))\n        # breakpoint()\n        # import copy\n        # print(stream)\n        renderVideoStreamList.append(stream)\n    # for x in renderVideoStreamList:\n    #     print(x)\n    # print(len(renderVideoStreamList))\n    # breakpoint()\n    # breakpoint()\n    renderVideoStream = ffmpeg.concat(*renderVideoStreamList)\n    # detect if there is really anything audio related!",
-        "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:350-376"
+        "file_id": 109,
+        "content": "/tasks/qq/qq_red_packet_collect/chatApis.py",
+        "type": "filepath"
     },
     "1391": {
-        "file_id": 115,
-        "content": "The code is processing video streams with optional padding, blur, and preview filters. The resulting streams are concatenated into a single video using the ffmpeg library.",
-        "type": "comment"
+        "file_id": 109,
+        "content": "The code utilizes libraries, chat functions for various APIs, and a function named `getChatApiReply` that selects an API, handles exceptions, logs errors, and returns responses.",
+        "type": "summary"
     },
     "1392": {
-        "file_id": 115,
-        "content": "    if audio:\n        renderStream = ffmpeg.output(renderVideoStream, renderAudioStream, cachePath)\n    else:\n        renderStream = ffmpeg.output(renderVideoStream, cachePath)\n    # DEBUG #\n    # args = renderStream.get_args()\n    # print(args)\n    # breakpoint()\n    # DEBUG #\n    renderStream.run(overwrite_output=True)\n    return cachePath\ndef dotVideoProcessor(\n    item, previous, format=None, verbose=True, medialangTmpDir=\"/dev/shm/medialang/\"\n):\n    # print(\"DOTVIDEO ARGS:\", item, previous, format)\n    # this item is the video output config, medialang item.\n    itemArgs = item.args\n    if format is None:\n        format = item.path.split(\".\")[-1]\n    backend = itemArgs.get(\n        \"backend\", \"editly\"  # this is mere assumption!\n    )  # so all things will be assumed to put directly into editly render json, unless explicitly specified under other medialang or other backend and need to be resolved into media file format before rendering. sure?\n    fast = itemArgs.get(\"fast\", True)\n    bgm = itemArgs.get(\"bgm\", None)",
+        "file_id": 109,
+        "content": "import random\nimport urllib.parse\nimport requests\nfrom base_opq import getGroupNameFromDict\n# disable all proxies.\nimport os\nimport time\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# do not use freaking proxy, otherwise QingYunKe will not respond.\ndef checkApi(func, message, name):\n    response_message = func(message)\n    if response_message != None:\n        print(\"{} RESPONSE:\".format(name), response_message)\ndef chatAtri(\n    msg: str, group_id, retryFlag=False, timeout=5, BASE=\"http://api.nekomimi.icu/v1/\"\n):\n    url = BASE + \"chat?msg=%s\" % urllib.parse.quote(msg)\n    response = requests.get(url, timeout=timeout)\n    if response.status_code == 200:\n        data = response.json()\n        if data[\"status\"] == \"success\":\n            return data[\"message\"]\n    # return None\n    # nothing is returned if have error.\n    print(\"ATRI ERROR:\", response.status_code, response.json())\ndef chatGPT2Local(\n    msg: str, group_id, retryFlag=False, timeout=5, BASE=\"http://127.0.0.1:8729/\"\n):\n    # url = BASE + '?text=%s' % urllib.parse.quote(msg)",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:377-402"
+        "location": "/tasks/qq/qq_red_packet_collect/chatApis.py:1-39"
     },
     "1393": {
-        "file_id": 115,
-        "content": "The code is checking if there's an audio stream present. If so, it combines the video and audio streams using ffmpeg. Otherwise, it only processes the video stream. The DEBUG section is for debugging purposes and logs arguments of the rendered stream. Finally, the code runs the rendering process and returns the cache path. This function aims to generate a video output configuration from medialang item, assuming the backend as \"editly\" if not specified.",
+        "file_id": 109,
+        "content": "Code imports required libraries, disables proxies, and includes two chat functions (chatAtri and chatGPT2Local) for interacting with different APIs. chatAtri sends a message to the Atri API, while chatGPT2Local communicates with a local GPT-2 model through HTTP requests. Both return the response message if successful; otherwise, they print an error message.",
         "type": "comment"
     },
     "1394": {
-        "file_id": 115,
-        "content": "    # outputPath = itemArgs.get(\"\",None)\n    randomUUID = str(uuid.uuid4())\n    outputPath = os.path.join(\n        medialangTmpDir, randomUUID + \".\" + format\n    )  # this is temporary!\n    # usually we choose to use something under medialang tempdir as the storage place.\n    print(\"medialang config:\", format, backend, fast, bgm)\n    # the \"previous\" is the clips, was fucked, filled with non-existant intermediate mpegts files, but no source was out there.\n    # this is initially decided to output mp4, however you might want to decorate it.\n    if verbose:\n        print(\"_________INSIDE DOT VIDEO PROCESSOR_________\")\n        print(\"ITEM:\", item)\n        print(\"PREVIOUS:\", previous)\n        print(\"_________INSIDE DOT VIDEO PROCESSOR_________\")\n    with tempfile.TemporaryDirectory(\n        dir=medialangTmpDir\n    ) as tmpdirname:  # maybe you should take care of the directory prefix?\n        # wtf are you doing over here?\n        # find out where our cache leads to!\n        # maybe the final product is one move away.",
+        "file_id": 109,
+        "content": "    url = BASE\n    params = {\"text\": msg, \"retry\": retryFlag, \"group_id\": group_id}\n    response = requests.get(url, params=params)  # simply ignore timeout.\n    # response = requests.get(url, timeout=timeout, params = params)\n    if response.status_code == 200:\n        data = response.text\n        if len(data) > 0:\n            return data\n    # return None\n    # nothing is returned if have error.\n    print(\"GPT2LOCAL NO RESPONSE ERROR\")  # unknown error.\n# import subprocess\n# import json\ndef chatQingKeYun(\n    msg: str,\n    group_id,\n    retryFlag=False,\n    timeout=5,\n    url=\"http://api.qingyunke.com/api.php?key=free&appid=0&msg=\",\n):\n    msg = urllib.parse.quote(msg)\n    myUrl = url + msg\n    # print(myUrl)\n    # output = subprocess.check_output([\"curl\", myUrl])\n    # data = json.loads(output.decode(\"utf-8\"))\n    # import requests\n    data = requests.get(myUrl, timeout=timeout)\n    data = data.json()\n    print(data)\n    result = data[\"result\"]\n    assert result == 0  # 202 -> busy\n    content = data[\"content\"]\n    return content",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:403-423"
+        "location": "/tasks/qq/qq_red_packet_collect/chatApis.py:40-76"
     },
     "1395": {
-        "file_id": 115,
-        "content": "This code snippet generates a random UUID and stores the video temporarily in a specified directory. It ensures that the output is under medialang's temporary directory, and the verbose parameter allows printing details about the item, previous clip, and other relevant information. The code also utilizes tempfile.TemporaryDirectory to manage the temporary directory.",
+        "file_id": 109,
+        "content": "This function uses the QingKeYun API to process and return responses for a given message. It takes in parameters including the message text, group ID, retry flag, and timeout duration. The code handles potential errors, prints \"GPT2LOCAL NO RESPONSE ERROR\" when there is no response or an unknown error occurs.",
         "type": "comment"
     },
     "1396": {
-        "file_id": 115,
-        "content": "        tmpdirname = os.path.abspath(tmpdirname)\n        print(\"created temporary directory\", tmpdirname)\n        output_path = os.path.join(\n            tmpdirname, randomUUID + \".\" + format\n        )  # this is temporary!\n        # that is the tweak. we have successfully changed the directory!\n        if backend == \"editly\":\n            # iterate through all items.\n            template = {\n                \"width\": 1920,\n                \"height\": 1080,\n                \"fast\": fast,\n                \"fps\": 60,\n                \"outPath\": output_path,\n                \"defaults\": {\"transition\": None},\n                \"clips\": [],\n            }\n            if bgm is not None:\n                template.update({\"audioFilePath\": bgm})\n            for elem in previous:\n                duration = 3  # default duration\n                clip = {\n                    \"duration\": duration,\n                    \"layers\": [],\n                }\n                layer_durations = []\n                for layerElem in elem:\n                    layer = None",
+        "file_id": 109,
+        "content": "    # breakpoint()\ndef chatOwnThink(msg: str, group_id, retryFlag=False, timeout=5):\n    url = \"https://api.ownthink.com/bot?appid=xiaosi&userid=user&spoken=\"\n    msg = urllib.parse.quote(msg)\n    myUrl = url + msg\n    data = requests.get(myUrl, timeout=timeout)\n    data = data.json()\n    # output = subprocess.check_output([\"curl\", myUrl])\n    # data = json.loads(output.decode(\"utf-8\"))\n    if data[\"message\"] == \"success\":\n        if data[\"data\"][\"type\"] == 5000:\n            return data[\"data\"][\"info\"][\"text\"]\n    # print(data)\n    # breakpoint()\n    # result = data['result']\n    # assert result == 0  # 202 -> busy\n    # content = data['content']\n    # return content\ndef chatXiaoIce(msg, group_id, retryFlag=False, timeout=5):\n    import requests\n    topic = getGroupNameFromDict(group_id)\n    if topic is None:\n        topic = \"aaa\"  # default topic. nothing.\n    r = requests.get(\n        \"http://localhost:8735/chat\",\n        params={\"topic\": topic, \"message\": msg},\n        timeout=timeout,\n    )\n    if r.status_code == 200:",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:424-452"
+        "location": "/tasks/qq/qq_red_packet_collect/chatApis.py:77-111"
     },
     "1397": {
-        "file_id": 115,
-        "content": "The code creates a temporary directory, generates a unique output path for the edited video file, and sets up a template for processing using Editly backend. The template includes parameters such as width, height, fast mode, fps, output path, audio file path (if provided), duration of each clip, and layers in each clip. A default transition is also included.",
+        "file_id": 109,
+        "content": "chatOwnThink and chatXiaoIce are two functions used to communicate with the ownthink.com API and local XiaoIce API, respectively. They both take a message as input, along with a group ID and optional retry flag and timeout values. If the request is successful, the function returns the text response from the API. The code also contains comments for potential future implementation of error handling, assertion checks, and content retrieval.",
         "type": "comment"
     },
     "1398": {
-        "file_id": 115,
-        "content": "                    # print(layerElem) # {\"item\":<item>, \"cache\": <cache_path>}\n                    cachePath = layerElem[\"cache\"]\n                    # breakpoint()\n                    layerElemItem = layerElem[\"item\"]\n                    filepath = layerElemItem.path\n                    # what type is this damn media?\n                    filetype = getFileType(filepath)\n                    if layerElemItem.args.get(\"backend\", \"editly\") == \"editly\":\n                        if filetype == \"video\":\n                            videoInfo = get_media_info(filepath)\n                            endOfVideo = videoInfo[\"duration\"]\n                            cutFrom = layerElemItem.args.get(\"cutFrom\", 0)\n                            cutTo = layerElemItem.args.get(\"cutTo\", endOfVideo)\n                            layerOriginalDuration = cutTo - cutFrom\n                            mute = layerElemItem.args.get(\"slient\", False)\n                            processedFilePath = ffmpegVideoPreProductionFilter(\n                                filepath,",
+        "file_id": 109,
+        "content": "        try:\n            content = r.json()\n            assert content[\"msg\"] == \"success\"\n            reply = content[\"reply\"]\n            return reply\n        except:\n            from lazero.utils.logger import traceError\n            traceError(\"xiaoice client error\")\n    else:\n        print(\"xiaoice client got abnormal response code:\", r.status_code)\n# changed. non_standard.\ndef getChatApiReply(\n    msg: str, group_id, chatApiIndex=0, retryFlag=False, timeout=15\n):  # 15 seconds of grace time.\n    # chatApis = [chatQingKeYun, chatAtri]\n    # blacklist chatOwnThink.\n    chatApis = [chatAtri, chatGPT2Local, chatXiaoIce]  # no random shit!\n    # chatApi = random.choice(chatApis)\n    chatApi = chatApis[chatApiIndex]\n    try:\n        reply = chatApi(msg, group_id, retryFlag=retryFlag, timeout=timeout)\n        # will be None anyway.\n        return reply\n    except:\n        pass",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:453-471"
+        "location": "/tasks/qq/qq_red_packet_collect/chatApis.py:112-139"
     },
     "1399": {
-        "file_id": 115,
-        "content": "This code segment is responsible for processing video layers in a media project. It first retrieves the cache path and filepath from the input layer element, then determines the file type using getFileType function. If the backend is set to \"editly\" and the file type is a video, it extracts information about the video's duration and any specified cut range within the layer element. Finally, it applies ffmpegVideoPreProductionFilter to process the video according to the specified parameters.",
+        "file_id": 109,
+        "content": "This code defines a function `getChatApiReply` that selects a chat API from a list and tries to retrieve a response for the input message. If an exception occurs, it logs an error or returns None if the retry flag is set. The code also includes a try-except block to handle potential exceptions during the API request.",
         "type": "comment"
     }
 }

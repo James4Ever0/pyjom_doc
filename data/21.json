@@ -345,194 +345,193 @@
     },
     "2164": {
         "file_id": 218,
-        "content": "/tests/dump_python_dependencies/dump.py",
+        "content": "/tests/audio_volume_meter/test_volume_meter.py",
         "type": "filepath"
     },
     "2165": {
         "file_id": 218,
-        "content": "This code generates a timestamp, creates a directory for storing logs, and uses os.system() to execute the \"pip3 list\" command, saving the output to a log file in the specified directory with the current timestamp as part of the filename.",
+        "content": "This code calculates audio parameters, generates vocal slices, and clusters segments using KMeans for labeling. It merges adjacent segments with similar labels and stores the updated labels.",
         "type": "summary"
     },
     "2166": {
         "file_id": 218,
-        "content": "import datetime\nlog_dir = \"logs\"\nnow = datetime.datetime.now().isoformat().replace(\".\",\"_\").replace(\" \",\"_\")\nprint('DUMP TIME:',now)\ncmd = \"pip3 list > {}/py3_deps_{}.log\".format(log_dir,now)\nimport os\nif not os.path.exists(log_dir):\n    os.mkdir(log_dir)\nos.system(cmd)",
+        "content": "# usually yelling is not always funny. but we can do speech to text. taking longer time though... pinpoint the cue time.\n# often some exclamation attempts like repetation or louder sounds.\naudio_src = \"/media/root/help/pyjom/samples/audio/dog_with_text/vocals.wav\"\n# heard of dog woooling.\n# import audioop\nimport pydub\ntimestep = 0.1  # my time setting.\naudiofile = pydub.AudioSegment.from_wav(audio_src)\nframe_rate = audiofile.frame_rate\nseconds = audiofile.duration_seconds\nprint(frame_rate)  # 44100.\nprint(seconds)  # sample length\nimport math\nimport numpy as np\nfrom talib import stream\n# frame_rate2 = frame_rate *timestep\nmilistep = 1000 * timestep\nma_step = 10  # one second of buffer size. or more. timeperiod=ma_step\nstd_arr, maxval_arr, abs_nonzero_arr = [], [], []\ndef getPaddingMovingAverage(myarray, timeperiod=10):\n    lt = math.ceil(timeperiod / 2)\n    rt = timeperiod - lt\n    len_myarray = len(myarray)\n    max_index = len_myarray - 1\n    result_array = []\n    for i in range(len_myarray):\n        start_index = i - lt",
         "type": "code",
-        "location": "/tests/dump_python_dependencies/dump.py:1-13"
+        "location": "/tests/audio_volume_meter/test_volume_meter.py:1-37"
     },
     "2167": {
         "file_id": 218,
-        "content": "This code generates a timestamp, creates a directory for storing logs, and uses os.system() to execute the \"pip3 list\" command, saving the output to a log file in the specified directory with the current timestamp as part of the filename.",
+        "content": "Code imports PyDub, sets timestep and frame rate variables from audio file duration and frame rate. Imports math, numpy and talib.stream. Defines function getPaddingMovingAverage to calculate moving average with padding, taking an array and time period as parameters. Initializes std_arr, maxval_arr and abs_nonzero_arr lists for further calculations.",
         "type": "comment"
     },
     "2168": {
-        "file_id": 219,
-        "content": "/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/test_bilibili.sh",
-        "type": "filepath"
+        "file_id": 218,
+        "content": "        start_index = max(0, start_index)\n        end_index = i + rt\n        end_index = min(end_index, max_index)\n        array_slice = myarray[start_index:end_index]\n        arr_slice_length = end_index - start_index\n        val = sum(array_slice) / arr_slice_length\n        # val = np.median(array_slice)\n        result_array.append(val)\n    return result_array\nmsteps = math.ceil(seconds / timestep)\nfor i in range(msteps):\n    # print(frame_rate2)\n    # probably in miliseconds.\n    segment = audiofile[i * milistep : (i + 1) * milistep]\n    data = segment.get_array_of_samples()\n    # containes two channels. 4410*2\n    darray = np.array(data)\n    print(darray.shape)\n    std = np.std(darray)\n    abs_darray = abs(darray)\n    maxval = np.max(abs_darray)\n    abs_nonzero = np.average(abs_darray)\n    print(\"STD:{} MAX:{} AVG:{}\".format(std, maxval, abs_nonzero))\n    std_arr.append(std)\n    # ma_std = stream.SMA(np.array(std_arr[-ma_step:]).astype(np.float64))\n    maxval_arr.append(maxval)\n    # ma_maxval = stream.SMA(np.array(maxval_arr[-ma_step:]).astype(np.float64))",
+        "type": "code",
+        "location": "/tests/audio_volume_meter/test_volume_meter.py:38-67"
     },
     "2169": {
-        "file_id": 219,
-        "content": "This code utilizes yt-dlp to download Bilibili video sections with authentication, handles subtitles and danmaku, supports multiple portions, updates cookies, allows title-only downloads, and retrieves metadata.",
-        "type": "summary"
+        "file_id": 218,
+        "content": "This code calculates the standard deviation, maximum value, and average of absolute values for a given audio segment. It appends the calculated values to respective lists and potentially calculates moving averages. The code utilizes numpy functions for array processing and the SMA function from the stream module (possibly) for calculating moving averages.",
+        "type": "comment"
     },
     "2170": {
-        "file_id": 219,
-        "content": "# 关于视频合集 分p视频的分析逻辑：\n# https://github.com/Satoing/python_bilibili_downloader/blob/master/bilibili_video.py\n# 解析这个接口可以得到分p或者合集的信息 以及字幕信息 AI生成的字幕\n# https://api.bilibili.com/x/web-interface/view?bvid=BV1Fs411k7e9\n# https://api.bilibili.com/x/web-interface/view?bvid=BV1Cg411E7NF\nURL=\"https://www.bilibili.com/video/BV1Fs411k7e9\" #老戴 马克思佩恩 分p视频\n# 也可以直接网页parse\n# executing this you will get \"subtitle\" in \"danmaku\" as language, in xml format.\n# 对于海量弹幕的某些视频 （超电磁炮 12w asoul的某些二创 3w）不建议进行弹幕分析 可以通过API获取弹幕总数 不下载弹幕 \n# yt-dlp --skip-download --list-subs -I 1 \"https://www.bilibili.com/video/BV1Fs411k7e9\"\n# URL=\"https://www.bilibili.com/video/BV1Cg411E7NF\" #苏打baka 魔改机箱 合集\n# 合集视频 用bilibili_api 或者直接网页parse即可\n# it has multiple videos. what to do?\n# --force-keyframes-at-cuts\n# man i just need the first chapter.\n# yt-dlp --download-sections \"*0:05:00-0:06:30\" --playlist-items \"1\" \"$URL\" # only first video.\n# premium?\n# this feature is awesome! how to extract cookies programmatically from browser?\n# Use --cookies-from-browser o",
+        "file_id": 218,
+        "content": "    abs_nonzero_arr.append(abs_nonzero)\n    # ma_abs_nonzero = stream.SMA(np.array(abs_nonzero_arr[-ma_step:]).astype(np.float64))\n    # breakpoint()\n    # print(\"MA_STD:{} MA_MAX:{} MA_AVG:{}\".format(ma_std,ma_maxval,ma_abs_nonzero))\n    # print(data)\n    # breakpoint()\n    # maxAudioValue =audioop.max(data,2)\n    # print(\"STEP:\",i,\"VOLUME:\",maxAudioValue)\nstd_arr0 = getPaddingMovingAverage(std_arr, timeperiod=20)\nmaxval_arr0 = getPaddingMovingAverage(maxval_arr, timeperiod=20)\nabs_nonzero_arr0 = getPaddingMovingAverage(abs_nonzero_arr, timeperiod=20)\nma_std_arr = getPaddingMovingAverage(std_arr, timeperiod=60)\nma_maxval_arr = getPaddingMovingAverage(maxval_arr, timeperiod=60)\nma_abs_nonzero_arr = getPaddingMovingAverage(abs_nonzero_arr, timeperiod=60)\n# just use one freaking example as my conclusion.\nstatus = \"end\"\nvocal_slices = []\nvocal_slice = []\nfinal_index = msteps - 1\n# could you use clustering.\n# like time versus duration.\navg_std = []\nfor i in range(msteps):\n    a, b, c = std_arr0[i], maxval_arr0[i], abs_nonzero_arr0[i]",
         "type": "code",
-        "location": "/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/test_bilibili.sh:1-26"
+        "location": "/tests/audio_volume_meter/test_volume_meter.py:68-92"
     },
     "2171": {
-        "file_id": 219,
-        "content": "This code snippet is for downloading specific sections of Bilibili videos using yt-dlp. It provides URLs for both single video parts and video collections, explains how to handle subtitles and danmaku (comments), and suggests using the --cookies-from-browser option for premium access.",
+        "file_id": 218,
+        "content": "This code calculates the moving average for various audio parameters (std_arr, maxval_arr, and abs_nonzero_arr) over different time periods. It then generates a vocal slice based on these moving averages for each step in the range of msteps. The final index is set to be one less than the total number of steps, and an average list is created.",
         "type": "comment"
     },
     "2172": {
-        "file_id": 219,
-        "content": "r --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp \n# not working for chromium on kali? (no bilibili cookie found) maybe it is relocated.\n# cookies = yt_dlp.cookies.extract_cookies_from_browser(BROWSER_NAME) -> YourubeDLCookieJar\n# save as Netscape HTTP Cookie File.\n# cookies.save(OUTPUT_FILE_PATH) \n# since we have issue playing content at tail of video, we do this.\n# yt-dlp --download-sections \"*0:05:00-0:06:30\" --playlist-items \"1\" --cookies-from-browser firefox --force-keyframes-at-cuts \"$URL\" # pass cookies.\n# forcing keyframe is much slower. but it produces better results.\n# yt-dlp --download-sections \"*0:05:00-0:06:30\" --playlist-items \"1\" --cookies-from-browser firefox --force-keyframes-at-cuts \"$URL\" # pass cookies.\n# you may want to add some margin at tail (or head) if not using \"--force-keyframes-at-cuts\", be it 10 seconds. usually jigs happens at 5 secs. but we are careful.\n# yt-dlp --download-sections \"*0:04:50-0:06:40\" --playlist-items \"1\" --cookies-from-browser firefox \"$URL\" # pass cookies.",
+        "file_id": 218,
+        "content": "    a0, b0, c0 = ma_std_arr[i], ma_maxval_arr[i], ma_abs_nonzero_arr[i]\n    if status == \"end\":\n        # startpoint = a0 < a\n        startpoint = a0 < a or b0 < b or c0 < c\n        if startpoint:\n            vocal_slice.append(i)\n            avg_std.append(a)\n            status = \"start\"\n    else:\n        avg_std.append(a)\n        # endpoint = a0 > a\n        endpoint = a0 > a and b0 > b and c0 > c\n        if endpoint:\n            vocal_slice.append(i)\n            # vocal_slice[1] = i\n            status = \"end\"\n            vocal_slices.append([vocal_slice, np.average(avg_std)])\n            vocal_slice = []\n            avg_std = []\nif len(vocal_slice) == 1:\n    vocal_slice.append(final_index)\n    vocal_slices.append([vocal_slice, np.average(avg_std)])\ntime_rate = timestep\ntimed_vocal_slices = [\n    [[x[0][0] * time_rate, x[0][1] * time_rate], x[1]] for x in vocal_slices\n]\nd2_data = []\nd1_data = []\nfor slice_vocal in timed_vocal_slices:\n    print(slice_vocal)  # it could be two dimentional. both for length and volume?",
         "type": "code",
-        "location": "/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/test_bilibili.sh:26-42"
+        "location": "/tests/audio_volume_meter/test_volume_meter.py:93-123"
     },
     "2173": {
-        "file_id": 219,
-        "content": "The code is trying to download a specific portion of a Bilibili video, ensuring authentication by passing cookies from the browser (Firefox in this case) to yt-dlp. It forces keyframes at cuts for better results but notes that it's slower. The code provides different options to account for potential issues and suggests adding margin at tail or head if not using --force-keyframes-at-cuts, with a recommended 10 seconds or even 5 seconds depending on the need for caution.",
+        "file_id": 218,
+        "content": "The code is iterating through an array of data and dividing it into segments based on threshold values for average, maximum, and absolute non-zero values. These segments are classified as either \"start\" or \"end\", and the indices of the start and end points are stored in separate lists. If a segment only has one point, it is added to the list of vocal slices along with the average of the threshold values. The code then calculates the time rate and creates two-dimensional lists of timed vocal slices (segment start and end times), and data for d1 and d2. Finally, the code prints the timed vocal slices, which could be in a two-dimensional format representing length and volume.",
         "type": "comment"
     },
     "2174": {
-        "file_id": 219,
-        "content": "# what if we download multiple sections?\n# no combination? shit.\n# if not at the very tail, other tails can be better than the last tail. but it is just my guess. better to keep all these margins!\n# yt-dlp --download-sections \"*0:04:50-0:05:40\" --download-sections \"*0:05:50-0:06:40\" --playlist-items \"1\" --cookies-from-browser firefox -o \"%(uploader_id)s-%(id)s-%(title)s-%(autonumber)s.%(ext)s\" \"$URL\" # pass cookies.\n# since we have cron job now, no need to do the old-school thing.\nyt-dlp --download-sections \"*0:04:50-0:05:40\" --download-sections \"*0:05:50-0:06:40\" --playlist-items \"1\" --cookies /root/.browser_cookies_exported/firefox.cookies -o \"%(uploader_id)s-%(id)s-%(title)s-%(autonumber)s.%(ext)s\" \"$URL\" # pass cookies in different way\n# like this: '2142762-BV1Fs411k7e9_p1-老戴《马克思佩恩 3》全收集流程攻略【共14期完结】 p01 EP-01-00002.mp4'\n# https://github.com/yt-dlp/yt-dlp#readme -> \"OUTPUT TEMPLATE\"\n# https://github.com/yt-dlp/yt-dlp/issues/4579\n# you better use stored cookies instead of retrieving cookies every time.",
+        "file_id": 218,
+        "content": "    # to find best shit you need grouping.\n    a, b = slice_vocal[0]\n    length = b - a\n    d2_data.append([length, slice_vocal[1]])\n    d1_data.append([slice_vocal[1]])\nfrom sklearn.cluster import KMeans\nkmeans = KMeans(n_clusters=2)\nkm = kmeans.fit(d1_data)\nlabels = km.labels_\nlabel_indexs = {i: labels[i] for i in range(len(labels))}\n# print(label_index)\nnew_labels = []\nmergeTimeGap = 0.5\nlb_new = 0\nlast_elem = None\nfor index, data in enumerate(timed_vocal_slices):\n    # data = timed_vocal_slices\n    [start, end], std = data\n    label = label_indexs[index]\n    if last_elem == None:\n        last_elem = [[start, end], label]\n    else:\n        [[last_start, last_end], last_label] = last_elem\n        if start - last_end < mergeTimeGap and last_label == label:\n            pass\n            # last_elem = [[start,end],label]\n        else:\n            lb_new += 1\n        last_elem = [[start, end], label]\n    new_labels.append(lb_new)\n    print(\"DATA:\", data, \"LABEL:\", label, \"NEW_LABEL:\", lb_new)",
         "type": "code",
-        "location": "/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/test_bilibili.sh:44-59"
+        "location": "/tests/audio_volume_meter/test_volume_meter.py:124-157"
     },
     "2175": {
-        "file_id": 219,
-        "content": "The code tests downloading multiple video portions from Bilibili using yt-dlp with cookies stored, instead of retrieving them every time. It mentions that keeping all margins is better and suggests using a different format for the output file name.",
+        "file_id": 218,
+        "content": "This code is grouping vocal segments based on their start and end timestamps. It uses KMeans clustering from sklearn to assign labels to each segment, then merges adjacent segments with the same label if they are less than a certain time gap apart. The new_labels list stores the updated labels for each segment.",
         "type": "comment"
     },
     "2176": {
         "file_id": 219,
-        "content": "# or you can update cookies regularly with cronjob.\n# just want metadata?\n# if you want title for each video in playlist, you just get it from elsewhere or parse the damn output filename (slow, man!)\n# this seems to only have video description. nothing else! not even video length.\n# yt-dlp --write-description --write-playlist-metafiles --skip-download \"$URL\"\n# hey i don't want many download links. i just want title.\n# yt-dlp --write-info-json  --write-playlist-metafiles --skip-download \"$URL\" # this will get metadata main playlist and every video in the playlist in separate json files.\n# this is one of the video in that playlist. \"https://www.bilibili.com/video/BV1Fs411k7e9?p=1\n# you can get comments with this tool.\n## no comments?\n# yt-dlp --write-info-json --skip-download \"$URL\"\n# download-sections can be used multiple times?",
-        "type": "code",
-        "location": "/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/test_bilibili.sh:60-75"
+        "content": "/tests/aiohttp_python_clash_delay_proxy_set_proxy/test.py",
+        "type": "filepath"
     },
     "2177": {
         "file_id": 219,
-        "content": "This code snippet provides various options for downloading or obtaining metadata from a Bilibili playlist using yt-dlp. The user can choose to update cookies regularly, download only the video title, or retrieve metadata for the entire playlist and each individual video in separate JSON files. The user can also use specific URLs to obtain comments without actually downloading the videos. The code suggests multiple usage scenarios for the 'download-sections' functionality.",
-        "type": "comment"
-    },
-    "2178": {
-        "file_id": 220,
-        "content": "/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/cron_update_cookies_stored_under_root_home.py",
-        "type": "filepath"
-    },
-    "2179": {
-        "file_id": 220,
-        "content": "This script creates a directory for cookie storage if it doesn't already exist, and then extracts and saves cookies from Firefox and Chromium browsers.",
+        "content": "This code fetches and tests proxies, sets up a connection gateway, makes a GET request to \"https://deepl.com\" using the valid proxy, prints first 100 bytes and status code, and displays \"deepl response\".",
         "type": "summary"
     },
-    "2180": {
-        "file_id": 220,
-        "content": "# 0 * * * * /usr/bin/python3 /root/Desktop/works/pyjom/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/cron_update_cookies_stored_under_root_home.py\nimport os\nimport shutil\ncookies_path = \"/root/.browser_cookies_exported\"\nif not (os.path.exists(cookies_path) or os.path.isdir(cookies_path)):\n    if os.path.isfile(cookies_path):\n        os.remove(cookies_path)\n    elif os.path.isdir(cookies_path):\n        shutil.rmtree(cookies_path)\n    elif os.path.islink(cookies_path):\n        os.unlink(cookies_path)\n    os.mkdir(cookies_path)\nimport yt_dlp\nbrowser_names = [\"firefox\",\"chromium\"]\nfor browser_name in browser_names:\n    cookies = yt_dlp.cookies.extract_cookies_from_browser(browser_name)\n    filepath = os.path.join(cookies_path,f\"{browser_name}.cookies\")\n    cookies.save(filepath)",
+    "2178": {
+        "file_id": 219,
+        "content": "# from download_from_multiple_websites_at_once import concurrentGet\nfrom lazero.network.proxy.clash import (\n    getProxyList,\n    testProxyList,\n    getConnectionGateway,\n    setProxyConfig,\n    setProxyWithSelector,\n)\nimport requests\nif __name__ == \"__main__\":\n    # validProxyDelayList = []\n    proxyList = getProxyList(debug=True)\n    # pprint.pprint(result)\n    validProxyDelayList = testProxyList(proxyList, timeout=5000)\n    #     pprint(gateway)\n    #     {'allow-lan': True,\n    #  'authentication': [],\n    #  'bind-address': '*',\n    #  'ipv6': False,\n    #  'log-level': 'info',\n    #  'mixed-port': 0,\n    #  'mode': 'rule',\n    #  'port': 8381,\n    #  'redir-port': 0,\n    #  'socks-port': 0,\n    #  'tproxy-port': 0}\n    gateway = getConnectionGateway()\n    print(\"valid proxies:\", len(validProxyDelayList))\n    validProxyName = validProxyDelayList[0][\"name\"]\n    # if no valid proxy, better do another run.\n    setProxyConfig(mode=\"Global\")\n    # you can switch to 'Rule' if you want the baidu translation\n    setProxyWithSelector(validProxyName, debug=True)",
         "type": "code",
-        "location": "/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/cron_update_cookies_stored_under_root_home.py:1-24"
+        "location": "/tests/aiohttp_python_clash_delay_proxy_set_proxy/test.py:1-34"
+    },
+    "2179": {
+        "file_id": 219,
+        "content": "This code fetches the proxy list from Clash, tests the proxies for validity, sets up a connection gateway, and configures the global proxy using Clash's functions. It prints the number of valid proxies found and sets a specific valid proxy for further use.",
+        "type": "comment"
+    },
+    "2180": {
+        "file_id": 219,
+        "content": "    # now use the proxy!\n    r = requests.get(\"https://deepl.com\", proxies={\"http\": gateway, \"https\": gateway})\n    print()\n    print(r.content[:100])\n    print(r.status_code)\n    print(\"deepl response\")",
+        "type": "code",
+        "location": "/tests/aiohttp_python_clash_delay_proxy_set_proxy/test.py:35-40"
     },
     "2181": {
-        "file_id": 220,
-        "content": "This script creates a directory for cookie storage if it doesn't already exist, and then extracts and saves cookies from Firefox and Chromium browsers.",
+        "file_id": 219,
+        "content": "Using the proxy, make a GET request to \"https://deepl.com\", print the first 100 bytes of response content and status code, then display \"deepl response\".",
         "type": "comment"
     },
     "2182": {
-        "file_id": 221,
-        "content": "/tests/chatgpt_multiagent_agent_product_line_multimodal_langchain_experiments/test_chatgpt_cn_api.py",
+        "file_id": 220,
+        "content": "/tests/aiohttp_python_clash_delay_proxy_set_proxy/download_from_multiple_websites_at_once.py",
         "type": "filepath"
     },
     "2183": {
-        "file_id": 221,
-        "content": "The code offers an online interface for ChatGPT API, streamlining development by loading API key and endpoint from a YAML file, setting environment variables, and using the OpenAI completion API to send messages, receive responses, and return replies.",
+        "file_id": 220,
+        "content": "This code imports the \"concurrentGet\" function from the \"lzero.network.asyncio\" module, which allows for making concurrent HTTP GET requests asynchronously.",
         "type": "summary"
     },
     "2184": {
-        "file_id": 221,
-        "content": "\"\"\"\nInterface for using the chatgpt api online service, without setting up locally.\nThis interface is used for development, not in production.\n\"\"\"\n# Do not treat the machine like people.\n# You need to handle them differently.\nfrom litellm import completion\nimport os\nimport yaml\napi_key_filepath = os.path.join(\n    os.path.expanduser(\"~\"), \".chatgpt_api_key.yaml\")\nif os.path.exists(api_key_filepath):\n    if os.path.isfile(api_key_filepath):\n        # Load YAML file\n        with open(api_key_filepath, 'r') as file:\n            data = yaml.load(file, Loader=yaml.FullLoader)\n            api_key = data['api_key']\n            endpoint = data['endpoint']\n    else:\n        raise Exception(\n            f\"API key path exists but found non-file object at: '{api_key_filepath}'\")\nelse:\n    raise Exception(f\"API key file not found in: '{api_key_filepath}'\")\nos.environ[\"OPENAI_API_KEY\"] = api_key\nos.environ[\"OPENAI_API_BASE\"] = endpoint\nmodel_tag = \"openai/gpt-3.5-turbo\"\ndef get_reply_from_chatgpt(content: str):\n    messages = [{\"content\": content, \"role\": \"user\"}]",
+        "file_id": 220,
+        "content": "from lazero.network.asyncio import concurrentGet",
         "type": "code",
-        "location": "/tests/chatgpt_multiagent_agent_product_line_multimodal_langchain_experiments/test_chatgpt_cn_api.py:1-37"
+        "location": "/tests/aiohttp_python_clash_delay_proxy_set_proxy/download_from_multiple_websites_at_once.py:1-1"
     },
     "2185": {
-        "file_id": 221,
-        "content": "This code provides an interface for using the ChatGPT API online service without setting up locally, specifically designed for development purposes. It handles loading the API key and endpoint from a YAML file, sets environment variables, and defines a function to get a reply from ChatGPT using provided content.",
+        "file_id": 220,
+        "content": "This code imports the \"concurrentGet\" function from the \"lzero.network.asyncio\" module, which allows for making concurrent HTTP GET requests asynchronously.",
         "type": "comment"
     },
     "2186": {
         "file_id": 221,
-        "content": "    print(\"sending:\")\n    print(messages)\n    # openai call\n    # many info inside. you may want to take a look?\n    response = completion(model_tag, messages)\n    choices = response['choices']\n    reply_content = choices[0]['message']['content']\n    print(\"reply:\")\n    print(reply_content)\n    return reply_content",
-        "type": "code",
-        "location": "/tests/chatgpt_multiagent_agent_product_line_multimodal_langchain_experiments/test_chatgpt_cn_api.py:38-47"
+        "content": "/tests/basic_pitch_multi_midi_conversion/test.sh",
+        "type": "filepath"
     },
     "2187": {
         "file_id": 221,
-        "content": "This code sends a message and receives a response using OpenAI's completion API. It prints the input messages, processes the response from the API, extracts the reply content, and returns it for further processing.",
-        "type": "comment"
+        "content": "Creates a new folder called \"output_path\", then uses the 'basic-pitch' command to convert MIDI files from \"/media/root/help/pyjom/tests/bilibili_practices/bilibili_tarot/some_bgm.mp3\" into audio format, saving them in the newly created folder.",
+        "type": "summary"
     },
     "2188": {
-        "file_id": 222,
-        "content": "/tests/chatgpt_multiagent_agent_product_line_multimodal_langchain_experiments/test_url_repair_extract_trace_media_source.py",
-        "type": "filepath"
+        "file_id": 221,
+        "content": "mkdir output_path\nbasic-pitch --sonify-midi output_path /media/root/help/pyjom/tests/bilibili_practices/bilibili_tarot/some_bgm.mp3",
+        "type": "code",
+        "location": "/tests/basic_pitch_multi_midi_conversion/test.sh:1-2"
     },
     "2189": {
-        "file_id": 222,
-        "content": "The code defines functions to recover URLs, indexify them, and prompt for YouTube selection with utility functions for repairing content and retrieving selection IDs. It extracts, repairs, and selects YouTube URLs from a list by handling direct/indirect links and improving readability.",
-        "type": "summary"
+        "file_id": 221,
+        "content": "Creates a new folder called \"output_path\", then uses the 'basic-pitch' command to convert MIDI files from \"/media/root/help/pyjom/tests/bilibili_practices/bilibili_tarot/some_bgm.mp3\" into audio format, saving them in the newly created folder.",
+        "type": "comment"
     },
     "2190": {
         "file_id": 222,
-        "content": "from typing import Optional\ndef recover_prompt_constructor(info): return f\"\"\"\nPlease recover any URL from the given context. Every URL shall be visitable, starting with \"http://\" or \"https://\".\nContext:\n{info}\nURLs:\n\"\"\"\ndef indexify_string_list(string_list): return [\n    f'[{index}] {url}' for index, url in enumerate(string_list)]\ndef youtube_select_prompt_constructor(url_list): \n    urls_content = '\\n'.join(indexify_string_list(url_list))\n    return f\"\"\"\nPlease select URLs if they are directed to YouTube. I will give you URLs with index in front of them. Give your selection by selected indices in squared brackets separated by space like: [1] [3].\nURLs:\n{urls_content}\nSelected URLs:\n\"\"\"\nfrom test_chatgpt_cn_api import get_reply_from_chatgpt\ndef repair_content_with_url(info):\n    prompt = recover_prompt_constructor(info)\n    content = get_reply_from_chatgpt(prompt)\n    return content\nimport re\ndef get_youtube_selection_ids(urls):\n    prompt = youtube_select_prompt_constructor(urls)\n    response= get_reply_from_chatgpt(prompt)",
-        "type": "code",
-        "location": "/tests/chatgpt_multiagent_agent_product_line_multimodal_langchain_experiments/test_url_repair_extract_trace_media_source.py:2-42"
+        "content": "/tests/cpm_chinese_chitchat_model_gpt2/test.sh",
+        "type": "filepath"
     },
     "2191": {
         "file_id": 222,
-        "content": "This code defines functions to recover URLs from context, indexify them in a string list, and prompt the user to select YouTube URLs. It also includes utility functions for repairing content with URLs and getting YouTube selection IDs.",
-        "type": "comment"
+        "content": "This code changes the directory to GPT2-chitchat, checks RAM consumption and urges to buy new RAM for CPU model testing. It runs 'interact.py' with no CUDA and using a specific model path.",
+        "type": "summary"
     },
     "2192": {
         "file_id": 222,
-        "content": "    numbers = re.findall(r'\\[\\d+\\]', response)\n    indices = []\n    for num in numbers:\n        num = num.strip(\"[\").strip(']').strip()\n        num = int(num)\n        indices.append(num)\n    return indices\ndef select_youtube_urls(url_list, indices):\n    fatal_error:Optional[str]= None\n    selected_urls = []\n    index_errors = 0\n    url_counts = len(url_list)\n    max_index = url_counts-1\n    for index in indices:\n        try:\n            url = url_list[index]\n            print(\"selected:\", url)\n            selected_urls.append(url)\n        except IndexError:\n            index_errors += 1\n            # TODO: handle error by recursively letting the LLM knows the error and querying answer.\n            # TODO: determine if error is fatal (not recoverable in 5 iterations)\n            # TODO: eliminate possibility of external cause of fatal error by inferance\n            print('index not found: %d (max index is %d)' % (index, max_index))\n    print(\"summary\".center(80, \"=\"))\n    print(\"given url counts: %d\" % url_counts)",
+        "content": "# no fucking gpu. just test how much RAM it consumes.\ncd GPT2-chitchat # 1.8GB mem consumption. freaking hell.\n# BUY NEW RAM AND RUN MODELS ON CPU!\npython3 interact.py --no_cuda --model_path ../model",
         "type": "code",
-        "location": "/tests/chatgpt_multiagent_agent_product_line_multimodal_langchain_experiments/test_url_repair_extract_trace_media_source.py:43-69"
+        "location": "/tests/cpm_chinese_chitchat_model_gpt2/test.sh:1-4"
     },
     "2193": {
         "file_id": 222,
-        "content": "This code defines two functions, `extract_indices` and `select_youtube_urls`. The first function extracts indices from the response string using regular expressions. The second function takes a list of URLs and a list of indices, selects the corresponding URLs based on the provided indices, handles index errors, and returns the selected URLs. It also includes TODO comments for potential error handling and improvement suggestions.",
+        "content": "This code changes the directory to GPT2-chitchat, checks RAM consumption and urges to buy new RAM for CPU model testing. It runs 'interact.py' with no CUDA and using a specific model path.",
         "type": "comment"
     },
     "2194": {
-        "file_id": 222,
-        "content": "    print(\"selected url counts: %d\", len(selected_urls))\n    print(\"index errors: %d\" % index_errors)\n    return selected_urls\nfrom urlextract import URLExtract\nextractor = URLExtract()\ndef extract_url(content):\n    \"\"\"\n    Just extract the url. Do not repair.\n    \"\"\"\n    urls = extractor.find_urls(content)\n    return urls\ndef repair_and_get_repaired_url_list(info):\n    content = repair_content_with_url(info)\n    url_list = extract_url(content)\n    return url_list\nif __name__ == '__main__':\n    info_direct = \"\"\"\nYoutube\n原标题A Thousand Miles-Neco are(FULL VERSION)\nhttps://youtu.be/Ddpx0JLOH6o?si=zZMjAEFj_TOXkQct\n音频下载：\nhttps://wwxa.lanzouj.com/idPN81a5u4ab\n密码:5292\n\"\"\"\n    info_indirect = \"\"\"\n转自Youtube\n/watch?v=mSqRH4WwnnY // By :Encrypted Lobster\n\"\"\"\n    info_list = [info_direct, info_indirect]\n    for i, info in enumerate(info_list):\n        print(f\"processing info #{i}\")\n        print(info)\n        repaired_urls = repair_and_get_repaired_url_list(info)\n        indices = get_youtube_selection_ids(repaired_urls)\n        selected_urls = select_youtube_urls(repaired_urls, indices)",
-        "type": "code",
-        "location": "/tests/chatgpt_multiagent_agent_product_line_multimodal_langchain_experiments/test_url_repair_extract_trace_media_source.py:70-114"
+        "file_id": 223,
+        "content": "/tests/cpm_chinese_chitchat_model_gpt2/init.sh",
+        "type": "filepath"
     },
     "2195": {
-        "file_id": 222,
-        "content": "This code is extracting and repairing URLs from provided information. It first extracts URLs without repairing them, then repairs the content with any broken URLs and extracts the repaired URLs. The code handles both direct and indirect Youtube links, processes each info in the list, repairs URLs, selects YouTube URLs based on specified selection IDs, and finally returns the selected URLs.",
-        "type": "comment"
+        "file_id": 223,
+        "content": "Code is cloning the GPT2-chitchat repository with a single commit from GitHub.",
+        "type": "summary"
     },
     "2196": {
-        "file_id": 222,
-        "content": "        print(\"selected urls:\")\n        for url in selected_urls:\n            print(f'\\t{url}')\n        print()",
+        "file_id": 223,
+        "content": "git clone --depth 1 https://github.com/yangjianxin1/GPT2-chitchat",
         "type": "code",
-        "location": "/tests/chatgpt_multiagent_agent_product_line_multimodal_langchain_experiments/test_url_repair_extract_trace_media_source.py:115-118"
+        "location": "/tests/cpm_chinese_chitchat_model_gpt2/init.sh:1-1"
     },
     "2197": {
-        "file_id": 222,
-        "content": "This code segment prints the selected URLs from a list. The 'for' loop iterates through each URL in the list and displays it with a tab character for readability, followed by a newline to separate each URL for better visualization.",
+        "file_id": 223,
+        "content": "Code is cloning the GPT2-chitchat repository with a single commit from GitHub.",
         "type": "comment"
     },
     "2198": {
-        "file_id": 223,
-        "content": "/tests/chatgpt_multiagent_agent_product_line_multimodal_langchain_experiments/README.md",
+        "file_id": 224,
+        "content": "/tests/conversation_talk_apis/api_tests.py",
         "type": "filepath"
     },
     "2199": {
-        "file_id": 223,
-        "content": "The code mentions the power of chatgpt-like bots and plans to run one using CPU instead of a powerful GPU. It also suggests utilizing moderation API and openAI API for testing purposes. The bot will start with a simple task involving constructing/extracting URLs from video descriptions.",
+        "file_id": 224,
+        "content": "This code imports modules, disables proxies, and uses requests library to send POST requests to Weibo API's direct messaging endpoint. It creates and sends messages, retrieves responses in JSON format, interacts with Weibo and OwnThink APIs, checks user messages against responses, performs API tests using checkApi function for different chatbot instances.",
         "type": "summary"
     }
 }

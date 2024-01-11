@@ -1,546 +1,539 @@
 {
     "1400": {
-        "file_id": 115,
-        "content": "                                start=cutFrom,\n                                end=cutTo,\n                                cachePath=cachePath,\n                                preview=fast,\n                                audio=not mute,\n                            )\n                            # what is this filepath? man how do i handle this?\n                            videoFilePath = processedFilePath\n                            # get video information!\n                            # if processed:\n                            # this must be true now.\n                            cutFrom = 0\n                            cutTo = layerOriginalDuration\n                            speed = layerElemItem.args.get(\"speed\", 1)\n                            # was wrong.\n                            layerDuration = (cutTo - cutFrom) / speed\n                            layer_durations.append(layerDuration)\n                            layer = {\n                                \"type\": \"video\",\n                                \"path\": videoFilePath,",
-        "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:472-492"
+        "file_id": 110,
+        "content": "/tasks/qq/qq_red_packet_collect/chat_local.py",
+        "type": "filepath"
     },
     "1401": {
-        "file_id": 115,
-        "content": "This code is processing a video file and saving it to a specified path. It sets the start and end time of the clip, determines the speed of playback, and appends the duration of the layer to a list. The processed video file's path is stored in \"videoFilePath\".",
-        "type": "comment"
+        "file_id": 110,
+        "content": "The code uses the Jiagu library for sentiment analysis, stack management, and string comparison to handle duplicates in chat stacks, calculating differences between strings, and ranking messages based on Levenshtein distance and sentiment before either releasing or removing the selected message.",
+        "type": "summary"
     },
     "1402": {
-        "file_id": 115,
-        "content": "                                \"resizeMode\": \"contain\",\n                                \"cutFrom\": cutFrom,\n                                \"cutTo\": cutTo,\n                                # that's how we mute it.\n                                \"mixVolume\": 1 - int(mute),\n                            }\n                            removeKeys = []\n                            for key, elem in layer.items():\n                                if elem is None:\n                                    removeKeys.append(key)\n                            for key in removeKeys:\n                                del layer[key]\n                    if layer is not None:\n                        clip[\"layers\"].append(layer)\n                    else:\n                        raise Exception(\"NOT IMPLEMENTED LAYER FORMAT:\", layerElem)\n                maxDuration = max(layer_durations)\n                clip[\"duration\"] = maxDuration\n                template[\"clips\"].append(clip)\n                # then just execute this template, or let's just view it.",
+        "file_id": 110,
+        "content": "# local chatbot implemetation.\n# first, we need experimental data.\n# a unified stack for every group.\n# import this shit ahead of everything.\nimport Levenshtein\nimport jiagu\nimport random\nfrom base_opq import stderrPrint\ndef update_stack(stack, elem, stackSize=300, no_duplicate=True):\n    if no_duplicate:\n        # check for duplicates.\n        if stack == []:\n            duplicate = False\n        else:\n            duplicate = stack[-1] == elem\n        if duplicate:\n            return stack\n    stack += [elem]\n    length = len(stack)\n    return stack[max(0, length - stackSize) :]\ndef getSentiment(sentence):\n    flag, probability = jiagu.sentiment(sentence)\n    # the probability that flag is true.\n    return flag, probability\ndef getAbsSentiment(sentence):  # ignore positive or negative.\n    flag, probability = getSentiment(sentence)\n    return probability\ndef getLinearSentiment(sentence):\n    flag, probability = getSentiment(sentence)\n    if flag == \"negative\":\n        probability = -probability\n    return probability",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:493-512"
+        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:1-41"
     },
     "1403": {
-        "file_id": 115,
-        "content": "The code is modifying a clip's properties, such as mute and resize mode, based on input parameters like cutFrom and cutTo. It also handles None values in the layer dictionary by removing them. The code then sets the maximum duration of all layers, adds the modified clip to the template, and finally executes or views the template.",
+        "file_id": 110,
+        "content": "This code contains various functions for sentiment analysis and managing a stack. It imports necessary libraries, updates a stack without duplicates (if specified), determines the sentiment of a sentence using Jiagu, and calculates linear sentiment by reversing negative sentiment probability.",
         "type": "comment"
     },
     "1404": {
-        "file_id": 115,
-        "content": "            if verbose:\n                print(\"________________editly template________________\")\n                print(\n                    json.dumps(template, ensure_ascii=False, indent=4)\n                )  # let's view it elsewhere? or in `less`?\n                print(\"________________editly template________________\")\n            # breakpoint()\n            # return template\n            executeEditlyScript(medialangTmpDir, template)\n            os.rename(output_path, outputPath)\n            return outputPath",
+        "file_id": 110,
+        "content": "def compareDifference(sent_0, sent_1):\n    distance = Levenshtein.distance(sent_0, sent_1)\n    return distance\ndef getRatioDifference(sent_0, sent_1, reverse=False):\n    if reverse:\n        base_length = len(sent_1)\n    else:\n        base_length = len(sent_0)\n    distance = compareDifference(sent_0, sent_1)\n    return min(1, distance / base_length)\ndef getMinDifference(sent_0, sent_1):\n    reverse = False\n    if len(sent_0) < len(sent_1):\n        reverse = True\n    return getRatioDifference(sent_0, sent_1, reverse=reverse)\nchat_stack = {}\nhistoricalReplies = []  # should also be a stack.\nchat_stack_lock = False\ndef updateChatStack(group_id, message, stackSize=300, no_duplicate=True):\n    chat_stack[group_id] = update_stack(\n        chat_stack.get(group_id, []),\n        message,\n        stackSize=stackSize,\n        no_duplicate=no_duplicate,\n    )\ndef sampleChatStack(\n    originGroup: int, msg: str, min_corpus_size=100, sample_size=2000, originGroupCut=50\n):  # must exclude sent messages.\n    # assert min_corpus_size >= sample_size",
         "type": "code",
-        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:513-523"
+        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:44-84"
     },
     "1405": {
-        "file_id": 115,
-        "content": "This code snippet checks if verbose is true and prints the editly template in a formatted way. It then executes the Editly script, renames the output file from `output_path` to `outputPath`, and finally returns the output path.",
+        "file_id": 110,
+        "content": "This code contains three functions: `compareDifference`, `getRatioDifference`, and `getMinDifference`. These functions calculate the difference between two strings by comparing their characters. The `updateChatStack` function updates a chat stack, ensuring no duplicate messages are included. The `sampleChatStack` function samples messages from the chat stack, excluding sent messages, for text generation.",
         "type": "comment"
     },
     "1406": {
-        "file_id": 116,
-        "content": "/pyjom/medialang/functions/__init__.py",
-        "type": "filepath"
+        "file_id": 110,
+        "content": "    # do not do this\n    population = [\n        (group_id, max(0, len(chat_stack[group_id]) - 1))\n        for group_id in chat_stack.keys()\n        if group_id != originGroup\n    ]\n    # population_size = sum([x[1] for x in population]) # wrong.\n    population = [  # no need to check against the original group here.\n        # if (chat_stack[group_id][index] != msg or group_id != originGroup)\n        [\n            (group_id, index)\n            for index in range(group_msg_size)\n            if chat_stack[group_id][index + 1] not in historicalReplies\n        ]\n        for group_id, group_msg_size in population\n    ]  # allow other group with same message or same group with other message\n    originGroupLength = len(chat_stack[originGroup]) - 1\n    if originGroupLength > originGroupCut:\n        # THIS WAS BLOODY WRONG\n        # WAS MISPLACED.\n        population.append(\n            [\n                (originGroup, index)\n                for index in range(0, originGroupLength - originGroupCut)\n                if chat_stack[originGroup][index] != msg",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:85-110"
     },
     "1407": {
-        "file_id": 116,
-        "content": "The code imports detectors from the medialangFunctions module and creates a dictionary of available media language functions. The getMedialangFunction function searches the dictionary for the specified function name, returns it if found, and prints its type and name. If not found, it returns None.",
-        "type": "summary"
+        "file_id": 110,
+        "content": "Creates a list of group IDs and corresponding message indexes excluding the original group and message. Excludes groups with same messages or other messages from the same group. Retrieves number of messages in the original group and if more than the cutoff, adds original group's messages except the current one to the population list.",
+        "type": "comment"
     },
     "1408": {
-        "file_id": 116,
-        "content": "from pyjom.medialang.functions.detectors import *\nmedialangFunctions = {\"detector\": medialangDetectors}\ndef getMedialangFunction(function):\n    for key in medialangFunctions:\n        mgroup = medialangFunctions[key]\n        for key2 in mgroup:\n            if key2 == function:\n                function = mgroup[key2]\n                print(\"function type:\", key)\n                print(\"function name:\", key2)\n                return function\n    return None",
+        "file_id": 110,
+        "content": "            ]\n        )\n    population = [x for y in population for x in y]\n    population_size = len(population)\n    if population_size < min_corpus_size:\n        return []\n    sample_size = min(population_size, sample_size)\n    # it must equal.\n    sample = random.sample(population, sample_size)\n    return sample\ndef sentimentFilter(sentiment, threshold=0.85):\n    assert threshold > 0 and threshold < 1\n    # for too negative ones, we value it as 0.\n    if sentiment < -threshold or sentiment > threshold:\n        return 0\n    return abs(sentiment)\ndef getChatLocalResponse(\n    originGroup: int,\n    msg: str,\n    min_corpus_size=100,\n    sample_size=2000,\n    k_top=30,\n    originGroupCut=50,\n):\n    global chat_stack_lock\n    # assert min_corpus_size >= sample_size\n    if chat_stack_lock:\n        return  # do nothing. maybe another thread is holding the lock.\n    # must set a global lock.\n    chat_stack_lock = True\n    sample = sampleChatStack(\n        originGroup,\n        msg,\n        min_corpus_size=min_corpus_size,\n        sample_size=sample_size,",
         "type": "code",
-        "location": "/pyjom/medialang/functions/__init__.py:1-15"
+        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:111-150"
     },
     "1409": {
-        "file_id": 116,
-        "content": "The code imports detectors from the medialangFunctions module and creates a dictionary of available media language functions. The getMedialangFunction function searches the dictionary for the specified function name, returns it if found, and prints its type and name. If not found, it returns None.",
+        "file_id": 110,
+        "content": "This function, getChatLocalResponse, samples recent chat messages from a local stack for the given originGroup and message. It takes in parameters like min_corpus_size, sample_size, k_top, and originGroupCut. The function first checks if the global lock is set before proceeding to sample recent chat messages. If the lock is held by another thread, it returns without doing anything. Otherwise, it sets the global lock and calls the sampleChatStack function to get a list of recent chat messages that can be used for further analysis or processing.",
         "type": "comment"
     },
     "1410": {
-        "file_id": 117,
-        "content": "/pyjom/medialang/functions/detectors/yolov5_Detector.py",
-        "type": "filepath"
+        "file_id": 110,
+        "content": "        originGroupCut=originGroupCut,\n    )\n    if len(sample) == 0 or len(sample) != sample_size:  # no sample received.\n        chat_stack_lock = False  # release lock\n        return\n    # this sample must not be empty.\n    # rank by Levenshtein distance.\n    ranks = [\n        (getMinDifference(msg, chat_stack[group_id][gm_index]), index)\n        for index, (group_id, gm_index) in enumerate(sample)\n    ]\n    ranks.sort(key=lambda x: x[0])\n    selected_ranks = ranks[:k_top]\n    selected_ranks = [sample[index] for difference_score, index in selected_ranks]\n    # do we have to match the mood? like positive/negative -> positive/negative?\n    # increase the negativity?\n    # sentiment shall be next sentence.\n    selected_emotional_ranks = [\n        (getLinearSentiment(chat_stack[group_id][gm_index + 1]), index)\n        for index, (group_id, gm_index) in enumerate(selected_ranks)\n    ]\n    selected_emotional_ranks.sort(\n        key=lambda x: -sentimentFilter(x[0])\n    )  # select the extremes. do not select too extreme ones.",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:151-176"
     },
     "1411": {
-        "file_id": 117,
-        "content": "The code introduces two functions, `yolov5_Identifier` and `yolov5_Detector`, which utilize the YOLOv5 model for object detection and identification. The functions apply the model to input frames and media paths at set intervals, storing and returning results with specified configurations.",
-        "type": "summary"
+        "file_id": 110,
+        "content": "This code is sampling messages from a chat stack, ranking them by Levenshtein distance, and then selecting the top k ranks based on that distance. It also considers the sentiment of the next message in the selection process. If there's no valid sample or if the sample size doesn't match the expected value, it releases the lock and returns without any action.",
+        "type": "comment"
     },
     "1412": {
-        "file_id": 117,
-        "content": "from .mediaDetector import *\n# assume you not to run many instances at once?\n# how to identify same video in a sequence?\ndef yolov5_Identifier(frame, threshold=0.4,model = \"yolov5s\"):\n    model = configYolov5(model=model)\n    # assert to be read from opencv2\n    img = cv2_HWC2CHW(frame)\n    results = model(img) # pass the image through our model\n    df = results.pandas().xyxy[0]\n    # print(df)\n    data = []\n    for _, line in df.iterrows():\n        left = (line[\"xmin\"],line[\"ymin\"])\n        right = (line[\"xmax\"],line[\"ymax\"])\n        confidence = line[\"confidence\"]\n        if confidence < threshold:\n            continue # skipping threshold too low.\n        class_ = line[\"class\"]\n        name = line[\"name\"]\n        data.append({\"location\":[left,right],\"confidence\":confidence,\"identity\":{\"class\":class_,\"name\":name}})\n    return data\ndef yolov5_Detector(mediapaths, model=\"yolov5s\", threshold=0.4, timestep=0.2):\n    # any better detectors? deeplearning?\n    results = []\n    data_key = \"yolov5\"\n    assert model i",
+        "file_id": 110,
+        "content": "    mReplySentiment, mReplyIndex = selected_emotional_ranks[0]\n    mReply_group_id, mReply_gm_index = selected_ranks[mReplyIndex]\n    mReply = chat_stack[mReply_group_id][mReply_gm_index + 1]  # must plus one.\n    # before release lock we need to remove things from chat_stack and append things into historicalReplies(stack)\n    update_stack(historicalReplies, mReply)\n    # for _ in range(2):\n    #     del chat_stack[mReply_group_id][mReply_gm_index] # may cause problems. we might not delete this.\n    # discontinuality of message replies.\n    # you can somehow make the selected list immutable, into tuple.\n    chat_stack_lock = False\n    return mReply\n# must detect emotion level.\n# maybe do sampling on those stacks will help?\n# sample size must smaller tha population.",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/yolov5_Detector.py:1-31"
+        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:177-194"
     },
     "1413": {
-        "file_id": 117,
-        "content": "The code defines two functions, `yolov5_Identifier` and `yolov5_Detector`, which are used for object detection and identification using the YOLOv5 model. The `yolov5_Identifier` function takes a frame as input, applies the YOLOv5 model to it, and returns the identified objects with their locations, confidences, and classes. The `yolov5_Detector` function applies the `yolov5_Identifier` function to multiple media paths at specified time intervals, storing and returning the detection results for each path.",
+        "file_id": 110,
+        "content": "This code snippet selects a reply message from a chat_stack list, deletes the selected message from the stack, and updates a historicalReplies stack. The code intends to ensure message replies are immutable by removing them from the original list after selection, but this approach may cause issues.",
         "type": "comment"
     },
     "1414": {
-        "file_id": 117,
-        "content": "n [\"yolov5n\",\"yolov5s\",\"yolov5m\",\"yolov5l\",\"yolov5x\",\"yolov5n6\",\"yolov5s6\",\"yolov5m6\",\"yolov5l6\",\"yolov5x6\"] # increase the parameters does not sufficiently improve accuracy.\n    keyword = \"{}_detector\".format(data_key)\n    for mediapath in mediapaths:\n        print(\"mediapath:\", mediapath)\n        mediatype = getFileType(mediapath)\n        print(\"subtitle of mediatype:\", mediatype)\n        assert mediatype in [\"video\", \"image\"]  # gif? anything like that?\n        result = {\"type\": mediatype, data_key: {}}\n        config = {\"threshold\": threshold,\"model\":model}\n        if mediatype == \"image\":\n            data = cv2.imread(mediapath)\n            data = keywordDecorator(yolov5_Identifier, **config)(data)\n            result[data_key].update({keyword: data})\n            result[data_key].update({\"config\": config})\n            # results.append(result)\n        else:\n            mdata, metadata = videoFrameIterator(\n                mediapath,\n                data_producer=keywordDecorator(yolov5_Identifier, **config),",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/yolov5_Detector.py:31-50"
+        "file_id": 111,
+        "content": "/tasks/qq/qq_red_packet_collect/censorApis.py",
+        "type": "filepath"
     },
     "1415": {
-        "file_id": 117,
-        "content": "Looping through each media path, the code checks the media type (video or image) and applies YOLOv5 detection using keywordDecorator on the specified data_key. It stores the result in a dictionary and also includes the configuration used for detection.",
-        "type": "comment"
+        "file_id": 111,
+        "content": "The code defines three functions for censoring replies based on sentiment analysis, including \"censorReply\", which sends a request to a censor API; \"censorReplyAbsSentiment\", which censors if the absolute sentiment score exceeds a certain threshold; and \"censorReplyLinearSentiment\", which censors if the linear sentiment score is below a certain level. However, there is an issue with the positive/negative flag for some sentences. The function also returns the original reply if the sentiment change after censoring is less than 0.5; otherwise, it returns the censored reply.",
+        "type": "summary"
     },
     "1416": {
-        "file_id": 117,
-        "content": "                framebatch=1,\n                timestep=timestep,\n                keyword=keyword,\n            )\n            metadata.update({\"config\": config})\n            result[data_key][keyword] = mdata\n            result[data_key].update(metadata)\n        results.append(result)\n    return results",
+        "file_id": 111,
+        "content": "import requests\nfrom chat_local import getLinearSentiment, getAbsSentiment\ndef censorReply(reply, moderate=True):\n    url = \"http://127.0.0.1:8932/filter\"\n    response = requests.get(url, params={\"text\": reply, \"moderate\": moderate})\n    response = response.json()\n    reply = response[\"response\"]\n    return reply\ndef censorReplyAbsSentiment(\n    reply, moderate=True, sentiment_abs_level=0.6, censored_sentiment_threshold=0.8\n):\n    sentiment = getAbsSentiment(reply)\n    if sentiment > sentiment_abs_level:\n        reply = censorReply(reply)\n        censored_sentiment = getAbsSentiment(reply)\n        if censored_sentiment > censored_sentiment_threshold:\n            return None\n    return reply\n# however these sentiment based function will not work very well since the positive/negative flag is not working properly for sentence like \"操你妈\" -> (\"positive\", 0.8)\ndef censorReplyLinearSentiment(reply, moderate=True, sentiment_level=-0.9):\n    sentiment = getLinearSentiment(reply)\n    if sentiment < sentiment_level:\n        reply = censorReply(reply)",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/yolov5_Detector.py:51-59"
+        "location": "/tasks/qq/qq_red_packet_collect/censorApis.py:1-33"
     },
     "1417": {
-        "file_id": 117,
-        "content": "Function is creating a data structure for YOLOv5 detector output, updating metadata with the configuration and storing it in a list.",
+        "file_id": 111,
+        "content": "This code defines three functions for censoring replies based on sentiment analysis. The \"censorReply\" function sends a request to a censor API, the \"censorReplyAbsSentiment\" function censors a reply if its absolute sentiment score is above a certain threshold, and the \"censorReplyLinearSentiment\" function censors a reply if its linear sentiment score is below a certain level. However, the positive/negative flag does not work properly for some sentences.",
         "type": "comment"
     },
     "1418": {
-        "file_id": 118,
-        "content": "/pyjom/medialang/functions/detectors/videoDiffDetector.py",
-        "type": "filepath"
+        "file_id": 111,
+        "content": "    return reply\ndef censorReplySentimentDelta(reply, moderate=True, sentiment_delta_level=0.5):\n    reply2 = censorReply(reply)\n    sentiment = getLinearSentiment(reply)\n    sentiment2 = getLinearSentiment(reply2)\n    sentiment_delta = sentiment2 - sentiment\n    if sentiment_delta < sentiment_delta_level:  # is that good?\n        return reply\n    else:\n        return reply2",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/censorApis.py:34-47"
     },
     "1419": {
-        "file_id": 118,
-        "content": "The code includes a `frameDifferential` function that computes the average or maximum difference between frames, and a `videoDiffDetector` function which calculates pixel values for each block in a video. The results are stored in a dictionary and appended to a list of results after updating metadata.",
-        "type": "summary"
-    },
-    "1420": {
-        "file_id": 118,
-        "content": "from .mediaDetector import *\ndef frameDifferential(frame_a, frame_b, cut=3, absolute=True, method=\"average\"):\n    assert cut >= 1\n    # calculate average difference.\n    # you can select ROI instead.\n    # the cut is generated by the smallest side. neglect the boundary.\n    mshape = frame_a.shape\n    width, height = mshape[:2]\n    mcut = int(min(width, height) / cut)\n    result = frame_a - frame_b\n    methods = {\"average\": np.average, \"max\": np.max, \"min\": np.min}\n    # it is hard to tell where the heck does the target go. since the color difference means nothing precisely.\n    # maybe you should mark the target for us? for our training model?\n    # and again use our superduper unet? you know sometimes we get static.\n    # so use both inputs. one for static and one for motion.\n    if absolute:\n        result = np.abs(result)\n    if len(mshape) == 3:\n        result = methods[method](result, axis=2)  # just np.max\n        # i guess it is about the max value not the unified.\n    shape0 = int(width / mcut)\n    shape1 = int(height / mcut)",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/videoDiffDetector.py:1-24"
-    },
-    "1421": {
-        "file_id": 118,
-        "content": "This code defines a function called `frameDifferential` that calculates the average difference between two frames. It takes in two frame images, a cut value to determine the size of each block, and an optional absolute parameter. The code calculates the average or maximum difference within each block, with the option to take the absolute value if necessary. The result is returned as a new image with the same shape as the input frames.",
+        "file_id": 111,
+        "content": "This function censors a reply and returns the original reply if the sentiment change after censoring is less than 0.5; otherwise, it returns the censored reply.",
         "type": "comment"
     },
+    "1420": {
+        "file_id": 112,
+        "content": "/tasks/qq/qq_red_packet_collect/test_download_qq_image.sh",
+        "type": "filepath"
+    },
+    "1421": {
+        "file_id": 112,
+        "content": "This script downloads a QQ image using curl, saves it as \"qq_image_received.image\", and is compatible with OpenCV for processing.",
+        "type": "summary"
+    },
     "1422": {
-        "file_id": 118,
-        "content": "    diff = np.zeros((shape0, shape1)).tolist()\n    # mapping = {}\n    for x in range(shape0):\n        for y in range(shape1):\n            diff[x][y] = float(\n                np.average(result[x * mcut : (x + 1) * mcut, y * mcut : (y + 1) * mcut])\n            )\n            # this mapping is bad.\n            # mapping.update({str((x,y)):((x*mcut,(x+1)*mcut),(y*mcut,(y+1)*mcut))})\n    return {\"diff\": diff, \"blocksize\": mcut}  # required for recovering center points.\n    # transform the frames into smaller matricies.\n    # not required all the time though.\ndef videoDiffDetector(mediapaths, cut=3, absolute=True, method=\"average\", timestep=0.2):\n    # any better detectors? deeplearning?\n    results = []\n    data_key = \"diff_result\"\n    for mediapath in mediapaths:\n        print(\"mediapath:\", mediapath)\n        mediatype = getFileType(mediapath)\n        print(\"subtitle of mediatype:\", mediatype)\n        assert mediatype in [\"video\"]  # gif? anything like that?\n        result = {\"type\": mediatype, data_key: {}}\n        config = {\"cut\": cut, \"absolute\": absolute, \"method\": method}",
+        "file_id": 112,
+        "content": "# you cannot receive qq voice with opq!\n# but you can download image when it has not expired.\n# what is the type of this image?\ncurl -L -o qq_image_received.image \"http://gchat.qpic.cn/gchatpic_new/3318506826/205569604-2534335053-7D3B7BA4B3476AD210837D8C86F2E8DA/0?vuin=917521610&term=255&pictype=0\"\n# cv2 can handle that.",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/videoDiffDetector.py:25-49"
+        "location": "/tasks/qq/qq_red_packet_collect/test_download_qq_image.sh:1-6"
     },
     "1423": {
-        "file_id": 118,
-        "content": "Code snippet defines a videoDiffDetector function that takes mediapaths as input, iterates through each path, and calculates the average pixel values of frames within each block of size mcut. The results are stored in a dictionary and returned along with the block size for recovering center points later on if needed.",
+        "file_id": 112,
+        "content": "This script downloads a QQ image using curl, saves it as \"qq_image_received.image\", and is compatible with OpenCV for processing.",
         "type": "comment"
     },
     "1424": {
-        "file_id": 118,
-        "content": "        keyword = \"frame_differential\"\n        mdata, metadata = videoFrameIterator(\n            mediapath,\n            data_producer=keywordDecorator(frameDifferential, **config),\n            framebatch=2,\n            timestep=timestep,\n            keyword=keyword,\n        )\n        metadata.update({\"config\": config})\n        result[data_key][keyword] = mdata\n        result[data_key].update(metadata)\n        results.append(result)\n    return results",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/videoDiffDetector.py:50-62"
-    },
-    "1425": {
-        "file_id": 118,
-        "content": "This code calls a function to iterate over frames in a video using frame differential as the data producer, then updates metadata and appends the result to a list of results.",
-        "type": "comment"
-    },
-    "1426": {
-        "file_id": 119,
-        "content": "/pyjom/medialang/functions/detectors/subtitleDetector.py",
+        "file_id": 113,
+        "content": "/tasks/qq/qq_red_packet_collect/test_check_dog_cat.py",
         "type": "filepath"
     },
-    "1427": {
-        "file_id": 119,
-        "content": "The `mediaSubtitleDetector` function uses PaddleOCR to detect subtitles in videos or images, processing media paths and storing results under 'subtitle_result'. It alters and updates metadata before appending the altered results to a list and returning them.",
+    "1425": {
+        "file_id": 113,
+        "content": "This code imports a function to check if an image is of a cat or dog. It prints the rate limits and then runs the check function on an image URL three times, displaying the results. If the confidence score for either 'cat' or 'dog' is above 0.4, it returns that species name.",
         "type": "summary"
     },
-    "1428": {
-        "file_id": 119,
-        "content": "from .mediaDetector import *\nfrom .entityDetector import ocrEntityDetector\ndef getPaddleOCR(mediapath, lang=\"ch\",use_angle_cls=True,cls=True,rec=True):\n    ocr = configOCR(use_angle_cls=use_angle_cls,cls=cls,rec=rec, lang=lang)\n    # print(mediapath)\n    # breakpoint()\n    result = ocr.ocr(mediapath,cls=cls,rec=rec)\n    # print(result)\n    # breakpoint()\n    return result\ndef stablePaddleOCR(mediapath, lang=\"ch\"):\n    data = getPaddleOCR(mediapath, lang=lang)\n    for ind, element in enumerate(data):\n        certainty = element[1][1]\n        # print(\"certainty:\",certainty)\n        data[ind][1] = (element[1][0], float(certainty))  # fix the float32 error.\n        # what is the fetched shit anyway?\n    return data\ndef mediaSubtitleDetector(\n    mediapaths,\n    videocr=False,\n    timestep=0.5,\n    videocr_config={\"lang\": \"chi_sim+eng\", \"sim_threshold\": 70, \"conf_threshold\": 65},\n):\n    # it must be video/image.\n    # we detect shit not to remove shit.\n    # this is separated.\n    results = []\n    data_key = \"subtitle_result\"",
+    "1426": {
+        "file_id": 113,
+        "content": "from adtools import checkIsCatOrDogImage, rateLimits\nimage_url = \"http://gchat.qpic.cn/gchatpic_new/3318506826/205569604-2534335053-7D3B7BA4B3476AD210837D8C86F2E8DA/0?vuin=917521610&term=255&pictype=0\"\nprint(\"RATE LIMITS?\", rateLimits)\nfor _ in range(3):\n    r= checkIsCatOrDogImage(image_url) # will raise Exception! warning\n    print(\"RESULT?\")\n    import rich\n    rich.print(r)\nthreshold = 0.4\n# for species in r:\n#     name = species['identity']\n#     if name in ['cat','dog']:\n#         conf = species['confidence']\n#         if conf > threshold:\n#             return name",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/subtitleDetector.py:1-34"
+        "location": "/tasks/qq/qq_red_packet_collect/test_check_dog_cat.py:1-20"
     },
-    "1429": {
-        "file_id": 119,
-        "content": "Code snippet defines a `mediaSubtitleDetector` function that detects subtitles in videos or images. It utilizes the `getPaddleOCR` and `stablePaddleOCR` functions for OCR operations. The `getPaddleOCR` function takes media path, language, use_angle_cls, cls, and rec as input to configure OCR, perform OCR on the image, and return the result. The `stablePaddleOCR` function improves certainty values in the results and returns them. The `mediaSubtitleDetector` function processes a list of media paths, performs subtitle detection, and stores the results in the 'subtitle_result' key.",
+    "1427": {
+        "file_id": 113,
+        "content": "This code imports a function to check if an image is of a cat or dog. It prints the rate limits and then runs the check function on an image URL three times, displaying the results. If the confidence score for either 'cat' or 'dog' is above 0.4, it returns that species name.",
         "type": "comment"
     },
+    "1428": {
+        "file_id": 114,
+        "content": "/tasks/qq/qq_red_packet_collect/test_ad_generator.py",
+        "type": "filepath"
+    },
+    "1429": {
+        "file_id": 114,
+        "content": "Iterates through a list of video data, generates Bilibili video ads using provided info, displays the image output on screen and waits for key press.",
+        "type": "summary"
+    },
     "1430": {
-        "file_id": 119,
-        "content": "    for mediapath in mediapaths:\n        print(\"mediapath:\", mediapath)\n        mediatype = getFileType(mediapath)\n        print(\"subtitle of mediatype:\", mediatype)\n        assert mediatype in [\"video\", \"image\"]\n        result = {\"type\": mediatype, data_key: {}}\n        if mediatype == \"image\":\n            data = getPaddleOCR(mediapath)\n            result[data_key].update({\"paddleocr\": data})\n            # each line per sentence, coordinates.\n        else:\n            if videocr:\n                config = videocr_config\n                data = get_subtitles(\n                    mediapath, **config\n                )  # what is the speed of this? also the quality?\n                data = srt.parse(data)\n                data = [serializeSRT(x) for x in data]\n                result[data_key].update({\"videocr\": data})\n                result[data_key][\"config\"] = config\n            else:\n                keyword = \"paddleocr\" # we will try to merge alike ones.\n                mdata, metadata = videoFrameIterator(\n                    mediapath,",
+        "file_id": 114,
+        "content": "from ad_template_2_functional import generateBilibiliVideoAd, getAdLock\nvideoData = [\n    [\n        \"BV1Qd4y177Tc\",\n        \"bbb\",\n        \"https://i0.hdslb.com/bfs/archive/8a5f0a2bdffc99d33776c9d1f101521c0fc85e31.jpg\",\n    ],\n    [\n        \"BV1FG411K7Cd\",\n        \"aaa\",\n        \"https://i2.hdslb.com/bfs/archive/6423c88a8d3011a6a911627d9100b4cc4f08758d.jpg\",\n    ],\n]\nimport cv2\nfor (bvid, title_text, image_link) in videoData:\n    with getAdLock():\n        output_path, output_standalone, output_masked_path = generateBilibiliVideoAd(\n            bvid, title_text, image_link\n        )\n        img = cv2.imread(output_path)\n        cv2.imshow(\"IMAGE\", img)\n        cv2.waitKey(0)",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/subtitleDetector.py:35-58"
+        "location": "/tasks/qq/qq_red_packet_collect/test_ad_generator.py:1-25"
     },
     "1431": {
-        "file_id": 119,
-        "content": "The code iterates through a list of media paths, checks the file type, and then fetches subtitles or performs OCR based on the file type. It uses PaddleOCR for image files and either the provided videocr or a default config for video files. The speed and quality of the subtitle detection are not mentioned in the code.",
+        "file_id": 114,
+        "content": "Iterates through a list of video data, generates Bilibili video ads using provided info, displays the image output on screen and waits for key press.",
         "type": "comment"
     },
     "1432": {
-        "file_id": 119,
-        "content": "                    data_producer=stablePaddleOCR, \n                    timestep=timestep,\n                    keyword=keyword,\n                )\n                # we should process the mdata. alter it and change it.\n                # mdata = ocrEntityDetector(mdata) # we enable this step later.\n                result[data_key][keyword] = mdata\n                result[data_key].update(metadata)\n                # what is this frame?\n            # use traditional things.\n        results.append(result)\n    return results",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/subtitleDetector.py:59-70"
-    },
-    "1433": {
-        "file_id": 119,
-        "content": "The code processes media data using stablePaddleOCR, potentially alters and changes mdata, and updates metadata for the result. The altered results are then appended to a list before being returned.",
-        "type": "comment"
-    },
-    "1434": {
-        "file_id": 120,
-        "content": "/pyjom/medialang/functions/detectors/mediaDetector.py",
+        "file_id": 115,
+        "content": "/tasks/qq/qq_red_packet_collect/test_neo4j_creds.py",
         "type": "filepath"
     },
-    "1435": {
-        "file_id": 120,
-        "content": "The videoFrameIterator function initializes a video capture object, iterates through frames, checks arguments, raises exceptions, and reads frames using paddleocr. It stores metadata per batch, stops at no detection or end of video, and returns results in `mdata` and `metadata`.",
+    "1433": {
+        "file_id": 115,
+        "content": "This code tests Neo4j credentials by iterating through various usernames and passwords, attempting to connect and retrieve a single node result. It prints the retrieved result and the used credentials if successful, or catches any exceptions during the process.",
         "type": "summary"
     },
-    "1436": {
-        "file_id": 120,
-        "content": "from pyjom.medialang.commons import *\nimport cv2\n# import numpy.core.multiarray # caused by numpy version errors. upgrade to resolve.\nfrom videocr import get_subtitles  # are you sure?\nimport srt\nimport progressbar\ndef videoFrameIterator(\n    mediapath, timestep=0.5, framebatch=1, data_producer=None, keyword=None\n):\n    assert data_producer is not None\n    assert type(keyword) == str\n    assert type(framebatch) == int\n    assert framebatch >= 1\n    # obviously not for motion detection, if i was saying.\n    cap = cv2.VideoCapture(mediapath)\n    mdata = []\n    fps = cap.get(cv2.CAP_PROP_FPS)\n    frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)  # no need of this to get the timecode.\n    frames = int(frames)\n    # timestep = timestep # unit in seconds.\n    if timestep != None:\n        frameStep = int(fps * timestep)\n    else:\n        frameStep = 1 # for None we do frame by frame analysis.\n        timestep = 1/fps # generate fake timestep. nothing special.\n    assert frameStep > 0\n    frameIndex = 0\n    # while(cap.isOpened()):",
+    "1434": {
+        "file_id": 115,
+        "content": "from adtools import getNeo4jDriver\ndef test_login():\n    usernames = [\"kali\", \"user\", \"neo4j\", \"admin\", \"parrot\", \"\"]\n    passwords = [\"neo4j\", \"kali\", \"parrot\", \"admin\", \"password\", \"\"]\n    for u in usernames:\n        for p in passwords:\n            try:\n                driver = getNeo4jDriver(username=u, password=p, debug=False)\n                # print('RESPONSE?',r)\n                with driver.session() as session:\n                    result = session.run(\"MATCH (n) RETURN n LIMIT 1\")\n                    print(result.single())\n                    print(\"USING:\", u, p)\n            except:\n                pass\n                # import traceback\n                # traceback.print_exc()",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/mediaDetector.py:1-31"
+        "location": "/tasks/qq/qq_red_packet_collect/test_neo4j_creds.py:1-19"
     },
-    "1437": {
-        "file_id": 120,
-        "content": "This function, videoFrameIterator, initializes a video capture object and iterates through the frames of a video file while maintaining a timestep. The timestep determines how many frames to skip between captures and can be adjusted based on user needs. It also includes checks for proper arguments and raises exceptions if any are not met.",
+    "1435": {
+        "file_id": 115,
+        "content": "This code tests Neo4j credentials by iterating through various usernames and passwords, attempting to connect and retrieve a single node result. It prints the retrieved result and the used credentials if successful, or catches any exceptions during the process.",
         "type": "comment"
     },
+    "1436": {
+        "file_id": 116,
+        "content": "/tasks/qq/qq_red_packet_collect/base_opq.py",
+        "type": "filepath"
+    },
+    "1437": {
+        "file_id": 116,
+        "content": "The code handles group management in a messaging platform using modules and botoy instance for QQ API communication, includes error printing helper functions, and performs searches with API requests. It also has an 'openRedBag' function that retries three times with sleep time backoff strategy and parameter checks, delay ranges, and forbidden keyword filtering. The asyncThread decorator starts new threads to execute original func functions.",
+        "type": "summary"
+    },
     "1438": {
-        "file_id": 120,
-        "content": "    stepframes = []\n    for _ in progressbar.progressbar(range(frames)):\n        ret, frame = cap.read()\n        if type(frame) != np.ndarray:\n            # most likely no thing shown.\n            break\n        timecode = float(frameIndex / fps)\n        if (frameIndex % frameStep) == 0:\n            # what is this shit?\n            # print(\"frame:\",type(frame))\n            # will be replaced!\n            stepframes.append(copy.deepcopy(frame))\n            if len(stepframes) == framebatch:\n                data = data_producer(\n                    *stepframes\n                )  # usually we treat frames differently?\n                stepframes.pop(0)\n                # this is part of paddleocr.\n                mdata.append(\n                    {\n                        \"time\": timecode,\n                        \"frame\": frameIndex,\n                        keyword: copy.deepcopy(data),\n                    }\n                )\n        frameIndex += 1\n    # result[\"subtitle_result\"][\"paddleocr\"] = mdata\n    cap.release()\n    metadata = {\"fps\": float(fps), \"timestep\": timestep, \"framebatch\": framebatch}",
+        "file_id": 116,
+        "content": "from botoy import Action\nfrom botoy import Botoy, GroupMsg\nimport threading\nimport json\nimport time\nimport random\nimport sys\nimport traceback\nfrom threading import Event\nexit_event = Event()\nexit_event.clear()\ndef programExit():\n    exit_event.set()\n# my_qq = 1281727431 # freaking int! Yukio.\nimport argparse\nparser = argparse.ArgumentParser()\nparser.add_argument(\n    \"--qq\", type=int, default=1281727431, required=False\n)  # must not required since we have default value here.\nparser.add_argument(\"--port\", type=int, default=8780, required=False)\nparser.add_argument(\"--log\", action=\"store_true\")\nparser.add_argument(\"--log_file\", action=\"store_true\")\n# 忽略信息的blacklist 还有user_blacklist\ngroup_blacklist = [927825838]  # 微信的hook发布群\nfriend_blacklist = [364831018]  # 发给我微信hook的人\nparsed_args = parser.parse_args()\nmy_qq = parsed_args.qq\nserver_port = parsed_args.port\nlog = parsed_args.log\nlog_file = parsed_args.log_file\n# you can pass the qq via enviorment variable.\n# it is already inside. so the call fails.\n# you might check all friends list and grou list.",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/mediaDetector.py:32-60"
+        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:1-46"
     },
     "1439": {
-        "file_id": 120,
-        "content": "This code reads frames from a video and processes them in batches using the paddleocr library. It stores metadata such as frame index, timecode, and resulting data for each processed batch. The loop stops when no object is detected or it reaches the end of the video. Finally, the captured metadata and the result are returned.",
+        "file_id": 116,
+        "content": "The code imports necessary modules and defines functions for handling program exit, parsing command-line arguments, and managing blacklists. The script takes a QQ number as an input and determines which friends and groups to interact with based on the provided arguments. It also allows for logging and handling environment variables.",
         "type": "comment"
     },
     "1440": {
-        "file_id": 120,
-        "content": "    return mdata, metadata",
+        "file_id": 116,
+        "content": "lua_v1_api_path = \"/v1/LuaApiCaller\"\nopq_server = {\"host\": \"localhost\", \"port\": server_port}  # this is for arm\n# opq_server = {\"host\":\"localhost\",\"port\":8781} # this is for amd64\n# not 0.0.0.0 but freaking localhost.\naction = Action(qq=my_qq, port=opq_server[\"port\"], host=opq_server[\"host\"])\nbot = Botoy(\n    qq=my_qq,\n    port=opq_server[\"port\"],\n    host=opq_server[\"host\"],\n    log=log,\n    log_file=log_file,\n    group_blacklist=group_blacklist,\n    friend_blacklist=friend_blacklist,\n)  # have info. have custom log file.\n## this is the damn bot. how to get group name?\nmyGroupDict = {}\ntry:\n    myGroupList = action.getGroupList()\n    myGroupDict = {elem[\"GroupId\"]: elem[\"GroupName\"] for elem in myGroupList}\nexcept:\n    pass\n# [{'GroupId': 118794, 'GroupMemberCount': 2818, 'GroupName': '攻防世界交流群', 'GroupNotice': '第四届“第五空间”网络安全大赛\\n1、报名网站：\\x01https://ctf.360.net/5space\\x02\\n2、 报名时间：8月30日--9月9日（沿用DSCTF）\\n', 'GroupOwner': 41495, 'GroupTotalCount': 3000},...]\n# from lazero.utils.logger import sprint\n# sprint(myGroupList)",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/mediaDetector.py:61-61"
+        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:47-73"
     },
     "1441": {
-        "file_id": 120,
-        "content": "This line of code is returning two variables, `mdata` and `metadata`, after the function's processing.",
+        "file_id": 116,
+        "content": "This code sets up a botoy instance for communication with the QQ API, retrieves a list of groups, and stores them in a dictionary. The group information is obtained using the `getGroupList()` method from the action class, and the dictionary maps each group ID to its corresponding name. If an error occurs during this process, it is caught and ignored.",
         "type": "comment"
     },
     "1442": {
-        "file_id": 121,
-        "content": "/pyjom/medialang/functions/detectors/frameborder_Detector.py",
-        "type": "filepath"
+        "file_id": 116,
+        "content": "# breakpoint()\ndef updateGroupNameDict(groupName, group_id):\n    global myGroupDict\n    group_id = int(group_id)\n    if group_id not in myGroupDict.keys():\n        print(\"UPDATING GROUP_ID -> GROUP_NAME DICT\")\n        print(\"OROUP ID:\", group_id)\n        print(\"GROUP NAME:\", groupName)\n        myGroupDict.update({group_id: groupName})\ndef getGroupNameFromDict(group_id):\n    global myGroupList, action, myGroupDict\n    if myGroupList in [None, []]:  # if not empty please update this dict elsewhere?\n        try:\n            myGroupList = action.getGroupList()\n            myGroupDict.update(\n                {elem[\"GroupId\"]: elem[\"GroupName\"] for elem in myGroupList}\n            )\n        except:\n            print(\"NO GROUP LIST AVALIABLE.\")\n            return\n    group_id = int(group_id)\n    groupName = myGroupDict.get(group_id, None)\n    if groupName is None:\n        print(\"NO GROUP NAME AVALIABLE.\")\n    return groupName\n#  \t搜索群组 添加好友\n# openRedBag \t打开红包\n# joinGroup \t加入群聊\n# dealFriend \t处理好友请求\ndef stderrPrint(*args, **kwargs):",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:74-109"
     },
     "1443": {
-        "file_id": 121,
-        "content": "The code detects squares in images using blurring, edge detection, and HoughLines for lines. It processes video frames for object detection, OCR adjustments, and removes premature rectangles while applying theta filtering. It performs calculations, checks rectangles, and stores data using background models and contours to detect frame changes.",
-        "type": "summary"
+        "file_id": 116,
+        "content": "The code contains a function to update the group_id to group name dictionary, a function to get the group name from the dictionary based on the given group_id, and three uncommented function calls. The code seems to be related to handling groups and red packets in a messaging platform. It also includes a helper function for error printing.",
+        "type": "comment"
     },
     "1444": {
-        "file_id": 121,
-        "content": "from .mediaDetector import *\nimport numpy as np\nimport cv2\nimport pybgs as bgs\nimport talib\nimport uuid\nimport itertools\nimport copy\n# consider merging this project with autoup, or just borrow some of its content.\n# assume you not to run many instances at once?\n# how to identify same video in a sequence?\n# maybe you can paint translated words with paddleocr?\n# framedifference can only be applied to videos, not freaking images.\ndef huffline_stillImage_Identifier(mediapath,**config): # wtf?\n    img = cv2.imread(mediapath)\n    line_thresh =  config[\"line_thresh\"]\n    includeBoundaryLines = config[\"includeBoundaryLines\"] # applied to those cornered crops.\\\n    blurKernel = config[\"blurKernel\"]\n    blurred = cv2.GaussianBlur(img,blurKernel, 0)\n    edges = cv2.Canny(blurred,20,210,apertureSize = 3) # great.\n    lines = cv2.HoughLines(edges,1,np.pi/180,line_thresh)\n    angle_error = config[\"angle_error\"]   # this can only detect square things, absolute square.\n    # we need to know horizontal and vertical lines, when they cross we get points.",
+        "file_id": 116,
+        "content": "    kwargs.update({\"file\": sys.stderr})\n    print(*args, **kwargs)\ndef searchGroup(keyword, pageNum=0):\n    payload = {\"Content\": keyword, \"Page\": pageNum}\n    result = action.post(\n        funcname=\"SearchGroup\", payload=payload, path=lua_v1_api_path\n    )  # do not pass params since it will auto complete.\n    print(\"SEARCH GROUP RESULT: \", result)\n    return result\ndef addFriend(friend_id, reason=\"\", sourceString=\"search\", group_id=0):\n    # some conversions\n    if friend_id != int:\n        friend_id = int(friend_id)\n    if group_id != int:\n        group_id = int(group_id)  # source group id.\n    add_friend_sources = {\n        \"qzone\": 2011,\n        \"search\": 2020,\n        \"group\": 2004,\n        \"discussion\": 2005,\n    }\n    source = add_friend_sources[sourceString]\n    source_dict = {\n        2011: \"空间\",\n        2020: \"QQ搜索\",\n        2004: \"群组\",\n        2005: \"讨论组\",\n    }  # you can make it into another dict.\n    assert source in source_dict.keys()\n    if source != 2004:\n        group_id = 0  # prevent issues.\n    payload = {",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:1-26"
+        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:110-146"
     },
     "1445": {
-        "file_id": 121,
-        "content": "This code reads an image and applies Gaussian blur and Canny edge detection. It then uses the HoughLines algorithm to identify straight lines in the image. The identified horizontal and vertical lines can be used to detect square objects, but this implementation may have limitations as it assumes squares only.",
+        "file_id": 116,
+        "content": "The code contains two functions: `searchGroup` and `addFriend`. The `searchGroup` function performs a search for a keyword in QQ groups and returns the result. It sends a POST request to a specified API endpoint with the keyword and page number as parameters. The `addFriend` function adds a friend using a given friend ID, reason (optional), source string (e.g., 'search'), and group ID. It first checks if the input is of correct type and then maps the source string to a specific QQ friend adding method. If the source is a group, it also checks if the group ID is provided.",
         "type": "comment"
     },
     "1446": {
-        "file_id": 121,
-        "content": "    frameHeight, frameWidth = img.shape[:2]\n    # print(\"height: \", frameHeight)\n    # print(\"width: \", frameWidth)\n    mlines = {\"horizontal\":[], \"vertical\":[]}\n    if includeBoundaryLines:\n        originPoint = (0,0)\n        cornerPoint = (frameWidth,frameHeight)\n        mlines[\"horizontal\"].append(originPoint)\n        mlines[\"horizontal\"].append(cornerPoint)\n        mlines[\"vertical\"].append(originPoint)\n        mlines[\"vertical\"].append(cornerPoint)\n    if lines is None: lines = []\n    for line in lines:\n        for r_theta in line:\n            # breakpoint()\n            r,theta = r_theta.tolist()\n            # Stores the value of cos(theta) in a\n            # filter detected lines?\n            # theta filter:\n            if not abs(theta % (np.pi/2) )< angle_error:\n                continue # this is filtering.\n            # print(\"line parameter:\",r,theta)\n            a = np.cos(theta)\n            # Stores the value of sin(theta) in b\n            b = np.sin(theta)\n            # x0 stores the value rcos(theta)",
+        "file_id": 116,
+        "content": "        \"Content\": reason,\n        \"AddFromSource\": source,\n        \"FromGroupID\": group_id,\n        \"AddUserUid\": friend_id,\n    }\n    result = action.post(\n        funcname=\"AddQQUser\", payload=payload, path=lua_v1_api_path\n    )  # do not pass params since it will auto complete.\n    print(\"ADD FRIEND RESULT: \", result)\n    return result\ndef openRedBag(\n    RedBaginfoDict,\n    group_id,\n    RedBaginfo,\n    delay=(5, 10),\n    prefix=\"[MREDBAG_LOG]\",\n    forbiddenKeywords=[\"test\", \"测试\", \"别抢\", \"不要\"],\n):\n    bag_type = RedBaginfoDict[\"RedType\"]\n    print(prefix, \"THREAD LAUCHED\", file=sys.stderr)\n    if bag_type in [4, 6, 12]:\n        print(prefix, \"COLLECTING RED BAG\", file=sys.stderr)\n        sleep_time = random.randint(*delay)\n        print(prefix, \"SLEEP TIME:\", sleep_time, file=sys.stderr)\n        time.sleep(sleep_time)\n        title = RedBaginfoDict[\"Tittle\"]\n        # filter this title shit.\n        if any(\n            [keyword in title.lower().replace(\" \", \"\") for keyword in forbiddenKeywords]\n        ):\n            stderrPrint(\"title containing forbidden keywords\")",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:27-54"
+        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:147-179"
     },
     "1447": {
-        "file_id": 121,
-        "content": "This code calculates the image height and width, creates horizontal and vertical line lists, appends origin and corner points to each list if including boundary lines is enabled. It also checks if lines are provided as input, filters out lines with angle error, and computes cos(theta) and sin(theta) for line parameter calculations.",
+        "file_id": 116,
+        "content": "The code defines a function 'openRedBag' that takes parameters such as RedBaginfoDict, group_id, RedBaginfo, delay, prefix and forbiddenKeywords. It determines the bag type based on RedBaginfoDict[\"RedType\"] and checks if the bag type is either 4, 6 or 12. If so, it randomly selects a sleep time from the given delay range, sleeps for that amount of time, and then prints the message with prefix and sleep time to stderr. It also filters the title by checking if any keyword from forbiddenKeywords is present in the title (ignoring spaces).",
         "type": "comment"
     },
     "1448": {
-        "file_id": 121,
-        "content": "            x0 = a*r\n            # y0 stores the value rsin(theta)\n            y0 = b*r\n            # x1 stores the rounded off value of (rcos(theta)-1000sin(theta))\n            x1 = int(x0 + 1000*(-b))\n            # y1 stores the rounded off value of (rsin(theta)+1000cos(theta))\n            y1 = int(y0 + 1000*(a))\n            # x2 stores the rounded off value of (rcos(theta)+1000sin(theta))\n            x2 = int(x0 - 1000*(-b))\n            # y2 stores the rounded off value of (rsin(theta)-1000cos(theta))\n            y2 = int(y0 - 1000*(a))\n            # cv2.line draws a line in img from the point(x1,y1) to (x2,y2).\n            # (0,0,255) denotes the colour of the line to be\n            #drawn. In this case, it is red.\n            df_x = abs(x1-x2)\n            df_y = abs(y1-y2)\n            lineType = \"vertical\"\n            if df_x > df_y:\n                lineType = \"horizontal\"\n            # we just need one single point and lineType.\n            linePoint = (x1,y1)\n            mlines[lineType].append(linePoint)",
+        "file_id": 116,
+        "content": "            stderrPrint(\"refuse to open red bag:\", title.__repr__())\n            return\n        if bag_type == 12:\n            action.sendGroupText(group=group_id, content=title)\n        for trial in range(3):  # try three times till we get there.\n            if exit_event.is_set():\n                break\n            try:\n                answer = action.openRedBag(RedBaginfo)\n                print(prefix, \"RESULT:\", answer, file=sys.stderr)\n                print(prefix, \"TRIAL %d: COLLECTED RED BAG\" % trial, file=sys.stderr)\n                assert answer[\"Ret\"] == 0  # assert no problem here.\n                break\n            except:\n                print(\"_____________RedPacket Exception____________\")\n                traceback.print_exc()\n                print(\"_____________RedPacket Exception____________\")\n                sleep_time = random.randint(*delay)\n                time.sleep(sleep_time)\ndef startThread(target, args=(), kwargs={}):\n    thread = threading.Thread(target=target, args=args, kwargs=kwargs, daemon=False)",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:55-83"
+        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:180-202"
     },
     "1449": {
-        "file_id": 121,
-        "content": "This code calculates the coordinates of a line using trigonometry (a*r and b*r for x0 and y0) with an additional 1000 multipliers in the calculations. It then determines the rounded values for four points based on these coordinates, creating lines for vertical or horizontal segments as needed. The calculated line data is stored in a list called mlines.",
+        "file_id": 116,
+        "content": "This code is trying to open a red bag and collect items. If the operation fails, it will attempt three times before giving up. The function uses a try-except block for error handling and includes logging and sleep time for backoff strategy. A startThread function is also defined which can be used to create new threads in the codebase.",
         "type": "comment"
     },
     "1450": {
-        "file_id": 121,
-        "content": "            # cv2.line(img,(x1,y1), (x2,y2), (0,0,255),2)\n            # would not draw lines this time. draw found rects instead.\n    # get rectangle points. or just all possible rectangles?\n    # enumerate all possible lines.\n    rects =[] # list of rectangles\n    if len(mlines[\"horizontal\"]) < 2 or len(mlines[\"vertical\"]) < 2:\n        # print(\"unable to form rectangles.\")\n        # return [] # no rect.\n        pass\n    else:\n        for line_h1, line_h2 in itertools.combinations(mlines[\"horizontal\"],2):\n            ymin, ymax = list(sorted([line_h1[1],line_h2[1]]))\n            for line_v1, line_v2 in itertools.combinations(mlines[\"vertical\"], 2):\n                xmin, xmax = list(sorted([line_v1[0],line_v2[0]]))\n                rect = ((xmin,ymin),(xmax,ymax))\n                rects.append(rect)\n        # print(\"RECT DICT MAIN LIST:\")\n        # print(rect_dict_main_list) # maybe i want this shit?\n    return rects\ndef huffline_horizontal_vertical_FrameIterator(mediapath,**config):\n    video_file = mediapath # this one with cropped boundaries.",
+        "file_id": 116,
+        "content": "    thread.start()\ndef asyncThread(func):\n    def new_func(*args, **kwargs):\n        startThread(func, args=args, kwargs=kwargs)\n    return new_func",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:84-105"
+        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:203-210"
     },
     "1451": {
-        "file_id": 121,
-        "content": "This function generates rectangles based on horizontal and vertical lines detected in the image. It requires a minimum of two horizontal and two vertical lines for rectangle formation. The function combines these lines to find the bounding box coordinates, then stores them as rectangles in a list before returning the list of rectangles.",
+        "file_id": 116,
+        "content": "This code defines an asyncThread decorator function that starts a new thread when called, using the startThread function to execute the original func function in a separate thread.",
         "type": "comment"
     },
     "1452": {
-        "file_id": 121,
-        "content": "    video = cv2.VideoCapture(video_file)\n    def rectMerge(oldRect, newRect,delta_thresh = config[\"delta_thresh\"]):\n        # if very much alike, we merge these rects.\n        # what about those rect that overlaps? we check exactly those who overlaps.\n        # 1. check all new rects against all old rects. if they overlap, highly alike (or not) then mark it as having_alike_rect (or not) and append to new old rect list. <- after those old rects have been marked with alike sign, one cannot revoke the sign. still remaining new rects will be checked against them.\n        # 2. while checking, if not very alike then append newRect to new rect list.\n        # 3. if one old rect has not yet been checked as having_alike_rect then cut its life. otherwise extend its life, though not extend above max_rect_life.\n        (old_x1,old_y1), (old_x2, old_y2) = oldRect\n        (new_x1,new_y1), (new_x2, new_y2) = newRect\n        # too many rects?\n        old_w = old_x2-old_x1\n        old_h = old_y2-old_y1\n        det_x1 = abs(new_x1 - old_x1)/ old_w",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:107-122"
+        "file_id": 117,
+        "content": "/tasks/qq/qq_red_packet_collect/test_adtools.sh",
+        "type": "filepath"
     },
     "1453": {
-        "file_id": 121,
-        "content": "The code defines a function `rectMerge` that merges similar rectangles based on their overlap and likeness. It first checks all new rectangles against all old rectangles for overlap, marks them as having_alike_rect if highly alike or not, appends new rectangles to a new rectangle list, and extends the life of old rectangles without exceeding max_rect_life.",
-        "type": "comment"
+        "file_id": 117,
+        "content": "This code changes the current directory (CD) and then runs a test script named \"test_make_dog_cat_connection.py\" using the pytest-3 command, specifically focusing on the test function \"test_query\". This might be related to testing connections between dog and cat data.",
+        "type": "summary"
     },
     "1454": {
-        "file_id": 121,
-        "content": "        det_x2 = abs(new_x2 - old_x2)/ old_w\n        det_y1 = abs(new_y1 - old_y1)/ old_h\n        det_y2 = abs(new_y2 - old_y2)/ old_h\n        # print(\"deltas:\",det_x1, det_x2, det_y1, det_y2)\n        having_alike_rect =  (det_x1 < delta_thresh) and (det_y1 < delta_thresh) and (det_x2 < delta_thresh ) and (det_y2 < delta_thresh)\n        myRect = newRect\n        if having_alike_rect:\n            myRect = oldRect\n        return myRect, having_alike_rect\n    def rectSurge(oldRectList, newRectList,diff_img_output,delta_thresh = config[\"delta_thresh\"], min_rect_life = config[\"min_rect_life\"], max_rect_life = config[\"max_rect_life\"],max_rect_list_length = 30, rect_area_threshold = 0.05):\n        yd,xd = diff_img_output.shape\n        aread = yd*xd\n        min_area_thresh = rect_area_threshold * aread\n        def getRectArea(rect):\n            (x0,y0),(x1,y1) = rect\n            return (x1-x0)*(y1-y0)\n        def getDiff(rect,diff_img_output):\n            (x0,y0),(x1,y1) = rect\n            diff_area = diff_img_output[y0:y1,x0:x1]",
+        "file_id": 117,
+        "content": "cd . # really sure that is just because of insufficient power supply for external drives?\npytest-3 -s test_make_dog_cat_connection.py::test_query",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:123-146"
+        "location": "/tasks/qq/qq_red_packet_collect/test_adtools.sh:1-2"
     },
     "1455": {
-        "file_id": 121,
-        "content": "Function detects changes in rectangles by comparing their dimensions and returns the updated rectangle and a boolean value if they are similar or different. It also calculates the area threshold based on image size, and provides functions for getting rectangle area and difference with diff_img_output.",
+        "file_id": 117,
+        "content": "This code changes the current directory (CD) and then runs a test script named \"test_make_dog_cat_connection.py\" using the pytest-3 command, specifically focusing on the test function \"test_query\". This might be related to testing connections between dog and cat data.",
         "type": "comment"
     },
     "1456": {
-        "file_id": 121,
-        "content": "            return np.sum(diff_area)\n        def getScore(rect,totalArea,r0=2,r1=5,key=\"rect\"):\n            # if key:\n            #     rect = x[\"rect\"]\n            # else: rect = x\n            area = getRectArea(rect)\n            diff = getDiff(rect,diff_img_output)\n            val1 = diff/area\n            val2 = diff/totalArea\n            return r0*val1+r1*val2\n        newToOldDictList = []\n        oldRectDictList = [{\"rect\":x[\"rect\"], \"alike\":False, \"life\":x[\"life\"],\"uuid\":x[\"uuid\"]} for x in oldRectList if getRectArea(x[\"rect\"]) > min_area_thresh] # actually they are all dict lists. you can pass an empty list as oldRectList anyway.\n        newRectList = [x for x in newRectList if getRectArea(x) > min_area_thresh] # get something else.\n        oldRectDictList = list(reversed(sorted(oldRectDictList,key=lambda x: getScore(x[\"rect\"],aread))))[:max_rect_list_length]\n        newRectList = list(reversed(sorted(newRectList,key=lambda x: getScore(x,aread))))[:max_rect_list_length]\n        # oldRectDictLis",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:147-164"
+        "file_id": 118,
+        "content": "/tasks/qq/qq_red_packet_collect/red_packet.yaml",
+        "type": "filepath"
     },
     "1457": {
-        "file_id": 121,
-        "content": "The code defines a function to detect and process rectangles based on their area and difference from an image. It creates two lists of rectangle dictionaries, one for new and old rectangles, and sorts them based on a score calculated using the getScore() function. The sorted lists are then truncated to the max_rect_list_length value.",
-        "type": "comment"
+        "file_id": 118,
+        "content": "The code establishes a window with three panes, executes shell commands for server testing, bilibili video recommendation, and xiaoice chat API; requires login and cautions on Gitter token pasting.",
+        "type": "summary"
     },
     "1458": {
-        "file_id": 121,
-        "content": "t = sorted(oldRectDictList,key=lambda x:getRectArea(x[\"rect\"]), reverse=True) # not good since we got other freaking shits.\n        # print(\"OLDRECTDICTLIST:\",oldRectDictList)\n        # print(\"NEW RECT LENGTH:\",len(newRectList))\n        for newRect in newRectList:\n            needAppend = True\n            for index, oldRectDict in enumerate(oldRectDictList):\n                # print(\"ENUMERATING OLD INDEX:\",index)\n                oldRect = oldRectDict[\"rect\"]\n                _, having_alike_rect = rectMerge(oldRect,newRect,delta_thresh=delta_thresh)\n                if having_alike_rect:\n                    needAppend = False\n                    if not oldRectDict[\"alike\"]:\n                        # print(\"SET ALIKE:\",index,oldRect)\n                        oldRectDictList[index][\"alike\"] = True\n                    # ignore myRect.\n            if needAppend:\n                newToOldDictList.append({\"rect\":newRect,\"life\":1,\"uuid\":str(uuid.uuid4())}) # make sure it is not duplicated?\n                # if appended we shall break this loop. but when shall we append?",
+        "file_id": 118,
+        "content": "session_name: qq_red_packet\nwindows:\n  - window_name: qq_red_packet_window\n    layout: tiled\n    shell_command_before:\n      - cd ~/Desktop/works/pyjom # run as a first command in all panes\n      - bash # to ensure we use the right shell\n      - conda deactivate # to disable conda enviorment\n    panes:\n      - shell_command:\n          - cd tests/qq_opqbot\n          - cd opq_arm64\n          - bash launch.sh # will kill all opqbots.\n      - shell_command: # magic from https://www.wikitechy.com/tutorials/linux/how-to-write-stderr-to-a-file-while-using-tee-with-a-pipe\n          - sleep 10\n          - cd tasks/qq/qq_red_packet_collect # run multiple commands in this pane\n          - keepalive python3 botoy_redpacket_collect.py 1>/dev/null 2> >(tee -a logs/redPacketLog_0.log >&2)\n          # - python3 botoy_redpacket_collect.py 1>/dev/null\n        #   - python3 botoy_redpacket_collect.py --log 1 --log_file 0 1>/dev/null 2> >(tee -a redPacketLog_0.log >&2)\n      # it seems we need another github account to have another gitter developer token.",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:164-182"
+        "location": "/tasks/qq/qq_red_packet_collect/red_packet.yaml:1-20"
     },
     "1459": {
-        "file_id": 121,
-        "content": "Code snippet is sorting a list of oldRectDictList based on the area of rectangles in reverse order. It then compares each new rectangle with old rectangles and updates their alike status accordingly. If no match is found, it adds a new entry to newToOldDictList.",
+        "file_id": 118,
+        "content": "This code is setting up a window with tiled layout and three panes. The first pane runs a command to change the directory, the second pane waits for 10 seconds before changing to another directory, and the third pane runs a Python script called `botoy_redpacket_collect.py`, redirecting both standard output (STDOUT) and standard error (STDERR) to a log file while using `keepalive` to keep the script running indefinitely.",
         "type": "comment"
     },
     "1460": {
-        "file_id": 121,
-        "content": "        oldToOldDictList = []\n        # print(\"OLD RECT LENGTH:\",len(oldRectDictList))\n        for oldRectDict in oldRectDictList:\n            alike = oldRectDict[\"alike\"]\n            life = oldRectDict[\"life\"]\n            oldRect = oldRectDict[\"rect\"]\n            myUUID = oldRectDict[\"uuid\"]\n            if not alike:\n                life -=1\n            else:\n                life +=1\n                life = min(max_rect_life, life)\n            if life <= min_rect_life:\n                continue\n            oldToOldDictList.append({\"rect\":oldRect,\"life\":life,\"uuid\":myUUID})\n        return oldToOldDictList + newToOldDictList # a combination.\n    def updateTotalRects(oldTotalRectDict,rectList,currentFrameIndex,diffFrame,minRectArea = 1):\n        for elem in rectList:\n            uuid = elem[\"uuid\"]\n            rect = elem[\"rect\"]\n            (x0,y0),(x1,y1) = rect\n            rectArea = (x1-x0)*(y1-y0)\n            if rectArea <minRectArea:\n                continue\n            if uuid not in oldTotalRectDict.keys():",
+        "file_id": 118,
+        "content": "      - shell_command:\n          - cd tests/qq_opqbot\n          - cd opq_arm64_another_account\n          - sleep 3\n          - bash launch.sh # port 8784\n      - shell_command:\n          - sleep 10\n          - cd tasks/qq/qq_red_packet_collect # run multiple commands in this pane\n          - keepalive python3 botoy_redpacket_collect.py --qq 917521610 --port 8784 1>/dev/null 2> >(tee -a logs/redPacketLog_1.log >&2)\n          # - python3 botoy_redpacket_collect.py --qq 917521610 --port 8784 1>/dev/null \n        #   - python3 botoy_redpacket_collect.py  --log 1 --log_file 0 --qq 917521610 --port 8784 1>/dev/null 2> >(tee -a redPacketLog_1.log >&2)\n      - shell_command: # GPT2 LOCAL CHATBOT SERVER\n          - cd tests/cpm_chinese_chitchat_model_gpt2/server/\n          - bash launch.sh\n      - shell_command: # text censor api\n          - cd tasks/qq/qq_red_packet_collect/textfilter \n          - bash launch.sh\n      - shell_command: # image dog/cat recognition server\n          - cd tests/bezier_paddlehub_dogcat_detector_serving",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:183-209"
+        "location": "/tasks/qq/qq_red_packet_collect/red_packet.yaml:21-39"
     },
     "1461": {
-        "file_id": 121,
-        "content": "The code is iterating over old and new rectangles, updating their life count and filtering out rectangles with areas below a certain threshold. It then combines the old and new rectangle lists to form a single list.",
+        "file_id": 118,
+        "content": "This code is setting up and running multiple services for a chatbot application. It changes directories, executes scripts to launch servers, and specifies ports and other configurations for each service. The primary focus appears to be on the \"botoy_redpacket_collect\" application, which requires multiple command line options.",
         "type": "comment"
     },
     "1462": {
-        "file_id": 121,
-        "content": "                oldTotalRectDict.update({uuid:{\"rect\":rect,\"startFrame\":currentFrameIndex,\"endFrame\":None,\"meanDifference\":None}}) # finally,remove those without endFrame.\n            else:\n                duration = currentFrameIndex - oldTotalRectDict[uuid][\"startFrame\"]\n                # filter rect areas.\n                diff = diffFrame[y0:y1,x0:x1] # this is shit. we need to crop this shit.\n                # grayscale.\n                # std = np.abs(std)\n                # get the total delta over time?\n                # std = np.mean(std,axis=2)\n                diff_x = np.mean(diff.flatten())\n                # std_x = np.std(std,axis=2)\n                # std_x = np.std(std_x,axis=1)\n                # std_x = np.std(std_x,axis=0)\n                std_total = diff_x # later we need to convert this float64.\n                # breakpoint()\n                if std_total is None:\n                    print(\"RECT:\",rect)\n                    breakpoint()\n                prev_std = oldTotalRectDict[uuid][\"meanDifference\"]",
+        "file_id": 118,
+        "content": "          - python3 server.py\n      - shell_command:\n          - cd tests/bilibili_video_recommendation_server\n          - python3 test.py\n      - shell_command: # xiaoice chat api\n          - cd tests/microsoft_xiaobing_conversation_bing\n          # - node chat_with_session_id.js\n          # - bash xiaobing_server_keepalive.sh\n          - keepalive node chat_with_session_id.js # try it. you may want to replace it with python.\n      # login first!\n      # when pasting gitter tokens, be careful.",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:210-228"
+        "location": "/tasks/qq/qq_red_packet_collect/red_packet.yaml:40-50"
     },
     "1463": {
-        "file_id": 121,
-        "content": "This code updates the oldTotalRectDict with a new rectangle, calculates duration of rectangles, crops and grayscales the difference frame, computes mean difference over time, and checks if std_total is not None to prevent potential errors.",
+        "file_id": 118,
+        "content": "The code includes three separate shell commands for running different Python and Node.js scripts related to server testing, bilibili video recommendation, and a xiaoice chat API. It also mentions the need to login first and advises being careful when pasting Gitter tokens.",
         "type": "comment"
     },
     "1464": {
-        "file_id": 121,
-        "content": "                if duration == 1:\n                    oldTotalRectDict[uuid][\"meanDifference\"] = std_total\n                elif prev_std is None:\n                    oldTotalRectDict[uuid][\"meanDifference\"] = std_total\n                else:\n                    dur2 = duration - 1\n                    try:\n                        new_std = (dur2*prev_std + std_total)/duration # may freaking exceed limit.\n                    except:\n                        print(\"dur2\",dur2)\n                        print(\"prev_std\",prev_std)\n                        print(\"std_total\",std_total)\n                        print(\"duration\",duration)\n                        breakpoint()\n                    oldTotalRectDict[uuid][\"meanDifference\"] = new_std\n                oldTotalRectDict[uuid][\"endFrame\"] = currentFrameIndex\n        return oldTotalRectDict\n    total_rect_dict ={}\n    rect_dict_main_list = []\n    min_rect_life_display_thresh = config[\"min_rect_life_display_thresh\"] # a filter.\n    # mode = 1\n    line_thresh = config[\"line_thresh\"]",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:229-252"
+        "file_id": 119,
+        "content": "/tasks/qq/qq_red_packet_collect/test_make_dog_cat_connection.py",
+        "type": "filepath"
     },
     "1465": {
-        "file_id": 121,
-        "content": "This code calculates the mean difference of a rectangular object's characteristics (like area or aspect ratio) over time, taking into account previous calculations and the duration of frames. It filters out any rectangles that have not met the minimum threshold for display duration.",
-        "type": "comment"
+        "file_id": 119,
+        "content": "This code imports a function from adtools to test making connections between cats and dogs. It defines three test functions: \"test_main\", \"test_delete\", and \"test_query\". The \"test_query\" function retrieves cat and dog ads. The main code block runs the \"test_query\" function if this script is run directly.",
+        "type": "summary"
     },
     "1466": {
-        "file_id": 121,
-        "content": "    includeBoundaryLines = config[\"includeBoundaryLines\"] # applied to those cornered crops.\n    # this will slow down the process. or maybe?\n    frameIndex = -1\n    prevFrame = None\n    # if mode == 1:\n    # import pybgs as bgs\n    algorithm = (\n    bgs.FrameDifference()\n    )  # this\n    framePeriod = config[\"framePeriod\"]\n    config_minRectArea = config[\"minRectArea\"]\n    frame_total_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))\n    # print(\"FRAME_TOTAL_COUNT:\",frame_total_count)\n    # breakpoint()\n    ocr_period = 10\n    ocr_result = []\n    # from .subtitleDetector import getPaddleOCR\n    from shapely.geometry import Point, Polygon\n    def checkPointInOcrRect(ocr_result,point,span=0):\n        xp,yp = point\n        p = Point(xp,yp)\n        for ocr_rect in ocr_result:\n            # print(\"OCR_RECT\", ocr_rect)\n            # breakpoint()\n            # if certainty < certainty_thresh: continue\n            p0,p1,p2,p3 = ocr_rect\n            p0 = (p0[0]-span,p0[1]-span)\n            p1 = (p1[0]+span,p1[1]-span)\n            p2 = (p2[0]+span,p2[1]+span)",
+        "file_id": 119,
+        "content": "from adtools import makeCatOrDogConnections, getCatOrDogAd\ndef test_main():\n    makeCatOrDogConnections(\"123\", \"345\", \"cat\", debug=True)\ndef test_delete():\n    makeCatOrDogConnections(\"123\", \"345\", \"cat\", debug=True, delete=True)\ndef test_query():\n    response = getCatOrDogAd(\"cat\", debug=True)\n    response = getCatOrDogAd(\"dog\", debug=True)\nif __name__ == \"__main__\":\n    test_query()",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:253-281"
+        "location": "/tasks/qq/qq_red_packet_collect/test_make_dog_cat_connection.py:1-18"
     },
     "1467": {
-        "file_id": 121,
-        "content": "This code appears to be part of a video processing pipeline. It initializes an object detection algorithm and uses Shapely's Polygon for point-in-polygon testing with PaddleOCR. The function checkPointInOcrRect checks if a given point lies within the polygons defined by the OCR results, potentially using a span or offset for more accurate detection. Frame border detection is performed through frame differencing with a configurable frame period and minimum rectangle area threshold.",
+        "file_id": 119,
+        "content": "This code imports a function from adtools to test making connections between cats and dogs. It defines three test functions: \"test_main\", \"test_delete\", and \"test_query\". The \"test_query\" function retrieves cat and dog ads. The main code block runs the \"test_query\" function if this script is run directly.",
         "type": "comment"
     },
     "1468": {
-        "file_id": 121,
-        "content": "            p3 = (p3[0]-span,p3[1]+span) # it is float.\n            plist = [(x[0],x[1]) for x in [p0,p1,p2,p3]]\n            poly = Polygon(plist)\n            if poly.contains(p):\n                return True\n        return False\n    def checkLineIntersectOcrRect(ocr_result,linepoint,linetype,span=0):\n        xp,yp = linepoint\n        # p = Point(xp,yp)\n        for ocr_rect in ocr_result:\n            # print(\"OCR_RECT\", ocr_rect)\n            # breakpoint()\n            # if certainty < certainty_thresh: continue\n            p0,p1,p2,p3 = ocr_rect\n            p0 = (p0[0]-span,p0[1]-span)\n            p1 = (p1[0]+span,p1[1]-span)\n            p2 = (p2[0]+span,p2[1]+span)\n            p3 = (p3[0]-span,p3[1]+span) # it is float.\n            plist = [(x[0],x[1]) for x in [p0,p1,p2,p3]]\n            if linetype == \"vertical\":\n                xlist = [x[0] for x in plist]\n                xmin,xmax = min(xlist),max(xlist)\n                if xp >=xmin and xp <= xmax:\n                    return True\n            else:\n                ylist = [x[1] for x in plist]",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:282-308"
+        "file_id": 120,
+        "content": "/tasks/qq/qq_red_packet_collect/test_get_all_my_videos.py",
+        "type": "filepath"
     },
     "1469": {
-        "file_id": 121,
-        "content": "The function `frameborder_Detector()` checks if a given point is inside a polygon. The `checkLineIntersectOcrRect()` function detects whether a line intersects an OCR rectangle, considering both horizontal and vertical lines. It adjusts the coordinates of the OCR rectangle's points by subtracting or adding a span, then checks if the line intersects the adjusted rectangle.",
-        "type": "comment"
+        "file_id": 120,
+        "content": "Code makes a POST request to localhost on port 7341, endpoint \"searchUserVideos\", with an empty query and tid 0 for the latest video of own user. Uses requests library, prints data in JSON format using rich library.",
+        "type": "summary"
     },
     "1470": {
-        "file_id": 121,
-        "content": "                ymin,ymax = min(ylist),max(ylist)\n                if yp >= ymin and yp <= ymax:\n                    return True\n            # poly = Polygon(plist)\n            # if poly.contains(p):\n            #     return True\n        return False\n    for _ in progressbar.progressbar(range(frame_total_count)):\n        ret, img = video.read()\n        # if frameIndex% ocr_period == 0:\n        #     ocr_result = getPaddleOCR(img,cls=True,rec=False)\n        if img is None:\n            # if mode == 1:\n            popKeys = []\n            for key in total_rect_dict.keys():\n                elem = total_rect_dict[key]\n                if elem[\"endFrame\"] is None:\n                    popKeys.append(key)\n            for key in popKeys:\n                total_rect_dict.pop(key) # remove premature rectangles.\n            break\n        else: frameIndex+=1\n        if not frameIndex % framePeriod == 0:\n            continue# do shit.\n        # if mode == 1:\n        diff_img_output = algorithm.apply(img)\n        # what about the freaking still image?",
+        "file_id": 120,
+        "content": "import requests\nport, endpoint = 7341, \"searchUserVideos\"\npostData = {\"query\":\"\", \"tid\": 0, \"method\": \"online\"} # this is to get latest video of my own. fuck. better turned into registration based method.\n# postData = {'query':\"狗\", \"tid\":0, \"method\":\"bm25\"}\nr = requests.post(f\"http://localhost:{port}/{endpoint}\", json=postData)\ndata = r.json()\nprint(\"data\")\nimport rich\nrich.print(data)",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:309-336"
+        "location": "/tasks/qq/qq_red_packet_collect/test_get_all_my_videos.py:1-11"
     },
     "1471": {
-        "file_id": 121,
-        "content": "The code is performing image detection and processing, using a video source to read frames. It checks if the frameIndex meets certain conditions and performs OCR (Optical Character Recognition) on specific frames. If a premature rectangle is detected in the total_rect_dict dictionary, it removes it. The code also applies an algorithm to the still image frames.",
+        "file_id": 120,
+        "content": "Code makes a POST request to localhost on port 7341, endpoint \"searchUserVideos\", with an empty query and tid 0 for the latest video of own user. Uses requests library, prints data in JSON format using rich library.",
         "type": "comment"
     },
     "1472": {
         "file_id": 121,
-        "content": "        # Convert the img to grayscale\n        # gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)\n        # no need to use gray image.\n        # Apply edge detection method on the image\n        blurred = cv2.GaussianBlur(img, config[\"blurKernel\"], 0)\n        edges = cv2.Canny(blurred,20,210,apertureSize = 3) # great.\n        # why not applying edges directly to rectangles?\n        # This returns an array of r and theta values\n        # line_thresh =  200\n        # maintain a rectangle list. merge the alikes?\n        # if mode == 1:\n        lines = cv2.HoughLines(edges,1,np.pi/180,line_thresh)\n        if lines is None:\n            lines = []\n        angle_error = 0.00003   # this can only detect square things, absolute square.\n        # we need to know horizontal and vertical lines, when they cross we get points.\n        frameHeight, frameWidth = img.shape[:2]\n        # print(\"height: \", frameHeight)\n        # print(\"width: \", frameWidth)\n        mlines = {\"horizontal\":[], \"vertical\":[]}\n        if includeBoundaryLines:",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:337-362"
+        "content": "/tasks/qq/qq_red_packet_collect/adtools.py",
+        "type": "filepath"
     },
     "1473": {
         "file_id": 121,
-        "content": "This code snippet is performing edge detection on an image and applying the HoughLines transform to identify horizontal and vertical lines. It also includes an option for including boundary lines. The code converts the image to grayscale, applies Gaussian blur, and performs Canny edge detection. The resulting edges are then passed to the HoughLines transform to find lines, which are categorized as either \"horizontal\" or \"vertical\".",
-        "type": "comment"
+        "content": "The code uses image classification, conversation recording, and Neo4j driver for detecting cat and dog lovers, and generates ads from video dictionaries with cover images. It has various features like rate limiting, debug mode, and handles unimplemented styles randomly.",
+        "type": "summary"
     },
     "1474": {
         "file_id": 121,
-        "content": "            originPoint = (0,0)\n            cornerPoint = (frameWidth,frameHeight)\n            mlines[\"horizontal\"].append(originPoint)\n            mlines[\"horizontal\"].append(cornerPoint)\n            mlines[\"vertical\"].append(originPoint)\n            mlines[\"vertical\"].append(cornerPoint)\n        # lineTrans = {}\n        for line in lines:\n            for r_theta in line:\n                # breakpoint()\n                r,theta = r_theta.tolist()\n                # Stores the value of cos(theta) in a\n                # filter detected lines?\n                # theta filter:\n                if not abs(theta % (np.pi/2) )< angle_error:\n                    continue # this is filtering.\n                # print(\"line parameter:\",r,theta)\n                a = np.cos(theta)\n                # Stores the value of sin(theta) in b\n                b = np.sin(theta)\n                # x0 stores the value rcos(theta)\n                x0 = a*r\n                # y0 stores the value rsin(theta)\n                y0 = b*r\n                # x1 stores the rounded off value of (rcos(theta)-1000sin(theta))",
+        "content": "import rich\ncatSignals = [\"喵喵\", \"猫\", \"猫咪\", \"喵\"]\ndogSignals = [\n    \"狗狗\",\n    \"狗\",\n    \"汪汪\",\n    \"修勾\",\n    \"汪\",\n    \"狗子\",\n]\n# def getQueryWordFromSignals(signals:list):\n#     msignals = signals.copy()\n#     msignals.sort(key=lambda x: len(x))\n#     response = []\n#     for s in msignals:\n#         if s not in \" \".join(response):\n#             response.append(s)\n#     return \" \".join(response)\ncatDogElemDict = {\"cat\": catSignals, \"dog\": dogSignals}\n# catQueryWord = getQueryWordFromSignals(catSignals)\n# dogQueryWord = getQueryWordFromSignals(dogSignals)\n# # print(\"DOG QUERY WORD?\",dogQueryWord)\n# catDogQueryWords = {\"cat\": catQueryWord,\"dog\":dogQueryWord}\n# TODO: detect if some \"dog\" or \"cat\" lover is talking\ndef checkIsCatOrDogLover(qq_user_id):\n    # if both, return either one.\n    # TODO: for more topics, sort topics by popularity and views\n    ...\n# TODO: record those who talks to other.\n# TODO: decay this relationship counter by 0.8 everyday\ndef recordQQUserTalkingToAnotherUser(\n    former_speaker: dict, later_speaker: dict, threshold: int = 60",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:363-391"
+        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:1-39"
     },
     "1475": {
         "file_id": 121,
-        "content": "This code calculates the line parameters and applies a theta filter to eliminate lines that are close to being vertical or horizontal. It stores cos(theta) in 'a', sin(theta) in 'b', r*cos(theta) in 'x0', and r*sin(theta) in 'y0'. The theta filter ensures only appropriate angles are included, preventing false detections of vertical/horizontal lines.",
+        "content": "This code defines a function that detects if a QQ user is a cat or dog lover, and includes functions to generate query words from signals for cats and dogs, and record users talking to each other. The code also sorts topics by popularity and views, and decays relationship counters daily.",
         "type": "comment"
     },
     "1476": {
         "file_id": 121,
-        "content": "                x1 = int(x0 + 1000*(-b))\n                # y1 stores the rounded off value of (rsin(theta)+1000cos(theta))\n                y1 = int(y0 + 1000*(a))\n                # x2 stores the rounded off value of (rcos(theta)+1000sin(theta))\n                x2 = int(x0 - 1000*(-b))\n                # y2 stores the rounded off value of (rsin(theta)-1000cos(theta))\n                y2 = int(y0 - 1000*(a))\n                # cv2.line draws a line in img from the point(x1,y1) to (x2,y2).\n                # (0,0,255) denotes the colour of the line to be\n                #drawn. In this case, it is red.\n                df_x = abs(x1-x2)\n                df_y = abs(y1-y2)\n                lineType = \"vertical\"\n                if df_x > df_y:\n                    lineType = \"horizontal\"\n                # we just need one single point and lineType.\n                linePoint = (x1,y1)\n                # for p_rect in rect:\n                mlines[lineType].append(linePoint)\n                # mlines2[lineType].append([(x1,y1), (x2,y2)])",
+        "content": "):\n    # only record those who answers within the time.\n    if former_speaker[\"UserID\"] != later_speaker[\"UserID\"]:\n        if abs(former_speaker[\"SpeakTime\"] - later_speaker[\"SpeakTime\"]) <= threshold:\n            # make the connection\n            ...\n# [DONE]: detect \"cat\" or \"dog\" image.\n# [DONE]: rate limit\n# from ratelimiter import RateLimiter\n# def rateLimitReached(until):\n#     raise Exception(f\"rate limit reached. wait {until} seconds\")\n# # this can slow me down.\n# @RateLimiter(max_calls=1, period=5,callback=rateLimitReached )\nimport time\nrateLimits = {}\nimport sys\ndef checkIsCatOrDogImage(\n    image_url,\n    download_timeout=2,\n    timeout=4,\n    port=4675,\n    endpoint=\"analyzeImage\",\n    rateLimitPeriod=5,\n    threshold=0.4,\n    debug=True\n):\n    lastRun = rateLimits.get(\"checkIsCatOrDogImage\", 0)\n    now = time.time()\n    if now - lastRun > rateLimitPeriod:\n        rateLimits[\"checkIsCatOrDogImage\"] = now\n    else:\n        raise Exception(\n            f\"Rate limit exceeded. One request per {rateLimitPeriod} seconds.\"",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:392-417"
+        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:40-77"
     },
     "1477": {
         "file_id": 121,
-        "content": "This code calculates the coordinates of a line using trigonometry and draws it on an image in PyJOM's media language detector. It also determines the type of line (vertical or horizontal) based on the difference between its endpoints' x and y values. The line's starting point is stored in 'linePoint', and the lines are appended to the 'mlines' list according to their type.",
+        "content": "This function checks if an image is of a cat or dog. It also includes rate limiting to prevent overloading the server by allowing only one request per 5 seconds. The threshold parameter determines how close in time two users must respond for their answers to be connected. Debug mode can be enabled to provide additional information during testing.",
         "type": "comment"
     },
     "1478": {
         "file_id": 121,
-        "content": "                # lineTrans.update({str((x1,y1)+lineType):(x2,y2)})\n                # cv2.line(img,(x1,y1), (x2,y2), (0,0,255),2)\n                # would not draw lines this time. draw found rects instead.\n        # get rectangle points. or just all possible rectangles?\n        yd,xd = diff_img_output.shape\n        # print(\"IMAGE SHAPE\",xd,yd)\n        rangeLimitRatio = 0.1\n        # rangeLimit = \n        visual=False\n        for lineType in mlines.keys():\n            dropIndexs = []\n            data0 =mlines[lineType]\n            if lineType == \"vertical\":\n                selectedPoints = [x[0] for x in data0]\n                rangeLimit = xd*rangeLimitRatio\n                selectedRanges = list_to_range(selectedPoints,rangeLimit)\n                # print(selectedRanges)\n                selectedRangesFlattened = [x for y in selectedRanges for x in y]\n                # print(selectedRangesFlattened)\n                data0 = [x for x in data0 if x[0] in selectedRangesFlattened]\n            else:\n                selectedPoints = [x[1] for x in data0]",
+        "content": "        )\n    try:\n        import requests\n        # img_bytes = requests.get(image_url, \n        # # timeout=download_timeout\n        # # also some damn timeout. fuck.\n        # ).content\n        # import cv2\n        # import numpy as np\n        # import numpy_serializer\n        # nparr = np.fromstring(img_bytes, np.uint8)\n        # img_np = cv2.imdecode(nparr, flags=1)  # cv2.IMREAD_COLOR in OpenCV 3.1\n        # np_array_bytes = numpy_serializer.to_bytes(img_np)\n        api_url = f\"http://localhost:{port}/{endpoint}\"\n        params = dict(isBytes=False)\n        # params = dict(isBytes=True)\n        before_request = time.time()\n        if debug:\n            print(\"DOG_CAT REQ SENT\",file=sys.stderr)\n        r = requests.post(\n            api_url, \n            data={\"image\":image_url}, \n            # data={\"image\": np_array_bytes}, \n            # timeout=timeout,\n            # oh shit.\n            params=params, proxies=None\n        )\n        result = r.json()\n        after_request = time.time()\n        if debug:\n            print(\"DOG_CAT REQ RECV\",file=sys.stderr)",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:418-439"
+        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:78-110"
     },
     "1479": {
         "file_id": 121,
-        "content": "This code is iterating over line types in the mlines dictionary, specifically targeting vertical and horizontal lines. For vertical lines, it selects points and determines a range limit for filtering out unnecessary data. It then applies this range to flatten the data and refine the list of valid points. For horizontal lines, it performs a similar process but selects different coordinates.",
+        "content": "This code is making a request to an API endpoint using the requests library. It attempts to send the image data as bytes or content depending on the value of `isBytes` parameter. If debug is set, it prints messages for request sending and receiving. The time taken for the request is also recorded.",
         "type": "comment"
     },
     "1480": {
         "file_id": 121,
-        "content": "                rangeLimit = yd*rangeLimitRatio\n                selectedRanges = list_to_range(selectedPoints,rangeLimit)\n                selectedRangesFlattened = [x for y in selectedRanges for x in y]\n                data0 = [x for x in data0 if x[1] in selectedRangesFlattened]\n            # for index, linePoint in enumerate(data0):\n            #     # linePoint = mlines[lineType]\n            #     if checkLineIntersectOcrRect(ocr_result,linePoint,lineType): dropIndexs.append(index)\n            # newdata0 = [data0[i] for i in range(len(data0)) if i not in dropIndexs]\n            newdata0 = data0\n            mlines[lineType] = newdata0\n            if visual:\n                for linePoint in newdata0:\n                    (x1,y1) = linePoint\n                    # (x2,y2) = lineTrans[str((x1,y1))+lineType]\n                    if lineType == \"vertical\":\n                        x2 = x1\n                        y2 = yd\n                    else:\n                        x2 = xd\n                        y2 = y1\n                    cv2.line(img,(x1,y1), (x2,y2), (0,0,255),2)",
+        "content": "            print(\"RESULT?\", file=sys.stderr)\n            print(result, file=sys.stderr)\n        if debug:\n            print(f\"DOG/CAT SERVER REQUEST TAKING TIME: {(after_request-before_request):.3f}s\",file=sys.stderr)\n        for species in result:\n            name = species[\"identity\"]\n            if name in [\"cat\", \"dog\"]:\n                conf = species[\"confidence\"]\n                if conf > threshold:\n                    if debug:\n                        print(\"CAT/DOG RESULT:\", name, file=sys.stderr)\n                    return name\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"Error when downloading and detecting image content if is cat or dog\")\n    return None\ndef checkCatOrDog(Content: str):\n    # cat? dog? None?\n    for key, elems in catDogElemDict.items():\n        for elem in elems:\n            if elem in Content.lower():\n                return key\n    return None\n# pip3 install python_cypher\n# pip3 install neo4j\nfrom functools import lru_cache\nNEO4J_PORT = 7687\n@lru_cache(maxsize=1)",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:440-460"
+        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:111-148"
     },
     "1481": {
         "file_id": 121,
-        "content": "This code section is responsible for updating the line data based on a specified range and removing any lines that intersect with the OCR result. It then generates a new list of line points and visualizes them on the image, if visualization is enabled.",
+        "content": "Function `checkCatOrDog` checks if the given input string contains words related to cat or dog and returns \"cat\" or \"dog\" accordingly, otherwise it returns None. The function also utilizes `catDogElemDict`.\n\nThe code snippet uses an exception handling mechanism where if any error occurs during image downloading and content detection, it prints the error message and returns None. It imports traceback for printing the exception details. \n\nIt imports the necessary libraries for working with Neo4j: pip3 install python_cypher and pip3 install neo4j.\n\nThe `@lru_cache(maxsize=1)` decorator is used to cache the results of a function call, which can improve performance by avoiding redundant computations for the same inputs. In this case, it's applied to some function (not shown in the code snippet).",
         "type": "comment"
     },
     "1482": {
         "file_id": 121,
-        "content": "        # enumerate all possible lines.\n        if len(mlines[\"horizontal\"]) < 2 or len(mlines[\"vertical\"]) < 2:\n            # print(\"unable to form rectangles.\")\n            continue\n        else:\n            rects =[] # list of rectangles\n            eliminateRatio = 0.3\n            for line_h1, line_h2 in itertools.combinations(mlines[\"horizontal\"],2): # this is a problem.\n                ymin, ymax = list(sorted([line_h1[1],line_h2[1]]))\n                yspan = ymax-ymin\n                if yspan < yd*eliminateRatio:\n                    continue\n                for line_v1, line_v2 in itertools.combinations(mlines[\"vertical\"], 2): # this is a problem.\n                    xmin, xmax = list(sorted([line_v1[0],line_v2[0]]))\n                    rect = ((xmin,ymin),(xmax,ymax))\n                    # pr1,pr2 = rect\n                    # for p_rect in rect:\n                    #     if checkPointInOcrRect(ocr_result,p_rect): continue # skip those traitors.\n                    xspan = xmax-xmin\n                    if xspan < xd*eliminateRatio:",
+        "content": "def getNeo4jDriver(\n    address=\"neo4j://localhost:{}\".format(NEO4J_PORT),\n    username=\"neo4j\",\n    password=\"kali\",\n    debug=False,\n):  # so we bruteforced it. thanks to chatgpt.\n    from neo4j import GraphDatabase\n    driver = GraphDatabase.driver(address, auth=(username, password))\n    if debug:\n        print(\"login successful: username:%s password:%s\" % (username, password))\n    return driver\nfrom pypher import Pypher\ndef makeCatOrDogConnections(\n    group_id: str,\n    sender_id: str,\n    cat_or_dog: str,\n    debug: bool = False,\n    delete: bool = False,\n):  # whatever.\n    # Create a new Pypher object\n    with getNeo4jDriver().session() as session:\n        p = Pypher()\n        if delete:\n            p.MATCH.node(\"n1\", labels=\"qq_group\", group_id=group_id)\n            p.MATCH.node(\"n2\", labels=\"qq_user\", user_id=sender_id)\n            p.MATCH.node(\"n3\", labels=\"ad_keyword\", keyword=cat_or_dog)  # fine.\n            p.DETACHDELETE.node(\"n1\").DETACHDELETE.node(\"n2\").DETACHDELETE.node(\"n3\")\n        # Use the MERGE clause to create the nodes if they do not already exist",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:461-481"
+        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:149-182"
     },
     "1483": {
         "file_id": 121,
-        "content": "This code snippet combines horizontal and vertical lines to form rectangles. If there are less than two horizontal or vertical lines, the process is skipped. For each pair of horizontal lines and pairs of vertical lines, it checks if the aspect ratio is above a certain threshold before proceeding.",
+        "content": "The function `getNeo4jDriver()` returns a Neo4j driver with the provided address, username, password, and debug option. The function `makeCatOrDogConnections()` uses Pypher to create or delete connections between nodes based on group_id, sender_id, cat_or_dog, debug, and delete options. It establishes a Neo4j session using the driver returned by `getNeo4jDriver()`.",
         "type": "comment"
     },
     "1484": {
         "file_id": 121,
-        "content": "                        continue\n                    rects.append(rect)\n            # for index,elem in enumerate(rect_dict_main_list):\n            rect_dict_main_list = rectSurge(rect_dict_main_list,rects,diff_img_output)\n            # print(\"RECT DICT MAIN LIST:\")\n            # print(rect_dict_main_list) # maybe i want this shit?\n            total_rect_dict = updateTotalRects(total_rect_dict,rect_dict_main_list,frameIndex,diff_img_output,minRectArea=config_minRectArea)\n            mdisplayed_rect_count = 0\n            for rect_dict in rect_dict_main_list:\n                life = rect_dict[\"life\"]\n                if life < min_rect_life_display_thresh:\n                    continue # this is needed.\n                # draw shit now.\n                mdisplayed_rect_count +=1\n                (xmin,ymin),(xmax,ymax) = rect_dict[\"rect\"]\n                cv2.rectangle(img,(xmin,ymin),(xmax,ymax) , (255,0,0), 2)\n            #     (xmin,ymin),(xmax,ymax) = rect\n            #     rect_area = (xmax-xmin) * (ymax-ymin)",
+        "content": "        else:\n            p.MERGE.node(\"n1\", labels=\"qq_group\", group_id=group_id)\n            p.MERGE.node(\"n2\", labels=\"qq_user\", user_id=sender_id)\n            p.MERGE.node(\"n3\", labels=\"ad_keyword\", keyword=cat_or_dog)\n            # Use the MERGE clause to create the relationship between the nodes if it does not already exist\n            p.MERGE.node(\"n1\").rel_out(\"r\", labels=\"includes\").node(\"n2\")\n            p.MERGE.node(\"n2\").rel_out(\"r1\", labels=\"talks_of\").node(\"n3\")\n        # Generate the Cypher query string\n        query = str(p)\n        if debug:\n            print(\"QUERY?\", query)\n            print(\"QUERY TYPE?\", type(query))\n            # how to roll back?\n        # Execute the query using the Neo4j driver\n        result = session.run(query, parameters=p.bound_params)\n        if debug:\n            print(\"RESULT?\", result)\nfrom lazero.network.checker import waitForServerUp\nBILIBILI_RECOMMENDATION_SERVER_PORT = 7341\nwaitForServerUp(BILIBILI_RECOMMENDATION_SERVER_PORT, \"bilibili recommendation server\")",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:482-500"
+        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:183-208"
     },
     "1485": {
         "file_id": 121,
-        "content": "The code iterates through a list of rectangles, appends them to the rects list if their life is above a certain threshold. It then updates the total_rect_dict and displays rectangles with a life above a minimum threshold on the image. The rectangles are drawn as bounding boxes using cv2.rectangle function.",
+        "content": "The code checks if a user is in a group and creates necessary nodes and relationships using the MERGE clause. It generates a Cypher query, prints it for debugging purposes (if enabled), and executes it with the Neo4j driver. Additionally, it waits for the BILIBILI_RECOMMENDATION_SERVER to be up before running the code.",
         "type": "comment"
     },
     "1486": {
         "file_id": 121,
-        "content": "            #     print(\"rect found:\",rect,rect_area)\n            prevFrame = img.copy()\n            # print(\"total rects:\",mdisplayed_rect_count)\n        if visual:\n            cv2.imshow('linesDetected.jpg', img)\n            # cv2.imshow(\"edges.jpg\",edges) # not for fun.\n            if cv2.waitKey(20) == ord(\"q\"):\n                print(\"QUIT INTERFACE.\")\n                break\n    # All the changes made in the input image are finally\n    # written on a new image houghlines.jpg\n    # if mode == 1:\n    print(\"FINAL RESULT:\")\n    for key in total_rect_dict.keys():\n        elem = total_rect_dict[key]\n        print(\"RECT UUID\",key)\n        print(\"RECT CONTENT\",elem)\n    popKeys = []\n    for key in total_rect_dict.keys():\n        elem = total_rect_dict[key]\n        if elem[\"endFrame\"] is None:\n            popKeys.append(key)\n    for key in popKeys:\n        total_rect_dict.pop(key) # remove premature rectangles.\n    # break\n    return total_rect_dict\ndef framedifference_talib_FrameIterator(mediapath,**config):\n    algorithm = (",
+        "content": "import requests\n# import random\nfrom bilibili_api.search import bilibiliSearchParams\n# you might just want some delay when searching online.\nfrom typing import Literal\ndef getCatOrDogAd(\n    cat_or_dog: str,\n    server: str = \"http://localhost:{}\".format(BILIBILI_RECOMMENDATION_SERVER_PORT),\n    debug: bool = False,\n    method: Literal[\"bm25\", \"online\"] = \"bm25\",\n):\n    # how do we get one? by label? by category? by name?\n    url = server + \"/searchUserVideos\"\n    # queryWord = catDogQueryWords.get(cat_or_dog,None)\n    queryWords = catDogElemDict.get(cat_or_dog, None)\n    try:\n        assert queryWords is not None\n    except Exception as e:\n        print(\"Could not find topic with keyword:\", cat_or_dog)\n        raise e\n    animalTid = bilibiliSearchParams.video.tids.动物圈.tid\n    # myTids = {\"cat\":bilibiliSearchParams.video.tids.动物圈.喵星人,\"dog\":bilibiliSearchParams.video.tids.动物圈.汪星人}\n    # myTid = myTids[cat_or_dog]\n    # queryWord = random.choice([\"\",random.choice(queryWords)]) # you can still have things without query",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:501-529"
+        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:210-240"
     },
     "1487": {
         "file_id": 121,
-        "content": "The code is detecting frames in an image using computer vision techniques. It creates a rectangle around each frame, counts the total number of rectangles displayed, and displays the image with detected frames. The program checks for user input to quit and then removes any prematurely ended rectangles from the dictionary before returning the final list of rectangles. The function is part of a larger algorithm for frame detection and iteration using talib library in PyJOM.",
+        "content": "This code defines a function called getCatOrDogAd that searches for user videos related to cats or dogs. It takes the type of animal as input, along with server details, search method, and debug flag as optional parameters. The function constructs the URL for the API call and retrieves the query words based on the animal type. It then performs an assertion to ensure that valid query words are provided. If not, it raises an exception with a relevant error message.",
         "type": "comment"
     },
     "1488": {
         "file_id": 121,
-        "content": "        bgs.FrameDifference()\n    )  # this is not stable since we have more boundaries. shall we group things?\n    video_file = (\n        mediapath  # this is doggy video without borders.\n    )\n    # video_file = \"../../samples/video/LiEIfnsvn.mp4\" # this one with cropped boundaries.\n    capture = cv2.VideoCapture(video_file)\n    while not capture.isOpened():\n        capture = cv2.VideoCapture(video_file)\n        # cv2.waitKey(1000)\n        # print(\"Wait for the header\")\n    pos_frame = capture.get(1)\n    past_frames = config[\"past_frames\"]\n    def getAppendArray(mx1, min_x, past_frames=past_frames):\n        return np.append(mx1[-past_frames:], min_x)\n    def getFrameAppend(frameArray, pointArray, past_frames=past_frames):\n        mx1, mx2, my1, my2 = [\n            getAppendArray(a, b, past_frames=past_frames)\n            for a, b in zip(frameArray, pointArray)\n        ]\n        return mx1, mx2, my1, my2\n    timeperiod = config[\"timeperiod\"]\n    def getStreamAvg(a, timeperiod=timeperiod):  # to maintain stability.",
+        "content": "    # queryWord = \" \".join(queryWords)\n    # queryWord = {\"cat\":'猫',\"dog\":'狗'}[cat_or_dog] # Whatever. fuck it. replace it with semantic search later? or you use multiple searches.\n    # you cannot just ignore the queryWord in bm25\n    responses = []\n    for queryWord in queryWords:\n        # data = {\"query\":queryWord,\"tid\":random.choice([0]*20+[animalTid]*10+[myTid]*5)} # you can specify my user id. you may make that empty?\n        data = {\"query\": queryWord, \"tid\": animalTid, \"method\": method}\n        if debug:\n            print(\"POSTING DATA:\")\n            rich.print(data)\n        r = requests.post(url, json=data)\n        response = r.json()\n        for elem in response:\n            if elem not in responses:\n                responses.append(elem)\n    responses.sort(key=lambda elem: -elem.get(\"pubdate\", -1))\n    if debug:\n        print(\"RESPONSES?\")\n        rich.print(responses)\n    return responses  # select one such response.\nfrom ad_template_2_functional import (\n    TMP_DIR_PATH,\n    generateBilibiliVideoAd,",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:530-559"
+        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:241-267"
     },
     "1489": {
         "file_id": 121,
-        "content": "The code is initializing a video file and capturing frames from it. It uses various functions such as FrameDifference, getAppendArray, and getFrameAppend for processing the frames and points. The purpose is to maintain stability in the data by averaging over a certain time period using the getStreamAvg function.",
+        "content": "The code fetches relevant data for multiple query words, posts the data to a URL, filters and sorts the responses based on the publication date, and returns the filtered responses. The debug option allows printing of the posted data and response for troubleshooting purposes.",
         "type": "comment"
     },
     "1490": {
         "file_id": 121,
-        "content": "        return talib.stream.EMA(a, timeperiod=timeperiod)\n    change_threshold = config[\"change_threshold\"]\n    def checkChange(frame_x1, val_x1, h, change_threshold=change_threshold):\n        return (abs(frame_x1 - val_x1) / h) > change_threshold  # really changed.\n    mx1, mx2, my1, my2 = [np.array([]) for _ in range(4)]\n    # past_frames = 19\n    #already set.\n    perc = config[\"perc\"]\n    frame_num = 0 # not to change.\n    # what is the time to update the frame?\n    frame_x1, frame_y1, frame_x2, frame_y2 = [None for _ in range(4)]\n    reputation = 0\n    max_reputation = config[\"max_reputation\"]\n    minVariance =config[\"minVariance\"]\n    frameDict = {}  # include index, start, end, coords.\n    frameIndex = 0\n    framePeriod = config[\"framePeriod\"]\n    frame_total_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))\n    # print(\"FRAME_TOTAL_COUNT:\",frame_total_count)\n    # breakpoint()\n    for _ in progressbar.progressbar(range(frame_total_count)):\n        flag, frame = capture.read()\n        if not frameIndex%framePeriod == 0:",
+        "content": "    getAdLock,\n)  # use the lock during sending the ad.\ndef generateAdFromVideoInfo(videoInfo):  # which style you want the most?\n    # selected video info.\n    bvid, pic, title = videoInfo[\"bvid\"], videoInfo[\"pic\"], videoInfo[\"title\"]\n    import os\n    extension = pic.split(\"?\")[0].split(\".\")[-1]\n    cover_download_path = os.path.join(TMP_DIR_PATH, \"video_cover.{}\".format(extension))\n    (\n        output_path,\n        output_standalone,\n        output_masked_path,\n    ), link = generateBilibiliVideoAd(bvid, title, pic, cover_download_path)\n    return (\n        output_path,\n        output_standalone,\n        output_masked_path,\n    ), link  # which one you want?\nfrom botoy import Action\nfrom typing import Literal\nimport random\n# you can send it to qq user, qq group, channels, qzone, email\n# if send by json, qzone, channels, email that will be ajax. set up another server to handle ajax requests.\ndef getBase64StringFromFilePath(\n    filePath: str, binary: bool = False, encoding: str = \"utf-8\"\n):\n    import os\n    assert os.path.isfile(filePath)",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:560-588"
+        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:268-305"
     },
     "1491": {
         "file_id": 121,
-        "content": "This code appears to be a part of a larger function or program. It initializes variables and loops through frames of a video, likely for analysis or processing purposes. The code uses the EMA (Exponential Moving Average) from the talib library and has conditions to check changes in frame values. It also sets up dictionaries and tracks the frame index and total count of frames in the video. Further understanding would require knowledge about the rest of the codebase and how this specific function contributes to its overall functionality.",
+        "content": "This function `generateAdFromVideoInfo` takes a `videoInfo` dictionary as input, extracts the required fields (bvid, pic, and title), downloads the cover image if necessary, and generates three ad paths (output_path, output_standalone, output_masked_path) along with an associated link. These ads can be sent to various platforms like QQ user, group, channels, Qzone, or email. If sending via JSON, Qzone, channels, or email, a separate server is required to handle AJAX requests. The function `getBase64StringFromFilePath` converts a file path into a Base64 string, which can be used for sending images.",
         "type": "comment"
     },
     "1492": {
         "file_id": 121,
-        "content": "            continue # skip shit.\n        frameIndex += 1\n        if flag:\n            pos_frame = capture.get(1)  # this is getting previous frame without read again.\n            img_output = algorithm.apply(frame)\n            img_bgmodel = algorithm.getBackgroundModel()\n            _, contours = cv2.findContours(\n                img_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE\n            )\n            # maybe you should merge all active areas.\n            if contours is not None:\n                # continue\n                counted = False\n                for contour in contours:\n                    [x, y, w, h] = cv2.boundingRect(img_output)\n                    if not counted:\n                        min_x, min_y = x, y\n                        max_x, max_y = x + w, y + h\n                        counted = True\n                    else:\n                        min_x = min(min_x, x)\n                        min_y = min(min_y, y)\n                        max_x = max(max_x, x + w)\n                        max_y = max(max_y, y + h)",
+        "content": "    import base64\n    with open(filePath, \"rb\") as img_file:\n        b64_string = base64.b64encode(img_file.read())\n    if not binary:\n        b64_string = b64_string.decode(encoding)\n    return b64_string\ndef sendCatOrDogAdToQQGroup(\n    group_id: str,\n    cat_or_dog: str,\n    action: Action,\n    style: Literal[\n        \"single_qr\", \"text_link\", \"image_link\", \"json\", \"random\", \"random_not_json\"\n    ] = \"random\",\n    recentLimits: int = 20,\n):  # many things not implemented yet.\n    totalStyles = [\n        \"single_qr\",\n        \"text_link\",\n        \"image_link\",\n        \"json\",\n        \"random\",\n        \"random_not_json\",\n    ]\n    notImplementedStyles = [\n        \"image_link\",\n        \"json\",\n    ]  # if json, first we search for avaliable json messages, if missing, we search for android devices, unlock the device then send the message. if failed, use other non-json methods.\n    usableStyles = [s for s in totalStyles if s not in notImplementedStyles]\n    nonRandomStyles = [s for s in usableStyles if not s.startswith(\"random\")]",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:589-612"
+        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:306-339"
     },
     "1493": {
         "file_id": 121,
-        "content": "Continuing loop through frames and skipping invalid ones. Updates frame index and retrieves previous frame without re-reading. Applies an algorithm to the current frame and gets the background model. Finds contours in the processed frame using cv2 library, iterates through each contour, calculates bounding rectangles for detection areas, updates minimum/maximum coordinates if not counted, and continues until all contours are analyzed.",
+        "content": "Function takes a file path, encodes its content in base64, and returns the string. It does not specify encoding type if binary is False.\nFunction sends a cat or dog ad to a QQ group with multiple available styles, but some features are currently unimplemented.",
         "type": "comment"
     },
     "1494": {
         "file_id": 121,
-        "content": "                        # only create one single bounding box.\n                # print(\"points:\",min_x, min_y, max_x,max_y)\n                this_w = max_x - min_x\n                this_h = max_y - min_y\n                thresh_x = max(minVariance, int(perc * (this_w)))\n                thresh_y = max(minVariance, int(perc * (this_h)))\n                mx1, mx2, my1, my2 = getFrameAppend(\n                    (mx1, mx2, my1, my2), (min_x, max_x, min_y, max_y)\n                )\n                val_x1, val_x2, val_y1, val_y2 = [\n                    getStreamAvg(a) for a in (mx1, mx2, my1, my2)\n                ]\n                # not a number. float\n                # will return False on any comparison, including equality.\n                if (\n                    abs(val_x1 - min_x) < thresh_x\n                    and abs(val_x2 - max_x) < thresh_x\n                    and abs(val_y1 - min_y) < thresh_y\n                    and abs(val_y2 - max_y) < thresh_y\n                ):\n                    needChange = False\n                    # this will create bounding rect.",
+        "content": "    nonRandomNorJsonStyles = [s for s in nonRandomStyles if s is not \"json\"]\n    def noSuchStyle(style: str):\n        raise NotImplementedError(\"Not implemented style: '{}'\".format(style))\n    if style in notImplementedStyles:\n        noSuchStyle(style)\n    if style == \"random\":\n        style = random.choice(nonRandomStyles)\n    elif style == \"random_not_json\":\n        style = random.choice(nonRandomNorJsonStyles)\n    responses = getCatOrDogAd(cat_or_dog)\n    success = False\n    with getAdLock():\n        if responses != []:\n            videoInfo = random.choice(responses[:recentLimits])\n            title_text = videoInfo[\"title\"]\n            (\n                output_path,\n                output_standalone,\n                output_masked_path,  # what is this?\n            ), link = generateAdFromVideoInfo(videoInfo)\n            if style == \"single_qr\":\n                content = \"\"\n                picturePath = output_path\n            elif style == \"text_link\":\n                # you must censor that.\n                from censorApis import censorReply",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:613-634"
+        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:340-370"
     },
     "1495": {
         "file_id": 121,
-        "content": "This code creates a single bounding box by calculating the threshold values based on the percentage and bounding box dimensions. It checks if the average stream values of the bounding box corners are within the calculated thresholds, and if so, it sets needChange to False, indicating that no change is needed in the bounding rect creation.",
+        "content": "This code snippet checks the specified style for an ad and generates different types of ads based on the style. It handles unimplemented styles, selects random non-JSON styles, and generates outputs (paths, links) using a helper function generateAdFromVideoInfo(). It also mentions censoring a reply using another function censorReply() from censorApis module.",
         "type": "comment"
     },
     "1496": {
         "file_id": 121,
-        "content": "                    # this cannot handle multiple active rects.\n                    reputation = max_reputation\n                    if frame_x1 == None:\n                        needChange = True\n                    elif (\n                        checkChange(frame_x1, val_x1, this_w)\n                        or checkChange(frame_x2, val_x2, this_w)\n                        or checkChange(frame_y1, val_y1, this_h)\n                        or checkChange(frame_y2, val_y2, this_h)\n                    ):\n                        needChange = True\n                        # the #2 must be of this reason.\n                    if needChange:\n                        frame_x1, frame_y1, frame_x2, frame_y2 = [\n                            int(a) for a in (min_x, min_y, max_x, max_y)\n                        ]\n                        print()\n                        print(\"########FRAME CHANGED########\")\n                        frame_num += 1\n                        frame_area = (frame_x2 - frame_x1) * (frame_y2 - frame_y1)\n                        # update the shit.",
+        "content": "                title_text = censorReply(title_text)\n                content = \"观看视频:\\n{}\\n{}\".format(link, title_text)\n                picturePath = output_standalone\n            else:\n                noSuchStyle(style)\n            picBase64Buf = getBase64StringFromFilePath(picturePath)\n            sendMessageStatus = action.sendGroupPic(\n                group=int(group_id), content=content, picBase64Buf=picBase64Buf\n            )\n            # stderrPrint(\"SENT AD STATUS:\",sendMessageStatus)\n            success = (\n                sendMessageStatus.get(\"ErrMsg\", None) is \"\"\n                or sendMessageStatus.get(\"Msg\", None) is \"\"\n                or sendMessageStatus.get(\"Ret\", None) is 0\n            )\n    return success",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:635-655"
+        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:372-388"
     },
     "1497": {
         "file_id": 121,
-        "content": "This code checks if the frame boundaries have changed and updates them accordingly. If a change occurs, it increments the frame number and prints \"########FRAME CHANGED########\". The frame area is then calculated based on the updated frame boundaries.",
+        "content": "The code censors reply text and creates a message with a video link and title. If no style is provided, it uses noSuchStyle function. It then sends a group picture message using the sendGroupPic action and returns whether the message was sent successfully based on the response's error message or return value.",
         "type": "comment"
     },
     "1498": {
-        "file_id": 121,
-        "content": "                        coords = ((frame_x1, frame_y1), (frame_x2, frame_y2))\n                        frameDict[frame_num] = {\n                            \"coords\": coords,\n                            \"start\": frameIndex,\n                            \"end\": frameIndex,\n                        }\n                        print(\n                            \"FRAME INDEX: {}\".format(frame_num)\n                        )  # this is the indexable frame. not uuid.\n                        print(\"FRAME AREA: {}\".format(frame_area))\n                        print(\"FRAME COORDS: {}\".format(str(coords)))\n                    # allow us to introduce our new frame determinism.\n                else:\n                    if reputation > 0:\n                        reputation -= 1\n                if frame_x1 is not None and reputation > 0:\n                    # you may choose to keep cutting the frame? with delay though.\n                    cv2.rectangle(\n                        frame, (frame_x1, frame_y1), (frame_x2, frame_y2), (255, 0, 0), 2",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:656-674"
+        "file_id": 122,
+        "content": "/tasks/qq/qq_red_packet_collect/test_qrcode_insert_replace.py",
+        "type": "filepath"
     },
     "1499": {
-        "file_id": 121,
-        "content": "Code is detecting frames in an image, storing their coordinates and index range in a dictionary. If the frame's reputation is positive, it will reduce the reputation and continue cutting the frame if needed. It also prints information about the detected frame to the console.",
-        "type": "comment"
+        "file_id": 122,
+        "content": "This code imports a function to remove and insert QR codes, then tests it with two image inputs and a specific qrcode_path. It displays the output images in a window before exiting.",
+        "type": "summary"
     }
 }

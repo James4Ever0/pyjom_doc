@@ -1,536 +1,543 @@
 {
     "2800": {
-        "file_id": 312,
-        "content": "# breakpoint()\n# how to get document by id? wtf",
+        "file_id": 315,
+        "content": "use_cuda_cv2 = True # after we compile shit\nif use_cuda_cv2: # the freaking speed is awful.\n    import pathlib\n    import site\n    import sys\n    # this is root. this is not site-packages.\n    # site_path = pathlib.Path([x for x in site.getsitepackages() if \"site-packages\" in x][0])\n    site_path = pathlib.Path(\"/usr/local/lib/python3.9/site-packages\") # maybe it is done after you make install the whole cv2 shit.\n    cv2_libs_dir = site_path / 'cv2' / f'python-{sys.version_info.major}.{sys.version_info.minor}'\n    print(cv2_libs_dir)\n    cv2_libs = sorted(cv2_libs_dir.glob(\"*.so\"))\n    if len(cv2_libs) == 1:\n        print(\"INSERTING:\",cv2_libs[0].parent)\n        sys.path.insert(1, str(cv2_libs[0].parent))\nimport cv2\nimport numpy as np\nfrom PIL import Image, ImageFont, ImageDraw  \nimport Levenshtein\nimport math\n# from m2m100_1b_translator import zh_to_en_translator as translator\n# i just want to do the freaking inpainting.\n# import statistics\ndef redraw_english_to_chinese2(image,resultChineseInternal): \n    a,b,c = image.shape",
         "type": "code",
-        "location": "/tests/video_phash_deduplication/test_milvus.py:140-141"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:1-30"
     },
     "2801": {
-        "file_id": 312,
-        "content": "This code appears to be part of a debugging process, where the programmer is trying to understand how to retrieve a document by its ID using the Milvus database. The \"breakpoint()\" comment suggests they are currently stuck or needing to pause execution for further investigation.",
+        "file_id": 315,
+        "content": "The code is setting up the environment for using CUDA with OpenCV and importing necessary libraries. It checks if a specific OpenCV library file exists, and if so, it adds its parent directory to the system path. The function redraw_english_to_chinese2 is defined at the end of the code snippet, but its implementation is not visible in this chunk.",
         "type": "comment"
     },
     "2802": {
-        "file_id": 313,
-        "content": "/tests/video_phash_deduplication/test_image_hash_milvus_database_search.py",
-        "type": "filepath"
+        "file_id": 315,
+        "content": "    total_area = a*b\n    total_center = (a/2,b/2)\n    total_corners = [(a,0),(0,0),(0,b),(a,b)]\n    total_strings = [\"scorpa\"]\n    area_threshold = 1/15 # don't know.\n    area_threshold = total_area*area_threshold\n    mask3_threshold = area_threshold*0.6\n    blank_image = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    blank_image2 = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    blank_image3 = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    def compareStringSimilarity(text,targetCompareString=\"scorpa\"):\n        # what is this?\n        comparedWaterMarkString = targetCompareString.lower() # the freaking name \n        comparedWaterMarkStringLength = len(comparedWaterMarkString)\n            # remove watermarks? how to filter?\n            # no fucking translation at all.\n        editDistanceThreshold = 4\n        textCompareCandidate = text.replace(\" \",\"\").lower() # original text, no translation.\n        distance = Levenshtein.distance(textCompareCandidate,comparedWaterMarkString)",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:32-52"
     },
     "2803": {
-        "file_id": 313,
-        "content": "This code is initializing image paths and loading necessary libraries. It calculates image hashes for three different images using the phash function from imagehash library. It then creates a connection to a Milvus database and loads an existing collection.",
-        "type": "summary"
+        "file_id": 315,
+        "content": "This code calculates the total area and center of an image, sets the corners and initializes blank images. It defines a function to compare string similarity between two strings with an edit distance threshold, likely for text recognition or watermark detection.",
+        "type": "comment"
     },
     "2804": {
-        "file_id": 313,
-        "content": "pic_0 = \"cat.png\"\npic_0_similar = \"cat3.png\"\npic_1 = \"/root/Desktop/works/pyjom/samples/image/dick.png\"\nfrom PIL import Image\n# >>> import imagehash\n# >>> hash = imagehash.average_hash(Image.open\nimport imagehash\npics = [pic_0, pic_0_similar, pic_1]\nhashs = [imagehash.phash(Image.open(pic)) for pic in pics]\n# dis0 = hashs[0]-hashs[1]\n# dis1 = hashs[1]-hashs[2]\n# print(dis0, dis1)\n# 0 24\n# 6 24\n# well, let's check?\n# print(hashs)\n# three truth tables.\n# 2^4 = 16, total 2*8 digits=16?\n# towhee(multimodal search like jina), haystack, milvus\n# import pymilvus\nfrom pymilvus import connections\nconnection = connections.connect(alias=\"default\", host=\"localhost\", port=\"19530\")\nfrom pymilvus import Collection\ncollection = Collection(\"book\")  # Get an existing collection.\ncollection.load()\n# seems hard to setup.\n# not started!",
+        "file_id": 315,
+        "content": "        string_length = len(text)\n        string_length_difference = abs(string_length-comparedWaterMarkStringLength)\n        length_difference_threshold = 3\n        if (distance < editDistanceThreshold and string_length_difference < length_difference_threshold):\n            return True\n        return False\n    def get_center(rectangle_coords):\n        x0,y0 = rectangle_coords[0]\n        x1,y1 = rectangle_coords[2]\n        return ((x0+x1)/2,(y0+y1)/2)\n    def get_distance(a,b): x = a[0]-b[0]; x2 = x**2; y = a[1]-b[1];y2 = y**2; return(math.sqrt(x2+y2))\n    resultChineseInternal2 = list(sorted(resultChineseInternal,key=lambda x:min([get_distance(corner,get_center(x[0])) for corner in total_corners]))) # sort by centrality. but not by corner. use corner instead.\n    resultChineseInternal2 = sorted(resultChineseInternal2,key=lambda x:1-max([int(compareStringSimilarity(x[1][0],tstring)) for tstring in total_strings])) # sort by centrality. but not by corner. use corner instead.\n    for coords, (text,prob) in resultChineseInternal2: # get boundary coords first.",
         "type": "code",
-        "location": "/tests/video_phash_deduplication/test_image_hash_milvus_database_search.py:1-37"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:53-66"
     },
     "2805": {
-        "file_id": 313,
-        "content": "This code is initializing image paths and loading necessary libraries. It calculates image hashes for three different images using the phash function from imagehash library. It then creates a connection to a Milvus database and loads an existing collection.",
+        "file_id": 315,
+        "content": "The code compares the length of a text string with a predefined length, and if the difference is within a certain threshold, it returns True. The code also calculates distances between points using coordinates, sorts a list based on these distances and centrality, and retrieves boundary coordinates for each text string.",
         "type": "comment"
     },
     "2806": {
-        "file_id": 314,
-        "content": "/tests/video_phash_deduplication/test_image_hash.py",
-        "type": "filepath"
+        "file_id": 315,
+        "content": "        polyArray = np.array(coords).astype(np.int64) # fuck.\n        # print(polyArray)\n        # print(polyArray.shape)\n        # breakpoint()\n        # points = np.array([[160, 130], [350, 130], [250, 300]])\n        # print(points.dtype)\n        # points = np.array([[454.0, 22.0], [464.0, 26.0], [464.0, 85.0]]).astype(np.int64)\n        # this is rectangular. simple shit. not simple for other shits.\n        color= 255\n        coord0, coord1, coord2 = coords[0],coords[1],coords[2]\n        sid1, sid2 = get_distance(coord0,coord1), get_distance(coord1,coord2)\n        polyArea = sid1*sid2\n        mask3_area = np.sum(blank_image3)\n        if polyArea >= area_threshold or mask3_area >= mask3_threshold:\n            cv2.fillPoly(blank_image,[polyArray],color)\n            isClosed = True\n            thickness = 20 # oh shit.\n            thickness2 = 40 # oh shit.\n            cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image2, [polyArray], isClosed, color, thickness2) # much better.",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:67-86"
     },
     "2807": {
-        "file_id": 314,
-        "content": "This code uses the Python Imaging Library (PIL) and imagehash module to calculate average color hash values for images. It opens three images, 'pic_0', 'pic_0_similar', and 'pic_1', calculates their color hash values using the phash function from imagehash, and then calculates the differences between the hashes of each pair of images. The code checks the types of the calculated hashes and prints the distances (dis0 and dis1) between the pairs of images. It also mentions a possible discrepancy in the expected number of digits for the distances.",
-        "type": "summary"
+        "file_id": 315,
+        "content": "Code creates a numpy array from given coordinates, checks if the area is above certain thresholds, and then uses cv2.fillPoly and cv2.polylines to draw on two images with different thicknesses.",
+        "type": "comment"
     },
     "2808": {
-        "file_id": 314,
-        "content": "pic_0= 'cat.png'\npic_0_similar = \"cat3.png\"\npic_1 = \"/root/Desktop/works/pyjom/samples/image/dick.png\"\nfrom PIL import Image\n# >>> import imagehash\n# >>> hash = imagehash.average_hash(Image.open\nimport imagehash\npics = [pic_0, pic_0_similar, pic_1]\nhashs = [imagehash.phash(Image.open(pic)) for pic in pics]\ndis0 = hashs[0]-hashs[1]\ndis1 = hashs[1]-hashs[2]\n# 0 24\n# 6 24\n# well, let's check?\nprint([type(h) for h in hashs])\nbreakpoint()\nprint(dis0, dis1)\n# three truth tables.\n# 2^4 = 16, total 2*8 digits=16?",
+        "file_id": 315,
+        "content": "        else:\n            cv2.fillPoly(blank_image3,[polyArray],color)\n            isClosed = True\n            thickness = 30 # oh shit.\n            thickness2 = 50 # oh shit.\n            # cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image3, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image2, [polyArray], isClosed, color, thickness2) # much better.\n    #     # cv2.fillPoly(blank_image,pts=[points],color=(255, 255,255))\n    # cv2.imshow(\"mask\",blank_image)\n    # cv2.waitKey(0)\n    # use wordninja.\n    # before translation we need to lowercase these shits.\n    # inpaint_alternative = cv2.INPAINT_NS\n    # dst = cv2.inpaint(image,blank_image,3,inpaint_alternative)\n    def partial_blur(image0,mask,kernel=(200,200)):\n        # need improvement. malnly the boundary.\n        mask_total = mask\n        inv_mask_total = 255-mask_total\n        # mask0 = mask\n        # mask0 = mask/255\n        # inv_mask0 = inv_mask/255",
         "type": "code",
-        "location": "/tests/video_phash_deduplication/test_image_hash.py:1-23"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:87-108"
     },
     "2809": {
-        "file_id": 314,
-        "content": "This code uses the Python Imaging Library (PIL) and imagehash module to calculate average color hash values for images. It opens three images, 'pic_0', 'pic_0_similar', and 'pic_1', calculates their color hash values using the phash function from imagehash, and then calculates the differences between the hashes of each pair of images. The code checks the types of the calculated hashes and prints the distances (dis0 and dis1) between the pairs of images. It also mentions a possible discrepancy in the expected number of digits for the distances.",
+        "file_id": 315,
+        "content": "This code uses OpenCV for image processing tasks. It fills polygons and draws lines on an image, then applies inpainting to replace the filled area with surrounding pixels. The function `partial_blur` is defined to blur a specific region of an image using a mask.",
         "type": "comment"
     },
     "2810": {
         "file_id": 315,
-        "content": "/tests/video_phash_deduplication/README.md",
-        "type": "filepath"
+        "content": "        non_blur_image = cv2.bitwise_and(image0, image0, mask=inv_mask_total)\n        blur_image0 = cv2.blur(image0,kernel) # half quicklier.\n        blur_image0 = cv2.bitwise_and(blur_image0, blur_image0, mask=mask_total)\n        dst0 = blur_image0 + non_blur_image\n        return dst0\n    def partial_blur_deprecated(image0,mask,mask2):\n        # need improvement. malnly the boundary.\n        mask_total = mask + mask2 # not good.\n        dtype = mask.dtype\n        mask_total = mask_total>0\n        mask_total=mask_total.astype(dtype)\n        mask_total = mask_total*255\n        inv_mask_total = 255-mask_total\n        mask0 = mask_total - mask2\n        # mask0 = mask\n        # mask0 = mask/255\n        # inv_mask0 = inv_mask/255\n        non_blur_image = cv2.bitwise_and(image0, image0, mask=inv_mask_total)\n        blur_image0 = cv2.blur(image0,(50,50)) # half quicklier.\n        blur_image2 = cv2.blur(image0,(30,30)) # half quicklier.\n        # not enough baby\n        blur_image0 = cv2.bitwise_and(blur_image0, blur_image0, mask=mask0)",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:109-130"
     },
     "2811": {
         "file_id": 315,
-        "content": "Code detects identical video files and finds repeated intervals within each video file.",
-        "type": "summary"
+        "content": "This code performs partial image blurring using OpenCV functions. It creates a total mask by adding two input masks, applies bitwise operations to separate areas of the image for non-blurred and blurred processing, and combines the results for output. The \"partial_blur_deprecated\" function needs improvement as it currently has hardcoded blur values and may not handle boundary areas well.",
+        "type": "comment"
     },
     "2812": {
         "file_id": 315,
-        "content": "two main problems, one is to detect identical video files, one is to find 'repeated interval' inside each other.",
+        "content": "        blur_image2 = cv2.bitwise_and(blur_image2, blur_image2, mask=mask2)\n        dst0 = blur_image0 +blur_image2 + non_blur_image\n        return dst0\n    dst = partial_blur(image,blank_image)\n    dst = cv2.inpaint(dst,blank_image3,3,cv2.INPAINT_TELEA) # this shit. only do for small areas\n    dst = partial_blur(dst,blank_image2,kernel=(30,30))\n    # to compensate all sharp boundaries.\n    # from PIL import Image\n    def np2pillow(opencv_image):\n        color_coverted = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)\n        pil_image = Image.fromarray(color_coverted)\n        return pil_image\n        # pil_image.show()\n    def pillow2np(pil_image):\n        # pil_image=Image.open(\"demo2.jpg\") # open image using PIL\n        # use numpy to convert the pil_image into a numpy array\n        numpy_image=np.array(pil_image)  \n        # convert to a openCV2 image, notice the COLOR_RGB2BGR which means that \n        # the color is converted from RGB to BGR format\n        opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR) ",
         "type": "code",
-        "location": "/tests/video_phash_deduplication/README.md:1-1"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:131-153"
     },
     "2813": {
         "file_id": 315,
-        "content": "Code detects identical video files and finds repeated intervals within each video file.",
+        "content": "Performs bitwise AND operation on blur_image2 using mask2, combines images, applies inpainting with CV2, compensates sharp boundaries, converts OpenCV image to PIL and back.",
         "type": "comment"
     },
     "2814": {
-        "file_id": 316,
-        "content": "/tests/video_phash_deduplication/config_milvus.sh",
-        "type": "filepath"
+        "file_id": 315,
+        "content": "        return opencv_image\n    # draw text now!\n    mpil_image = np2pillow(dst)\n    draw = ImageDraw.Draw(mpil_image)\n    font_location = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\" # not usual english shit.\n    def draw_rotated_text(image, text, position, angle, font, fill=(255,255,255),stroke_width=1,stroke_fill=(0,0,0),align=\"left\"):\n    # Get rendered font width and height.\n        draw = ImageDraw.Draw(image)\n        width, height = draw.textsize(text, font=font,stroke_width=stroke_width)\n        # Create a new image with transparent background to store the text.\n        textimage = Image.new('RGBA', (width, height), (0,0,0,0))\n        # Render the text.\n        textdraw = ImageDraw.Draw(textimage)\n        textdraw.text((0,0), text, font=font, fill=fill,stroke_width=stroke_width,stroke_fill=stroke_fill,align=align)\n        # Rotate the text image.\n        rotated = textimage.rotate(angle, expand=1) # do you rotate shit?\n        # Paste the text into the image, using it as a mask for transparency.",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:154-170"
     },
     "2815": {
-        "file_id": 316,
-        "content": "This code sets up Milvus, a vector database, by creating its configuration directory and downloading the necessary server and log configurations before starting the Milvus services.",
-        "type": "summary"
+        "file_id": 315,
+        "content": "This code snippet is responsible for drawing rotated text on an OpenCV image using Pillow library. It first converts the OpenCV image to a Pillow image, then defines a function `draw_rotated_text()` to handle the text drawing process. The function calculates the text dimensions and creates a new image with a transparent background. It then renders the text onto this new image while accounting for stroke width and alignment. Finally, it rotates the text image by a specified angle and pastes it onto the original image using transparency.",
+        "type": "comment"
     },
     "2816": {
-        "file_id": 316,
-        "content": "# # Create Milvus file\n# $ mkdir -p /home/$USER/milvus/conf\n# $ cd /home/$USER/milvus/conf\n# $ wget https://raw.githubusercontent.com/milvus-io/milvus/v0.8.0/core/conf/demo/server_config.yaml\n# $ wget https://raw.githubusercontent.com/milvus-io/milvus/v0.8.0/core/conf/demo/log_config.conf\nsudo systemctl start milvus\nsudo systemctl start milvus-etcd\nsudo systemctl start milvus-minio",
+        "file_id": 315,
+        "content": "        image.paste(rotated, position, rotated)\n        return image\n    def average(mlist):return sum(mlist) / len(mlist)\n    def get_coord_orientation_font_size_and_center(coords):\n        xlist, ylist = [x[0] for x in coords], [x[1] for x in coords]\n        min_x, max_x = min(xlist), max(xlist)\n        min_y, max_y = min(ylist), max(ylist)\n        width,height = max_x-min_x, max_y-min_y\n        position = (min_x,min_y)\n        c0,c1,c2,c3 = coords\n        real_width = average([get_distance(c0,c1) ,get_distance(c2,c3)])\n        real_height = average([get_distance(c1,c2) ,get_distance(c3,c0)])\n        # c0-------------c1\n        # |              |\n        # c3-------------c2\n        rotate_vectors = (c1[0]-c0[0],c1[1]-c0[1]),(c2[0]-c3[0],c2[1]-c3[1])\n        rotate_vector = (average([rotate_vectors[0][0],rotate_vectors[1][0]]),average([rotate_vectors[0][1],rotate_vectors[1][1]]))\n        rotate_angle = math.atan2(rotate_vector[1],rotate_vector[0]) # problem with angle.\n        # print(\"ROTATE_VECTORS:\",rotate_vectors)",
         "type": "code",
-        "location": "/tests/video_phash_deduplication/config_milvus.sh:1-8"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:171-193"
     },
     "2817": {
-        "file_id": 316,
-        "content": "This code sets up Milvus, a vector database, by creating its configuration directory and downloading the necessary server and log configurations before starting the Milvus services.",
+        "file_id": 315,
+        "content": "This code defines a function `get_coord_orientation_font_size_and_center` that takes in coordinates and returns the orientation, font size, and center based on the given points. It calculates the dimensions of the bounding rectangle, determines the real width and height by averaging the distances between corresponding points, and estimates the rotation angle using `math.atan2`. The function may be useful for image processing tasks involving text or shapes with specific orientations.",
         "type": "comment"
     },
     "2818": {
-        "file_id": 317,
-        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test.py",
-        "type": "filepath"
+        "file_id": 315,
+        "content": "        # print(\"ROTATE VECTOR:\",rotate_vector)\n        # print(\"ROTATE ANGLE:\", rotate_angle)\n        center = (int((max_x+min_x)/2),int((max_y+min_y)/2))\n        # what about rotation? forget about it...\n        if (width / height) < 0.8:\n            orientation = \"vertical\"\n            font_size = int(real_width) # shit.\n        else:\n            orientation = \"horizontal\"\n            font_size = int(real_height)\n        return orientation, font_size, center,(real_width,real_height),rotate_angle,position \n    readjust_size=False # just center.\n    for coords, (text,prob) in resultChineseInternal:\n        probThreshold = 0.8\n        if compareStringSimilarity(text) or prob < probThreshold: # this is somehow not right. i don't know.\n            # mask all with low probabilities?\n            continue # skip all shits.\n        # specified font size \n        # text = translator(text) # now translate.\n        # too freaking slow. i need to freaking change this shit.\n        orientation, font_size, center ,(width,height) ,rotate_angle,position = get_coord_orientation_font_size_and_center(coords)",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:194-217"
     },
     "2819": {
-        "file_id": 317,
-        "content": "The code defines a function `troubleFunction` that initializes variable `a` to 0, attempts to print and return an undefined variable `b`, then successfully returns the value of `a`. The function call in `val = troubleFunction()` assigns 0 to `val`, which is printed. In the following lines, a variable `c` is initialized to 0 and an undefined variable `d` is printed, followed by printing the value of `c`.",
-        "type": "summary"
+        "file_id": 315,
+        "content": "This code is determining the orientation, font size, and center coordinates for a Chinese text. It checks if the aspect ratio of the image is vertical or horizontal and adjusts the font size accordingly. The function get_coord_orientation_font_size_and_center is called to get these values. If the probability threshold is met or the text is not similar enough, it will skip that particular text. It also considers rotation angle and position in its calculations.",
+        "type": "comment"
     },
     "2820": {
-        "file_id": 317,
-        "content": "def troubleFunction():\n    a = 0\n    print(b) # skipped\n    return b # also skipped\n    return a # successfully returned with value of a\nval = troubleFunction()\nprint(val) # 0\nc = 0\nprint(d) # skipped\nprint(c) # printing value of c",
+        "file_id": 315,
+        "content": "        if orientation == \"horizontal\":\n            font = ImageFont.truetype(font_location, font_size)\n            # text = original_text\n            # drawing text size \n            stroke_width = max((1,int(0.1*font_size)))\n            (string_width,string_height) = draw.textsize(text,font=font,stroke_width=stroke_width)\n            # print(string_width)\n            # breakpoint()\n            if readjust_size:\n                change_ratio = width/string_width\n                new_fontsize = font_size*change_ratio\n                font = ImageFont.truetype(font_location, new_fontsize)\n                (string_width,string_height) = draw.textsize(text,font=font,stroke_width=stroke_width)\n            #     start_x = int(center[0]-width2/2)\n            #     start_y = int(center[1]-height2/2)\n            # else:\n            theta  =rotate_angle\n            rot = np.array([[math.cos(theta), -math.sin(theta)], [math.sin(theta), math.cos(theta)]])\n            v1 = np.array([string_width,string_height])\n            v2 = np.array([string_width,-string_height])",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test.py:1-12"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:218-239"
     },
     "2821": {
-        "file_id": 317,
-        "content": "The code defines a function `troubleFunction` that initializes variable `a` to 0, attempts to print and return an undefined variable `b`, then successfully returns the value of `a`. The function call in `val = troubleFunction()` assigns 0 to `val`, which is printed. In the following lines, a variable `c` is initialized to 0 and an undefined variable `d` is printed, followed by printing the value of `c`.",
+        "file_id": 315,
+        "content": "This code is calculating the size of a text string and adjusting its font size to fit within a specified width. If `readjust_size` is True, it recalculates the font size based on the new width. The text's rotation angle is calculated using trigonometry functions.",
         "type": "comment"
     },
     "2822": {
-        "file_id": 318,
-        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/standardFunction.py",
-        "type": "filepath"
+        "file_id": 315,
+        "content": "            v3 = np.array([-string_width,-string_height])\n            v4 = np.array([-string_width,string_height])\n            # w = np.array([3, 4])\n            vc1 = np.dot(rot, v1)\n            vc2 = np.dot(rot, v2)\n            vc3 = np.dot(rot, v3)\n            vc4 = np.dot(rot, v4)\n            # sw2 = abs(float(vc2[0])) # no abs.\n            # sh2 = abs(float(vc2[1]))\n            start_x_arr = [int(center[0]-sw/2) for sw in [(float(x[0])) for x in [vc1,vc2,vc3,vc4]]]\n            start_y_arr = [int(center[1]-sh/2) for sh in [(float(x[1])) for x in [vc1,vc2,vc3,vc4]]]\n            # start_y = int(center[1]-string_height2/2)\n            start_x = int(min(start_x_arr))\n            start_y = int(min(start_y_arr))\n            # draw.text((start_x, start_y), text, font = font, fill=(255,255,255),stroke_fill=(0,0,0),stroke_width = stroke_width,align =\"left\") # what is the freaking align?\n            position2 = (start_x, start_y)\n            rotate_angle2 = -np.rad2deg(rotate_angle) # strange.\n            # debug_text = \"angle: {}\".format(rotate_angle2)",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:240-258"
     },
     "2823": {
-        "file_id": 318,
-        "content": "This function iterates through a list of statements, executes them one by one, and returns the result if a \"return\" statement is found. If an error occurs, it allows user input to fix the issue before continuing execution.",
-        "type": "summary"
+        "file_id": 315,
+        "content": "This code performs rotations on given points using a rotation matrix, then calculates the starting coordinates for drawing text based on the minimum x and y values among these transformed points. It also adjusts the angle to its equivalent in degrees before potentially performing further operations with it.",
+        "type": "comment"
     },
     "2824": {
-        "file_id": 318,
-        "content": "def troubleFunction():\n    statementsAtSameLevel = [\n        \"f = 12\",\n        \"return a\",\n        \"return b\",\n        \"return c\",\n        \"return d\",\n        \"return e\",\n        \"return f\",\n    ]\n    for statement in statementsAtSameLevel:\n        print(\"executing statement:\", statement)\n        while True:\n            try:\n                if statement.startswith(\"return \"):\n                    print(\"eval return statement\")\n                    val = eval(statement.replace(\"return \", \"\"))\n                    return val\n                else:\n                    print(\"exec normal statement\")\n                    exec(statement)\n                break\n            except:\n                import traceback\n                traceback.print_exc()\n                print(\"error code:\", statement)\n                statement = input(\"please enter remedy:\\n\")\nval = troubleFunction()\nprint(\"get value:\", val)",
+        "file_id": 315,
+        "content": "            mpil_image = draw_rotated_text(mpil_image,text,position2,rotate_angle2,font,stroke_width=stroke_width)\n    # mpil_image.show()\n    # mpil_image.save(\"redraw_eng_to_chinese.png\")\n    output_final_image = pillow2np(mpil_image)\n    return output_final_image",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/standardFunction.py:1-32"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:259-264"
     },
     "2825": {
-        "file_id": 318,
-        "content": "This function iterates through a list of statements, executes them one by one, and returns the result if a \"return\" statement is found. If an error occurs, it allows user input to fix the issue before continuing execution.",
+        "file_id": 315,
+        "content": "This code snippet draws rotated text on an image, saves it as a PNG file, and then converts the image to a numpy array before returning it.",
         "type": "comment"
     },
     "2826": {
-        "file_id": 319,
-        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/return_inside_function.py",
+        "file_id": 316,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py",
         "type": "filepath"
     },
     "2827": {
-        "file_id": 319,
-        "content": "The code defines a function, \"error_func\", that attempts to return variable 'a', but catches any exception and prompts the user to input a return statement. It then evaluates the provided expression and returns its result, or executes it if not a valid return statement. The returned value is stored in 'val' and printed at the end.",
+        "file_id": 316,
+        "content": "The code uses PaddleOCR for OCR, focusing on English text detection and supporting multiple languages. It downloads the language model once at runtime and utilizes the `redraw_english_to_chinese` function to translate and display results over images. The developer's custom CUDA libraries may cause potential CUDA errors with OpenCV.",
         "type": "summary"
     },
     "2828": {
-        "file_id": 319,
-        "content": "def error_func():\n    try:\n        return a\n    except:\n        print('you must somehow return something')\n        while True:\n            code = input('please set some return statement.\\n')\n            if code.startswith('return '):\n                myReturnValue = eval(\"{}\".format(code.replace('return ','')))\n                print('about to return value')\n                return myReturnValue\n            else:\n                exec(code)\nval = error_func()\nprint('value returned:',val)",
+        "file_id": 316,
+        "content": "from paddleocr import PaddleOCR\nimport wordninja\n# from m2m100_1b_translator import zh_to_en_translator as translator\n# cannot translate everything... not frame by frame...\n# can summarize things. can block texts on location.\n# Paddleocr supports Chinese, English, French, German, Korean and Japanese.\n# You can set the parameter `lang` as `ch`, `en`, `french`, `german`, `korean`, `japan`\n# to switch the language model in order.\n# img_path = 'target.png' # only detect english. or not?\nocr = PaddleOCR(use_angle_cls=True, lang='en') # need to run only once to download and load model into memory\n# image = cv2.imread(img_path)\n# we will give it to you...\n# internalFrameCounter = 0\n# resultChineseInternal = []\ndef redraw_english_to_chinese(image): # whatever. it is dumb anyway. we need to be prudent. really?\n    # global resultChineseInternal, internalFrameCounter # we need to look ahead.\n    resultChineseInternal2 = ocr.ocr(image, cls=True) # you will be fucked if skip frames.\n    prob_thresh = 0.6 # found watermark somewhere. scorpa",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/return_inside_function.py:2-17"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:1-19"
     },
     "2829": {
-        "file_id": 319,
-        "content": "The code defines a function, \"error_func\", that attempts to return variable 'a', but catches any exception and prompts the user to input a return statement. It then evaluates the provided expression and returns its result, or executes it if not a valid return statement. The returned value is stored in 'val' and printed at the end.",
+        "file_id": 316,
+        "content": "This code uses PaddleOCR to perform optical character recognition (OCR) on an image, specifically detecting and translating English text within it. It downloads and loads the language model only once during runtime. The code is designed to handle Chinese and other languages as well, but currently focuses on English detection. The function `redraw_english_to_chinese` takes an image as input, uses OCR to identify text, and returns the translated text results.",
         "type": "comment"
     },
     "2830": {
-        "file_id": 320,
-        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/minterpreter.py",
-        "type": "filepath"
+        "file_id": 316,
+        "content": "    resultChineseInternal = []\n    for index, line in enumerate(resultChineseInternal2):\n        # print(line)\n        # breakpoint()\n        coords, (text, prob) = line\n        prob = float(prob)\n        if prob > prob_thresh:\n            rectified_text = \" \".join(wordninja.split(text))\n            line[1] = (rectified_text, prob)\n            print(line)\n            resultChineseInternal.append(line)\n    return resultChineseInternal\n# cv2.imshow('dst',dst2)\n# cv2.waitKey(0)\n# cv2.destroyAllWindows()\n# expand the area somehow.\n# draw resultChineseInternal\n# simhei_path = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\"\n# from PIL import Image\n# image = Image.open(img_path).convert('RGB')\n# boxes = [line[0] for line in resultChineseInternal]\n# txts = [line[1][0] for line in resultChineseInternal]\n# scores = [line[1][1] for line in resultChineseInternal]\n# im_show = draw_ocr(image, boxes, txts, scores, font_path=simhei_path)\n# im_show = Image.fromarray(im_show)\n# im_show.save('resultChineseInternal.jpg')\n# we will be testing one image only. not the whole goddamn video.",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:20-50"
     },
     "2831": {
-        "file_id": 320,
-        "content": "The code analyzes and modifies statements, handling try-except blocks and function definitions with proper indentation. It prints except codes, nested try-except blocks, try block, entered code lines, and statement identifiers.",
-        "type": "summary"
+        "file_id": 316,
+        "content": "Iterates over resultChineseInternal2, rectifies text using wordninja if prob > prob_thresh. Stores modified lines in resultChineseInternal. Displays image with OCR results using draw_ocr function and saves it as \"resultChineseInternal.jpg\".",
+        "type": "comment"
     },
     "2832": {
-        "file_id": 320,
-        "content": "# shall the code share modified version of statements?\nsource_code = open(\"test.py\", \"r\").readlines()\nregisteredLevels = []\n# should use restorable arrays/dict.\nfor lineNumber, line in enumerate(source_code):\n    line = line.replace(\"\\n\", \"\")\n    indentLevel = int(len(line.replace(line.strip(), \"\")) / 4)\n    # print(registeredLevels)\n    exceptCodes = [\"print('exception on code line: {}')\".format(lineNumber)]\n    if len(registeredLevels) > 0 and indentLevel <= registeredLevels[-1]:\n        mIndentLevel = registeredLevels.pop(-1)\n        print((mIndentLevel * 2) * 4 * \" \" + \"except:\")\n        for exceptCode in exceptCodes:\n            print((mIndentLevel * 2+1) * 4 * \" \" +exceptCode)\n    if line == \"\":\n        continue\n    print((indentLevel * 2) * 4 * \" \" + \"try:\")\n    print((indentLevel * 2 + 1) * 4 * \" \" + \"print('entering code line: {}')\".format(lineNumber))\n    line=line.strip()\n    # if not line.startswith('return '):\n    print((indentLevel * 2 + 1) * 4 * \" \" + line, \"# indent[{}]\".format(indentLevel))",
+        "file_id": 316,
+        "content": "# may have cuda error when using my cv2 cuda libs.",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/minterpreter.py:1-23"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:51-51"
     },
     "2833": {
-        "file_id": 320,
-        "content": "This code is creating a modified version of statements and using restorable arrays/dict. It checks if the current indent level is less than or equal to the last registered level, then prints except codes and nested try-except blocks. If line is empty, it continues to next iteration. The code also prints try block, enters code line and the statement itself with an identifier for the indentation level.",
+        "file_id": 316,
+        "content": "This code seems to be a comment expressing a potential issue when using the developer's custom CUDA libraries with OpenCV. It mentions that it might throw a CUDA error in those specific cases, possibly requiring attention or alternative solutions.",
         "type": "comment"
     },
     "2834": {
-        "file_id": 320,
-        "content": "    if line.startswith(\"def \"):\n        registeredLevels.append(indentLevel)\n        continue\n    print((indentLevel * 2) * 4 * \" \" + 'except:')\n    for exceptCode in exceptCodes:\n        print((indentLevel * 2+1) * 4 * \" \" + exceptCode)",
-        "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/minterpreter.py:24-29"
-    },
-    "2835": {
-        "file_id": 320,
-        "content": "Checking for function definitions and printing except block with appropriate indentation.",
-        "type": "comment"
-    },
-    "2836": {
-        "file_id": 321,
-        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/hook_error_handler_to_see_if_context_preserved.py",
+        "file_id": 317,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py",
         "type": "filepath"
     },
-    "2837": {
-        "file_id": 321,
-        "content": "This code tests error handling and function execution preservation by setting an exception hook, enabling autoreload, and creating a temp file for dynamic environments. It runs a progress bar then calls anotherFunction() and allows user input to continue or not upon exception.",
+    "2835": {
+        "file_id": 317,
+        "content": "This code utilizes Deepspeed ZeRO for model inference, translation using M2M100, and offers GPU/CPU options. It sets up a distributed environment with DeepSpeed for training, initializes the model, provides mixed precision training options on Ampere or higher GPUs, prepares a machine translation environment using Deepspeed ZeRO, partitions the model, creates an engine object for parallel processing, and measures time cost per iteration in translating Chinese to English using experimentation with varying parameters.",
         "type": "summary"
     },
-    "2838": {
-        "file_id": 321,
-        "content": "# \n# import sys\n# i can assure that not a single 'reloading' decorator has been added to my code manually yet.\n# from basic import on_error_resume_next, err\n# on_error_resume_next()\nimport tempfile\n# def customExceptHook(a,b,c):\n#     print('ERROR INFO:', a,b,c)\n#     # <class 'AttributeError'> '_io.BufferedRandom' object has no attribute 'path' <traceback object at 0x7fd6c4325080>\n#     # it is a traceback object.\n#     print(\"context preserved! please take action!\")\n#     # preserved my ass.\n#     # this won't preserve context in any degree.\n#     while True:\n#         i = input('exit? (y for exit)\\n').lower()\n#         if i == 'y':\n#             break\n#     print('closing program now!')\n# sys.excepthook=customExceptHook\nimport os\n# add reloading to all these files? are you sure?\n# no support for block statements yet.\nfrom reloadr import autoreload\n@autoreload\ndef makeTrouble():\n    return 'success!'\ndef someFunction():\n    with tempfile.NamedTemporaryFile('w+',suffix='123') as f: # no such file now. wtf?\n        # print('LOCATION:',dir(f))",
+    "2836": {
+        "file_id": 317,
+        "content": "# loadable or not?\n# OOM ready?\n# maybe you want to load this shit over kaggle.\n# 3521MB on inference. does that mean you can do the big fucker now?\n# 1.9G model size.\nimport os\n# mt = dlt.TranslationModel(modelpath, model_family=\"m2m100\",device=\"gpu\") # OOM?\nfrom transformers import M2M100Tokenizer, M2M100ForConditionalGeneration\n# model = M2M100ForConditionalGeneration.from_pretrained(modelpath)\n# model_inputs = tokenizer(text_to_translate, return_tensors=\"pt\")\n# translate to French\n# gen_tokens = model.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"en\"))\n# print(tokenizer.batch_decode(gen_tokens, skip_special_tokens=True))\n# either load model with trainer or just use some other stuffs.\n#!/usr/bin/env python\n# This script demonstrates how to use Deepspeed ZeRO in an inference mode when one can't fit a model\n# into a single GPU\n#\n# 1. Use 1 GPU with CPU offload\n# 2. Or use multiple GPUs instead\n#\n# First you need to install deepspeed: pip install deepspeed\n#\n# Here we use a 3B \"bigscience/T0_3B\" model which needs about 15GB GPU RAM - so 1 largish or 2",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/hook_error_handler_to_see_if_context_preserved.py:1-38"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:1-33"
+    },
+    "2837": {
+        "file_id": 317,
+        "content": "This code demonstrates how to use Deepspeed ZeRO for inference when the model size exceeds available GPU RAM. It loads a 1.9GB model and translates text from English to French using the M2M100 tokenizer and model. The code provides two options: using one GPU with CPU offload or multiple GPUs, and requires installing Deepspeed before running.",
+        "type": "comment"
+    },
+    "2838": {
+        "file_id": 317,
+        "content": "# small GPUs can handle it. or 1 small GPU and a lot of CPU memory.\n#\n# To use a larger model like \"bigscience/T0\" which needs about 50GB, unless you have an 80GB GPU -\n# you will need 2-4 gpus. And then you can adapt the script to handle more gpus if you want to\n# process multiple inputs at once.\n#\n# The provided deepspeed config also activates CPU memory offloading, so chances are that if you\n# have a lot of available CPU memory and you don't mind a slowdown you should be able to load a\n# model that doesn't normally fit into a single GPU. If you have enough GPU memory the program will\n# run faster if you don't want offload to CPU - so disable that section then.\n#\n# To deploy on 1 gpu:\n#\n# deepspeed --num_gpus 1 t0.py\n# or:\n# python -m torch.distributed.run --nproc_per_node=1 t0.py\n#\n# To deploy on 2 gpus:\n#\n# deepspeed --num_gpus 2 t0.py\n# or:\n# python -m torch.distributed.run --nproc_per_node=2 t0.py\nfrom transformers import AutoConfig\nfrom transformers.deepspeed import HfDeepSpeedConfig\nimport deepspeed\nimport os",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:34-61"
     },
     "2839": {
-        "file_id": 321,
-        "content": "This code is importing necessary modules and defining functions for handling exceptions. It sets a custom exception hook, enables autoreload for some functions, and creates a temporary file. The purpose seems to be testing error handling and context preservation in a dynamic environment.",
+        "file_id": 317,
+        "content": "The code snippet describes how to deploy a larger transformer model like \"bigscience/T0\" on a GPU or multiple GPUs using the DeepSpeed library. The code provides instructions for running the program on 1 or 2 GPUs, and mentions the benefits of CPU memory offloading if sufficient CPU memory is available. The code also imports necessary libraries and configurations.",
         "type": "comment"
     },
     "2840": {
-        "file_id": 321,
-        "content": "        # /tmp/tmp7c5ffugz123\n        # still exist?\n        f.write('abcdefg')\n        f.flush() # write to disk.\n        print('LOCATION:',os.path.abspath(f.name))\n        print('has file?', os.path.exists(f.name)) # debugpy is nice.\n        # breakpoint() # we have the content here.\n        # this exception is caught, handled, but still recognized by the damn debugger.\n        try: # this must be directly in that context.\n            maketrouble() # no content here! it fucking triggered the alarm.\n        except:\n            mCode=None\n            while True:\n                try:\n                    mCode = input(\"remedy>>> \")\n                    if mCode == 'return':\n                        return\n                    elif mCode.startswith('return '):\n                        val = eval(mCode.replace('return ',''))\n                        return val\n                    else:\n                        exec(mCode)\n                except:\n                    import traceback\n                    traceback.print_exc()",
+        "file_id": 317,
+        "content": "import torch\nos.environ[\"TOKENIZERS_PARALLELISM\"] = \"false\"  # To avoid warnings about parallelism in tokenizers\n# distributed setup\nlocal_rank = int(os.getenv(\"LOCAL_RANK\", \"0\"))\nworld_size = int(os.getenv(\"WORLD_SIZE\", \"1\"))\ntorch.cuda.set_device(local_rank)\ndeepspeed.init_distributed()\n# model_name = \"bigscience/T0_3B\"\nmodelpath = \"/media/root/Jumpcut/person_segmentation/paraphraser/m2m100_1.2B\"\nconfig = AutoConfig.from_pretrained(modelpath)\nmodel_hidden_size = config.d_model\n# batch size has to be divisible by world_size, but can be bigger than world_size\ntrain_batch_size = 1 * world_size\n# ds_config notes\n#\n# - enable bf16 if you use Ampere or higher GPU - this will run in mixed precision and will be\n# faster.\n#\n# - for older GPUs you can enable fp16, but it'll only work for non-bf16 pretrained models - e.g.\n# all official t5 models are bf16-pretrained\n#\n# - set offload_param.device to \"none\" or completely remove the `offload_param` section if you don't\n# - want CPU offload\n#\n# - if using `offload_param` you can manually finetune stage3_param_persistence_threshold to control",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/hook_error_handler_to_see_if_context_preserved.py:39-63"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:62-92"
     },
     "2841": {
-        "file_id": 321,
-        "content": "This code checks if a file still exists after writing content, despite the exception being caught and handled. It attempts to run `maketrouble()` within a try-except block and provides a remedy input prompt for error handling.",
+        "file_id": 317,
+        "content": "This code sets up a distributed environment with DeepSpeed, initializes the model using the specified path, defines the batch size divisible by world_size, and provides configuration options for mixed precision training on Ampere or higher GPUs.",
         "type": "comment"
     },
     "2842": {
-        "file_id": 321,
-        "content": "                    print('trouble while executing code:', mCode)\n        print(\"won't have problem.\")\n    return 'myValue'\nfrom reloading import reloading\n@reloading\ndef anotherFunction():\n    # raise Exception('but just another shit!')\n    # it does not hook the function.\n    return 'yes please'\ndef mFunction():\n    while True:\n        try:\n            val= anotherFunction()\n            return val\n        except:\n            import traceback\n            traceback.print_exc()\n            print('please modify your code')\n            while True:\n                i = input('done? (y for done)\\n').lower()\n                if i == 'y':\n                    break\nimport progressbar\nimport time\ndef main():\n    print('please wait...')\n    for _ in progressbar.progressbar(range(5)):\n        time.sleep(1)\n    val = anotherFunction()\n    # val = mFunction()\n    print('value returned:', val) # it cannot restart the function actually raises the exception!\nif __name__ == \"__main__\":\n    main()",
+        "file_id": 317,
+        "content": "# - which params should remain on gpus - the larger the value the smaller the offload size\n#\n# For indepth info on Deepspeed config see\n# https://huggingface.co/docs/transformers/main/main_classes/deepspeed\n# keeping the same format as json for consistency, except it uses lower case for true/false\n# fmt: off\nds_config = {\n    \"fp16\": {\n        \"enabled\": True # to half the model precision.\n    },\n    \"zero_optimization\": {\n        \"stage\": 3,\n        \"offload_param\": {\n            \"device\": \"cpu\",\n            \"pin_memory\": True\n        },\n        \"overlap_comm\": True,\n        \"contiguous_gradients\": True,\n        \"reduce_bucket_size\": model_hidden_size * model_hidden_size,\n        \"stage3_prefetch_bucket_size\": 0.9 * model_hidden_size * model_hidden_size,\n        \"stage3_param_persistence_threshold\": 10 * model_hidden_size\n    },\n    \"steps_per_print\": 2000,\n    \"train_batch_size\": train_batch_size,\n    \"train_micro_batch_size_per_gpu\": 1,\n    \"wall_clock_breakdown\": False\n}\n# fmt: on\n# next line instructs transformers to partition the model directly over multiple gpus using",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/hook_error_handler_to_see_if_context_preserved.py:64-104"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:93-123"
     },
     "2843": {
-        "file_id": 321,
-        "content": "This code aims to test the error handling and function execution preservation. The main function runs a progress bar, then calls anotherFunction(). If an exception occurs in anotherFunction(), it prints the exception details and asks for user input to continue or not. It doesn't actually restart the function if an exception is raised.",
+        "file_id": 317,
+        "content": "This code snippet is initializing a Deepspeed configuration for model training with specific settings. The configuration includes enabling FP16 (half precision) for the model, setting zero optimization stage to 3, and configuring offload parameters such as device and pin memory. Additionally, it specifies steps per print, train batch size, train micro-batch size per GPU, and whether to display wall clock breakdown. This configuration aims to optimize model training on multiple GPUs efficiently.",
         "type": "comment"
     },
     "2844": {
-        "file_id": 322,
-        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py",
-        "type": "filepath"
+        "file_id": 317,
+        "content": "# deepspeed.zero.Init when model's `from_pretrained` method is called.\n#\n# **it has to be run before loading the model AutoModelForSeq2SeqLM.from_pretrained(model_name)**\n#\n# otherwise the model will first be loaded normally and only partitioned at forward time which is\n# less efficient and when there is little CPU RAM may fail\ndschf = HfDeepSpeedConfig(ds_config)  # keep this object alive\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# now a model can be loaded.\n# model = AutoModelForSeq2SeqLM.from_pretrained(model_name)\nmodel = M2M100ForConditionalGeneration.from_pretrained(modelpath)\n# this will not fuck shit up.\n# initialise Deepspeed ZeRO and store only the engine object\nds_engine = deepspeed.initialize(model=model, config_params=ds_config)[0]\nds_engine.module.eval()  # inference\n# Deepspeed ZeRO can process unrelated inputs on each GPU. So for 2 gpus you process 2 inputs at once.\n# If you use more GPUs adjust for more.\n# And of course if you have just one input to process you then need to pass the same string to both gpus",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:124-146"
     },
     "2845": {
-        "file_id": 322,
-        "content": "The code creates a function to calculate stack depth, iterates through bytecode for debugging, handles various operations, manages stack depth in an interpreter, and generates callables for traceback frames. It resumes execution, patches original with custom _excepthook, tries to execute until exception occurs, logs it, returns error type, and clears.",
-        "type": "summary"
+        "file_id": 317,
+        "content": "The code initializes Deepspeed ZeRO before loading the model and sets the engine object for parallel processing. This ensures efficient usage of resources by partitioning the model at initialization rather than during forward pass, and allows handling multiple inputs on each GPU if available.",
+        "type": "comment"
     },
     "2846": {
-        "file_id": 322,
-        "content": "import ctypes  # You see a ctypes import, you know this is going to be good\nimport dis\nimport sys\nimport types\nimport threading\nimport traceback\n# Problems which can be solved with more work if you're mad:\n# - No block stack support, so no resuming from within a try / except block, with blocks, or async for block.\n# - Nested functions (__closure__) and coroutines not supported\n# - EXTENDED_ARG not supported, so jumps within code objects must always be fewer than 256 bytes.\nMAGIC = 0xdd\n# The most recent error, retrievable with err(). Use TLS for this because I'm not a monster.\n_last_error = threading.local()\n_last_error.err = None\nABS_JUMPS = set(dis.hasjabs)\nfor _name, _opcode in dis.opmap.items():\n    globals()[_name] = _opcode\nclass DepthNotFound(Exception):\n    pass\ndef _get_value_stack_depth(co_code, target_idx):\n    \" Find the value stack depth after having executed up to (and including) the instruction at target_idx.\"\n    class Found(Exception):\n        def __init__(self, depth):\n            self.depth = depth",
+        "file_id": 317,
+        "content": "# # If you use only one GPU, then you will have only rank 0.\n# rank = torch.distributed.get_rank()\n# if rank == 0:\n#     text_in = \"Is this review positive or negative? Review: this is the best cast iron skillet you will ever buy\"\n# elif rank == 1:\n#     text_in = \"Is this review positive or negative? Review: this is the worst restaurant ever\"\n# tokenizer = AutoTokenizer.from_pretrained(model_name)\n# sentence = \"你吃饭了没有\" # You have eaten. from m2m100 418M\ntokenizer = M2M100Tokenizer.from_pretrained(modelpath,src_lang=\"en\",tgt_lang=\"zh\")\n# source = tokenizer.get_lang_id(\"zh\")\n# tokenizer.src_lang = source\nmdevice = torch.device(\"cuda\")\n# tokenizer.to(mdevice)\n# inputs = tokenizer.encode(text_in, return_tensors=\"pt\").to(device=local_rank)\ndef get_response(sentence):\n    text_to_translate =sentence\n    model_inputs = tokenizer(text_to_translate, return_tensors=\"pt\")\n    # inputs = model.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"en\"))\n    model_inputs = {k:model_inputs[k].to(mdevice) for k in model_inputs.keys()}",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:1-31"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:147-174"
     },
     "2847": {
-        "file_id": 322,
-        "content": "The code defines a function _get_value_stack_depth that calculates the value stack depth after executing up to and including a specific instruction. It uses local storage for errors, has limitations on nested functions, coroutines, and jumps within code objects, and imports necessary libraries for debugging and stack management.",
+        "file_id": 317,
+        "content": "This code is setting up the environment for a machine translation task using the M2M100 model. It assigns GPU ranks to different tasks, initializes the tokenizer, and defines a function called \"get_response\" that takes a sentence as input, tokenizes it, prepares inputs for the model, and performs translation. The code is specifically tailored for a CUDA device, meaning it will utilize GPUs for processing.",
         "type": "comment"
     },
     "2848": {
-        "file_id": 322,
-        "content": "    seen_pc = set()\n    def _interpret(pc, depth):\n        found = False\n        while not found:\n            found = pc == target_idx\n            instr = co_code[pc]\n            arg = co_code[pc + 1]\n            pc += 2\n            if pc in seen_pc:\n                return\n            seen_pc.add(pc)\n            if instr in {POP_TOP, INPLACE_POWER, INPLACE_MULTIPLY, INPLACE_MATRIX_MULTIPLY, INPLACE_TRUE_DIVIDE,\n                         INPLACE_MODULO, INPLACE_ADD, INPLACE_SUBTRACT, INPLACE_LSHIFT, INPLACE_RSHIFT, INPLACE_AND,\n                         INPLACE_XOR, INPLACE_OR, PRINT_EXPR, SET_ADD, LIST_APPEND, YIELD_VALUE, YIELD_FROM,\n                         IMPORT_STAR, STORE_NAME, DELETE_ATTR, STORE_GLOBAL, LIST_EXTEND, SET_UPDATE, DICT_UPDATE,\n                         DICT_MERGE, COMPARE_OP, IS_OP, CONTAINS_OP, IMPORT_NAME, STORE_FAST, STORE_DEREF,\n                         BINARY_POWER, BINARY_MULTIPLY, BINARY_MATRIX_MULTIPLY, BINARY_FLOOR_DIVIDE,\n                         BINARY_TRUE_DIVIDE, BINARY_MODULO, BINARY_ADD, BINARY_SUBTRACT,",
+        "file_id": 317,
+        "content": "    with torch.no_grad():\n        # outputs = ds_engine.module.generate(inputs, synced_gpus=True)\n        while True:\n            try:\n                gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True).cpu() # whatever. no too heavy lifting.\n                # gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True,top_k=0,num_beams=8,num_return_sequences=1,no_repeat_ngram_size=2,temperature=1.4).cpu() # whatever.\n                # gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True,top_k=0,top_p=0.92,num_beams=5,num_return_sequences=5,no_repeat_ngram_size=2,temperature=0.7).cpu() # whatever.\n                break\n            except:\n                import traceback\n                traceback.print_exc()\n                breakpoint() # translate speed is slow as hell. must do some summarization. or you cover them all.",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:33-54"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:176-187"
     },
     "2849": {
-        "file_id": 322,
-        "content": "This code iterates through Python bytecode, checking if it has been seen before. If so, it returns without executing further instructions. The set of valid opcodes includes operations like addition, subtraction, power, and others involved in data manipulation or control flow. It seems to be used for debugging purposes, potentially skipping already executed code to avoid infinite loops or other issues.",
+        "file_id": 317,
+        "content": "This code uses deepspeed engine to generate translated text using a model. It employs different generate() calls with varying parameters (top_k, top_p, num_beams) in a while loop, likely for experimentation purposes. The loop continues until a successful generation is achieved without any exceptions or until a breakpoint is hit, and it handles exceptions by printing the traceback and breaking out of the loop.",
         "type": "comment"
     },
     "2850": {
-        "file_id": 322,
-        "content": "                         BINARY_SUBSCR, BINARY_LSHIFT, BINARY_RSHIFT, BINARY_AND, BINARY_XOR, BINARY_OR}:\n                depth -= 1\n            elif instr in {POP_JUMP_IF_TRUE, POP_JUMP_IF_FALSE}:\n                depth -= 1\n                _interpret(arg, depth)\n            elif instr in {JUMP_IF_TRUE_OR_POP, JUMP_IF_FALSE_OR_POP}:\n                _interpret(arg, depth)\n                depth -= 1\n            elif instr in {DELETE_SUBSCR, MAP_ADD, BUILD_SLICE, STORE_ATTR}:\n                depth -= 2\n            elif instr in {JUMP_IF_NOT_EXC_MATCH}:\n                depth -= 2\n                _interpret(pc + arg, depth)\n            elif instr in {STORE_SUBSCR}:\n                depth -= 3\n            elif instr == RAISE_VARARGS:\n                depth -= arg\n            elif instr == CALL_FUNCTION:\n                # pop arg parameters, pop function object, push result.\n                depth -= arg\n            elif instr == CALL_FUNCTION_KW:\n                # pop kw tuple, pop arg kw, pop function object, push result.",
+        "file_id": 317,
+        "content": "                # you may do this for pictures.\n    # text_out = tokenizer.decode(outputs[0], skip_special_tokens=True)\n    print(\"TRANSLATED:\")\n    return tokenizer.batch_decode(gen_tokens, skip_special_tokens=True)\n# print(get_response(\"你吃饭了没有\"))\n# print(\"PROMPT READY.\")\n# print(\"type exit to exit.\")\n# while True:\n#     targetSentence = input(\"\\nprompt>\")\n#     if \"exit\" not in targetSentence:\n#         result = get_response(targetSentence)\n#         print(result) # this is goddamly working. fuck!\n#     else:\n#         break\n# import time\n# values = []\n# for _ in range(3):\n#     a = time.time()\n#     translate_once()\n#     b = time.time()\n#     value = b-a\n#     # value = timeit.timeit(stmt=\"translate_once()\")\n#     print(\"TIME COST: {}\".format(value))\n#     values.append(value)\n# print(\"TOTAL COST:\",values)\n# print(\"AVERAGE COST:\",sum(values)/len(values))\n# stuck at the end.\n# TOTAL COST: [6.2853310108184814, 4.705244541168213, 4.688654661178589]\n# AVERAGE COST: 5.226410071055095\n# better not to use swap.",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:55-76"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:188-220"
     },
     "2851": {
-        "file_id": 322,
-        "content": "The code is responsible for managing stack depth based on the current instruction being interpreted. It updates the depth by subtracting different values depending on the type of instruction encountered. For example, if the instruction is a binary operation or CALL_FUNCTION, it reduces the stack depth by 1, but if the instruction is DELETE_SUBSCR, it reduces the stack depth by 2. The code also handles specific instructions like RAISE_VARARGS and CALL_FUNCTION_KW that require different adjustments to the stack depth based on their specific arguments.",
+        "file_id": 317,
+        "content": "This code is a functional implementation of a DL translator, likely for Chinese to English translation. It takes user input in the form of text and returns the translated output. The code includes batch decoding of tokenizer outputs and handles user input within a while loop. It also measures the time cost and average cost per iteration of the function.",
         "type": "comment"
     },
     "2852": {
-        "file_id": 322,
-        "content": "                depth -= (arg + 1)\n            elif instr == CALL_FUNCTION_EX:\n                # pop args, pop function object, maybe pop kw dict, push result.\n                depth -= 1\n                if arg & 1:\n                    depth -= 1\n            elif instr == CALL_METHOD:\n                # pop args, pop object, pop method, push result\n                depth -= (arg + 1)\n            elif instr in (BUILD_TUPLE, BUILD_LIST, BUILD_SET, BUILD_STRING):\n                depth -= (arg - 1)  # a new object is pushed\n            elif instr in {DUP_TOP, GET_ANEXT, BEFORE_ASYNC_WITH, LOAD_BUILD_CLASS, LOAD_CONST, LOAD_NAME, IMPORT_FROM,\n                           LOAD_GLOBAL, LOAD_FAST, LOAD_CLOSURE, LOAD_DEREF, LOAD_CLASSDEREF, LOAD_METHOD}:\n                depth += 1\n            elif instr in {DUP_TOP_TWO, SETUP_WITH}:\n                depth += 2\n            elif instr == UNPACK_SEQUENCE:\n                depth += (arg - 1)  # TOS is popped\n            elif instr == UNPACK_EX:\n                depth += arg\n            elif instr == BUILD_MAP:",
-        "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:77-97"
+        "file_id": 318,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py",
+        "type": "filepath"
     },
     "2853": {
-        "file_id": 322,
-        "content": "The code adjusts the stack depth based on different instructions encountered during execution. It handles function calls, object creation, loading variables and classes, unpacking sequences and maps, and other operations. The stack depth is increased or decreased depending on the specific instruction being processed.",
-        "type": "comment"
+        "file_id": 318,
+        "content": "The code uses video processing libraries to read a source video, apply Chinese translation and color reduction to frames, save the processed frames in a dictionary, write JSON result to file, and finally saves the final video with h.264 codec.",
+        "type": "summary"
     },
     "2854": {
-        "file_id": 322,
-        "content": "                depth += ((2 * arg) + 1)  # a new object is pushed\n            elif instr == BUILD_CONST_KEY_MAP:\n                depth += (arg + 1 + 1)\n            elif instr == FOR_ITER:\n                _interpret(pc + arg, depth - 1)\n                depth += 1\n            elif instr == MAKE_FUNCTION:\n                depth -= 2  # function code and name\n                while arg:\n                    depth += 1\n                    arg >>= 1\n                depth += 1  # the new function\n            elif instr == FORMAT_VALUE:\n                if arg & 0x4 == 0x4:\n                    depth -= 1\n            elif instr == JUMP_ABSOLUTE:\n                pc = arg\n            elif instr == EXTENDED_ARG:\n                raise NotImplementedError()\n            elif instr == RETURN_VALUE:\n                return\n            #print(f'{pc}\\t{dis.opname[instr]}\\t{arg}\\t{depth}')\n            if found:\n                raise Found(depth)\n    try:\n        _interpret(0, 0)\n    except Found as e:\n        return e.depth\n    raise DepthNotFound(target_idx)",
+        "file_id": 318,
+        "content": "from functional_redraw_chinese_text_offline2 import redraw_english_to_chinese2\nimport cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_json = \"japan_day.json\"\noutput_video = \"japan_day_change_color3.mp4\"\nimport os\nif os.path.exists(output_video): os.remove(output_video)\n# OOM for local translation!\n# this will not work. fucking shit. though ocr is speedy.\n# in this we will get no audio.\n# use ffmpeg and time strencher.\n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\nfourcc = cv2.VideoWriter_fourcc(*'H264') # h.264 # this will fail.\n# fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264\nvideo_writer = cv2.VideoWriter(output_video,fourcc,fps,frame_size)",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:98-130"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:1-32"
     },
     "2855": {
-        "file_id": 322,
-        "content": "This code appears to be part of an interpreter for a programming language, specifically handling instruction execution and managing the stack depth. It uses nested loops and conditionals to interpret instructions based on opcodes and arguments, adjusting the depth accordingly. If a certain instruction is encountered or a target depth is not found during interpretation, it raises specific exceptions. The code seems to be looking for a target depth index, and returns it if found or throws an exception if not found.",
+        "file_id": 318,
+        "content": "This code imports the necessary modules and sets up variables for video processing. It removes any existing output file, initializes a VideoCapture object to read the source video, determines the video's FPS, frame size, and total frames count, and creates a VideoWriter object with h.264 codec for the output video file.",
         "type": "comment"
     },
     "2856": {
-        "file_id": 322,
-        "content": "class Frame(ctypes.Structure):\n    pass\n# source: Python3.9/Include/cpython/frameobject.h\n# There are more members after f_valuestack which are omitted here.\nFrame._fields_ = [\n    (\"ob_refcnt\", ctypes.c_ssize_t),\n    (\"ob_type\", ctypes.c_void_p),\n    (\"ob_size\", ctypes.c_ssize_t),\n    (\"f_back\", ctypes.POINTER(Frame)),\n    (\"f_code\", ctypes.py_object),\n    (\"f_builtins\", ctypes.py_object),\n    (\"f_globals\", ctypes.py_object),\n    (\"f_locals\", ctypes.py_object),\n    (\"f_valuestack\", ctypes.POINTER(ctypes.py_object))]\nclass ObliteratedByException:\n    def __repr__(self):\n        return '<ObliteratedByException>'\ndef _fetch_value_stack(c_frame, count):\n    \"\"\"\n    Return 'count' values from the value stack of 'frame'. Implementation- and version-specific (CPython 3.9).\n    \"\"\"\n    if count <= 0:\n        return []\n    frame = Frame.from_address(id(c_frame))\n    values = []\n    for i in range(count):\n        try:\n            values.append(frame.f_valuestack[i])\n        except ValueError:\n            # Very likely \"PyObject is NULL\". This happens because CPython uses a NULL return value to signal",
+        "file_id": 318,
+        "content": "# frame_index_counter = 0\n# this is determinism.\n# or you could use framedifference? come on...\n# while True:\nimport json\nmjson_result = open(output_json, 'r',encoding='utf8').read()\nmjson_result = json.loads(mjson_result)\nimport copy\n# use some tweening? pytweening?\n# from test_curve_converter import curve_converter\n    # for index, (orig, target) in enumerate(curve_function):\n    #     if value <= orig:\n    #         forig,ftarget = curve_function[index+1]\n    #         if value == orig: return target\n    #         elif value <=forig:\n    #             if value ==forig: return ftarget\n    #             else:\n    #                 loc = (value-orig)/(forig-orig)\n    #                 new_diff = loc*(ftarget-target)\n    #                 new_value = target+new_diff\n    #                 return new_value\n    # return curve_function[-1][1]\n# def remove_much_red(image,curve_function):\n#     target = copy.copy(image[:,:,2])\n#     target = curve_converter(target,curve_function)\n#     image[:,:,2] = target\n#     return image",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:132-166"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:34-62"
     },
     "2857": {
-        "file_id": 322,
-        "content": "This code defines a `Frame` class and its fields for Python's frame objects, omitting some members. It also defines an `ObliteratedByException` class that returns '<ObliteratedByException>' when represented. The `_fetch_value_stack` function retrieves 'count' values from the value stack of a frame object in CPython 3.9, handling cases where a value is NULL.",
+        "file_id": 318,
+        "content": "Code imports json and copy libraries, reads a JSON file and converts its contents. It defines a function for curve conversion and a potential function for removing excessive red from an image.",
         "type": "comment"
     },
     "2858": {
-        "file_id": 322,
-        "content": "            # an exception. If an operation triggered by an opcode causes an exception, that operation's \"result\"\n            # of NULL will be written to the stack before the exception machinery is started.\n            values.append(ObliteratedByException())\n    return values\ndef _find_offsets_matching_opcodes(co_code, opcodes):\n    \" Return a list of byte offsets inside co_code matching opcodes in 'opcodes' \"\n    return [idx * 2 for idx, opcode in enumerate(co_code[::2]) if opcode in opcodes]\ndef _find_abs_jump_offset_bytes(co_code):\n    \" Return a list of byte offets for jump offsets in co_code. \"\n    # Broken by EXTENDED ARG (if the argument is a jump offset)\n    # idx + 1 returns the argument, rather than the bytecode.\n    return [idx + 1 for idx in _find_offsets_matching_opcodes(co_code, ABS_JUMPS)]\ndef _rewrite_abs_jump_offsets(code_bytes, amt):\n    \" Add 'offset' to all jumps. \"\n    for offset in _find_abs_jump_offset_bytes(code_bytes):\n        code_bytes[offset] += amt\ndef _extend_instr(opcode, arg):",
+        "file_id": 318,
+        "content": "def remove_much_red_with_rate(image,reduce_rate = 0.8):\n    target = copy.copy(image[:,:,2])\n    target = target*(1-reduce_rate)\n    image[:,:,2] = target\n    return image\n# curve_function = [[0,0],[40,30],[100,50],[150,100],[255,130]]\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?\n    success, frame = video_cap.read() # let's just use 1, no frame skip.\n    if not success: break\n    # print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file\n    string_frame_index_counter = str(frame_index_counter)  #inpainting is still slow somehow. freaking shit. though i have the freaking shit.\n    # maybe you can improvise.\n    # this is done purely in CPU.\n    processed_frame_data = mjson_result[string_frame_index_counter]# fucking string key.\n    processed_frame = redraw_english_to_chinese2(frame,processed_frame_data) # step 1\n    processed_frame = remove_much_red_with_rate(processed_frame)\n    # mjson_result.update({frame_index_counter:processed_frame_data})",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:167-188"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:64-83"
     },
     "2859": {
-        "file_id": 322,
-        "content": "This code snippet seems to be related to rewriting the absolute jump offsets in a bytecode. It finds the byte offsets matching specific opcodes and then adds an 'offset' to all jumps, which essentially extends the instruction with the given argument. The purpose of this seems to modify or adjust jump offsets within the code.",
+        "file_id": 318,
+        "content": "The code reads a video frame by frame and applies two transformations: redrawing English to Chinese (step 1) and reducing the intensity of red color with a certain rate. The progress bar indicates the processing progress, and the processed frames are stored in a dictionary using frame index as the key.",
         "type": "comment"
     },
     "2860": {
-        "file_id": 322,
-        "content": "    \" Prefix opcode with one or more EXTENDED_ARG opcodes if it's > 255. \"\n    arg_bytes = []\n    while True:\n        arg_bytes.append(arg & 0xff)\n        arg >>= 8\n        if not arg:\n            break\n    code = []\n    while len(arg_bytes) > 1:\n        code.extend([EXTENDED_ARG, arg_bytes.pop()])\n    code.extend([opcode, arg_bytes.pop()])\n    return code\nFRAME_CONST_IDX = -2\nCODE_MAGIC_IDX = 3\ndef _resume(tb):\n    \"\"\"\n    Main function for ON ERROR RESUME NEXT. Generate new callables for each frame in 'tb' and return the root callable.\n    \"\"\"\n    if tb.tb_frame.f_code is sys.excepthook.__code__:\n        # We're being called from the excepthook.\n        return _resume(tb.tb_next)\n    if tb.tb_frame.f_code.co_code.startswith(bytes([NOP, MAGIC, NOP])):\n        # We've patched this function before. Restore the original traceback frame which we squirrelled away.\n        tb_frame = tb.tb_frame.f_code.co_consts[FRAME_CONST_IDX]\n        # Fix offets, which will include our patch prefix.\n        old_prefix_length = tb.tb_frame.f_code.co_code[CODE_MAGIC_IDX]",
+        "file_id": 318,
+        "content": "    video_writer.write(processed_frame) # what frame?\n    # frame_index_counter+=1\n    # cv2.imshow(\"image\",processed_frame) #\n    # # cv2.waitKey(1) # not wait infinitely.\n    # if cv2.waitKey(20) == ord('q'):\n    #     break\n# with open(output_json,\"w+\",encoding=\"utf-8\") as f:\n#     data = json.dumps(mjson_result,indent=4)\n#     f.write(data)\n# cv2.close\nprint(\"VIDEO DONE. SAVED AT:\",output_video)",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:189-219"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:84-95"
     },
     "2861": {
-        "file_id": 322,
-        "content": "This code handles the ON ERROR RESUME NEXT functionality. It generates new callables for each frame in the traceback and returns the root callable. If called from the excepthook, it calls _resume recursively on the next frame. If a patch prefix is present, it fixes the offset by retrieving the original traceback frame and its associated constants.",
+        "file_id": 318,
+        "content": "This code writes the processed frame to the video, increments the frame index counter, displays the processed frame using OpenCV's imshow function, waits for a 'q' key press to break the loop, and finally writes the JSON result data to the file. The video is then saved at the specified output_video location.",
         "type": "comment"
     },
     "2862": {
-        "file_id": 322,
-        "content": "        faulting_instruction_idx = tb.tb_lasti - old_prefix_length\n    else:\n        tb_frame = tb.tb_frame\n        faulting_instruction_idx = tb.tb_lasti\n    old_code_obj = tb_frame.f_code\n    code_bytes = list(old_code_obj.co_code)\n    if tb.tb_next:\n        # This isn't the frame which caused the exception. This is a parent frame which called something which caused\n        # the exception. We can't just re-try the call, though, because we want to call a rewritten child which skips\n        # the exception-causing behaviour. So instead we skip to the next instruction here.\n        child_callable, child_args = _resume(tb.tb_next)\n        next_instr_idx = faulting_instruction_idx + 2\n    else:\n        # We're on the frame with the faulting instruction. Find the next line. The compiler can reorder lines, so this\n        # isn't guaranteed to do anything sensible, but if you're looking for sensible you're in the wrong place.\n        child_callable, child_args = None, None\n        for offset, lineno in dis.findlinestarts(tb_frame.f_code):",
-        "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:220-238"
+        "file_id": 319,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py",
+        "type": "filepath"
     },
     "2863": {
-        "file_id": 322,
-        "content": "Checks if the current frame caused an exception, if not then finds the child callable and arguments for resuming execution from next instruction. If the current frame is the one causing the exception, iterates through instructions to find the next line using dis.findlinestarts method.",
-        "type": "comment"
+        "file_id": 319,
+        "content": "The code translates text, applies color correction, and processes frames from a video using ffmpeg and OpenCV for display and waiting for user input.",
+        "type": "summary"
     },
     "2864": {
-        "file_id": 322,
-        "content": "            if offset > faulting_instruction_idx and lineno > tb_frame.f_lineno:\n                next_instr_idx = offset\n                break\n        else:\n            # We ran out of lines (e.g. last line of function was 'return <something which blows up>).\n            # Fall back to resuming on the next opcode. The last opcode of every Python function is RETURN_VALUE,\n            # which won't throw (assuming the stack isn't corrupt, which isn't a guarantee here actually :), so\n            # doing this should be relatively safe.\n            next_instr_idx = faulting_instruction_idx + 2\n    # Create a short prefix which will fix up the code, starting with a magic sequence so we can identify\n    # code we've modified\n    prefix_code = [\n        NOP, MAGIC,\n        NOP, 0  # index of first instruction past our patch prefix, to be filled in later.\n    ]\n    if old_code_obj.co_varnames:\n        # It's something which has a distinct locals() (i.e. a function). Supply them as arguments.\n        argcount = len(tb_frame.f_code.co_varnames)",
+        "file_id": 319,
+        "content": "from functional_redraw_chinese_text_offline2 import redraw_english_to_chinese2\nimport cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_json = \"japan_day.json\"\noutput_video = \"japan_day_change_color2.mp4\"\nimport os\nif os.path.exists(output_video): os.remove(output_video)\n# OOM for local translation!\n# this will not work. fucking shit. though ocr is speedy.\n# in this we will get no audio.\n# use ffmpeg and time strencher.\n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\n# fourcc = cv2.VideoWriter_fourcc(*'H264') # h.264\n# fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264 \n# this is builtin ffmpeg. not external shits.\n# video_writer = cv2.VideoWriter(output_video,fourcc,fps,frame_size)",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:239-258"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:1-33"
     },
     "2865": {
-        "file_id": 322,
-        "content": "If the offset is greater than faulting_instruction_idx and line number is higher than tb_frame.f_lineno, set next_instr_idx as offset and break. This indicates running out of lines or last line blew up, so resume from the opcode after RETURN_VALUE safely unless stack isn't corrupted. Create a prefix code with magic sequence, followed by NOP to fix the modified code. If there are distinct locals() (function), supply them as arguments (argcount equals length of tb_frame.f_code.co_varnames).",
+        "file_id": 319,
+        "content": "The code is preparing to process a video file frame by frame for translation. It imports necessary libraries, checks if the output video exists and deletes it, obtains video properties, and sets up variables for further processing. The code also comments on possible issues and suggests using ffmpeg for audio and video processing.",
         "type": "comment"
     },
     "2866": {
-        "file_id": 322,
-        "content": "        args = [tb_frame.f_locals.get(name) for name in tb_frame.f_code.co_varnames]\n    else:\n        # It's something else (e.g. a module). Don't supply locals.\n        argcount = 0\n        args = []\n    args.reverse()  # Args are written RTL.\n    if faulting_instruction_idx >= 0:\n        # Restore the value stack. The interpreter doesn't record the value stack depth in a very accessible way (it's a\n        # local variable on the C stack in ceval.c), so figure out the depth of the stack using abstract interpretation.\n        stack_depth = _get_value_stack_depth(code_bytes, faulting_instruction_idx)\n        stack = _fetch_value_stack(tb_frame, stack_depth)  # first entry is bottom of stack.\n    else:\n        # The exception is coming from inside the house^W^W^Wour fixup stub code.\n        print(tb.tb_lasti, faulting_instruction_idx, tb, tb.tb_next)\n        raise NotImplementedError()\n    # Add some magic values as consts.\n    co_consts = list(old_code_obj.co_consts)\n    # First magic const: the patched child function to call.",
+        "file_id": 319,
+        "content": "# frame_index_counter = 0\n# this is determinism.\n# or you could use framedifference? come on...\n# while True:\nimport json\nmjson_result = open(output_json, 'r',encoding='utf8').read()\nmjson_result = json.loads(mjson_result)\nimport copy\n# use some tweening? pytweening?\nfrom test_curve_converter import curve_converter\n    # for index, (orig, target) in enumerate(curve_function):\n    #     if value <= orig:\n    #         forig,ftarget = curve_function[index+1]\n    #         if value == orig: return target\n    #         elif value <=forig:\n    #             if value ==forig: return ftarget\n    #             else:\n    #                 loc = (value-orig)/(forig-orig)\n    #                 new_diff = loc*(ftarget-target)\n    #                 new_value = target+new_diff\n    #                 return new_value\n    # return curve_function[-1][1]\ndef remove_much_red(image,curve_function):\n    target = copy.copy(image[:,:,2])\n    target = curve_converter(target,curve_function)\n    image[:,:,2] = target\n    return image\ndef remove_much_red_with_rate(image,reduce_rate = 0.8):",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:259-280"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:35-65"
     },
     "2867": {
-        "file_id": 322,
-        "content": "The code is checking if the faulting instruction index is negative or not. If it's negative, it restores the value stack by finding the depth using abstract interpretation and fetching the stack. If positive, it raises a NotImplementedError. The code also adds magic constants to the co_consts list.",
+        "file_id": 319,
+        "content": "The code defines a function, `remove_much_red`, which takes an image and curve function as parameters. It applies the given curve function to the red channel of the image, effectively reducing the intensity of red colors. The code also includes another function, `remove_much_red_with_rate`, that allows for adjusting the reduction rate of red colors in images. Both functions modify the image by changing the values of its red channel based on a given curve function or reduction rate.",
         "type": "comment"
     },
     "2868": {
-        "file_id": 322,
-        "content": "    child_callable_const_idx = None\n    if child_callable:\n        co_consts.append(child_callable)\n        co_consts.append(child_args)\n        child_callable_const_idx = len(co_consts) - 2\n    # Second magic const: the original traceback frame. We use this to get the unpatched version of a function, should\n    # the patched version throw another exception.\n    co_consts.append(tb_frame)\n    # Third magic const: the stack as a tuple.\n    if tb.tb_next and stack and isinstance(stack[-1], ObliteratedByException):\n        # Normally the result of an exception is NULL, but in this case we know the last thing we did in this\n        # frame involved a function call (because tb_next is not None), and we've called the function above\n        # and have a result. We will restore the stack and then call the function.\n        stack = stack[:-1]\n    co_consts.append(tuple(stack))\n    # Add code to restore the stack from our const tuple when the function starts.\n    if stack:\n        prefix_code.extend([\n            LOAD_CONST, len(co_consts) - 1,",
+        "file_id": 319,
+        "content": "    target = copy.copy(image[:,:,2])\n    target = target*(1-reduce_rate)\n    image[:,:,2] = target\n    return image\ncurve_function = [[0,0],[40,30],[100,50],[150,100],[255,130]]\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?\n    success, frame = video_cap.read() # let's just use 1, no frame skip.\n    if not success: break\n    # print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file\n    string_frame_index_counter = str(frame_index_counter)  #inpainting is still slow somehow. freaking shit. though i have the freaking shit.\n    # maybe you can improvise.\n    # this is done purely in CPU.\n    processed_frame_data = mjson_result[string_frame_index_counter]# fucking string key.\n    processed_frame = redraw_english_to_chinese2(frame,processed_frame_data) # step 1\n    processed_frame = remove_much_red(processed_frame,curve_function)\n    # mjson_result.update({frame_index_counter:processed_frame_data})\n    # video_writer.write(processed_frame) # what frame?",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:281-303"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:66-85"
     },
     "2869": {
-        "file_id": 322,
-        "content": "Stores child callable and arguments in co_consts, appends traceback frame, stack as tuple to co_consts. Extends prefix_code with code to restore stack from const tuple when function starts.",
+        "file_id": 319,
+        "content": "The code reads frames from a video and applies color correction using a curve function. It also translates text on the frames and processes them. The progress bar shows the current frame being processed, and if a frame can't be read, the loop breaks. Finally, the processed frames are saved to an output file.",
         "type": "comment"
     },
     "2870": {
-        "file_id": 322,
-        "content": "            UNPACK_SEQUENCE, len(stack),\n        ])\n    # Add code to call the patched child function (if any) when the function starts.\n    if child_callable:\n        prefix_code.extend([\n            LOAD_CONST, child_callable_const_idx,  # callable\n            LOAD_CONST, child_callable_const_idx + 1,  # args\n            UNPACK_SEQUENCE, len(child_args),\n            CALL_FUNCTION, len(child_args)])\n    # Add code to jump to where we left off in the function after we've restored its state.\n    prefix_code.extend(_extend_instr(JUMP_ABSOLUTE, next_instr_idx))\n    # We've finished adding code to the patch prefix, so store its length. We store it in the\n    # otherwise-unused argument slot to the NOP opcode (in recent CPython versions, every opcode\n    # has an argument slot).\n    prefix_code[CODE_MAGIC_IDX] = len(prefix_code)\n    # The new code is the previous code plus our prefix.\n    code_bytes = prefix_code + code_bytes\n    # Now that we've put the prefix code at the start, rewrite all absolute jumps.\n    _rewrite_abs_jump_offsets(code_bytes, len(prefix_code))",
+        "file_id": 319,
+        "content": "    # frame_index_counter+=1\n    cv2.imshow(\"image\",processed_frame) #\n    # # cv2.waitKey(1) # not wait infinitely.\n    if cv2.waitKey(20) == ord('q'):\n        break\n# with open(output_json,\"w+\",encoding=\"utf-8\") as f:\n#     data = json.dumps(mjson_result,indent=4)\n#     f.write(data)\n# cv2.close\nprint(\"VIDEO DONE. SAVED AT:\",output_video)",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:304-327"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:87-96"
     },
     "2871": {
-        "file_id": 322,
-        "content": "This code creates a patch prefix to restore function state, adds code for child function call (if any), and jumps back to the original position after restoring. It stores the length of the prefix code in an argument slot and rewrites all absolute jumps.",
+        "file_id": 319,
+        "content": "This code displays a processed frame on the screen, waits for 20 milliseconds for input to break the loop, and saves the final video. It uses OpenCV to display frames and wait for user input to stop the process.",
         "type": "comment"
     },
     "2872": {
-        "file_id": 322,
-        "content": "    # We can now construct a full code object and function object with our new code and consts, using the original as a\n    # template.\n    co_names = old_code_obj.co_names\n    print(\"co_names type:\", type(co_names))\n    new_code_obj = types.CodeType(argcount, 0,\n                                  old_code_obj.co_kwonlyargcount, old_code_obj.co_nlocals,\n                                  old_code_obj.co_stacksize, old_code_obj.co_flags, bytes(code_bytes),\n                                  tuple(co_consts), co_names, old_code_obj.co_varnames,\n                                  old_code_obj.co_filename, old_code_obj.co_name, old_code_obj.co_firstlineno,\n                                  old_code_obj.co_lnotab)\n    # TODO: __closure__ not copied\n    frame_func = types.FunctionType(new_code_obj, tb_frame.f_globals, name=tb_frame.f_code.co_name)\n    #print('resume called for tb ', tb, tb.tb_next, frame_func)\n    #dis.dis(frame_func, depth=0)\n    return (frame_func, tuple(args))\ndef _excepthook(type_, value, tb):",
-        "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:329-348"
+        "file_id": 320,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor.py",
+        "type": "filepath"
     },
     "2873": {
-        "file_id": 322,
-        "content": "This code constructs a new code object and function object by using the original's structure as a template. It sets the necessary parameters like argument count, code bytes, and names for the new code object, and then creates a FunctionType with the new code object and f_globals dictionary. The function returns the new function object and the tuple of arguments.",
-        "type": "comment"
+        "file_id": 320,
+        "content": "This code reads frames from a video, translates each frame using the redraw_english_to_chinese function, updates a dictionary with frame data, and saves the processed frames to an output JSON file. The process stops when no more frames can be read or if 'q' is pressed.",
+        "type": "summary"
     },
     "2874": {
-        "file_id": 322,
-        "content": "    global _last_error\n    while True:\n        _last_error.err = type_\n        func, args = _resume(tb)\n        try:\n            func(*args)\n        except Exception as e:\n            type_, value, tb = sys.exc_info()\n            #print('continuing...')\n            #traceback.print_exc()\n        else:\n            break\ndef on_error_resume_next():\n    sys.excepthook = _excepthook\ndef err():\n    err = _last_error.err\n    _last_error.err = None\n    return err",
+        "file_id": 320,
+        "content": "import cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_json = \"japan_day.json\"\n# output_video = \"japan_day_translated.mp4\"\n# OOM for local translation!\n# in this we will get no audio.\n# use ffmpeg and time strencher.\nfrom functional_redraw_chinese_text_offline import redraw_english_to_chinese\n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\nfourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264\n# video_writer =cv2.VideoWriter(output_video,fourcc,fps,frame_size)\n# frame_index_counter = 0\n# this is determinism.\n# or you could use framedifference? come on...\n# while True:\nimport json\nmjson_result = {}\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py:349-370"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor.py:1-34"
     },
     "2875": {
-        "file_id": 322,
-        "content": "The code defines a function _excepthook that handles exceptions, and provides additional functions _resume and err. The while loop continuously tries to execute the resumed function until an exception occurs, then logs the exception for further handling. The on_error_resume_next function sets sys.excepthook to _excepthook for error resumption. The err function returns the current error type and clears it.",
+        "file_id": 320,
+        "content": "The code is reading a video file, extracting frame-by-frame information including FPS, frame width, height, and the total number of frames. It initializes variables for output JSON result and a potential output video (currently commented out). The code uses progress bar to iterate through each frame, but the actual translation process is missing from the given code snippet. The original task seems to be long and might require a lot of computation resources.",
         "type": "comment"
     },
     "2876": {
-        "file_id": 323,
-        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test_semgrep/test2.py",
-        "type": "filepath"
+        "file_id": 320,
+        "content": "    success, frame = video_cap.read() # let's just use 1, no frame skip.\n    if not success: break\n    print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file\n    processed_frame_data= redraw_english_to_chinese(frame) # step 1\n    mjson_result.update({frame_index_counter:processed_frame_data})\n    # video_writer.write(processed_frame) # what frame?\n    # frame_index_counter+=1\n    # if cv2.waitKey(20) == ord('q'):\n        # break\nwith open(output_json,\"w+\",encoding=\"utf-8\") as f:\n    data = json.dumps(mjson_result,indent=4)\n    f.write(data)\nprint(\"VIDEO DONE ANALYSING. SAVED AT:\",output_json)",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor.py:35-48"
     },
     "2877": {
-        "file_id": 323,
-        "content": "This code calls a function named 'foo' with the argument 0. Without further context, it is difficult to determine what 'foo' does or if this is part of a larger sequence of commands.",
-        "type": "summary"
-    },
-    "2878": {
-        "file_id": 323,
-        "content": "foo(0)",
-        "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test_semgrep/test2.py:1-1"
-    },
-    "2879": {
-        "file_id": 323,
-        "content": "This code calls a function named 'foo' with the argument 0. Without further context, it is difficult to determine what 'foo' does or if this is part of a larger sequence of commands.",
+        "file_id": 320,
+        "content": "This code reads frames from a video, processes one frame at a time by translating it using the redraw_english_to_chinese function, updates a dictionary with frame data, and saves the processed frames to an output JSON file. The process stops when no more frames can be read or if 'q' is pressed.",
         "type": "comment"
     },
-    "2880": {
-        "file_id": 324,
-        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test_semgrep/test.sh",
+    "2878": {
+        "file_id": 321,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_iterator_copy.py",
         "type": "filepath"
     },
-    "2881": {
-        "file_id": 324,
-        "content": "This code uses Semgrep to search for 'foo($X)' in Python files and replace it with 'bar($X)', then performs a dry run without making any actual changes. It demonstrates the usage of Semgrep's language, pattern, replacement, autofix, and dryrun options. The code also highlights that a dry run might not consider other files besides 'test.py'.",
+    "2879": {
+        "file_id": 321,
+        "content": "This code reads video frames, prints their indices, and writes them to an output file using video_writer. It tracks progress with a progress bar and checks for keypresses to exit. Upon completion, it displays the saved location as VIDEO DONE message.",
         "type": "summary"
     },
-    "2882": {
-        "file_id": 324,
-        "content": "semgrep --lang python --pattern 'foo($X)' --replacement 'bar($X)' --autofix --dryrun # all files. dry run will not output cleanly in this way, not like what comby does.\n# semgrep --lang python --pattern 'foo($X)' --replacement 'bar($X)' --autofix --dryrun test.py # will not care about test2.py",
+    "2880": {
+        "file_id": 321,
+        "content": "import cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_video = \"japan_day_copy.mp4\"\n# in this we will get no audio.\n# use ffmpeg and time strencher.\n# from functional_redraw_chinese_text_offline import \n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\nfourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264\nvideo_writer =cv2.VideoWriter(output_video,fourcc,fps,frame_size)\n# frame_index_counter = 0\n# while True:\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?\n    success, frame = video_cap.read()\n    if not success: break\n    print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test_semgrep/test.sh:1-2"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_iterator_copy.py:1-31"
+    },
+    "2881": {
+        "file_id": 321,
+        "content": "This code reads a video file, gets its frame properties like FPS and dimensions, creates an output video file with the same format, then iterates through each frame of the input video, printing its index while processing it. It uses a progress bar for tracking frame index in a loop, but there's a potential issue with the usage of the range function (the video might not have that many frames). Finally, it writes each processed frame to the output file.",
+        "type": "comment"
+    },
+    "2882": {
+        "file_id": 321,
+        "content": "    video_writer.write(frame) # what frame?\n    # frame_index_counter+=1\n    # if cv2.waitKey(20) == ord('q'):\n        # break\nprint(\"VIDEO DONE. SAVED AT:\",output_video)",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_iterator_copy.py:32-36"
     },
     "2883": {
-        "file_id": 324,
-        "content": "This code uses Semgrep to search for 'foo($X)' in Python files and replace it with 'bar($X)', then performs a dry run without making any actual changes. It demonstrates the usage of Semgrep's language, pattern, replacement, autofix, and dryrun options. The code also highlights that a dry run might not consider other files besides 'test.py'.",
+        "file_id": 321,
+        "content": "Writes frames to video file using video_writer, counts frame index, checks for keypress to exit. VIDEO DONE message with saved location output_video.",
         "type": "comment"
     },
     "2884": {
-        "file_id": 325,
-        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test_semgrep/test.py",
+        "file_id": 322,
+        "content": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py",
         "type": "filepath"
     },
     "2885": {
-        "file_id": 325,
-        "content": "The code is calling a function named \"foo\" with the argument of 1.",
+        "file_id": 322,
+        "content": "This code converts text to speech audio using PaddleSpeech, merges and normalizes audio segments, generates voice and video files, and exports final videos with background music.",
         "type": "summary"
     },
     "2886": {
-        "file_id": 325,
-        "content": "foo(1)",
+        "file_id": 322,
+        "content": "import os\nfrom test_common import *\ndef split_sentences(sent):\n    spliters = \"\\n，。、\"\n    cursent = \"\"\n    results = []\n    for elem in sent:\n        cursent += elem\n        if elem in spliters:\n            results.append(cursent)\n            cursent = \"\"\n    if len(cursent) > 0:\n        results.append(cursent)\n    return results\ndef get_speech(sent,output):\n    assert output.endswith(\".wav\")\n    with open(\"temp.txt\", \"w+\",encoding=\"utf-8\") as f:\n        f.write(sent)\n    os.system(\"cat temp.txt | paddlespeech tts --output {}\".format(output))\nfrom pydub import AudioSegment\nfrom functional_gen_typo_video_seq import gen_video\ndef merge_audio(asegs):\n    audio_3 = AudioSegment.empty() #shit\n    for seg in asegs:\n        try:\n            audio_3 = audio_3.append(seg,crossfade=100) # also shit.\n        except:\n            audio_3 = audio_3.append(seg,crossfade=0) # also shit.\n    return audio_3\n    # audio_3.export(\"audio_3.wav\", format=\"wav\")\nif __name__ == \"__main__\":\n    sents = split_sentences(demo_text)\n    # breakpoint()",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test_semgrep/test.py:1-1"
+        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:1-38"
     },
     "2887": {
-        "file_id": 325,
-        "content": "The code is calling a function named \"foo\" with the argument of 1.",
+        "file_id": 322,
+        "content": "This code performs text-to-speech (TTS) conversion and merges audio segments. It first splits a given sentence into individual sentences, then uses PaddleSpeech to convert the text to speech audio, which is saved with .wav extension. The resulting audio segments are merged using PyDub's AudioSegment module, allowing for seamless crossfades between audio chunks.",
         "type": "comment"
     },
     "2888": {
-        "file_id": 326,
-        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test_semgrep/subdir/test2.py",
-        "type": "filepath"
+        "file_id": 322,
+        "content": "    voice_dir = \"voice\"\n    video_dir = \"video\"\n    os.system(\"rm -rf {}\".format(voice_dir))\n    os.system(\"rm -rf {}\".format(video_dir))\n    os.mkdir(\"{}\".format(voice_dir))\n    os.mkdir(\"{}\".format(video_dir))\n    index = 0\n    voice_clips = []\n    video_names = []\n    for i,sent in enumerate(sents):\n        print(\"READING:\",sent)\n        aname = \"{}/{}.wav\".format(voice_dir,i)\n        get_speech(sent,aname)\n        seg = AudioSegment.from_wav(aname)\n        duration = seg.duration_seconds\n        voice_clips.append(seg)\n        # get the duration you fuck.\n        # breakpoint()\n        lsent = len(sent)\n        current_indexs = list(range(index,index+lsent))\n        index += lsent\n        # you can generate video for it.\n        vname = \"{}/{}.mp4\".format(video_dir,i)\n        gen_video(vname,current_indexs,duration)\n        video_names.append(vname)\n    # and finally?\n    final_video = \"{}/final_video.mp4\".format(video_dir)\n    final_audio = \"{}/final_audio.wav\".format(voice_dir)\n    audio_merged = merge_audio(voice_clips)",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:39-68"
     },
     "2889": {
-        "file_id": 326,
-        "content": "This code calls a function named 'foo' with the argument 0. Without further context, it is difficult to determine what 'foo' does or if this is part of a larger sequence of commands.",
-        "type": "summary"
+        "file_id": 322,
+        "content": "This code clears the \"voice\" and \"video\" directories, creates new ones, reads each sentence from the input, converts it to audio, generates a video for each sentence, appends the corresponding audio clip and video name to their respective lists, and then merges all audio clips. The final video and audio files are named accordingly.",
+        "type": "comment"
     },
     "2890": {
-        "file_id": 326,
-        "content": "foo(0)",
+        "file_id": 322,
+        "content": "    bgm_path = \"/root/Desktop/works/bilibili_tarot/some_bgm.mp3\"\n    bgm = AudioSegment.from_mp3(bgm_path)\n    # duration2 = audio_merged.duration_seconds\n    # bgm = bgm[:duration2*1000] # really?\n    # breakpoint()\n    # audio_merged = audio_merged.overlay(audio_merged,bgm,loop=True)  #wtf?\n    audio_merged = audio_merged.overlay(bgm,loop=True)\n    # audio_merged = audio_merged.normalize()\n    # is it needed?\n    # shit.\n    audio_merged.export(final_audio, format=\"wav\")\n    final_video2 = \"{}/final_video2.mp4\".format(video_dir)\n    with open(\"mylist.txt\",\"w+\") as f:\n        for n in video_names:\n            f.write(\"file \"+n+\"\\n\")\n    os.system(\"ffmpeg -f concat -safe 0 -i mylist.txt -c copy {}\".format(final_video))\n    os.system(\"ffmpeg -i {} -i {} -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 {}\".format(final_video,final_audio,final_video2))",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test_semgrep/test2.py:1-1"
+        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:69-87"
     },
     "2891": {
-        "file_id": 326,
-        "content": "This code calls a function named 'foo' with the argument 0. Without further context, it is difficult to determine what 'foo' does or if this is part of a larger sequence of commands.",
+        "file_id": 322,
+        "content": "The code imports audio files, merges them, normalizes the volume, and exports the final audio as a wav file. It then creates a mylist.txt file containing the video names, and uses ffmpeg to concatenate videos with the background music and export the final video2 in mp4 format.",
         "type": "comment"
     },
     "2892": {
-        "file_id": 327,
-        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test_method_in_class/test.sh",
+        "file_id": 323,
+        "content": "/tests/bilibili_practices/bilibili_tarot/test_common.py",
         "type": "filepath"
     },
     "2893": {
-        "file_id": 327,
-        "content": "This code executes the test.py Python script with the Python 3 interpreter, which likely contains testing procedures for a specific functionality or feature.",
+        "file_id": 323,
+        "content": "The code sets the http and https proxies to empty strings, preventing any proxy usage, and assigns a demo text for use in testing.",
         "type": "summary"
     },
     "2894": {
-        "file_id": 327,
-        "content": "python3 test.py",
+        "file_id": 323,
+        "content": "import os\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\ndemo_text = \"事情的开始，行动的改变，熟练的技术及技巧，贯彻我的意志，运用自然的力量来达到野心。\"",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test_method_in_class/test.sh:1-1"
+        "location": "/tests/bilibili_practices/bilibili_tarot/test_common.py:1-6"
     },
     "2895": {
-        "file_id": 327,
-        "content": "This code executes the test.py Python script with the Python 3 interpreter, which likely contains testing procedures for a specific functionality or feature.",
+        "file_id": 323,
+        "content": "The code sets the http and https proxies to empty strings, preventing any proxy usage, and assigns a demo text for use in testing.",
         "type": "comment"
     },
     "2896": {
-        "file_id": 328,
-        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test_method_in_class/test.py",
+        "file_id": 324,
+        "content": "/tests/bilibili_practices/bilibili_tarot/test_command.sh",
         "type": "filepath"
     },
     "2897": {
-        "file_id": 328,
-        "content": "This code defines a class `mClass` with three methods and is decorated for reloading. It includes a loop test case, an exception-raising function, and a main execution function with asynchronous task definition. However, the exception handling in the methods needs improvement.",
+        "file_id": 324,
+        "content": "This code is using the melt command to combine multiple screenshots into a single video file with transitions. It uses the \"composite\" and \"mix\" transitions, applies distortion effects, and outputs the final result at 60 FPS. The output is saved as a consumer XML file.",
         "type": "summary"
     },
     "2898": {
-        "file_id": 328,
-        "content": "from reloading import reloading\nimport asyncio\n# you had better decorate this.\n# @reloading\nclass mClass:\n    someValue = 2\n    def forLoopInFunction(self):\n        val='shit'\n        # for i in reloading(range(3)): # still not solved!\n        for i in range(3): # still not solved!\n            # raise Exception('shit')\n            # return in primary function, not here!\n            if True:\n                val = 'value'# value not assigned correctly.\n                # break # break outside loop? fuck?\n                # what the fuck?\n        return val\n    @reloading\n    def someMethod(self):\n        @reloading\n        def someInnerMethod():\n            # raise Exception(\"inner exception\")\n            return \"inside function return\"\n        # raise Exception(\"exception\")\n        val = someInnerMethod()\n        return val\n    @reloading\n    async def someOtherMethod(self):\n        @reloading\n        async def asyncInside():\n            # raise Exception(\"inner async exception\")\n            return \"async inside return\"",
+        "file_id": 324,
+        "content": "melt -track \"color:#000000\" out=0 -track /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0000.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -track -blank :0.570312 /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0001.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -track -blank :1.140625 /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0002.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -track -blank :1.710938 /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0003.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -transition composite distort=0 a_track=0 b_track=1 -transition mix a_track=0 b_track=1 -transition composite distort=0 a_track=0 b_track=2 -transition mix a_track=0 b_track=2 -transition composite distort=0 a_track=0 b_track=3 -transition mix a_track=0 b_track=3 -transition composite distort=0 a_track=0 b_track=4 -transition mix a_track=0 b_track=4 -consumer xml",
         "type": "code",
-        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test_method_in_class/test.py:1-35"
+        "location": "/tests/bilibili_practices/bilibili_tarot/test_command.sh:1-1"
     },
     "2899": {
-        "file_id": 328,
-        "content": "This code defines a class `mClass` with three methods: `forLoopInFunction`, `someMethod`, and `someOtherMethod`. The class is decorated with `@reloading`, suggesting it will be reloaded when changes are made. Inside the `forLoopInFunction` method, there's an unfinished loop that attempts to raise exceptions but doesn't seem to achieve its goal correctly. The `someMethod` and `someOtherMethod` methods both contain inner decorators (`@reloading`) with incomplete exception handling and return statements.",
+        "file_id": 324,
+        "content": "This code is using the melt command to combine multiple screenshots into a single video file with transitions. It uses the \"composite\" and \"mix\" transitions, applies distortion effects, and outputs the final result at 60 FPS. The output is saved as a consumer XML file.",
         "type": "comment"
     }
 }

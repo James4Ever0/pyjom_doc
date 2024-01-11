@@ -1,531 +1,544 @@
 {
     "4200": {
-        "file_id": 536,
-        "content": "/tests/bezier_paddlehub_dogcat_detector_serving/server.py",
-        "type": "filepath"
+        "file_id": 516,
+        "content": "# motion detectors are used to track objects. though you may want to separate objects with it.\nimport numpy as np\nimport cv2\nimport pybgs as bgs\nimport talib  # wait till all points are stablized. find a way to stream this.\n# suspect by static image analysis, and then create bounding box over the thing.\n# check image quality.\n# this can generate frame borders.\nalgorithm = (\n    bgs.FrameDifference()\n)  # this is not stable since we have more boundaries. shall we group things?\nvideo_file = (\n    \"../../samples/video/dog_with_text.mp4\"  # this is doggy video without borders.\n)\n# video_file = \"../../samples/video/LiEIfnsvn.mp4\" # this one with cropped boundaries.\ncapture = cv2.VideoCapture(video_file)\nwhile not capture.isOpened():\n    capture = cv2.VideoCapture(video_file)\n    # cv2.waitKey(1000)\n    # print(\"Wait for the header\")\npos_frame = capture.get(1)\ndef getAppendArray(mx1, min_x, past_frames=19):\n    return np.append(mx1[-past_frames:], min_x)\ndef getFrameAppend(frameArray, pointArray, past_frames=19):\n    mx1, mx2, my1, my2 = [",
+        "type": "code",
+        "location": "/tests/video_detector_tests/rectangle_framedifference.py:1-33"
     },
     "4201": {
-        "file_id": 536,
-        "content": "This code changes the directory, appends current path to sys.path, and imports specific configurations and classes for a Bezier PaddleHub ResNet50 Image DogCatDetectorServer in pyjom project.",
-        "type": "summary"
+        "file_id": 516,
+        "content": "The code initializes a motion detector using frame difference algorithm to track objects in a video. It reads the video file and prepares two functions: `getAppendArray` for appending array elements, and `getFrameAppend` for processing frame data. These functions are used with specified past frames to analyze the video and possibly group objects. The code also handles potential video file opening issues by retrying if necessary.",
+        "type": "comment"
     },
     "4202": {
-        "file_id": 536,
-        "content": "import sys\nimport os\ndef changeDirForImport():\n    os.chdir(\"/root/Desktop/works/pyjom\")\n    sys.path.append(\".\")\nif __name__ == '__main__':\n    changeDirForImport()\n    from pyjom.config.shared import pyjom_config\n    pyjom_config['BEZIER_PADDLE_RESNET50_IMAGE_DOG_CAT_DETECTOR_SERVER_INSTANCE']=True\n    from pyjom.imagetoolbox import bezierPaddleHubResnet50ImageDogCatDetectorServer\n    bezierPaddleHubResnet50ImageDogCatDetectorServer()",
+        "file_id": 516,
+        "content": "        getAppendArray(a, b, past_frames=past_frames)\n        for a, b in zip(frameArray, pointArray)\n    ]\n    return mx1, mx2, my1, my2\ndef getStreamAvg(a, timeperiod=10):  # to maintain stability.\n    return talib.stream.EMA(a, timeperiod=timeperiod)\ndef checkChange(frame_x1, val_x1, h, change_threshold=0.2):\n    return (abs(frame_x1 - val_x1) / h) > change_threshold  # really changed.\nmx1, mx2, my1, my2 = [np.array([]) for _ in range(4)]\npast_frames = 19\nperc = 0.03\nframe_num = 0\n# what is the time to update the frame?\nframe_x1, frame_y1, frame_x2, frame_y2 = [None for _ in range(4)]\nreputation = 0\nmax_reputation = 3\nminVariance = 10\nframeDict = {}  # include index, start, end, coords.\nframeIndex = 0\nwhile True:\n    flag, frame = capture.read()\n    frameIndex += 1\n    if flag:\n        pos_frame = capture.get(1)  # this is getting previous frame without read again.\n        img_output = algorithm.apply(frame)\n        img_bgmodel = algorithm.getBackgroundModel()\n        _, contours = cv2.findContours(\n            img_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE",
         "type": "code",
-        "location": "/tests/bezier_paddlehub_dogcat_detector_serving/server.py:1-13"
+        "location": "/tests/video_detector_tests/rectangle_framedifference.py:34-70"
     },
     "4203": {
-        "file_id": 536,
-        "content": "This code changes the directory, appends current path to sys.path, and imports specific configurations and classes for a Bezier PaddleHub ResNet50 Image DogCatDetectorServer in pyjom project.",
+        "file_id": 516,
+        "content": "The code initializes variables for frame coordinates, past frames count, and other parameters. It then enters a loop to continuously capture frames from the camera, apply an algorithm to detect changes, and update relevant variables accordingly. The purpose is likely object detection and tracking using background subtraction or similar techniques.",
         "type": "comment"
     },
     "4204": {
-        "file_id": 537,
-        "content": "/tests/bezier_paddlehub_dogcat_detector_serving/client.py",
-        "type": "filepath"
+        "file_id": 516,
+        "content": "        )\n        # maybe you should merge all active areas.\n        if contours is not None:\n            # continue\n            counted = False\n            for contour in contours:\n                [x, y, w, h] = cv2.boundingRect(img_output)\n                if not counted:\n                    min_x, min_y = x, y\n                    max_x, max_y = x + w, y + h\n                    counted = True\n                else:\n                    min_x = min(min_x, x)\n                    min_y = min(min_y, y)\n                    max_x = max(max_x, x + w)\n                    max_y = max(max_y, y + h)\n                    # only create one single bounding box.\n            # print(\"points:\",min_x, min_y, max_x,max_y)\n            this_w = max_x - min_x\n            this_h = max_y - min_y\n            thresh_x = max(minVariance, int(perc * (this_w)))\n            thresh_y = max(minVariance, int(perc * (this_h)))\n            mx1, mx2, my1, my2 = getFrameAppend(\n                (mx1, mx2, my1, my2), (min_x, max_x, min_y, max_y)\n            )",
+        "type": "code",
+        "location": "/tests/video_detector_tests/rectangle_framedifference.py:71-95"
     },
     "4205": {
-        "file_id": 537,
-        "content": "The code reads an image file from a specific location, changes the working directory for importing necessary libraries, initializes a client and server object for detecting dog/cat images using PaddleHub's ResNet50 model, reads the test image using OpenCV, performs detection on the image with the client object, and finally prints the result.",
-        "type": "summary"
+        "file_id": 516,
+        "content": "The code finds the bounding box of all detected contours and merges them into a single one. It then calculates the width and height of this merged bounding box, applies thresholds based on its size and percentage, and updates existing frame append values with new min and max coordinates.",
+        "type": "comment"
     },
     "4206": {
-        "file_id": 537,
-        "content": "test_image = \"/root/Desktop/works/pyjom/samples/image/dog_with_text.jpg\"\nfrom server import changeDirForImport\nchangeDirForImport()\nfrom pyjom.imagetoolbox import bezierPaddleHubResnet50ImageDogCatDetectorClient,bezierPaddleHubResnet50ImageDogCatDetectorServerChecker\nimport cv2\ntest_image = cv2.imread(test_image)\nbezierPaddleHubResnet50ImageDogCatDetectorServerChecker()\nresult = bezierPaddleHubResnet50ImageDogCatDetectorClient(test_image)\nprint(\"RESULT?\",result)",
+        "file_id": 516,
+        "content": "            val_x1, val_x2, val_y1, val_y2 = [\n                getStreamAvg(a) for a in (mx1, mx2, my1, my2)\n            ]\n            # not a number. float\n            # will return False on any comparison, including equality.\n            if (\n                abs(val_x1 - min_x) < thresh_x\n                and abs(val_x2 - max_x) < thresh_x\n                and abs(val_y1 - min_y) < thresh_y\n                and abs(val_y2 - max_y) < thresh_y\n            ):\n                needChange = False\n                # this will create bounding rect.\n                # this cannot handle multiple active rects.\n                reputation = max_reputation\n                if frame_x1 == None:\n                    needChange = True\n                elif (\n                    checkChange(frame_x1, val_x1, this_w)\n                    or checkChange(frame_x2, val_x2, this_w)\n                    or checkChange(frame_y1, val_y1, this_h)\n                    or checkChange(frame_y2, val_y2, this_h)\n                ):\n                    needChange = True",
         "type": "code",
-        "location": "/tests/bezier_paddlehub_dogcat_detector_serving/client.py:1-10"
+        "location": "/tests/video_detector_tests/rectangle_framedifference.py:96-119"
     },
     "4207": {
-        "file_id": 537,
-        "content": "The code reads an image file from a specific location, changes the working directory for importing necessary libraries, initializes a client and server object for detecting dog/cat images using PaddleHub's ResNet50 model, reads the test image using OpenCV, performs detection on the image with the client object, and finally prints the result.",
+        "file_id": 516,
+        "content": "This code calculates the average values of x1, x2, y1, and y2 using getStreamAvg function for variables mx1 to my2. If these averages are within a certain threshold from min_x, max_x, min_y, and max_y, it sets needChange to False and reputation to max_reputation. If frame_x1 is None or there's a change in any of the variables, needChange is set to True.",
         "type": "comment"
     },
     "4208": {
-        "file_id": 538,
-        "content": "/tests/bilibili_login_get_credential_view_data/test.py",
-        "type": "filepath"
+        "file_id": 516,
+        "content": "                    # the #2 must be of this reason.\n                if needChange:\n                    frame_x1, frame_y1, frame_x2, frame_y2 = [\n                        int(a) for a in (min_x, min_y, max_x, max_y)\n                    ]\n                    print()\n                    print(\"########FRAME CHANGED########\")\n                    frame_num += 1\n                    frame_area = (frame_x2 - frame_x1) * (frame_y2 - frame_y1)\n                    # update the shit.\n                    coords = ((frame_x1, frame_y1), (frame_x2, frame_y2))\n                    frameDict[frame_num] = {\n                        \"coords\": coords,\n                        \"start\": frameIndex,\n                        \"end\": frameIndex,\n                    }\n                    print(\n                        \"FRAME INDEX: {}\".format(frame_num)\n                    )  # this is the indexable frame. not uuid.\n                    print(\"FRAME AREA: {}\".format(frame_area))\n                    print(\"FRAME COORDS: {}\".format(str(coords)))",
+        "type": "code",
+        "location": "/tests/video_detector_tests/rectangle_framedifference.py:120-140"
     },
     "4209": {
-        "file_id": 538,
-        "content": "This code allows users to choose between password and SMS login methods, with additional functionality for database storage and geetest validation. It performs a login, retrieves user data, updates the database, and asks about atomic insert in tinydb.",
-        "type": "summary"
+        "file_id": 516,
+        "content": "This code snippet handles frame changes in a video detection process. When a change is detected (needChange), it updates the frame's coordinates, number, and area. It then prints information about the new frame and adds it to the frameDict dictionary with the index as the key.",
+        "type": "comment"
     },
     "4210": {
-        "file_id": 538,
-        "content": "from bilibili_api.login import (\n    login_with_password,\n    login_with_sms,\n    send_sms,\n    PhoneNumber,\n    Check,\n)\nfrom bilibili_api.user import get_self_info\nfrom bilibili_api import settings\nfrom bilibili_api import sync, Credential\n# mode = int(input(\"\"\"请选择登录方式：\n# 1. 密码登录\n# 2. 验证码登录\n# 请输入 1/2\n# \"\"\"))\nmode = 2\ncredential = None\n# 关闭自动打开 geetest 验证窗口\nsettings.geetest_auto_open = False\nif mode == 1:\n    # 密码登录\n    username = input(\"请输入手机号/邮箱：\")\n    password = input(\"请输入密码：\")\n    print(\"正在登录。\")\n    c = login_with_password(username, password)\n    if isinstance(c, Check):\n        # 还需验证\n        phone = input(\"需要验证。请输入手机号：\")\n        c.set_phone(PhoneNumber(phone, country=\"+86\"))  # 默认设置地区为中国大陆\n        c.send_code()\n        print(\"已发送验证码。\")\n        code = input(\"请输入验证码：\")\n        credential = c.login(code)\n        print(\"登录成功！\")\n    else:\n        credential = c\nelif mode == 2:\n    # 验证码登录\n    phone = input(\"请输入手机号：\")\n    print(\"正在登录。\")\n    send_sms(PhoneNumber(phone, country=\"+86\"))  # 默认设置地区为中国大陆\n    code = input(\"请输入验证码：\")",
+        "file_id": 516,
+        "content": "                # allow us to introduce our new frame determinism.\n            else:\n                if reputation > 0:\n                    reputation -= 1\n            if frame_x1 is not None and reputation > 0:\n                # you may choose to keep cutting the frame? with delay though.\n                cv2.rectangle(\n                    frame, (frame_x1, frame_y1), (frame_x2, frame_y2), (255, 0, 0), 2\n                )\n                frameDict[frame_num][\"end\"] = frameIndex\n                # we mark the first and last time to display this frame.\n            # how to stablize this shit?\n        cv2.imshow(\"video\", frame)\n        # just video.\n        # cv2.imshow('img_output', img_output)\n        # cv2.imshow('img_bgmodel', img_bgmodel)\n    else:\n        cv2.waitKey(1000)\n        break\n    if 0xFF & cv2.waitKey(10) == 27:\n        break\ncv2.destroyAllWindows()\nprint(\"FINAL FRAME DETECTIONS:\")\nprint(frameDict)\n# {1: {'coords': ((80, 199), (496, 825)), 'start': 13, 'end': 269}, 2: {'coords': ((80, 381), (483, 644)), 'start': 297, 'end': 601}}",
         "type": "code",
-        "location": "/tests/bilibili_login_get_credential_view_data/test.py:1-46"
+        "location": "/tests/video_detector_tests/rectangle_framedifference.py:141-169"
     },
     "4211": {
-        "file_id": 538,
-        "content": "This code allows the user to choose between two login methods: password or SMS verification. If the user chooses password login, they input their credentials and are logged in immediately if valid. If the user chooses SMS login, they first need to enter their phone number and receive an SMS code. After entering the code, they're logged in. The code also has a setting to disable automatic opening of geetest validation window.",
+        "file_id": 516,
+        "content": "This code appears to be part of a video detection and analysis program. It uses OpenCV to display frames from the video and overlay rectangles on frames that have been detected multiple times. The \"frameDict\" stores information about detected frames, including their coordinates, start and end indices in the video, and reputation. The program continues until the user presses ESC or waits too long, then prints the final frame detections.",
         "type": "comment"
     },
     "4212": {
-        "file_id": 538,
-        "content": "    c = login_with_sms(PhoneNumber(phone, country=\"+86\"), code)\n    credential = c\n    print(\"登录成功\")\nelse:\n    print(\"请输入 1/2 ！\")\n    exit()\nfrom lazero.search.api import getHomeDirectory\nimport os\nhome = getHomeDirectory()\ndbPath = os.path.join(home, \".bilibili_api.json\")\nimport tinydb\ndb = tinydb.TinyDB(dbPath)\nif credential != None:\n    name = sync(get_self_info(credential))[\"name\"]\n    print(f\"欢迎，{name}!\")\n    buvid3 = credential.buvid3\n    bili_jct = credential.bili_jct\n    sessdata = credential.sessdata\n    dedeuserid = credential.dedeuserid  # this is userid, better use this instead?\n    User = tinydb.Query()\n    # assume that we are here to fetch valid credentials.\n    db.upsert(\n        {\n            \"name\": name,\n            \"dedeuserid\": dedeuserid,\n            \"bili_jct\": bili_jct,\n            \"buvid3\": buvid3,\n            \"sessdata\": sessdata,\n        },\n        User.dedeuserid == dedeuserid,\n    )\n    # how to perform atomic insert in tinydb?\n    # breakpoint()",
-        "type": "code",
-        "location": "/tests/bilibili_login_get_credential_view_data/test.py:47-82"
-    },
-    "4213": {
-        "file_id": 538,
-        "content": "This code performs a login with SMS and stores the credentials in a database. It first checks if the login was successful, then retrieves the name, buvid3, bili_jct, sessdata, and dedeuserid from the credentials. The code updates the database with this information using an upsert operation, ensuring that the dedeuserid is unique. Finally, it asks how to perform atomic insert in tinydb.",
-        "type": "comment"
-    },
-    "4214": {
-        "file_id": 539,
-        "content": "/tests/bilibili_login_get_credential_view_data/dump_view_history.py",
+        "file_id": 517,
+        "content": "/tests/video_detector_tests/rect_corner_detect_fast.py",
         "type": "filepath"
     },
-    "4215": {
-        "file_id": 539,
-        "content": "The code fetches credentials from a local database, updates the user's name if necessary, and processes bilibili video history pages in increments of 100 per page, checking for duplicates and stopping upon completion or no more duplicates found.",
+    "4213": {
+        "file_id": 517,
+        "content": "This code appears to be exploring various corner detection methods from the OpenCV library (cv2) for potential use with the Canny edge detector. The purpose might be to find the most suitable method for a specific application.",
         "type": "summary"
     },
-    "4216": {
-        "file_id": 539,
-        "content": "# how to?\nfrom bilibili_api.user import get_self_info\nfrom bilibili_api import Credential\n# how to load credential from our stored things?\nfrom bilibili_api import user\nfrom lazero.search.api import getHomeDirectory\nimport os\nimport tinydb\nhome = getHomeDirectory()\ndbPath = os.path.join(home, \".bilibili_api.json\")\nimport tinydb\ndb = tinydb.TinyDB(dbPath)\nUser = tinydb.Query()\ndedeuserid = \"397424026\"  # pass it before you do shit!\ndataList = db.search(User.dedeuserid == dedeuserid)  # this will never change i suppose?\nif len(dataList) == 1:\n    data = dataList[0].copy()\n    print(\"try to login credential fetched from db:\", data)\n    oldName = data.pop(\"name\")\n    credential = Credential(**data)\n    from bilibili_api import sync\n    name = sync(get_self_info(credential))[\"name\"]\n    if oldName != name:\n        data[\"name\"] = name\n        db.upsert(data, User.dedeuserid == dedeuserid)\n    print(\"login successful:\", name)\n    # now continue.\n    # how many pages you want? infinite?\n    import time\n    page_num = 0\n    dbHistory = tinydb.TinyDB(\"bilibiliHistory.json\")",
+    "4214": {
+        "file_id": 517,
+        "content": "# there are some corner detection methods in cv2. not sure what to follow... is it intended to use with canny edge detector or not?",
         "type": "code",
-        "location": "/tests/bilibili_login_get_credential_view_data/dump_view_history.py:1-36"
+        "location": "/tests/video_detector_tests/rect_corner_detect_fast.py:1-1"
     },
-    "4217": {
-        "file_id": 539,
-        "content": "Code fetches credential from local database for a specific bilibili user, checks if the name is up-to-date, and updates it if necessary. Then, it continues with further processing while also keeping track of bilibili history in another database file.",
+    "4215": {
+        "file_id": 517,
+        "content": "This code appears to be exploring various corner detection methods from the OpenCV library (cv2) for potential use with the Canny edge detector. The purpose might be to find the most suitable method for a specific application.",
         "type": "comment"
     },
+    "4216": {
+        "file_id": 518,
+        "content": "/tests/video_detector_tests/rect_active_rect_frame_difference.py",
+        "type": "filepath"
+    },
+    "4217": {
+        "file_id": 518,
+        "content": "This code aims to merge frame difference with rectangle detection, calculate the most active rect region, and consider 4 boundary lines as a custom switch.",
+        "type": "summary"
+    },
     "4218": {
-        "file_id": 539,
-        "content": "    while True:\n        time.sleep(3)\n        page_num += 1  # starts with 1\n        print(\"now processing page:\", page_num)\n        result = sync(\n            user.get_self_history(\n                page_num=page_num, per_page_item=100, credential=credential\n            )\n        )\n        # import pprint\n        # pprint.pprint(result)\n        if type(result) != list or len(result) == 0:\n            break\n        breakFlag=False\n        for elem in result:\n            # it has description.\n            videoData = {key: elem[key] for key in [\"bvid\", \"desc\", \"title\"]}\n            searchResult= dbHistory.search(User.bvid == videoData[\"bvid\"])\n            if len(searchResult) != 0:\n                breakFlag=True\n            dbHistory.upsert(videoData, User.bvid == videoData[\"bvid\"])\n        if breakFlag:\n            break",
+        "file_id": 518,
+        "content": "# merge framedifference with rectangle detection.\n# calculate the most active rect region.\n# also you might want to include 4 boundary lines as custom switch.",
         "type": "code",
-        "location": "/tests/bilibili_login_get_credential_view_data/dump_view_history.py:37-59"
+        "location": "/tests/video_detector_tests/rect_active_rect_frame_difference.py:1-5"
     },
     "4219": {
-        "file_id": 539,
-        "content": "This code is processing video history pages from a user's account. It fetches data in increments of 100 per page, checks for duplicates before storing the video details, and stops when there are no more pages or duplicate entries found.",
+        "file_id": 518,
+        "content": "This code aims to merge frame difference with rectangle detection, calculate the most active rect region, and consider 4 boundary lines as a custom switch.",
         "type": "comment"
     },
     "4220": {
-        "file_id": 540,
-        "content": "/tests/bilibili_login_get_credential_view_data/dump_favourite_list.py",
+        "file_id": 519,
+        "content": "/tests/video_detector_tests/pip_meanVariance_stablize.py",
         "type": "filepath"
     },
     "4221": {
-        "file_id": 540,
-        "content": "This code loads Bilibili API credentials, fetches user information and favorite lists, processes media data, utilizes TinyDB, and interacts with bilibili_api module. It iterates through elements, extracts bvid, title, updates desc as intro, searches for existing records, and upserts data if not present or loop breaks due to no more elements.",
+        "file_id": 519,
+        "content": "The function uses calculations, filters, and analyses to process data and perform tasks such as linear regression and image analysis. The code creates a rectangular plot using matplotlib with randomly chosen colors and displays it using plt.show().",
         "type": "summary"
     },
     "4222": {
-        "file_id": 540,
-        "content": "from bilibili_api import favorite_list\n# that favourite list is public. i just want that.\n# dedeuserid = \"397424026\"\n# how to?\nfrom bilibili_api.user import get_self_info\nfrom bilibili_api import sync, Credential\n# how to load credential from our stored things?\n# from bilibili_api import user\nfrom lazero.search.api import getHomeDirectory\nimport os\nimport tinydb\nhome = getHomeDirectory()\ndbPath = os.path.join(home, \".bilibili_api.json\")\nimport tinydb\ndb = tinydb.TinyDB(dbPath)\ndbFavList = tinydb.TinyDB(\"bilibiliFavouriteList.json\")\nUser = tinydb.Query()\ndedeuserid = \"397424026\"  # pass it before you do shit!\ndataList = db.search(User.dedeuserid == dedeuserid)  # this will never change i suppose?\nif len(dataList) == 1:\n    data = dataList[0].copy()\n    print(\"try to login credential fetched from db:\", data)\n    oldName = data.pop(\"name\")\n    credential = Credential(**data)\n    from bilibili_api import sync\n    name = sync(get_self_info(credential))[\"name\"]\n    if oldName != name:\n        data[\"name\"] = name\n        db.upsert(data, User.dedeuserid == dedeuserid)",
+        "file_id": 519,
+        "content": "from mathlib import *\n# from ...pyjom.mathlib import sequentialToMergedRanges\n# you can use yolo to train network to detect these sharp corners, total four sharp corners.\n# but it might fail to do so.\n# but what about other stuff?\n# whatever let's just use this.\ndef sampledStablePipRegionExporter(data, defaultWidth, defaultHeight):\n    defaultWidth, defaultHeight = int(defaultWidth), int(defaultHeight)\n    import numpy as np\n    data = np.array(data)\n    def getAlikeValueMerged(mArray, threshold=35):\n        for index, elem in enumerate(mArray[:-1]):\n            nextElem = mArray[index + 1]\n            if abs(nextElem - elem) < threshold:\n                mArray[index + 1] = elem\n        return mArray\n    def listToRangedDictWithLabel(mList, label):\n        resultDict = {}\n        for index, elem in enumerate(mList):\n            mKey = \"{}:{}\".format(label, int(elem))\n            resultDict.update({mKey: resultDict.get(mKey, []) + [(index, index + 1)]})\n        return resultDict\n    def get1DArrayEMA(mArray,N=5):",
         "type": "code",
-        "location": "/tests/bilibili_login_get_credential_view_data/dump_favourite_list.py:1-34"
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:1-33"
     },
     "4223": {
-        "file_id": 540,
-        "content": "This code aims to load the Bilibili API credentials from stored data and retrieve the user's information using a provided dedeuserid. It utilizes TinyDB for database operations, fetches the home directory, and interacts with the bilibili_api module. If a credential is found in the database, it will update the \"name\" field if necessary and print the retrieved credential information.",
+        "file_id": 519,
+        "content": "The function sampledStablePipRegionExporter takes data, defaultWidth, and defaultHeight as inputs. It converts the data into a numpy array, then provides three helper functions: getAlikeValueMerged, listToRangedDictWithLabel, and get1DArrayEMA. The purpose of these helper functions is to manipulate and process the data into desired ranges for further analysis or processing.",
         "type": "comment"
     },
     "4224": {
-        "file_id": 540,
-        "content": "    print(\"login successful:\", name)\n    # now you have it.\n    result = sync(\n        favorite_list.get_video_favorite_list(int(dedeuserid), None, credential)\n    )\n    print(result)  # None? wtf?\n    favLists = result[\"list\"]\n    for favList in favLists:\n        listId = favList[\"id\"]  # integer.\n        listName = favList[\"title\"]\n        print(\"processing favList:\", listName)\n        page = 0\n        while True:\n            import time\n            time.sleep(3)\n            page += 1\n            print(\"processing page:\", page)\n            result = sync(\n                favorite_list.get_video_favorite_list_content(\n                    listId, page=page, credential=credential\n                )\n            )\n            # import pprint\n            # pprint.pprint(result)\n            has_more = result[\"has_more\"]\n            # print(\"__________result__________\")\n            medias = result[\"medias\"]\n            if type(medias) != list or len(medias) == 0:\n                break\n            breakFlag = False\n            for elem in medias:",
+        "file_id": 519,
+        "content": "        weights=np.exp(np.linspace(0,1,N))\n        weights =weights/np.sum(weights)\n        ema = np.convolve(weights, mArray, mode='valid')\n        return ema\n    def pointsToRangedDictWithLabel(mArray, label, threshold=35):\n        mArray = get1DArrayEMA(mArray)\n        mArray = getAlikeValueMerged(mArray, threshold=threshold)\n        return listToRangedDictWithLabel(mArray, label)\n    threshold = int(max(defaultWidth, defaultHeight)*0.02734375)\n    xLeftPoints = pointsToRangedDictWithLabel(data[:, 0, 0], \"xleft\", threshold = threshold)\n    yLeftPoints = pointsToRangedDictWithLabel(data[:, 0, 1], \"yleft\", threshold = threshold)\n    xRightPoints = pointsToRangedDictWithLabel(data[:, 1, 0], \"xright\", threshold = threshold)\n    yRightPoints = pointsToRangedDictWithLabel(data[:, 1, 1], \"yright\", threshold = threshold)\n    commandDict = {}\n    for mDict in [xLeftPoints, yLeftPoints, xRightPoints, yRightPoints]:\n        commandDict.update(mDict)\n    commandDict = getContinualMappedNonSympyMergeResult(commandDict)",
         "type": "code",
-        "location": "/tests/bilibili_login_get_credential_view_data/dump_favourite_list.py:35-66"
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:34-52"
     },
     "4225": {
-        "file_id": 540,
-        "content": "Code is fetching user's favorite lists from Bilibili and processing each list's contents page by page. It checks for more content using \"has_more\" flag, fetches media data from the server, and breaks the loop when no more content is available or if the media data type is incorrect.",
+        "file_id": 519,
+        "content": "The code calculates the exponential moving average (EMA) of a 1D array and converts points into a ranged dictionary with labels. It then updates a command dictionary using the labeled points and applies non-sympy merge to get the final result. The threshold value is determined based on the maximum width or height, and there are four types of points processed: xLeft, yLeft, xRight, and yRight.",
         "type": "comment"
     },
     "4226": {
-        "file_id": 540,
-        "content": "                # print('ELEM:',elem)\n                # breakpoint()\n                # it has description.\n                videoData = {key: elem[key] for key in [\"bvid\", \"title\"]}\n                # here we call 'desc' as 'intro.\n                videoData.update({\"desc\": elem[\"intro\"]})\n                searchResult= dbFavList.search(User.bvid == videoData[\"bvid\"])\n                if len(searchResult) != 0:\n                    breakFlag=True\n                dbFavList.upsert(videoData, User.bvid == videoData[\"bvid\"])\n            if not has_more or breakFlag:\n                break",
+        "file_id": 519,
+        "content": "    commandDictSequential = mergedRangesToSequential(commandDict)\n    def getSpanDuration(span):\n        start, end = span\n        return end - start\n    itemDurationThreshold = 10\n    # framerate?\n    while True:\n        # print(\"LOOP COUNT:\", loopCount)\n        # loopCount+=1\n        # noAlter = True\n        beforeChange = [item[0] for item in commandDictSequential].copy()\n        for i in range(len(commandDictSequential) - 1):\n            currentItem = commandDictSequential[i]\n            nextItem = commandDictSequential[i + 1]\n            currentItemCommand = currentItem[0]\n            currentItemDuration = getSpanDuration(currentItem[1])\n            nextItemCommand = nextItem[0]\n            nextItemDuration = getSpanDuration(nextItem[1])\n            if currentItemDuration < itemDurationThreshold:\n                if nextItemCommand != currentItemCommand and nextItemDuration >= itemDurationThreshold:\n                    # print(\"HERE0\",i, currentItemCommand, nextItemCommand)\n                    commandDictSequential[i][0] = nextItemCommand",
         "type": "code",
-        "location": "/tests/bilibili_login_get_credential_view_data/dump_favourite_list.py:67-78"
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:53-77"
     },
     "4227": {
-        "file_id": 540,
-        "content": "This code iterates through elements, extracts bvid and title, updates with intro as desc, searches for existing records, upserts data if not already present or if the loop breaks due to no more elements.",
+        "file_id": 519,
+        "content": "This code loops through a sequence of command pairs, adjusting commands with durations below the threshold by taking the next command if it has a duration above the threshold. This ensures that there is no gap between consecutive commands and maintains smooth video detection.",
         "type": "comment"
     },
     "4228": {
-        "file_id": 541,
-        "content": "/tests/bilibili_login_get_credential_view_data/test_login_successful.py",
-        "type": "filepath"
+        "file_id": 519,
+        "content": "                    # noAlter=False\n            if nextItemDuration < itemDurationThreshold:\n                if nextItemCommand != currentItemCommand :\n                    # print(\"HERE1\",i, currentItemCommand, nextItemCommand)\n                    commandDictSequential[i + 1][0] = currentItemCommand\n                    # noAlter=False\n        afterChange = [item[0] for item in commandDictSequential].copy()\n        noAlter = beforeChange == afterChange\n        if noAlter:\n            break\n    preFinalCommandDict = sequentialToMergedRanges(commandDictSequential)\n    finalCommandDict = {}\n    for key, elem in preFinalCommandDict.items():\n        # print(key,elem)\n        varNames = [\"xleft\", \"yleft\", \"xright\", \"yright\"]\n        defaultValues = [0, 0, defaultWidth, defaultHeight]\n        for varName, defaultValue in zip(varNames, defaultValues):\n            key = key.replace(\n                \"{}:empty\".format(varName), \"{}:{}\".format(varName, defaultValue)\n            )\n        # print(key,elem)\n        # breakpoint()",
+        "type": "code",
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:78-99"
     },
     "4229": {
-        "file_id": 541,
-        "content": "The code retrieves user credentials from a local database and uses them to log in to Bilibili API. It checks if the user exists, updates the name if necessary, and prints the login status.",
-        "type": "summary"
+        "file_id": 519,
+        "content": "The code checks if there is a change in item commands and updates the command dictionary accordingly. If no changes occur, it breaks the loop. It then converts the sequential command dictionary to merged ranges and stores default values for variables.",
+        "type": "comment"
     },
     "4230": {
-        "file_id": 541,
-        "content": "from bilibili_api.user import get_self_info\nfrom bilibili_api import Credential\n# how to load credential from our stored things?\nfrom lazero.search.api import getHomeDirectory\nimport os\nimport tinydb\nhome = getHomeDirectory()\ndbPath = os.path.join(home, \".bilibili_api.json\")\nimport tinydb\ndb = tinydb.TinyDB(dbPath)\nUser = tinydb.Query()\ndedeuserid = \"397424026\"  # pass it before you do shit!\ndataList = db.search(User.dedeuserid == dedeuserid)  # this will never change i suppose?\nif len(dataList) == 1:\n    data = dataList[0].copy()\n    print(\"try to login credential fetched from db:\", data)\n    oldName = data.pop(\"name\")\n    credential = Credential(**data)\n    from bilibili_api import sync\n    name = sync(get_self_info(credential))[\"name\"]\n    if oldName != name:\n        data[\"name\"] = name\n        db.upsert(data, User.dedeuserid == dedeuserid)\n    print(\"login successful:\", name)",
+        "file_id": 519,
+        "content": "        import parse\n        formatString = (\n            \"xleft:{xleft:d}|yleft:{yleft:d}|xright:{xright:d}|yright:{yright:d}\"\n        )\n        commandArguments = parse.parse(formatString, key)\n        x, y, w, h = (\n            commandArguments[\"xleft\"],\n            commandArguments[\"yleft\"],\n            commandArguments[\"xright\"] - commandArguments[\"xleft\"],\n            commandArguments[\"yright\"] - commandArguments[\"yleft\"],\n        )\n        if w <= 0 or h <= 0:\n            continue\n        cropCommand = \"crop_{}_{}_{}_{}\".format(x, y, w, h)\n        # print(cropCommand)\n        finalCommandDict.update({cropCommand: elem})\n        # print(elem)\n        # the parser shall be in x,y,w,h with keywords.\n        # we might want to parse the command string and reengineer this shit.\n    return finalCommandDict\ndef kalmanStablePipRegionExporter(data, defaultWidth, defaultHeight):\n    defaultWidth, defaultHeight = int(defaultWidth), int(defaultHeight)\n    import numpy as np\n    data = np.array(data)\n    from pykalman import KalmanFilter",
         "type": "code",
-        "location": "/tests/bilibili_login_get_credential_view_data/test_login_successful.py:1-29"
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:100-129"
     },
     "4231": {
-        "file_id": 541,
-        "content": "The code retrieves user credentials from a local database and uses them to log in to Bilibili API. It checks if the user exists, updates the name if necessary, and prints the login status.",
+        "file_id": 519,
+        "content": "The code imports the \"parse\" library, defines a format string for command arguments, uses parse to extract x, y, w, and h values, checks if these values are valid, creates a crop command based on these values, updates finalCommandDict with this command and corresponding element, and finally imports numpy and pykalman for further processing.",
         "type": "comment"
     },
     "4232": {
-        "file_id": 542,
-        "content": "/tests/bilibili_login_get_credential_view_data/test_login_fail.py",
-        "type": "filepath"
+        "file_id": 519,
+        "content": "    def Kalman1D(observations, damping=0.2):\n        # To return the smoothed time series data\n        observation_covariance = damping\n        initial_value_guess = observations[0]\n        transition_matrix = 1\n        transition_covariance = 0.1\n        initial_value_guess\n        kf = KalmanFilter(\n            initial_state_mean=initial_value_guess,\n            initial_state_covariance=observation_covariance,\n            observation_covariance=observation_covariance,\n            transition_covariance=transition_covariance,\n            transition_matrices=transition_matrix,\n        )\n        pred_state, state_cov = kf.smooth(observations)\n        return pred_state\n    def getSinglePointStableState(xLeftPoints, signalFilterThreshold=10, commandFloatMergeThreshold = 15, \n        stdThreshold = 1,\n        slopeThreshold = 0.2):\n        xLeftPointsFiltered = Kalman1D(xLeftPoints)\n        xLeftPointsFiltered = xLeftPointsFiltered.reshape(-1)\n        from itertools import groupby\n        def extract_span(mlist, target=0):",
+        "type": "code",
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:131-155"
     },
     "4233": {
-        "file_id": 542,
-        "content": "This code retrieves user credentials, logs in using session data, and updates the name if it changed; attempts logging in with expired data to check for failure.",
-        "type": "summary"
+        "file_id": 519,
+        "content": "This code defines two functions: \"Kalman1D\" and \"getSinglePointStableState\". \"Kalman1D\" uses a Kalman filter algorithm to smooth time-series observations, while \"getSinglePointStableState\" filters and processes left points data for single-point stable states. The input parameters allow customization of the filtering and processing thresholds.",
+        "type": "comment"
     },
     "4234": {
-        "file_id": 542,
-        "content": "from bilibili_api.user import get_self_info\nfrom bilibili_api import Credential\n# how to load credential from our stored things?\nfrom lazero.search.api import getHomeDirectory\nimport os\nimport tinydb\nhome = getHomeDirectory()\ndbPath = os.path.join(home, \".bilibili_api.json\")\nimport tinydb\ndb = tinydb.TinyDB(dbPath)\nUser = tinydb.Query()\ndedeuserid = \"397424026\" # pass it before you do shit!\ndataList = db.search(User.dedeuserid == dedeuserid) # this will never change i suppose?\nif len(dataList) == 1:\n    data = dataList[0].copy()\n    print('try to login credential fetched from db:', data)\n    oldName = data.pop('name')\n    credential = Credential(**{'dedeuserid': dedeuserid,'sessdata':'fakeSessionData'})\n    from bilibili_api import sync\n    name = sync(get_self_info(credential))['name']\n    # 'GetCookieReq.Session' Error:Field validation for 'Session' failed on the 'gte' tag。\n    # don't know how. maybe this works?\n    # if oldName !=name:\n    #     data['name']=name\n    #     db.upsert(data, User.dedeuserid == dedeuserid)",
+        "file_id": 519,
+        "content": "            counter = 0\n            spanList = []\n            target_list = [(a, len(list(b))) for a, b in groupby(mlist)]\n            for a, b in target_list:\n                nextCounter = counter + b\n                if a == target:\n                    spanList.append((counter, nextCounter))\n                counter = nextCounter\n            return spanList\n        # solve diff.\n        xLeftPointsFilteredDiff = np.diff(xLeftPointsFiltered)\n        # xLeftPointsFilteredDiff3 = np.diff(xLeftPointsFilteredDiff)\n        # import matplotlib.pyplot as plt\n        # plt.plot(xLeftPointsFilteredDiff)\n        # plt.plot(xLeftPointsFiltered)\n        # plt.plot(xLeftPoints)\n        # plt.show()\n        # xLeftPointsFilteredDiff3Filtered = Kalman1D(xLeftPointsFilteredDiff3)\n        derivativeThreshold = 3\n        # derivative3Threshold = 3\n        xLeftPointsSignal = (\n            (abs(xLeftPointsFilteredDiff) < derivativeThreshold)\n            .astype(np.uint8)\n            .tolist()\n        )\n        def signalFilter(signal, threshold=10):",
         "type": "code",
-        "location": "/tests/bilibili_login_get_credential_view_data/test_login_fail.py:1-27"
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:156-184"
     },
     "4235": {
-        "file_id": 542,
-        "content": "This code retrieves a user's credential from the database, attempts to log in using the provided session data, and updates the name if it changed. If the name has not changed after logging in, it does not update the database.",
+        "file_id": 519,
+        "content": "The code filters and extracts a list of spans from a given input, likely for text processing or analysis purposes. It uses groupby function to split the input into consecutive repetitions of the same element, then iterates over the resulting list of tuples (element, count) to create a new span list based on a target element. The code also performs differential calculations on the filtered xLeftPoints and applies a derivative threshold to generate a binary signal list likely for further processing or visualization purposes.",
         "type": "comment"
     },
     "4236": {
-        "file_id": 542,
-        "content": "    # will never succeed.\n    # don't know using some expired sessdata will get what?\n    # maybe will still fail?\n    print('login successful:', name)",
+        "file_id": 519,
+        "content": "            newSignal = np.zeros(len(signal))\n            signalFiltered = extract_span(xLeftPointsSignal, target=1)\n            newSignalRanges = []\n            for start, end in signalFiltered:\n                length = end - start\n                if length >= threshold:\n                    newSignalRanges.append((start, end))\n                    newSignal[start : end + 1] = 1\n            return newSignal, newSignalRanges\n        xLeftPointsSignalFiltered, newSignalRanges = signalFilter(xLeftPointsSignal, threshold = signalFilterThreshold)\n        xLeftPointsSignalFiltered *= 255\n        mShrink = 2\n        from sklearn.linear_model import LinearRegression\n        target = []\n        for start, end in newSignalRanges:\n            # could we shrink the boundaries?\n            mStart, mEnd = start + mShrink, end - mShrink\n            if mEnd <= mStart:\n                continue\n            sample = xLeftPointsFiltered[mStart:mEnd]\n            std = np.std(sample)\n            if std > stdThreshold:\n                continue",
         "type": "code",
-        "location": "/tests/bilibili_login_get_credential_view_data/test_login_fail.py:28-31"
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:185-210"
     },
     "4237": {
-        "file_id": 542,
-        "content": "This code block attempts to log in using expired session data, expecting the login to fail. It prints a message indicating whether the login was successful or not.",
+        "file_id": 519,
+        "content": "This code segment performs signal filtering and preparation for subsequent analysis. It extracts a filtered signal, selects ranges above a threshold, scales the values to 255, applies boundary shrinking, and checks if the standard deviation exceeds a threshold before passing it on for further processing.",
         "type": "comment"
     },
     "4238": {
-        "file_id": 543,
-        "content": "/tests/bilibili_login_get_credential_view_data/tinydb_test.py",
-        "type": "filepath"
+        "file_id": 519,
+        "content": "            model = LinearRegression()\n            X, y = np.array(range(sample.shape[0])).reshape(-1, 1), sample\n            model.fit(X, y)\n            coef = model.coef_[0]  # careful!\n            if abs(coef) > slopeThreshold:\n                continue\n            meanValue = int(np.mean(sample))\n            target.append({\"range\": (start, end), \"mean\": meanValue})\n            # print((start, end), std, coef)\n        newTarget = {}\n        for elem in target:\n            meanStr = str(elem[\"mean\"])\n            mRange = elem[\"range\"]\n            newTarget.update({meanStr: newTarget.get(meanStr, []) + [mRange]})\n        mStart = 0\n        mEnd = len(xLeftPoints)\n        newTarget = getContinualMappedNonSympyMergeResultWithRangedEmpty(\n            newTarget, mStart, mEnd\n        )\n        newTargetSequential = mergedRangesToSequential(newTarget)\n        if (newTargetSequential) == 1:\n            if newTargetSequential[0][0] == \"empty\":\n                # the whole thing is empty now. no need to investigate.\n                print(\"NO STATIC PIP FOUND HERE.\")",
+        "type": "code",
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:211-238"
     },
     "4239": {
-        "file_id": 543,
-        "content": "This code imports the tinydb library and sets a database location. It creates a TinyDB object at that location, which serves as a lightweight NoSQL document database. The code defines a User query using the tinydb.Query() function and performs an upsert operation on the database, where it either updates or inserts a document based on the provided condition (User.ghi == 123). Note that there is also a commented-out section for updating the database without an insertion operation.",
-        "type": "summary"
+        "file_id": 519,
+        "content": "Performs linear regression on sample data, if slope is within threshold range, adds mean value and range to target list. Combines target elements into newTarget dictionary, and converts newTarget to sequential format. If entire sequential format is empty, prints \"NO STATIC PIP FOUND HERE.\"",
+        "type": "comment"
     },
     "4240": {
-        "file_id": 543,
-        "content": "import tinydb\ndbLocation = \"test_credential.json\"\ndb = tinydb.TinyDB(dbLocation)\n# table = db.table('mytable')\nUser = tinydb.Query()\ndb.upsert({\"abc\": \"def\", \"ghi\": 123}, User.ghi == 123)  # please specify a condition!\n# db.update({'abc': 'def', 'ghi': 123}) # no insert here!",
+        "file_id": 519,
+        "content": "                return {}\n        else:\n            # newTargetSequential\n            newTargetSequentialUpdated = []\n            for index in range(len(newTargetSequential) - 1):\n                elem = newTargetSequential[index]\n                commandString, commandTimeSpan = elem\n                nextElem = newTargetSequential[index + 1]\n                nextCommandString, nextCommandTimeSpan = nextElem\n                if commandString == \"empty\":\n                    newTargetSequential[index][0] = nextCommandString\n                else:\n                    if nextCommandString == \"empty\":\n                        newTargetSequential[index + 1][0] = commandString\n                    else:  # compare the two!\n                        commandFloat = float(commandString)\n                        nextCommandFloat = float(nextCommandString)\n                        if (\n                            abs(commandFloat - nextCommandFloat)\n                            < commandFloatMergeThreshold\n                        ):",
         "type": "code",
-        "location": "/tests/bilibili_login_get_credential_view_data/tinydb_test.py:1-8"
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:239-259"
     },
     "4241": {
-        "file_id": 543,
-        "content": "This code imports the tinydb library and sets a database location. It creates a TinyDB object at that location, which serves as a lightweight NoSQL document database. The code defines a User query using the tinydb.Query() function and performs an upsert operation on the database, where it either updates or inserts a document based on the provided condition (User.ghi == 123). Note that there is also a commented-out section for updating the database without an insertion operation.",
+        "file_id": 519,
+        "content": "This code is updating a list of commands by merging consecutive commands if they are within a certain threshold. It compares the difference between two commands and if it's below a specific value, it updates the list accordingly.",
         "type": "comment"
     },
     "4242": {
-        "file_id": 544,
-        "content": "/tests/bilibili_tag_recommend_activities/README.md",
-        "type": "filepath"
+        "file_id": 519,
+        "content": "                            newTargetSequential[index + 1][0] = commandString\n            # bring this sequential into dict again.\n            answer = sequentialToMergedRanges(newTargetSequential)\n            # print(\"_\"*30, \"ANSWER\",\"_\"*30)\n            # for elem in answer.items():\n            #     print(elem)\n            return answer\n        print(\"[FAILSAFE] SOMEHOW THE CODE SUCKS\")\n        return {}\n    xLeftPoints = data[:, 0, 0]\n    yLeftPoints = data[:, 0, 1]\n    xRightPoints = data[:, 1, 0]\n    yRightPoints = data[:, 1, 1]\n    mPoints = [xLeftPoints, yLeftPoints, xRightPoints, yRightPoints]\n    answers = []\n    for mPoint in mPoints:\n        answer = getSinglePointStableState(mPoint)\n        answers.append(answer)\n        # print(\"_\"*30, \"ANSWER\",\"_\"*30)\n        # for elem in answer.items():\n        #     print(elem)\n    if answers == [{}, {}, {}, {}]:\n        print(\"NO PIP FOUND\")\n        finalCommandDict = {}\n    else:\n        defaultCoord = [0, 0, defaultWidth, defaultHeight]  # deal with it later?",
+        "type": "code",
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:260-291"
     },
     "4243": {
-        "file_id": 544,
-        "content": "Code snippet provides a link to another file, \"bilibili_up.py\", which contains information on how to get the 'upload_id' in bilibili API.",
-        "type": "summary"
+        "file_id": 519,
+        "content": "This code is performing image analysis and stabilization for PIP (Picture-in-Picture) detection. It first creates newSequential, then converts it back into a dictionary named \"answer.\" The code checks if any PIP was found by comparing the \"answers\" list to four empty dictionaries. If no PIP is detected, it returns an empty dictionary; otherwise, it proceeds further with default coordinates.",
+        "type": "comment"
     },
     "4244": {
-        "file_id": 544,
-        "content": "[how to get upload_id](https://github.com/xunsword/bilibil/blob/2abf66a9771daebc12c181f88d8af82613975548/bilibili_up.py)",
+        "file_id": 519,
+        "content": "        defaults = [{str(defaultCoord[index]): [(0, len(data))]} for index in range(4)]\n        for index in range(4):\n            if answers[index] == {}:\n                answers[index] = defaults[index]\n        labels = [\"xleft\", \"yleft\", \"xright\", \"yright\"]\n        commandDict = {}\n        for index, elem in enumerate(answers):\n            label = labels[index]\n            newElem = {\"{}:{}\".format(label, key): elem[key] for key in elem.keys()}\n            commandDict.update(newElem)\n        commandDict = getContinualMappedNonSympyMergeResult(commandDict)\n        commandDictSequential = mergedRangesToSequential(commandDict)\n        def getSpanDuration(span):\n            start, end = span\n            return end - start\n        itemDurationThreshold = 15\n        # print(\"HERE\")\n        # loopCount = 0\n        while True:\n            # print(\"LOOP COUNT:\", loopCount)\n            # loopCount+=1\n            # noAlter = True\n            beforeChange = [item[0] for item in commandDictSequential].copy()\n            for i in range(len(commandDictSequential) - 1):",
         "type": "code",
-        "location": "/tests/bilibili_tag_recommend_activities/README.md:1-1"
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:292-318"
     },
     "4245": {
-        "file_id": 544,
-        "content": "Code snippet provides a link to another file, \"bilibili_up.py\", which contains information on how to get the 'upload_id' in bilibili API.",
+        "file_id": 519,
+        "content": "Sets default values for missing answers, converts dictionary format, applies consecutive ranges to sequential format, and enters a while loop that iteratively checks changes in the commandDictSequential list.",
         "type": "comment"
     },
     "4246": {
-        "file_id": 545,
-        "content": "/tests/medialang_reference/videolang.mdl",
-        "type": "filepath"
+        "file_id": 519,
+        "content": "                currentItem = commandDictSequential[i]\n                nextItem = commandDictSequential[i + 1]\n                currentItemCommand = currentItem[0]\n                currentItemDuration = getSpanDuration(currentItem[1])\n                nextItemCommand = nextItem[0]\n                nextItemDuration = getSpanDuration(nextItem[1])\n                if currentItemDuration < itemDurationThreshold:\n                    if nextItemCommand != currentItemCommand:\n                        # print(\"HERE0\",i, currentItemCommand, nextItemCommand)\n                        commandDictSequential[i][0] = nextItemCommand\n                        # noAlter=False\n                if nextItemDuration < itemDurationThreshold:\n                    if nextItemCommand != currentItemCommand and currentItemDuration >= itemDurationThreshold:\n                        # print(\"HERE1\",i, currentItemCommand, nextItemCommand)\n                        commandDictSequential[i + 1][0] = currentItemCommand\n                        # noAlter=False",
+        "type": "code",
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:319-334"
     },
     "4247": {
-        "file_id": 545,
-        "content": "The code defines two media streams: the first one is a video with a .mp4 extension and a speed of 1.5, while the second one is an audio file also with a .mp4 extension located at \"/root/Desktop/works/pyjom/src/samples/video/dog_with_text.mp4\", set to play at 1.5 speed but without video output.",
-        "type": "summary"
+        "file_id": 519,
+        "content": "Checks if current and next commands in commandDictSequential have durations below itemDurationThreshold. If so, adjusts or merges the commands to maintain sequence continuity.",
+        "type": "comment"
     },
     "4248": {
-        "file_id": 545,
-        "content": "(\".mp4\", speed=1.5\n)\n(\"/root/Desktop/works/pyjom/src/samples/video/dog_with_text.mp4\",\n    speed=1.5, video=false\n)",
+        "file_id": 519,
+        "content": "            afterChange = [item[0] for item in commandDictSequential].copy()\n            noAlter = beforeChange == afterChange\n            if noAlter:\n                break\n        preFinalCommandDict = sequentialToMergedRanges(commandDictSequential)\n        finalCommandDict = {}\n        for key, elem in preFinalCommandDict.items():\n            # print(key,elem)\n            varNames = [\"xleft\", \"yleft\", \"xright\", \"yright\"]\n            defaultValues = [0, 0, defaultWidth, defaultHeight]\n            for varName, defaultValue in zip(varNames, defaultValues):\n                key = key.replace(\n                    \"{}:empty\".format(varName), \"{}:{}\".format(varName, defaultValue)\n                )\n            # print(key,elem)\n            # breakpoint()\n            import parse\n            formatString = (\n                \"xleft:{xleft:d}|yleft:{yleft:d}|xright:{xright:d}|yright:{yright:d}\"\n            )\n            commandArguments = parse.parse(formatString, key)\n            x, y, w, h = (\n                commandArguments[\"xleft\"],",
         "type": "code",
-        "location": "/tests/medialang_reference/videolang.mdl:1-6"
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:335-358"
     },
     "4249": {
-        "file_id": 545,
-        "content": "The code defines two media streams: the first one is a video with a .mp4 extension and a speed of 1.5, while the second one is an audio file also with a .mp4 extension located at \"/root/Desktop/works/pyjom/src/samples/video/dog_with_text.mp4\", set to play at 1.5 speed but without video output.",
+        "file_id": 519,
+        "content": "The code checks if the command dictionary remains unchanged after certain operations. If it does not change, the loop is exited. The code then converts the sequential command dictionary to a merged ranges form. It creates an empty final command dictionary and iterates over the pre-final command dictionary items. For each item, it replaces any \"empty\" values with default values for specific variables, such as xleft, yleft, xright, and yright. The code then uses the parse module to parse a format string containing these variable names and their updated values, creating commandArguments that contain the final x, y, w, h values.",
         "type": "comment"
     },
     "4250": {
-        "file_id": 546,
-        "content": "/tests/medialang_reference/recursive_audiolang.mdl",
-        "type": "filepath"
+        "file_id": 519,
+        "content": "                commandArguments[\"yleft\"],\n                commandArguments[\"xright\"] - commandArguments[\"xleft\"],\n                commandArguments[\"yright\"] - commandArguments[\"yleft\"],\n            )\n            if w <= 0 or h <= 0:\n                continue\n            cropCommand = \"crop_{}_{}_{}_{}\".format(x, y, w, h)\n            # print(cropCommand)\n            finalCommandDict.update({cropCommand: elem})\n            # print(elem)\n            # the parser shall be in x,y,w,h with keywords.\n            # we might want to parse the command string and reengineer this shit.\n    return finalCommandDict\nobjective = \"discrete\"\n# objective = \"continual\"\n# objective = \"continual_najie\"\nif __name__ == \"__main__\":\n    # better plot this shit.\n    import json\n    if objective == \"continual\":\n        dataDict = json.loads(open(\"pip_meanVariance.json\", \"r\").read())\n    elif objective == 'continual_najie':\n        dataDict = json.loads(open(\"pip_meanVarianceSisterNa.json\", \"r\").read())\n    elif objective == \"discrete\":\n        dataDict = json.loads(open(\"pip_discrete_meanVariance.json\", \"r\").read())",
+        "type": "code",
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:359-387"
     },
     "4251": {
-        "file_id": 546,
-        "content": "This code sets the audio language model and specifies its configuration. It uses a subtitle detector with an input file located at \"/root/Desktop/works/pyjom/src/samples/video/dog_with_text.mp4\". The speed of processing is set to 1.5x, and the output file is generated from the template at \"/root/Desktop/works/pyjom/src/test/audiolang.mdl.j2\" with format arguments \"some_number\": 2 and \"some_text\": \"shit\".",
-        "type": "summary"
+        "file_id": 519,
+        "content": "This code processes video detector test results and generates a dictionary containing cropped image commands based on the specified objective. It loads data from JSON files depending on the objective (\"continual\", \"continual_najie\", or \"discrete\"). The code then continues to process the resulting data.",
+        "type": "comment"
     },
     "4252": {
-        "file_id": 546,
-        "content": "(\".mp3\", processor=\"subtitle_detector\"\n)\n(\"/root/Desktop/works/pyjom/src/samples/video/dog_with_text.mp4\",\n    speed=1.5\n)\n(\"/root/Desktop/works/pyjom/src/test/audiolang.mdl.j2\",\n    format_args={\"some_number\": 2, \"some_text\": \"shit\"}\n)",
+        "file_id": 519,
+        "content": "    else:\n        raise Exception(\"unknown objective: %s\" % objective)\n    # print(len(data)) # 589\n    data = dataDict[\"data\"]\n    defaultWidth, defaultHeight = dataDict[\"width\"], dataDict[\"height\"]\n    if objective in [\"continual\", 'continual_najie']:\n        finalCommandDict = kalmanStablePipRegionExporter(\n            data, defaultWidth, defaultHeight\n        )\n    else:\n        finalCommandDict = sampledStablePipRegionExporter(\n            data, defaultWidth, defaultHeight\n        )\n    import matplotlib.pyplot as plt\n    from matplotlib.patches import Rectangle\n    fig, ax = plt.subplots()\n    def plotRect(ax, x, y, width, height, facecolor):\n        ax.add_patch(\n            Rectangle((x, y), width, height, facecolor=facecolor, fill=True, alpha=0.5)\n        )  # in 0-1\n    ax.plot([[0, 0], [defaultWidth, defaultHeight]])\n    plotRect(ax, 0, 0, defaultWidth, defaultHeight, \"black\")\n    colors = [\"red\", \"yellow\", \"blue\",'orange','white','purple']\n    for index, key in enumerate(finalCommandDict.keys()):\n        import parse",
         "type": "code",
-        "location": "/tests/medialang_reference/recursive_audiolang.mdl:1-10"
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:388-419"
     },
     "4253": {
-        "file_id": 546,
-        "content": "This code sets the audio language model and specifies its configuration. It uses a subtitle detector with an input file located at \"/root/Desktop/works/pyjom/src/samples/video/dog_with_text.mp4\". The speed of processing is set to 1.5x, and the output file is generated from the template at \"/root/Desktop/works/pyjom/src/test/audiolang.mdl.j2\" with format arguments \"some_number\": 2 and \"some_text\": \"shit\".",
+        "file_id": 519,
+        "content": "This code is handling an objective and preparing a plot for stable PIP region exporter. It raises an exception if the objective is unknown. Depending on the objective, it uses kalmanStablePipRegionExporter or sampledStablePipRegionExporter. It then plots a rectangle on the figure using matplotlib's Rectangle class. Finally, it sets colors for each region in the plot.",
         "type": "comment"
     },
     "4254": {
-        "file_id": 547,
-        "content": "/tests/medialang_reference/processor_multi.mdl",
-        "type": "filepath"
+        "file_id": 519,
+        "content": "        commandArguments = parse.parse(\"crop_{x:d}_{y:d}_{w:d}_{h:d}\", key)\n        color = colors[index%len(colors)]\n        rect = [int(commandArguments[name]) for name in [\"x\", \"y\", \"w\", \"h\"]]\n        print(\"RECT\", rect, color, \"SPAN\", finalCommandDict[key])\n        plotRect(ax, *rect, color)\n    # breakpoint()\n    plt.show()",
+        "type": "code",
+        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:421-427"
     },
     "4255": {
-        "file_id": 547,
-        "content": "The code is creating a pipeline to process a video file and associated .json files. It uses a video file \"dog_with_text.mp4\" at 1.5x speed, followed by subtitle detection and active region detection on the .json files.",
-        "type": "summary"
+        "file_id": 519,
+        "content": "The code is creating a rectangular plot using matplotlib. It takes commandArguments as input and uses them to define the x, y, w, and h values of the rectangle. The color of the rectangle is randomly chosen from a list of colors. It then prints the coordinates of the rectangle, the chosen color, and the span of the finalCommandDict[key]. Lastly, it displays the plot using plt.show().",
+        "type": "comment"
     },
     "4256": {
-        "file_id": 547,
-        "content": "(\"/root/Desktop/works/pyjom/src/samples/video/dog_with_text.mp4\",\n    speed=1.5\n)\n(\".json\", processor=\"subtitle_detector\"\n)\n(\".json\",\n    processor=\"active_region_detector\"\n)",
-        "type": "code",
-        "location": "/tests/medialang_reference/processor_multi.mdl:1-10"
+        "file_id": 520,
+        "content": "/tests/video_detector_tests/motion_gpl.sh",
+        "type": "filepath"
     },
     "4257": {
-        "file_id": 547,
-        "content": "The code is creating a pipeline to process a video file and associated .json files. It uses a video file \"dog_with_text.mp4\" at 1.5x speed, followed by subtitle detection and active region detection on the .json files.",
-        "type": "comment"
+        "file_id": 520,
+        "content": "Kills motion process and attempts to capture video from webcam using ffmpeg, then starts motion with the mconfig.conf configuration file. Not suitable for media file processing.",
+        "type": "summary"
     },
     "4258": {
-        "file_id": 548,
-        "content": "/tests/medialang_reference/processor_demo.mdl",
-        "type": "filepath"
+        "file_id": 520,
+        "content": "killall -s KILL motion\n# ffmpeg -re -i ../../samples/video/LlfeL29BP.mp4 -f v4l2 /dev/video0 &\nmotion -c mconfig.conf\n# to conclude, this is only useful for webcams, not for media file processing.\n# are you sure if you want to capture shits over webcams by this?",
+        "type": "code",
+        "location": "/tests/video_detector_tests/motion_gpl.sh:1-6"
     },
     "4259": {
-        "file_id": 548,
-        "content": "The code specifies a video file path and sets the playback speed. The \"subtitle_detector\" processor is applied to a JSON file.",
-        "type": "summary"
-    },
-    "4260": {
-        "file_id": 548,
-        "content": "(\".json\", processor=\"subtitle_detector\"\n)\n(\"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\",\n    speed=1.5\n)",
-        "type": "code",
-        "location": "/tests/medialang_reference/processor_demo.mdl:1-6"
-    },
-    "4261": {
-        "file_id": 548,
-        "content": "The code specifies a video file path and sets the playback speed. The \"subtitle_detector\" processor is applied to a JSON file.",
+        "file_id": 520,
+        "content": "Kills motion process and attempts to capture video from webcam using ffmpeg, then starts motion with the mconfig.conf configuration file. Not suitable for media file processing.",
         "type": "comment"
     },
-    "4262": {
-        "file_id": 549,
-        "content": "/tests/medialang_reference/audiolang.mdl.j2",
+    "4260": {
+        "file_id": 521,
+        "content": "/tests/video_detector_tests/motion_github.py",
         "type": "filepath"
     },
-    "4263": {
-        "file_id": 549,
-        "content": "The code defines a sequence of media items to be played. It includes audio and video files, with options for speed adjustment and text-to-speech conversion. The code also utilizes a loop to create multiple instances of these media items, replacing some variables like 'some_number' and 'some_text'.",
+    "4261": {
+        "file_id": 521,
+        "content": "This code imports libraries, initializes a motion detector algorithm and sets up video capture. It continuously reads frames from the source, applies an algorithm to create output images, displays them in separate windows, and runs until a frame is not ready or Esc key pressed.",
         "type": "summary"
     },
-    "4264": {
-        "file_id": 549,
-        "content": "(\".mp3\", speed=1.5\n)\n(\"/root/Desktop/works/pyjom/src/samples/video/dog_with_text.mp4\",\n    speed=1.5, video=false\n)\n    (\"/root/Desktop/works/pyjom/src/samples/video/IxEQhCslT.mp4\",\n        padding=\"black\"\n    )\n        (\"text://you did a good job\",\n            converter=\"voice\", provider=\"tts_male\",\n            speed=2\n        )\n{% for i in range(some_number) %}\n(\"/root/Desktop/works/pyjom/src/samples/video/dog_with_text.mp4\",\n    speed={{ some_number }}\n)\n    (\"text://{{ some_text }}\",\n        converter=\"voice\"\n    )\n{% endfor %}",
+    "4262": {
+        "file_id": 521,
+        "content": "# motion detectors are used to track objects. though you may want to separate objects with it.\nimport numpy as np\nimport cv2\nimport pybgs as bgs\n# suspect by static image analysis, and then create bounding box over the thing.\n# check image quality.\nalgorithm = bgs.FrameDifference() # track object we need that.\n# algorithm = bgs.SuBSENSE()\n# video_file = \"../../samples/video/highway_car.avi\"\n# video_file = \"../../samples/video/dog_with_text.mp4\"\nvideo_file = \"../../samples/video/LiEIfnsvn.mp4\" # this one with cropped boundaries. \n# video_file = \"../../samples/video/LlfeL29BP.mp4\"\n# maybe we should consider something else to crop the thing? or not?\n# accumulate the delta over time to see the result?\n# use static detection method.\ncapture = cv2.VideoCapture(video_file)\nwhile not capture.isOpened():\n  capture = cv2.VideoCapture(video_file)\n  cv2.waitKey(1000)\n  print(\"Wait for the header\")\n#pos_frame = capture.get(cv2.cv.CV_CAP_PROP_POS_FRAMES)\n#pos_frame = capture.get(cv2.CV_CAP_PROP_POS_FRAMES)\npos_frame = capture.get(1)",
         "type": "code",
-        "location": "/tests/medialang_reference/audiolang.mdl.j2:1-23"
+        "location": "/tests/video_detector_tests/motion_github.py:1-29"
+    },
+    "4263": {
+        "file_id": 521,
+        "content": "This code imports necessary libraries and initializes a motion detector algorithm (FrameDifference) to track objects in a video. It also defines the video file path and sets up a VideoCapture object. The code waits for the video header, retrieves the current frame position, and is ready to process frames using the motion detection algorithm.",
+        "type": "comment"
+    },
+    "4264": {
+        "file_id": 521,
+        "content": "while True:\n  flag, frame = capture.read()\n  if flag:\n    cv2.imshow('video', frame)\n    #pos_frame = capture.get(cv2.cv.CV_CAP_PROP_POS_FRAMES)\n    #pos_frame = capture.get(cv2.CV_CAP_PROP_POS_FRAMES)\n    pos_frame = capture.get(1)\n    #print str(pos_frame)+\" frames\"\n    img_output = algorithm.apply(frame)\n    img_bgmodel = algorithm.getBackgroundModel()\n    cv2.imshow('img_output', img_output)\n    cv2.imshow('img_bgmodel', img_bgmodel)\n  else:\n    #capture.set(cv2.cv.CV_CAP_PROP_POS_FRAMES, pos_frame-1)\n    #capture.set(cv2.CV_CAP_PROP_POS_FRAMES, pos_frame-1)\n    #capture.set(1, pos_frame-1)\n    #print \"Frame is not ready\"\n    cv2.waitKey(1000)\n    break\n  if 0xFF & cv2.waitKey(10) == 27:\n    break\n  #if capture.get(cv2.cv.CV_CAP_PROP_POS_FRAMES) == capture.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT):\n  #if capture.get(cv2.CV_CAP_PROP_POS_FRAMES) == capture.get(cv2.CV_CAP_PROP_FRAME_COUNT):\n  #if capture.get(1) == capture.get(cv2.CV_CAP_PROP_FRAME_COUNT):\n    #break\ncv2.destroyAllWindows()",
+        "type": "code",
+        "location": "/tests/video_detector_tests/motion_github.py:30-62"
     },
     "4265": {
-        "file_id": 549,
-        "content": "The code defines a sequence of media items to be played. It includes audio and video files, with options for speed adjustment and text-to-speech conversion. The code also utilizes a loop to create multiple instances of these media items, replacing some variables like 'some_number' and 'some_text'.",
+        "file_id": 521,
+        "content": "The code continuously reads frames from a video source and displays them. It captures the current frame position, applies an algorithm to create output images, and shows the output and background model images in separate windows. It keeps running until a frame is not ready or the user presses Esc key, closing all windows at the end.",
         "type": "comment"
     },
     "4266": {
-        "file_id": 550,
-        "content": "/tests/medialang_reference/audiolang.mdl",
+        "file_id": 522,
+        "content": "/tests/video_detector_tests/mathlib.py",
         "type": "filepath"
     },
     "4267": {
-        "file_id": 550,
-        "content": "The code represents a sequence of media items and text to be processed by the program. It includes audio, video files, and text strings for conversion. The media items are specified with their respective paths and properties like speed and padding. The text strings are to be converted using the \"voice\" converter and may have additional properties like provider and speed.",
+        "file_id": 522,
+        "content": "The code uses Sympy to merge overlapping intervals in a list of tuples, creates unified boundaries, and returns final results as merged continual mappings.",
         "type": "summary"
     },
     "4268": {
-        "file_id": 550,
-        "content": "(\".mp3\", speed=1.5\n)\n(\"/root/Desktop/works/pyjom/src/samples/video/dog_with_text.mp4\",\n    speed=1.5, video=false\n)\n    (\"/root/Desktop/works/pyjom/src/samples/video/IxEQhCslT.mp4\",\n        padding=\"black\"\n    )\n        (\"text://you did a good job\",\n            converter=\"voice\", provider=\"tts_male\",\n            speed=2\n        )\n(\"/root/Desktop/works/pyjom/src/samples/video/dog_with_text.mp4\",\n    speed=1.5\n)\n    (\"text://you did a bad job\",\n        converter=\"voice\"\n    )",
+        "file_id": 522,
+        "content": "# not overriding math.\n# do some ranged stuff here...\ndef getContinualNonSympyMergeResult(inputMSetCandidates):\n    # basically the same example.\n    # assume no overlapping here.\n    import sympy\n    def unionToTupleList(myUnion):\n        unionBoundaries = list(myUnion.boundary)\n        unionBoundaries.sort()\n        leftBoundaries = unionBoundaries[::2]\n        rightBoundaries = unionBoundaries[1::2]\n        return list(zip(leftBoundaries, rightBoundaries))\n    def tupleSetToUncertain(mSet):\n        mUncertain = None\n        for start, end in mSet:\n            if mUncertain is None:\n                mUncertain = sympy.Interval(start, end)\n            else:\n                mUncertain += sympy.Interval(start, end)\n        typeUncertain = type(mUncertain)\n        return mUncertain, typeUncertain\n    def mergeOverlappedInIntervalTupleList(intervalTupleList):\n        mUncertain, _ = tupleSetToUncertain(intervalTupleList)\n        mUncertainBoundaryList = list(mUncertain.boundary)\n        mUncertainBoundaryList.sort()",
         "type": "code",
-        "location": "/tests/medialang_reference/audiolang.mdl:1-20"
+        "location": "/tests/video_detector_tests/mathlib.py:1-28"
     },
     "4269": {
-        "file_id": 550,
-        "content": "The code represents a sequence of media items and text to be processed by the program. It includes audio, video files, and text strings for conversion. The media items are specified with their respective paths and properties like speed and padding. The text strings are to be converted using the \"voice\" converter and may have additional properties like provider and speed.",
+        "file_id": 522,
+        "content": "This code defines three functions for set operations involving intervals. The functions are getContinualNonSympyMergeResult, unionToTupleList, and mergeOverlappedInIntervalTupleList. The code uses Sympy library to handle mathematical operations on intervals and merges non-overlapping intervals into a single uncertain variable. It sorts and converts intervals into tuples for further processing.",
         "type": "comment"
     },
     "4270": {
-        "file_id": 551,
-        "content": "/tests/moviepy_loop_video_till_target/test.py",
-        "type": "filepath"
+        "file_id": 522,
+        "content": "        mergedIntervalTupleList = list(\n            zip(mUncertainBoundaryList[::2], mUncertainBoundaryList[1::2])\n        )\n        return mergedIntervalTupleList\n    # mSet = mergeOverlappedInIntervalTupleList([(0, 1), (2, 3)])\n    # mSet2 = mergeOverlappedInIntervalTupleList([(0.5, 1.5), (1.6, 2.5)])\n    # print(\"MSET\", mSet)\n    # print(\"MSET2\", mSet2)\n    mSetCandidates = [\n        mergeOverlappedInIntervalTupleList(x) for x in inputMSetCandidates\n    ]\n    mSetUnified = [x for y in mSetCandidates for x in y]\n    leftBoundaryList = set([x[0] for x in mSetUnified])\n    rightBoundaryList = set([x[1] for x in mSetUnified])\n    # they may freaking overlap.\n    # if want nearby-merge strategy, simply just expand all intervals, merge them with union and shrink the individual intervals inside union respectively.\n    markers = {\n        \"enter\": {k: [] for k in leftBoundaryList},\n        \"exit\": {k: [] for k in rightBoundaryList},\n    }\n    for index, mSetCandidate in enumerate(mSetCandidates):\n        leftBoundaryListOfCandidate = [x[0] for x in mSetCandidate]",
+        "type": "code",
+        "location": "/tests/video_detector_tests/mathlib.py:29-55"
     },
     "4271": {
-        "file_id": 551,
-        "content": "This code imports the \"main\" function from the \"loop_till_target\" module and sets the target duration of the video to 20 seconds. It uses a GIF file named \"cute_cat_gif\" as input, applies the main function to it, and saves the resulting video as \"cute_cat_gif_20_secs_plus.gif\". The code also checks if the final duration of the video is greater than or equal to the target duration using an assertion statement.",
-        "type": "summary"
+        "file_id": 522,
+        "content": "This code defines a function `mergeOverlappedInIntervalTupleList` which takes a list of interval tuples, merges overlapping intervals, and returns the merged list. The main purpose is to unify all the data in the same scope with potential overlap. It first creates a set of left and right boundaries from the unified data, then initializes a `markers` dictionary with \"enter\" and \"exit\" markers for each left boundary. Finally, it iterates over each candidate set, extracting the left boundaries and using them to update the marker dictionary. The final merged interval tuples are not explicitly calculated or returned here, but can be derived from the information in `markers`.",
+        "type": "comment"
     },
     "4272": {
-        "file_id": 551,
-        "content": "from loop_till_target import main\ntarget_secs = 20\nvideo_in = \"/root/Desktop/works/pyjom/samples/video/cute_cat_gif.gif\"\n# no right codec! fuck. GIF not supported?\nvideo_out = f\"/root/Desktop/works/pyjom/samples/video/cute_cat_gif_{target_secs}_secs_plus.gif\"\nfvd = main(video_in, target_secs, f_out=video_out, in_place=False,debug=True)\nassert fvd >= target_secs",
+        "file_id": 522,
+        "content": "        rightBoundaryListOfCandidate = [x[1] for x in mSetCandidate]\n        for leftBoundaryOfCandidate in leftBoundaryListOfCandidate:\n            markers[\"enter\"][leftBoundaryOfCandidate].append(index)  # remap this thing!\n        for rightBoundaryOfCandidate in rightBoundaryListOfCandidate:\n            markers[\"exit\"][rightBoundaryOfCandidate].append(index)  # remap this thing!\n    # now, iterate through the boundaries of mSetUnified.\n    unifiedBoundaryList = leftBoundaryList.union(\n        rightBoundaryList\n    )  # call me a set instead of a list please? now we must sort this thing\n    unifiedBoundaryList = list(unifiedBoundaryList)\n    unifiedBoundaryList.sort()\n    unifiedBoundaryMarks = {}\n    finalMappings = {}\n    # print(\"MARKERS\", markers)\n    # breakpoint()\n    for index, boundary in enumerate(unifiedBoundaryList):\n        previousMark = unifiedBoundaryMarks.get(index - 1, [])\n        enterList = markers[\"enter\"].get(boundary, [])\n        exitList = markers[\"exit\"].get(boundary, [])\n        currentMark = set(previousMark + enterList).difference(set(exitList))",
         "type": "code",
-        "location": "/tests/moviepy_loop_video_till_target/test.py:1-11"
+        "location": "/tests/video_detector_tests/mathlib.py:56-77"
     },
     "4273": {
-        "file_id": 551,
-        "content": "This code imports the \"main\" function from the \"loop_till_target\" module and sets the target duration of the video to 20 seconds. It uses a GIF file named \"cute_cat_gif\" as input, applies the main function to it, and saves the resulting video as \"cute_cat_gif_20_secs_plus.gif\". The code also checks if the final duration of the video is greater than or equal to the target duration using an assertion statement.",
+        "file_id": 522,
+        "content": "This code creates a set of unified boundaries and maps the markers accordingly. It first gathers the \"enter\" and \"exit\" markers for each boundary, then forms the final mappings by taking the difference between the \"enter\" and \"exit\" lists. The code also sorts the boundaries and retrieves previous marks to form the current mark set.",
         "type": "comment"
     },
     "4274": {
-        "file_id": 552,
-        "content": "/tests/moviepy_loop_video_till_target/loop_till_target.py",
-        "type": "filepath"
+        "file_id": 522,
+        "content": "        currentMark = list(currentMark)\n        unifiedBoundaryMarks.update({index: currentMark})\n        # now, handle the change? or not?\n        # let's just deal those empty ones, shall we?\n        if previousMark == []:  # inside it is empty range.\n            # elif currentMark == []:\n            if index == 0:\n                continue  # just the start, no need to note this down.\n            else:\n                finalMappings.update(\n                    {\n                        \"empty\": finalMappings.get(\"empty\", [])\n                        + [(unifiedBoundaryList[index - 1], boundary)]\n                    }\n                )\n            # the end of previous mark! this interval belongs to previousMark\n        else:\n            key = previousMark.copy()\n            key.sort()\n            key = tuple(key)\n            finalMappings.update(\n                {\n                    key: finalMappings.get(key, [])\n                    + [(unifiedBoundaryList[index - 1], boundary)]\n                }\n            )",
+        "type": "code",
+        "location": "/tests/video_detector_tests/mathlib.py:78-103"
     },
     "4275": {
-        "file_id": 552,
-        "content": "This code uses ffmpeg to create a video clip with repeating segments, splitting the input video into original and reversed parts, and concatenates them based on loop strategy. It replaces sections of the input video until reaching the target duration and saves the output at specified location.",
-        "type": "summary"
+        "file_id": 522,
+        "content": "This code checks if the current mark is empty and updates the finalMappings accordingly. If previousMark is empty, it skips noting down just the start of a range. Otherwise, it sorts and makes a unique key using previousMark, then adds the interval to finalMappings for that key.",
+        "type": "comment"
     },
     "4276": {
-        "file_id": 552,
-        "content": "import os\n# moviepy's shit.\nfrom moviepy.editor import VideoFileClip  # , concatenate_videoclips\n# import moviepy.video.fx.all as vfx\ndef main(\n    f_in: str,\n    target_secs: float,\n    f_out: str = \"\",\n    in_place: bool = True,\n    debug: bool = False,\n    # accuracy_float:int=4\n    # audio:bool=False, # it will cause trouble?\n):\n    # print(\"___\")\n    # print(\"AUDIO?\",audio)\n    # print(\"IN PLACE?\",in_place)\n    # print(\"___\")\n    assert os.path.exists(f_in)\n    assert target_secs > 0\n    # target_secs_str =(\"{\"+f':.{accuracy_float}f'+\"}\").format(target_secs)\n    targetFilePath = f_out\n    if not in_place:\n        assert f_out != \"\"\n    else:\n        targetFilePath = f_in\n    clip = VideoFileClip(f_in)\n    # if not audio:\n    #     clip = clip.without_audio()\n    # newclip = clip.fx(vfx.time_mirror) # error?\n    # newclip = clip\n    import ffmpeg\n    file_input_split = ffmpeg.input(f_in).filter_multi_output(\n        \"split\"\n    )  # this is infinite split.\n    videoDuration = clip.duration\n    import math\n    import tempfile",
+        "file_id": 522,
+        "content": "            # also the end of previous mark! belongs to previousMark.\n    ### NOW THE FINAL OUTPUT ###\n    finalCats = {}\n    for key, value in finalMappings.items():\n        # value is an array containing subInterval tuples.\n        value = mergeOverlappedInIntervalTupleList(value)\n        finalCats.update({key: value})\n    # print(\"______________FINAL CATS______________\")\n    # print(finalCats)\n    return finalCats\ndef getContinualMappedNonSympyMergeResult(mRangesDict, concatSymbol=\"|\", noEmpty=True):\n    mKeyMaps = list(mRangesDict.keys())\n    mSetCandidates = [mRangesDict[key] for key in mKeyMaps]\n    # the next step will automatically merge all overlapped candidates.\n    finalCats = getContinualNonSympyMergeResult(mSetCandidates)\n    finalCatsMapped = {\n        concatSymbol.join([mKeyMaps[k] for k in mTuple]): finalCats[mTuple]\n        for mTuple in finalCats.keys()\n        if type(mTuple) == tuple\n    }\n    if not noEmpty:\n        finalCatsMapped.update(\n            {k: finalCats[k] for k in finalCats.keys() if type(k) != tuple}",
         "type": "code",
-        "location": "/tests/moviepy_loop_video_till_target/loop_till_target.py:1-47"
+        "location": "/tests/video_detector_tests/mathlib.py:104-130"
     },
     "4277": {
-        "file_id": 552,
-        "content": "The code imports necessary libraries and defines a function \"main\" that takes input file, target duration, output file (optional), performs in-place editing (optional), and debug mode (optional). It asserts the existence of the input file and positive target duration. Depending on options, it either splits or mirrors the video using ffmpeg before processing.",
+        "file_id": 522,
+        "content": "This code calculates merged, continual results for a dictionary of sets. It maps the results to a format using a specified concatenation symbol, and allows for empty sets if requested. It uses functions like getContinualNonSympyMergeResult and mergeOverlappedInIntervalTupleList to merge overlapping intervals. The final result is returned as a dictionary of merged continual mappings.",
         "type": "comment"
     },
     "4278": {
-        "file_id": 552,
-        "content": "    import shutil\n    fileExtension = f_in.split(\".\")[-1]\n    assert fileExtension != \"\"\n    loopStrategy = [\n        (-1) ** i for i in range(math.ceil(target_secs / videoDuration))\n    ]  # zero division error?\n    if debug:\n        print(\"Loop strategy:\")\n        print(loopStrategy)\n    clips = []\n    file_input_original = file_input_split[0].filter_multi_output(\"split\")\n    file_input_reverse = (\n        file_input_split[1].filter(\"reverse\").filter_multi_output(\"split\")\n    )\n    for index, signal in enumerate(loopStrategy):\n        mindex = index // 2\n        if signal == 1:\n            file_input = file_input_original[mindex]\n            clips.append(file_input)\n        else:\n            file_input_reverse2 = file_input_reverse[mindex]\n            clips.append(file_input_reverse2)\n    # final = concatenate_videoclips(clips)\n    final = ffmpeg.concat(*clips)\n    finalVideoDuration = len(loopStrategy) * videoDuration\n    with tempfile.NamedTemporaryFile(\n        \"w+\",\n        suffix=f\".{fileExtension}\",\n    ) as f:",
+        "file_id": 522,
+        "content": "        )\n    return finalCatsMapped\n    # default not to output empty set?\ndef getContinualMappedNonSympyMergeResultWithRangedEmpty(\n    mRangesDict, start, end, concatSymbol=\"|\"\n):\n    import uuid\n    emptySetName = str(uuid.uuid4())\n    newRangesDict = mRangesDict.copy()\n    newRangesDict.update({emptySetName: [(start, end)]})\n    newRangesDict = getContinualMappedNonSympyMergeResult(\n        newRangesDict, concatSymbol=\"|\", noEmpty=True\n    )\n    newRangesDict = {\n        key: [\n            (mStart, mEnd)\n            for mStart, mEnd in newRangesDict[key]\n            if mStart >= start and mEnd <= end\n        ]\n        for key in newRangesDict.keys()\n    }\n    newRangesDict = {\n        key: newRangesDict[key]\n        for key in newRangesDict.keys()\n        if newRangesDict[key] != []\n    }\n    finalNewRangesDict = {}\n    for key in newRangesDict.keys():\n        mergedEmptySetName = \"{}{}\".format(concatSymbol, emptySetName)\n        if mergedEmptySetName in key:\n            newKey = key.replace(mergedEmptySetName,\"\")",
         "type": "code",
-        "location": "/tests/moviepy_loop_video_till_target/loop_till_target.py:48-82"
+        "location": "/tests/video_detector_tests/mathlib.py:131-164"
     },
     "4279": {
-        "file_id": 552,
-        "content": "This code is creating a video clip with repeating segments. It splits the input video into two parts, original and reversed. Then, it loops through a list of loop strategies to determine which segment (original or reversed) should be used for each iteration. The final video is created by concatenating these segments together using ffmpeg. The resulting video's duration will be determined by the length of the loop strategy list multiplied by the original video's duration.",
+        "file_id": 522,
+        "content": "Function to get a continual mapped non-Sympy merge result with range based on input parameters. It creates a new dictionary with an empty set named UUID, then updates the existing dictionary with this new one. Filters out any ranges that do not fall within the given start and end values. Removes any keys in the newRangesDict dictionary if their corresponding value is an empty list. Finally, iterates over each key in newRangesDict and checks if mergedEmptySetName exists; if it does, it replaces the key with an empty string.",
         "type": "comment"
     },
     "4280": {
-        "file_id": 552,
-        "content": "        tmpFilePath = f.name\n        # warning! what is the audio shit?\n        # print(\"TMP FILE PATH?\",tmpFilePath)\n        # breakpoint()\n        # final.write_videofile(tmpFilePath, fps=clip.fps)\n        # finalVideoDuration = final.duration\n        final.output(tmpFilePath).run(overwrite_output=True)\n        shutil.copy(tmpFilePath, targetFilePath)\n    return finalVideoDuration\nif __name__ == \"__main__\":\n    import argparse\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"-i\", \"--input\", help=\"input file\", required=True, type=str)\n    parser.add_argument(\"-o\", \"--output\", help=\"output file\", default=\"\", type=str)\n    parser.add_argument(\n        \"-r\",\n        \"--replace\",\n        help=\"replace original input file\",\n        action=\"store_true\",\n        default=False,\n    )\n    # parser.add_argument(\n    #     \"-a\",\n    #     \"--audio\",\n    #     help=\"include audio from input\",\n    #     action=\"store_true\",\n    #     default=False,\n    # )\n    parser.add_argument(\n        \"-t\", \"--target\", help=\"target seconds\", required=True, type=float",
+        "file_id": 522,
+        "content": "            finalNewRangesDict.update({newKey:newRangesDict[key]})\n        elif key == emptySetName:\n            finalNewRangesDict.update({'empty':newRangesDict[key]})\n        else:\n            finalNewRangesDict.update({key:newRangesDict[key]})\n    return finalNewRangesDict\ndef mergedRangesToSequential(renderDict):\n    renderList = []\n    for renderCommandString in renderDict.keys():\n        commandTimeSpans = renderDict[renderCommandString].copy()\n        # commandTimeSpan.sort(key=lambda x: x[0])\n        for commandTimeSpan in commandTimeSpans:\n            renderList.append([renderCommandString, commandTimeSpan].copy())\n    renderList.sort(key=lambda x: x[1][0])\n    return renderList\n    # for renderCommandString, commandTimeSpan in renderList:\n    #     print(renderCommandString, commandTimeSpan)\ndef sequentialToMergedRanges(sequence):\n    mergedRanges = {}\n    for commandString, commandTimeSpan in sequence:\n        mergedRanges.update({commandString: mergedRanges.get(commandString,[])+[commandTimeSpan]})",
         "type": "code",
-        "location": "/tests/moviepy_loop_video_till_target/loop_till_target.py:83-116"
+        "location": "/tests/video_detector_tests/mathlib.py:165-188"
     },
     "4281": {
-        "file_id": 552,
-        "content": "This code takes an input video file and replaces a specific section of the video with another video until a target duration is reached. The final output is saved at the specified output location.",
+        "file_id": 522,
+        "content": "Function `mergedRangesToSequential` takes a dictionary where keys are commands and values are time spans, sorts them by start time in ascending order, and returns the sorted list of commands with their respective time spans.\n\nFunction `sequentialToMergedRanges` takes a list of command strings and their corresponding start times, groups them by command string, and produces a dictionary with commands as keys and lists of time spans as values.",
         "type": "comment"
     },
     "4282": {
-        "file_id": 552,
-        "content": "    )\n    args = parser.parse_args()\n    if not args.replace:\n        assert args.output != \"\"\n    main(\n        args.input,\n        args.target,\n        f_out=args.output,\n        in_place=args.replace,\n        # audio=args.audio\n    )",
+        "file_id": 522,
+        "content": "    mergedRanges = getContinualMappedNonSympyMergeResult(mergedRanges)\n    return mergedRanges",
         "type": "code",
-        "location": "/tests/moviepy_loop_video_till_target/loop_till_target.py:117-128"
+        "location": "/tests/video_detector_tests/mathlib.py:189-190"
     },
     "4283": {
-        "file_id": 552,
-        "content": "The code initializes a parser, parses command line arguments, asserts the absence of replace flag or an output path specified, and then calls the main function with the input, target, output (if applicable), and replace (if applicable) arguments.",
+        "file_id": 522,
+        "content": "This code block retrieves the merged ranges of continuous numbers using getContinualMappedNonSympyMergeResult function and assigns it to variable 'mergedRanges'. Finally, it returns the mergedRanges.",
         "type": "comment"
     },
     "4284": {
-        "file_id": 553,
-        "content": "/tests/readbility_webpage_to_markdown_simplification/test_readability.py",
+        "file_id": 523,
+        "content": "/tests/video_detector_tests/frameDifference.py",
         "type": "filepath"
     },
     "4285": {
-        "file_id": 553,
-        "content": "Code imports necessary libraries, sets URL for webpage, retrieves response from the page using GET request, initializes a Readability Document object with the page's text, prints document summary and title.",
+        "file_id": 523,
+        "content": "This function detects motion in a video by comparing frames, calculating differences, applying thresholding and morphology operations, and identifying contours. The code displays two consecutive frames side-by-side using OpenCV and stops when 'Esc' is pressed.",
         "type": "summary"
     },
     "4286": {
-        "file_id": 553,
-        "content": "import requests\nfrom readability import Document\nurl='https://zhuanlan.zhihu.com/p/384614837'\nresponse = requests.get(url)\ndoc = Document(response.text)\nprint(doc.summary())\nprint()\nprint(doc.title())\n# print()\n# print(dir(doc))",
+        "file_id": 523,
+        "content": "import cv2 as cv\nimport numpy as np\nfrom matplotlib import pyplot as plt\ndef motionDetection(videoPath):\n    cap = cv.VideoCapture(videoPath)\n    ret, frame1 = cap.read()\n    ret, frame2 = cap.read()\n    while cap.isOpened():\n        if frame1 is not None and frame2 is not None:\n            pass\n        else:\n            break\n        diff = cv.absdiff(frame1, frame2)\n        diff_gray = cv.cvtColor(diff, cv.COLOR_BGR2GRAY)\n        blur = cv.GaussianBlur(diff_gray, (5, 5), 0)\n        _, thresh = cv.threshold(blur, 20, 255, cv.THRESH_BINARY)\n        dilated = cv.dilate(thresh, None, iterations=3)\n        contours, _ = cv.findContours(\n            dilated, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)\n        for contour in contours:\n            (x, y, w, h) = cv.boundingRect(contour)\n            if cv.contourArea(contour) < 900:\n                continue\n            cv.rectangle(frame1, (x, y), (x+w, y+h), (0, 255, 0), 2)\n            cv.putText(frame1, \"Status: {}\".format('Movement'), (10, 20), cv.FONT_HERSHEY_SIMPLEX,\n                        1, (255, 0, 0), 3)",
         "type": "code",
-        "location": "/tests/readbility_webpage_to_markdown_simplification/test_readability.py:1-10"
+        "location": "/tests/video_detector_tests/frameDifference.py:1-30"
     },
     "4287": {
-        "file_id": 553,
-        "content": "Code imports necessary libraries, sets URL for webpage, retrieves response from the page using GET request, initializes a Readability Document object with the page's text, prints document summary and title.",
+        "file_id": 523,
+        "content": "This function performs motion detection by comparing successive frames in a video, calculates the difference, applies thresholding and morphology operations, and finally detects contours to identify areas with significant changes.",
         "type": "comment"
     },
     "4288": {
-        "file_id": 554,
-        "content": "/tests/readbility_webpage_to_markdown_simplification/test_node_readbility.js",
-        "type": "filepath"
+        "file_id": 523,
+        "content": "        # cv.drawContours(frame1, contours, -1, (0, 255, 0), 2)\n        cv.imshow(\"Video\", frame1)\n        frame1 = frame2\n        ret, frame2 = cap.read()\n        if cv.waitKey(50) == 27:\n            break\n    cap.release()\n    cv.destroyAllWindows()\nif __name__ == \"__main__\":\n    motionDetection(\"../../samples/video/LiEIfnsvn.mp4\")",
+        "type": "code",
+        "location": "/tests/video_detector_tests/frameDifference.py:32-46"
     },
     "4289": {
-        "file_id": 554,
-        "content": "The code requires the 'node-readability' module and uses it to fetch an article from a specified URL. It then logs the article content, title, HTML source code, DOM, response object from the request library, and closes the article to prevent leaks.",
-        "type": "summary"
-    },
-    "4290": {
-        "file_id": 554,
-        "content": "var read = require('node-readability');\nurl = \"https://zhuanlan.zhihu.com/p/384614837\"\n    // 'http://howtonode.org/really-simple-file-uploads'\nread(url, function(err, article, meta) {\n    // Main Article\n    console.log(article.content); // still html\n    // Title\n    console.log(article.title);\n    // HTML Source Code\n    // console.log(article.html);\n    // // DOM\n    // console.log(article.document);\n    // Response Object from Request Lib\n    // console.log(meta);\n    // Close article to clean up jsdom and prevent leaks\n    article.close();\n});",
-        "type": "code",
-        "location": "/tests/readbility_webpage_to_markdown_simplification/test_node_readbility.js:1-19"
-    },
-    "4291": {
-        "file_id": 554,
-        "content": "The code requires the 'node-readability' module and uses it to fetch an article from a specified URL. It then logs the article content, title, HTML source code, DOM, response object from the request library, and closes the article to prevent leaks.",
+        "file_id": 523,
+        "content": "This code displays two consecutive frames of a video side by side, highlighting the difference between them using OpenCV. It reads frames from a video file and continuously checks for user input to break the loop when key 'Esc' is pressed.",
         "type": "comment"
     },
-    "4292": {
-        "file_id": 555,
-        "content": "/tests/readbility_webpage_to_markdown_simplification/test_mozilla.js",
+    "4290": {
+        "file_id": 524,
+        "content": "/tests/video_detector_tests/detectron2_norfair.py",
         "type": "filepath"
     },
-    "4293": {
-        "file_id": 555,
-        "content": "Code loads a web page containing an image of a cat, uses jsdom to parse the HTML, and then uses the Readability library from @mozilla/readability to extract the article content. The extracted article is logged to the console.",
+    "4291": {
+        "file_id": 524,
+        "content": "The code uses Detectron2 for object detection, tracks \"person\" or \"dog\", updates tracked_objects, and displays bounding boxes. It utilizes OpenCV for video display and waits for 'q' to terminate, closing windows upon exiting.",
         "type": "summary"
     },
-    "4294": {
-        "file_id": 555,
-        "content": "const jsdom = require(\"jsdom\");\nconst { JSDOM } = jsdom;\ndoc = new jsdom.JSDOM(\"<body>Look at this cat: <img src='./cat.jpg'></body>\"); // load this shit from the web or something...\n// make it into a server.\nconst { Readability } = require('@mozilla/readability');\nlet reader = new Readability(doc.window.document);\narticle = reader.parse();\nconsole.log(article);",
+    "4292": {
+        "file_id": 524,
+        "content": "import cv2\nimport numpy as np\nfrom detectron2.config import get_cfg\nfrom detectron2.engine import DefaultPredictor\nfrom cocoNames import cocoRealName\nfrom norfair import Detection, Tracker, Video, draw_tracked_objects\ndef euclidean_distance(detection, tracked_object):\n    return np.linalg.norm(detection.points - tracked_object.estimate)\n# Set up Detectron2 object detector\ncfg = get_cfg()\ncfg.merge_from_file(\"norfair/demos/faster_rcnn_R_50_FPN_3x.yaml\")\ncfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5 # looks like it does not recognize dog.\n# cfg.MODEL.WEIGHTS = \"detectron2://COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl\"\ncfg.MODEL.WEIGHTS = \"/root/Desktop/works/pyjom/tests/video_detector_tests/detectron2_models/model_final_f10217.pkl\"\n# it is stored in s3\n# https://dl.fbaipublicfiles.com/detectron2/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl\n# download cache: /root/.torch/iopath_cache/detectron2/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl",
         "type": "code",
-        "location": "/tests/readbility_webpage_to_markdown_simplification/test_mozilla.js:1-8"
+        "location": "/tests/video_detector_tests/detectron2_norfair.py:1-21"
+    },
+    "4293": {
+        "file_id": 524,
+        "content": "The code imports necessary libraries and sets up a Detectron2 object detector using pre-trained weights for instance segmentation. It also defines a function to calculate Euclidean distance between detection and tracked objects. The configuration file specifies the model architecture, which is R_50_FPN with three stages and the specific weights (model_final_f10217.pkl) to be used for detection. The weights can either be downloaded from a public S3 storage or retrieved from the local cache if already downloaded.",
+        "type": "comment"
+    },
+    "4294": {
+        "file_id": 524,
+        "content": "detector = DefaultPredictor(cfg)\n# what are the classes output by the model?\n# Norfair\nvideo_path = \"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\"\n# video_path = \"/root/Desktop/works/pyjom/samples/video/LlfeL29BP.mp4\"\nvideo = Video(input_path=video_path)\ntracker = Tracker(distance_function=euclidean_distance, distance_threshold=400,hit_inertia_min=2,hit_inertia_max=20,initialization_delay=1) # what the heck?\ntracked_objects = None\ndisplay=True\nfor index, frame in enumerate(video): # we need to speed up.\n    if index%10 == 0:\n        detections = detector(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))\n        print(\"original detections:\",detections)\n        instances = detections[\"instances\"]\n        print(\"instances:\",instances)\n        # breakpoint()\n        pred_classes = instances.pred_classes\n        if len(pred_classes) == 0:\n            continue\n        detections2=[]\n        for index,class_ in enumerate(pred_classes):\n            print(\"index:\",index)\n            class_ = int(class_.cpu().numpy().tolist())",
+        "type": "code",
+        "location": "/tests/video_detector_tests/detectron2_norfair.py:23-48"
     },
     "4295": {
-        "file_id": 555,
-        "content": "Code loads a web page containing an image of a cat, uses jsdom to parse the HTML, and then uses the Readability library from @mozilla/readability to extract the article content. The extracted article is logged to the console.",
+        "file_id": 524,
+        "content": "The code initializes a video detector using Detector class and then processes each frame of the video. It predicts instances in each frame, prints detected classes and instances, and continues only if there are predictions. The tracker is used to track objects over frames, but its parameters might need clarification. Speedup is mentioned as needed, which implies potential optimizations.",
         "type": "comment"
     },
     "4296": {
-        "file_id": 556,
-        "content": "/tests/readbility_webpage_to_markdown_simplification/README.md",
-        "type": "filepath"
+        "file_id": 524,
+        "content": "            print(\"class:\",class_)\n            box = instances.pred_boxes.tensor[index].cpu().numpy().tolist()\n            box = [int(x) for x in box]\n            score = float(instances.scores[index].cpu().numpy().tolist())\n            print('box:',box)\n            print('score:',score)\n            className = cocoRealName[class_]\n            # we filter our targets.\n            if className not in [\"person\",\"dog\"]:\n                continue\n            mdata = {\"box\":box,\"class\":{\"id\":class_,\"name\":className}}\n            det = Detection(instances.pred_boxes.get_centers()[index].cpu().numpy(),scores=np.array([score]),data=mdata)\n            detections2.append(det)\n            # breakpoint()\n        # detections = [Detection(p) for p in instances.pred_boxes.get_centers().cpu().numpy()] # what is this instance anyway?\n        # you would lost data you dick!\n        print(\"detections2\",detections2)\n        tracked_objects = tracker.update(detections=detections2)\n        # print(detections)\n        print(\"tracked objects:\",tracked_objects) # you don't track shit?",
+        "type": "code",
+        "location": "/tests/video_detector_tests/detectron2_norfair.py:49-68"
     },
     "4297": {
-        "file_id": 556,
-        "content": "These are test links for the readability_webpage_to_markdown_simplification functionality.",
-        "type": "summary"
+        "file_id": 524,
+        "content": "This code is filtering and creating detection objects for \"person\" or \"dog\" instances from a given dataset. It prints the box coordinates, score, and class name before adding it to the detections2 list. The code then updates tracked_objects using the tracker function with the detections2 list.",
+        "type": "comment"
     },
     "4298": {
-        "file_id": 556,
-        "content": "test links:\nhttps://www.macbookproslow.com/is-macbook-air-good-for-programming/\nhttps://zhuanlan.zhihu.com/p/384614837\nhttps://mp.weixin.qq.com/s?src=11&timestamp=1663090785&ver=4042&signature=8bWivjRcA5sicP22nFtzBBEP8LeQJa9rHgTA7wd7QTteh8Rcj0uc2QS1VeZjaI*PPjt90MNn9vigukae1keLI7GYXzbLXl93djqb5K7iPuOdbz2NBgvbxq6wImUD05XX&new=1",
+        "file_id": 524,
+        "content": "    if tracked_objects is not None:\n        if tracked_objects!=[]:\n            # there is no bounding box avaliable?\n            for obj in tracked_objects:\n                point = obj.estimate[0]\n                position = tuple(point.astype(int))\n                color = (255,0,0)\n                # breakpoint()\n                name = obj.last_detection.data[\"class\"][\"name\"]\n                cv2.circle(\n                        frame,\n                        position,\n                        radius=100,\n                        color=color,\n                        thickness=2,\n                    )\n                cv2.putText(\n                    frame,\n                    \"[{}][{}]\".format(str(obj.id),name),\n                    (position[0]-100,position[1]),\n                    cv2.FONT_HERSHEY_SIMPLEX,\n                    2,\n                    (0,255,0),\n                    3,\n                    cv2.LINE_AA,\n                )\n            # breakpoint()\n        # i want to draw you in a different way.\n        # draw_tracked_objects(frame, tracked_objects,color=(255,0,0))",
         "type": "code",
-        "location": "/tests/readbility_webpage_to_markdown_simplification/README.md:1-4"
+        "location": "/tests/video_detector_tests/detectron2_norfair.py:69-97"
     },
     "4299": {
-        "file_id": 556,
-        "content": "These are test links for the readability_webpage_to_markdown_simplification functionality.",
+        "file_id": 524,
+        "content": "The code checks if there are any tracked objects and then proceeds to draw bounding boxes around them, add labels for the objects' class names, and display their IDs on the frame using OpenCV functions. Additionally, it offers an alternative way to draw the objects in a different color.",
         "type": "comment"
     }
 }
