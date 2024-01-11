@@ -1,539 +1,539 @@
 {
     "4700": {
-        "file_id": 609,
-        "content": "/tests/bilibili_video_recommendation_server/ad_template_0.py",
-        "type": "filepath"
+        "file_id": 613,
+        "content": "                    \"width\": up_image_width,  # float numbers.\n                    \"height\": up_image_height,\n                },\n            ],\n        },\n        {\"duration\": 0.5, \"layers\": [{\"type\": \"fill-color\", \"color\": \"#000000\"}]},\n    ],\n}\nfrom lazero.filesystem.io import writeJsonObjectToFile\nwriteJsonObjectToFile(template_name, editlyJson)\nimport subprocess\n# use xvfb you SOB\ncommand = [\n    \"xvfb-run\",\n    \"editly\",\n    template_name,\n]  # no need to specify --out outputPath here\nsubprocess.run(command)",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/sample_video/create_sample_video_with_fade_and_metadata.py:87-108"
     },
     "4701": {
-        "file_id": 609,
-        "content": "The code generates a bilibili video recommendation visual using Pixie library, involving avatars, rounded rectangles, and logos for the final image.",
-        "type": "summary"
-    },
-    "4702": {
-        "file_id": 609,
-        "content": "# let's try to make it right.\npic_file = \"sample_cover.jpg\"\nqrcode_file = \"MyQRCode1.png\"\n# we need some font for this.\n# font_location = \"/usr/share/fonts/truetype/wqy/wqy-microhei.ttc\" # ttc -> ttf\nfont_location = \"./wqy-microhei0.ttf\"\nimport pixie\nfont = pixie.read_font(font_location)\nfont.size = 20\ntext = \"中文能够显示么 超出了字符边缘能不能显示 Typesetting is the arrangement and composition of text in graphic design and publishing in both digital and traditional medias.\"\n# 可以显示 但是边缘的字符需要被注意到 看看是不是超出了边界\nimage = pixie.Image(200, 200)\nimage.fill(pixie.Color(1, 1, 1, 1))\nimage.fill_text(\n    font, text, bounds=pixie.Vector2(180, 180), transform=pixie.translate(10, 10)\n)\n# print('image type:', type(image))\n# 'pixie.pixie.Image'\n# hard to say.\npath = pixie.Path()\npath.rounded_rect(0, 0, 100, 100, 25, 25, 25, 25)\n# how to use mask?\ncover_width, cover_height = 100, 100\nmask = pixie.Mask(cover_width, cover_height)  # must match mask size?\nmask.fill_path(path)\npicture = pixie.read_image(pic_file)\n# we need to reshape this.\npicture = picture.resize(",
-        "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/ad_template_0.py:1-36"
-    },
-    "4703": {
-        "file_id": 609,
-        "content": "Code snippet is trying to create an image with Chinese text and a rounded rectangle mask. It loads a font file, sets its size, fills the image with white color, draws text using the loaded font, creates a path for a rounded rectangle, generates a mask of the rectangle shape, reads an existing image (sample_cover.jpg), and aims to resize it while maintaining aspect ratio.",
+        "file_id": 613,
+        "content": "Code writes a JSON object for Editly video template, saves it to file, and runs the Editly software using subprocess with xvfb.",
         "type": "comment"
     },
+    "4702": {
+        "file_id": 614,
+        "content": "/tests/bilibili_video_recommendation_server/sample_video/tts.py",
+        "type": "filepath"
+    },
+    "4703": {
+        "file_id": 614,
+        "content": "This Python script converts text to speech using argparse, argues SSML input, and connects to Microsoft Cognitive Services TTS endpoint. It also handles time fixes, timestamps, and async WebSocket communication with potential API key authentication, runs on an asyncio event loop, and writes audio responses to a file.",
+        "type": "summary"
+    },
     "4704": {
-        "file_id": 609,
-        "content": "    cover_width, cover_height\n)  # recommend to do this in pyjom.imagetoolbox since that will be safer.\npicture.mask_draw(mask)\ntransform = pixie.translate(50, 50)\nqrcode_width = qrcode_height = 50\nqrcode_image = pixie.read_image(qrcode_file)\nqrcode_image = qrcode_image.resize(qrcode_width, qrcode_height)\nqrcode_transform = pixie.translate(150, 150)\nimage.draw(picture, transform=transform)\n# image.draw(picture)\n# image.draw(picture,transform=transform)\nimage.draw(qrcode_image, transform=qrcode_transform)\n# now we try to reverse engineer that thing.\n# not only we need to create ads, we need to modify ads on the fly.\n# detect qr code and replace the code with ours.\n# first of all, the picture needs to be big.\navatar_path = \"up_image.jpg\"\nup_name = \"J4D\"\navatar_width, avatar_height = 50, 50\npath2 = pixie.Path()\npath2.circle(25, 25, 25)\nmask2 = pixie.Mask(avatar_width, avatar_height)\nmask2.fill_path(path2)\navatar = pixie.read_image(avatar_path)\navatar = avatar.resize(avatar_width, avatar_height)\navatar.mask_draw(mask2)",
+        "file_id": 614,
+        "content": "# 来源 https://github.com/OS984/DiscordBotBackend/blob/3b06b8be39e4dbc07722b0afefeee4c18c136102/NeuralTTS.py\n# A completely innocent attempt to borrow proprietary Microsoft technology for a much better TTS experience\nimport requests\nimport websockets\nimport asyncio\nfrom datetime import datetime\nimport time\nimport re\nimport uuid\nimport argparse\n'''命令行参数解析'''\ndef parseArgs():\n    parser = argparse.ArgumentParser(description='text2speech')\n    parser.add_argument('--input', dest='input', help='SSML(语音合成标记语言)的路径', type=str, required=True)\n    parser.add_argument('--output', dest='output', help='保存mp3文件的路径', type=str, required=False)\n    args = parser.parse_args()\n    return args\n# Fix the time to match Americanisms\ndef hr_cr(hr):\n    corrected = (hr - 1) % 24\n    return str(corrected)\n# Add zeros in the right places i.e 22:1:5 -> 22:01:05\ndef fr(input_string):\n    corr = ''\n    i = 2 - len(input_string)\n    while (i > 0):\n        corr += '0'\n        i -= 1\n    return corr + input_string\n# Generate X-Timestamp all correctly formatted",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/ad_template_0.py:37-73"
+        "location": "/tests/bilibili_video_recommendation_server/sample_video/tts.py:1-35"
     },
     "4705": {
-        "file_id": 609,
-        "content": "The code creates an ad image with a QR code and avatar. It reads the QR code image, resizes it, and applies a mask. Then, it reads the avatar image, resizes it, and applies a mask as well. Finally, it combines these elements into the final ad image.",
+        "file_id": 614,
+        "content": "This code is a Python file that utilizes the `argparse` library to parse command-line arguments. The purpose of this script seems to be text-to-speech conversion, where it accepts an SSML (Speech Synthesis Markup Language) input file and outputs an MP3 audio file. It also includes functions for fixing time formats to match American conventions and generating formatted timestamps.",
         "type": "comment"
     },
     "4706": {
-        "file_id": 609,
-        "content": "a_transform = pixie.translate(25, 25)\nimage.draw(avatar, a_transform)\nfont2 = pixie.read_font(font_location)\nfont2.size = 40\nfont2.paint.color = pixie.Color(0, 0.5, 0.953125, 1)\nval = image.fill_text(font2, up_name, transform=pixie.translate(25 + 50, 20))\n# print('VAL',val) # NONE\npath3 = pixie.Path()\npath3.rounded_rect(0,0,100,50,10,10,10,10)\npaint = pixie.Paint(pixie.SOLID_PAINT)\npaint.color = pixie.parse_color(\"#FC427B\")\ntransform3 = pixie.translate(25+50+50, 20)\nimage.fill_path(path3, paint, transform3)\nlabel_text = \"UP主\"\nfont3 = pixie.read_font(font_location)\nfont3.size = 30\nfont3.paint.color = pixie.Color(1,1,1, 1)\nimage.fill_text(\n    font3, label_text, transform=pixie.translate(25 + 50 + 50, 20)\n)  # where should i put the thing?\nbilibili_logo_path = \"bilibili_transparent.png\"\nbilibili_logo = pixie.read_image(bilibili_logo_path)\nbilibili_logo = bilibili_logo.resize(50,100)\nimage.draw(bilibili_logo)\nplay_button_path = 'play_button.png'\nplay_button = pixie.read_image(play_button_path)\nplay_button = play_button.resize(50,50)",
+        "file_id": 614,
+        "content": "def getXTime():\n    now = datetime.now()\n    return fr(str(now.year)) + '-' + fr(str(now.month)) + '-' + fr(str(now.day)) + 'T' + fr(hr_cr(int(now.hour))) + ':' + fr(str(now.minute)) + ':' + fr(str(now.second)) + '.' + str(now.microsecond)[:3] + 'Z'\n# Async function for actually communicating with the websocket\nasync def transferMsTTSData(SSML_text, outputPath):\n    # endpoint1 = \"https://azure.microsoft.com/en-gb/services/cognitive-services/text-to-speech/\"\n    # r = requests.get(endpoint1)\n    # main_web_content = r.text\n    # # They hid the Auth key assignment for the websocket in the main body of the webpage....\n    # token_expr = re.compile('token: \\\"(.*?)\\\"', re.DOTALL)\n    # Auth_Token = re.findall(token_expr, main_web_content)[0]\n    # req_id = str('%032x' % random.getrandbits(128)).upper()\n    # req_id is generated by uuid.\n    req_id = uuid.uuid4().hex.upper()\n    print(req_id)\n    # wss://eastus.api.speech.microsoft.com/cognitiveservices/websocket/v1?TrafficType=AzureDemo&Authorization=bearer%20undefined&X-ConnectionId=577D1E595EEB45979BA26C056A519073",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/ad_template_0.py:74-110"
+        "location": "/tests/bilibili_video_recommendation_server/sample_video/tts.py:36-52"
     },
     "4707": {
-        "file_id": 609,
-        "content": "This code section is responsible for generating a visual representation of a bilibili video recommendation. It uses the Pixie library to handle image manipulation and drawing, and involves steps such as drawing an avatar, painting text, creating a rounded rectangle, filling the shape, and adding logos. The final result is likely used in a user interface for displaying video recommendations.",
+        "file_id": 614,
+        "content": "This code defines two functions: `getXTime` and `transferMsTTSData`. The `getXTime` function returns the current date and time in a specific format. The `transferMsTTSData` function is an asynchronous function responsible for communicating with a WebSocket endpoint, potentially using an API key to authenticate the request. It generates a unique ID (req_id) and prints it before potentially making the WebSocket connection.",
         "type": "comment"
     },
     "4708": {
-        "file_id": 609,
-        "content": "t4 = pixie.translate(100,100)\nimage.draw(play_button, t4)\n# so no more masking here. we need some png magic.\nimage.write_file(\"ad_0.png\")",
+        "file_id": 614,
+        "content": "    # endpoint2 = \"wss://eastus.tts.speech.microsoft.com/cognitiveservices/websocket/v1?Authorization=\" + \\\n    #     Auth_Token + \"&X-ConnectionId=\" + req_id\n    # 目前该接口没有认证可能很快失效\n    endpoint2 = f\"wss://eastus.api.speech.microsoft.com/cognitiveservices/websocket/v1?TrafficType=AzureDemo&Authorization=bearer%20undefined&X-ConnectionId={req_id}\"\n    async with websockets.connect(endpoint2) as websocket:\n        payload_1 = '{\"context\":{\"system\":{\"name\":\"SpeechSDK\",\"version\":\"1.12.1-rc.1\",\"build\":\"JavaScript\",\"lang\":\"JavaScript\",\"os\":{\"platform\":\"Browser/Linux x86_64\",\"name\":\"Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101 Firefox/78.0\",\"version\":\"5.0 (X11)\"}}}}'\n        message_1 = 'Path : speech.config\\r\\nX-RequestId: ' + req_id + '\\r\\nX-Timestamp: ' + \\\n            getXTime() + '\\r\\nContent-Type: application/json\\r\\n\\r\\n' + payload_1\n        await websocket.send(message_1)\n        payload_2 = '{\"synthesis\":{\"audio\":{\"metadataOptions\":{\"sentenceBoundaryEnabled\":false,\"wordBoundaryEnabled\":false},\"outputFormat\":\"audio-16khz-32kbitrate-mono-mp3\"}}}'",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/ad_template_0.py:111-115"
+        "location": "/tests/bilibili_video_recommendation_server/sample_video/tts.py:53-63"
     },
     "4709": {
-        "file_id": 609,
-        "content": "This code is translating a coordinate (100, 100) using Pixie, then drawing the play_button image over it. Since no more masking is needed, the resulting image is saved as \"ad_0.png\" using png magic.",
+        "file_id": 614,
+        "content": "This code connects to the Microsoft Cognitive Services TTS (Text-to-Speech) websocket endpoint, sends two payloads for speech synthesis, and sets various headers such as Authorization, X-ConnectionId, Content-Type, etc. The current authentication may expire soon, so a new temporary endpoint is used instead of the original one.",
         "type": "comment"
     },
     "4710": {
-        "file_id": 610,
-        "content": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/view_qq.sh",
-        "type": "filepath"
+        "file_id": 614,
+        "content": "        message_2 = 'Path : synthesis.context\\r\\nX-RequestId: ' + req_id + '\\r\\nX-Timestamp: ' + \\\n            getXTime() + '\\r\\nContent-Type: application/json\\r\\n\\r\\n' + payload_2\n        await websocket.send(message_2)\n        # payload_3 = '<speak xmlns=\"http://www.w3.org/2001/10/synthesis\" xmlns:mstts=\"http://www.w3.org/2001/mstts\" xmlns:emo=\"http://www.w3.org/2009/10/emotionml\" version=\"1.0\" xml:lang=\"en-US\"><voice name=\"' + voice + '\"><mstts:express-as style=\"General\"><prosody rate=\"'+spd+'%\" pitch=\"'+ptc+'%\">'+ msg_content +'</prosody></mstts:express-as></voice></speak>'\n        payload_3 = SSML_text\n        message_3 = 'Path: ssml\\r\\nX-RequestId: ' + req_id + '\\r\\nX-Timestamp: ' + \\\n            getXTime() + '\\r\\nContent-Type: application/ssml+xml\\r\\n\\r\\n' + payload_3\n        await websocket.send(message_3)\n        # Checks for close connection message\n        end_resp_pat = re.compile('Path:turn.end')\n        audio_stream = b''\n        while(True):\n            response = await websocket.recv()",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/sample_video/tts.py:64-78"
     },
     "4711": {
-        "file_id": 610,
-        "content": "This code is using the mitmproxy tool to read a log file named \"qq.log\" for analysis or debugging purposes.",
-        "type": "summary"
+        "file_id": 614,
+        "content": "Sends text to TTS service for synthesis and awaits response. Stores the SSML XML for audio customization. Sends SSML XML payload for final audio output generation. Continuously receives response from websocket until 'turn.end' path detected, storing data in audio_stream variable.",
+        "type": "comment"
     },
     "4712": {
-        "file_id": 610,
-        "content": "mitmproxy -r qq.log",
+        "file_id": 614,
+        "content": "            print('receiving...')\n            # Make sure the message isn't telling us to stop\n            if (re.search(end_resp_pat, str(response)) == None):\n                # Check if our response is text data or the audio bytes\n                if type(response) == type(bytes()):\n                    # Extract binary data\n                    try:\n                        needle = b'Path:audio\\r\\n'\n                        start_ind = response.find(needle) + len(needle)\n                        audio_stream += response[start_ind:]\n                    except:\n                        pass\n            else:\n                break\n        with open(f'{outputPath}.mp3', 'wb') as audio_out:\n            audio_out.write(audio_stream)\nasync def mainSeq(SSML_text, outputPath):\n    await transferMsTTSData(SSML_text, outputPath)\ndef get_SSML(path):\n    with open(path,'r',encoding='utf-8') as f:\n        return f.read()\nif __name__ == \"__main__\":\n    args = parseArgs()\n    SSML_text = get_SSML(args.input)\n    output_path = args.output if args.output else 'output_'+ str(int(time.time()*1000))",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/view_qq.sh:1-1"
+        "location": "/tests/bilibili_video_recommendation_server/sample_video/tts.py:79-107"
     },
     "4713": {
-        "file_id": 610,
-        "content": "This code is using the mitmproxy tool to read a log file named \"qq.log\" for analysis or debugging purposes.",
+        "file_id": 614,
+        "content": "This code snippet is a part of a TTS (Text-to-Speech) server implementation. It receives an audio response from the server, checks if it's text or binary data, and writes the audio to a file. The `mainSeq` function initiates the transfer process by calling `transferMsTTSData` function with SSML text and output path. The `get_SSML` function reads SSML text from input file. The code is run as a main program after parsing command-line arguments using `parseArgs()`.",
         "type": "comment"
     },
     "4714": {
-        "file_id": 611,
-        "content": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/view_bilibili_qq_share_xml.sh",
-        "type": "filepath"
+        "file_id": 614,
+        "content": "    asyncio.get_event_loop().run_until_complete(mainSeq(SSML_text, output_path))\n    print('completed')\n    # python tts.py --input SSML.xml\n    # python tts.py --input SSML.xml --output 保存文件名",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/sample_video/tts.py:108-111"
     },
     "4715": {
-        "file_id": 611,
-        "content": "The provided code is running \"mitmproxy\" and redirecting the log file named \"bilibili_qq_xml_share.log\". This likely involves capturing and analyzing network traffic between a client (possibly a Bilibili app) and their servers, potentially to study video recommendations or QQ sharing feature behavior.",
-        "type": "summary"
+        "file_id": 614,
+        "content": "This code calls the `mainSeq` function with SSML text and output path, using asyncio event loop to run until completion. It prints \"completed\" upon execution. The two command examples show how to input an SSML file and optionally specify an output filename.",
+        "type": "comment"
     },
     "4716": {
-        "file_id": 611,
-        "content": "mitmproxy -r bilibili_qq_xml_share.log",
-        "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/view_bilibili_qq_share_xml.sh:1-1"
-    },
-    "4717": {
-        "file_id": 611,
-        "content": "The provided code is running \"mitmproxy\" and redirecting the log file named \"bilibili_qq_xml_share.log\". This likely involves capturing and analyzing network traffic between a client (possibly a Bilibili app) and their servers, potentially to study video recommendations or QQ sharing feature behavior.",
-        "type": "comment"
-    },
-    "4718": {
-        "file_id": 612,
-        "content": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/upload_img2.py",
+        "file_id": 615,
+        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/viewRenderResult.sh",
         "type": "filepath"
     },
-    "4719": {
-        "file_id": 612,
-        "content": "This code utilizes the requests library for URL interactions, cookies, and binary file reading. It handles exact or archive-scale uploads based on URLs, with request headers providing metadata and content type info for image files, then sends POST requests with files, converting responses to JSON format.",
+    "4717": {
+        "file_id": 615,
+        "content": "This code is creating a shell script named \"viewer.sh\" which lists the output files and runs \"ffplay\" on each file in sequence, with a 3-second pause between them. It then executes this script using bash to display the output files sequentially.",
         "type": "summary"
     },
-    "4720": {
-        "file_id": 612,
-        "content": "url = \"https://om.qq.com/image/orginalupload\"\n# php tencent: http://www.ygbks.com/2501.html gtimg\n# python sina: https://www.52pojie.cn/thread-1446200-1-1.html\n\"\"\"\nadd something like this in your website\n<img src='http://inews.gtimg.com/newsapp_ls/0/14966062446/0' width=\"200\"  referrerpolicy=\"no-referrer\" />\n\"\"\"\nfilePath = \"test_cover.jpg\"\nimport requests\n# with open(filepath, \"rb\") as f:\n#     content = f.read()\n# upload elsewhere.\nurl = \"https://om.qq.com/image/exactupload?relogin=1\"\npicUrl = \"https://open.gtimg.cn/open/app_icon/00/95/17/76/100951776_100_m.png\"\nurl = \"https://om.qq.com/image/archscaleupload?isRetImgAttr=1&relogin=1\"\ncookie = {\n\t\"alertclicked\": \"||\",\n\t\"appOmDownClose\": \"1\",\n\t\"csrfToken\": \"csrf-1666038340355\",\n\t\"iip\": \"0\",\n\t\"o_cookie\": \"917521610\",\n\t\"omaccesstoken\": \"00a8d53ee83b92ec4e3111998ca616ad566b9d6fe80814f1be12d2a5c1e7a267baf531f268514a1be2670c9e98da4549a31b36408ed199c6ccd0e069f62ba65438x0\",\n\t\"omtoken\": \"00a8d53ee83b92ec4e3111998ca616ad566b9d6fe80814f1be12d2a5c1e7a267baf531f268514a1be2670c9e98da4549a31b36408ed199c6ccd0e069f62ba65438x0\",",
+    "4718": {
+        "file_id": 615,
+        "content": "ls -1 output | awk '{print \"ffplay -i output/\"$1\" -autoexit; sleep 3\" }' > viewer.sh\nbash viewer.sh",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/upload_img2.py:1-25"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/viewRenderResult.sh:1-2"
     },
-    "4721": {
-        "file_id": 612,
-        "content": "This code is making multiple requests to different URLs, likely for image uploading purposes. It uses the requests library to interact with the specified URLs and includes cookies for authentication. The code seems to involve various steps including reading a file, opening it in binary mode, and sending it for exact or archive scale upload depending on the URL.",
+    "4719": {
+        "file_id": 615,
+        "content": "This code is creating a shell script named \"viewer.sh\" which lists the output files and runs \"ffplay\" on each file in sequence, with a 3-second pause between them. It then executes this script using bash to display the output files sequentially.",
         "type": "comment"
     },
+    "4720": {
+        "file_id": 616,
+        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/viewer.sh",
+        "type": "filepath"
+    },
+    "4721": {
+        "file_id": 616,
+        "content": "The code utilizes ffplay to sequentially play FLV files with a 3-second delay between each, then exits.",
+        "type": "summary"
+    },
     "4722": {
-        "file_id": 612,
-        "content": "\t\"pac_uid\": \"1_917521610\",\n\t\"pgv_info\": \"ssid=s2914806624\",\n\t\"pgv_pvid\": \"977259220\",\n\t\"ptcz\": \"cff0fae128e230ac9cbdca6b44c812da07a8a27199142b3856073da30bd7d37f\",\n\t\"ptui_loginuin\": \"917521610@qq.com\",\n\t\"RK\": \"bNrVuDJjGZ\",\n\t\"ts_last\": \"om.qq.com/userReg/mediaInfo\",\n\t\"ts_uid\": \"6110293192\",\n\t\"TSID\": \"fg2om4ff3b0028rpbovnpafde1\",\n\t\"tvfe_boss_uuid\": \"ba12af7c5a70407c\",\n\t\"userid\": \"22690801\",\n\t\"wxky\": \"1\"\n}\ncookie_str = \"; \".join([\"{}:{}\".format(k, v) for k, v in cookie.items()])\nfiles = {\n    \"Filedata\": open(filePath, \"rb\"),\n    \"id\": \"WU_FILE_0\",\n    \"name\": \"test_cover.jpg\",\n    \"type\": \"image/jpeg\",\n    \"lastModifiedDate\": \"10/18/2022, 4:27:08 AM\",\n    'appKey':'1',\n    'isRetImgAttr':'1',\n    'from':'user',\n    'subModule':'userAuth_individual_head'\n}\nreq_headers = [\n\t\t\t{\n\t\t\t\t\"name\": \"Accept\",\n\t\t\t\t\"value\": \"*/*\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Accept-Encoding\",\n\t\t\t\t\"value\": \"gzip, deflate, br\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Accept-Language\",\n\t\t\t\t\"value\": \"en-US,en;q=0.5\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Connection\",\n\t\t\t\t\"value\": \"keep-alive\"\n\t\t\t},\n\t\t\t# {",
+        "file_id": 616,
+        "content": "ffplay -i output/0.flv -autoexit; sleep 3\nffplay -i output/10.flv -autoexit; sleep 3\nffplay -i output/11.flv -autoexit; sleep 3\nffplay -i output/12.flv -autoexit; sleep 3\nffplay -i output/13.flv -autoexit; sleep 3\nffplay -i output/14.flv -autoexit; sleep 3\nffplay -i output/15.flv -autoexit; sleep 3\nffplay -i output/16.flv -autoexit; sleep 3\nffplay -i output/17.flv -autoexit; sleep 3\nffplay -i output/19.flv -autoexit; sleep 3\nffplay -i output/1.flv -autoexit; sleep 3\nffplay -i output/20.flv -autoexit; sleep 3\nffplay -i output/21.flv -autoexit; sleep 3\nffplay -i output/22.flv -autoexit; sleep 3\nffplay -i output/23.flv -autoexit; sleep 3\nffplay -i output/24.flv -autoexit; sleep 3\nffplay -i output/25.flv -autoexit; sleep 3\nffplay -i output/26.flv -autoexit; sleep 3\nffplay -i output/27.flv -autoexit; sleep 3\nffplay -i output/28.flv -autoexit; sleep 3\nffplay -i output/29.flv -autoexit; sleep 3\nffplay -i output/2.flv -autoexit; sleep 3\nffplay -i output/30.flv -autoexit; sleep 3\nffplay -i output/31.flv -autoexit; sleep 3",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/upload_img2.py:26-68"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/viewer.sh:1-24"
     },
     "4723": {
-        "file_id": 612,
-        "content": "The code is creating a request to upload an image file using the parameters provided in the cookie dictionary and request headers. The cookies are converted into a string format, and the image file is included with additional metadata in the files dictionary. The request headers include information about the desired content type, language preference, and connection type.",
+        "file_id": 616,
+        "content": "This code uses ffplay to sequentially play videos from \"output/0.flv\" to \"output/31.flv\" with a 3-second delay between each video, then exits.",
         "type": "comment"
     },
     "4724": {
-        "file_id": 612,
-        "content": "\t\t\t# \t\"name\": \"Content-Length\",\n\t\t\t# \t\"value\": \"197582\"\n\t\t\t# },\n\t\t\t# {\n\t\t\t\t# \"name\": \"Content-Type\",\n\t\t\t\t# \"value\": \"multipart/form-data; boundary=---------------------------26791228924136332743854048233\"\n\t\t\t# },\n\t\t\t{ # do some cookie hook to get these data in playwright.\n\t\t\t\t\"name\": \"Cookie\",\n\t\t\t\t\"value\": \"userid=22690801; omaccesstoken=00a8d53ee83b92ec4e3111998ca616ad566b9d6fe80814f1be12d2a5c1e7a267baf531f268514a1be2670c9e98da4549a31b36408ed199c6ccd0e069f62ba65438x0\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Host\",\n\t\t\t\t\"value\": \"om.qq.com\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Origin\",\n\t\t\t\t\"value\": \"https://om.qq.com\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Referer\",\n\t\t\t\t\"value\": \"https://om.qq.com/userReg/mediaInfo\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Sec-Fetch-Dest\",\n\t\t\t\t\"value\": \"empty\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Sec-Fetch-Mode\",\n\t\t\t\t\"value\": \"cors\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Sec-Fetch-Site\",\n\t\t\t\t\"value\": \"same-origin\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"User-Agent\",\n\t\t\t\t\"value\": \"Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0\"\n\t\t\t}\n\t\t]\nheaders = {item['name']: item['value'] for item in req_headers}",
+        "file_id": 616,
+        "content": "ffplay -i output/35.flv -autoexit; sleep 3\nffplay -i output/38.flv -autoexit; sleep 3\nffplay -i output/39.flv -autoexit; sleep 3\nffplay -i output/3.flv -autoexit; sleep 3\nffplay -i output/40.flv -autoexit; sleep 3\nffplay -i output/4.flv -autoexit; sleep 3\nffplay -i output/5.flv -autoexit; sleep 3\nffplay -i output/6.flv -autoexit; sleep 3\nffplay -i output/7.flv -autoexit; sleep 3\nffplay -i output/8.flv -autoexit; sleep 3",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/upload_img2.py:69-109"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/viewer.sh:25-34"
     },
     "4725": {
-        "file_id": 612,
-        "content": "This code defines a list of request headers, each represented by a dictionary containing 'name' and 'value'. The 'headers' variable is then generated using a dictionary comprehension, mapping the header names to their respective values. This structured format can be used for making API requests or handling HTTP communication in a program.",
+        "file_id": 616,
+        "content": "This code plays and auto-exits various FLV files in order, with pauses between each playback.",
         "type": "comment"
     },
     "4726": {
-        "file_id": 612,
-        "content": "respone = requests.post(url, files=files,headers=headers)\nres = respone.json()\nprint(res)",
-        "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/upload_img2.py:110-112"
-    },
-    "4727": {
-        "file_id": 612,
-        "content": "This code sends a POST request to a specified URL, including files in the request body using Python's requests library. The response is then converted to JSON format and stored in 'res', which is printed for output.",
-        "type": "comment"
-    },
-    "4728": {
-        "file_id": 613,
-        "content": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/upload_img.py",
+        "file_id": 617,
+        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/render.sh",
         "type": "filepath"
     },
-    "4729": {
-        "file_id": 613,
-        "content": "This Python script uses the requests library to upload an image to QQ platform, setting up necessary headers, cookies, and metadata for processing. It sends a POST request with session data and tokens to \"om.qq.com\" and prints the response in JSON format.",
+    "4727": {
+        "file_id": 617,
+        "content": "This code utilizes FFmpeg to extract three 3-second video clips from 'sample.mp4' at specific time points, saving them as separate output files numbered 60-62 in the 'output' directory.",
         "type": "summary"
     },
-    "4730": {
-        "file_id": 613,
-        "content": "url = \"https://om.qq.com/image/orginalupload\"\n# php tencent: http://www.ygbks.com/2501.html gtimg\n# python sina: https://www.52pojie.cn/thread-1446200-1-1.html\n\"\"\"\nadd something like this in your website\n<img src='http://inews.gtimg.com/newsapp_ls/0/14966062446/0' width=\"200\"  referrerpolicy=\"no-referrer\" />\n\"\"\"\nfilePath = \"test_cover.jpg\"\nimport requests\n# with open(filepath, \"rb\") as f:\n#     content = f.read()\n# upload elsewhere.\nurl = \"https://om.qq.com/image/exactupload?relogin=1\"\npicUrl = \"https://open.gtimg.cn/open/app_icon/00/95/17/76/100951776_100_m.png\"\nurl = \"https://om.qq.com/image/archscaleupload?isRetImgAttr=1&relogin=1\"\ncookie = {\n\t\"alertclicked\": \"||\",\n\t\"appOmDownClose\": \"1\",\n\t\"csrfToken\": \"csrf-1666038340355\",\n\t\"iip\": \"0\",\n\t\"o_cookie\": \"917521610\",\n\t\"omaccesstoken\": \"00a8d53ee83b92ec4e3111998ca616ad566b9d6fe80814f1be12d2a5c1e7a267baf531f268514a1be2670c9e98da4549a31b36408ed199c6ccd0e069f62ba65438x0\",\n\t\"omtoken\": \"00a8d53ee83b92ec4e3111998ca616ad566b9d6fe80814f1be12d2a5c1e7a267baf531f268514a1be2670c9e98da4549a31b36408ed199c6ccd0e069f62ba65438x0\",",
+    "4728": {
+        "file_id": 617,
+        "content": "ffmpeg -y -ss 00:00:00.100000 -to 00:00:07.733000 -i sample.mp4  output/0.flv\nffmpeg -y -ss 00:00:07.933000 -to 00:00:14.300000 -i sample.mp4  output/1.flv\nffmpeg -y -ss 00:00:14.500000 -to 00:00:15.767000 -i sample.mp4  output/2.flv\nffmpeg -y -ss 00:00:15.967000 -to 00:00:17.800000 -i sample.mp4  output/3.flv\nffmpeg -y -ss 00:00:18.000000 -to 00:00:20.967000 -i sample.mp4  output/4.flv\nffmpeg -y -ss 00:00:21.167000 -to 00:00:24.167000 -i sample.mp4  output/5.flv\nffmpeg -y -ss 00:00:24.367000 -to 00:00:27.467000 -i sample.mp4  output/6.flv\nffmpeg -y -ss 00:00:27.667000 -to 00:00:31.233000 -i sample.mp4  output/7.flv\nffmpeg -y -ss 00:00:31.433000 -to 00:00:33.300000 -i sample.mp4  output/8.flv\nffmpeg -y -ss 00:00:34.100000 -to 00:00:37.467000 -i sample.mp4  output/10.flv\nffmpeg -y -ss 00:00:37.667000 -to 00:00:40.633000 -i sample.mp4  output/11.flv\nffmpeg -y -ss 00:00:40.833000 -to 00:00:44.200000 -i sample.mp4  output/12.flv\nffmpeg -y -ss 00:00:44.400000 -to 00:00:50.600000 -i sample.mp4  output/13.flv",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/upload_img.py:1-25"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/render.sh:1-13"
+    },
+    "4729": {
+        "file_id": 617,
+        "content": "This code extracts and saves multiple clips from the sample.mp4 video file, each with varying start and end times, into separate output files numbered 0 to 13.ffmpeg command is used for extraction and '-y' flag overwrites existing outputs without prompting.",
+        "type": "comment"
+    },
+    "4730": {
+        "file_id": 617,
+        "content": "ffmpeg -y -ss 00:00:50.800000 -to 00:00:56.266000 -i sample.mp4  output/14.flv\nffmpeg -y -ss 00:00:56.466000 -to 00:00:59.700000 -i sample.mp4  output/15.flv\nffmpeg -y -ss 00:00:59.900000 -to 00:01:01.900000 -i sample.mp4  output/16.flv\nffmpeg -y -ss 00:01:02.100000 -to 00:01:04.800000 -i sample.mp4  output/17.flv\nffmpeg -y -ss 00:01:05.800000 -to 00:01:07.100000 -i sample.mp4  output/19.flv\nffmpeg -y -ss 00:01:07.300000 -to 00:01:09.166000 -i sample.mp4  output/20.flv\nffmpeg -y -ss 00:01:09.366000 -to 00:01:10.466000 -i sample.mp4  output/21.flv\nffmpeg -y -ss 00:01:10.666000 -to 00:01:13.400000 -i sample.mp4  output/22.flv\nffmpeg -y -ss 00:01:13.600000 -to 00:01:15.100000 -i sample.mp4  output/23.flv\nffmpeg -y -ss 00:01:15.300000 -to 00:01:16.700000 -i sample.mp4  output/24.flv\nffmpeg -y -ss 00:01:16.900000 -to 00:01:20.166000 -i sample.mp4  output/25.flv\nffmpeg -y -ss 00:01:20.366000 -to 00:01:21.800000 -i sample.mp4  output/26.flv\nffmpeg -y -ss 00:01:22.000000 -to 00:01:23.266000 -i sample.mp4  output/27.flv",
+        "type": "code",
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/render.sh:14-26"
     },
     "4731": {
-        "file_id": 613,
-        "content": "This code is attempting to upload an image to the QQ platform using Python. It first specifies the URL for uploading the image and provides a file path for the image. Then, it imports the requests library to handle the HTTP request for uploading the image. The code includes several different URLs for various types of uploads, as well as a dictionary of cookies necessary for authentication during the upload process.",
+        "file_id": 617,
+        "content": "The code uses FFmpeg to extract multiple video clips from a single input file, each with varying start and end times. It creates output files numbered 14-27, representing separate sections of the original video.",
         "type": "comment"
     },
     "4732": {
-        "file_id": 613,
-        "content": "\t\"pac_uid\": \"1_917521610\",\n\t\"pgv_info\": \"ssid=s2914806624\",\n\t\"pgv_pvid\": \"977259220\",\n\t\"ptcz\": \"cff0fae128e230ac9cbdca6b44c812da07a8a27199142b3856073da30bd7d37f\",\n\t\"ptui_loginuin\": \"917521610@qq.com\",\n\t\"RK\": \"bNrVuDJjGZ\",\n\t\"ts_last\": \"om.qq.com/userReg/mediaInfo\",\n\t\"ts_uid\": \"6110293192\",\n\t\"TSID\": \"fg2om4ff3b0028rpbovnpafde1\",\n\t\"tvfe_boss_uuid\": \"ba12af7c5a70407c\",\n\t\"userid\": \"22690801\",\n\t\"wxky\": \"1\"\n}\ncookie_str = \";\".join([\"{}:{}\".format(k, v) for k, v in cookie.items()])\nfiles = {\n    \"Filedata\": open(filePath, \"rb\"),\n    \"id\": \"WU_FILE_0\",\n    \"name\": \"test_cover.jpg\",\n    \"type\": \"image/jpeg\",\n    \"lastModifiedDate\": \"10/18/2022, 4:27:08 AM\",\n    'appKey':'1',\n    'isRetImgAttr':'1',\n    'from':'user',\n    'subModule':'userAuth_individual_head'\n}\nreq_headers = [\n\t\t\t{\n\t\t\t\t\"name\": \"Accept\",\n\t\t\t\t\"value\": \"*/*\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Accept-Encoding\",\n\t\t\t\t\"value\": \"gzip, deflate, br\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Accept-Language\",\n\t\t\t\t\"value\": \"en-US,en;q=0.5\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Connection\",\n\t\t\t\t\"value\": \"keep-alive\"\n\t\t\t},\n\t\t\t# {",
+        "file_id": 617,
+        "content": "ffmpeg -y -ss 00:01:23.466000 -to 00:01:26.633000 -i sample.mp4  output/28.flv\nffmpeg -y -ss 00:01:26.833000 -to 00:01:28.300000 -i sample.mp4  output/29.flv\nffmpeg -y -ss 00:01:28.500000 -to 00:01:29.700000 -i sample.mp4  output/30.flv\nffmpeg -y -ss 00:01:29.900000 -to 00:01:33.266000 -i sample.mp4  output/31.flv\nffmpeg -y -ss 00:01:35.500000 -to 00:01:36.266000 -i sample.mp4  output/35.flv\nffmpeg -y -ss 00:01:38.000000 -to 00:01:41.800000 -i sample.mp4  output/38.flv\nffmpeg -y -ss 00:01:42.000000 -to 00:01:42.800000 -i sample.mp4  output/39.flv\nffmpeg -y -ss 00:01:43.000000 -to 00:01:44.933000 -i sample.mp4  output/40.flv\nffmpeg -y -ss 00:01:45.133000 -to 00:01:47.933000 -i sample.mp4  output/41.flv\nffmpeg -y -ss 00:01:48.133000 -to 00:01:49.533000 -i sample.mp4  output/42.flv\nffmpeg -y -ss 00:01:49.733000 -to 00:01:52.533000 -i sample.mp4  output/43.flv\nffmpeg -y -ss 00:01:52.733000 -to 00:01:55.633000 -i sample.mp4  output/44.flv\nffmpeg -y -ss 00:01:55.833000 -to 00:01:59.666000 -i sample.mp4  output/45.flv",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/upload_img.py:26-68"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/render.sh:27-39"
     },
     "4733": {
-        "file_id": 613,
-        "content": "This code sends an image file to the server for processing. It sets up necessary headers, converts cookie data into a string format, and includes relevant information like user IDs and timestamps in the request. The image is sent with additional metadata such as app key, ret img attr, and source module.",
+        "file_id": 617,
+        "content": "This code uses ffmpeg to extract individual video scenes from a given input file, \"sample.mp4\". It specifies the start and end times for each scene, and outputs separate .flv files named \"output/xx.flv\" where xx corresponds to the scene number.",
         "type": "comment"
     },
     "4734": {
-        "file_id": 613,
-        "content": "\t\t\t# \t\"name\": \"Content-Length\",\n\t\t\t# \t\"value\": \"197582\"\n\t\t\t# },\n\t\t\t# {\n\t\t\t\t# \"name\": \"Content-Type\",\n\t\t\t\t# \"value\": \"multipart/form-data; boundary=---------------------------26791228924136332743854048233\"\n\t\t\t# },\n\t\t\t{\n\t\t\t\t\"name\": \"Cookie\",\n\t\t\t\t\"value\": \"pgv_pvid=977259220; pac_uid=1_917521610; RK=bNrVuDJjGZ; ptcz=cff0fae128e230ac9cbdca6b44c812da07a8a27199142b3856073da30bd7d37f; tvfe_boss_uuid=ba12af7c5a70407c; o_cookie=917521610; iip=0; TSID=fg2om4ff3b0028rpbovnpafde1; pgv_info=ssid=s2914806624; ts_last=om.qq.com/userReg/mediaInfo; ts_uid=6110293192; csrfToken=csrf-1666038340355; appOmDownClose=1; ptui_loginuin=917521610@qq.com; userid=22690801; omaccesstoken=00a8d53ee83b92ec4e3111998ca616ad566b9d6fe80814f1be12d2a5c1e7a267baf531f268514a1be2670c9e98da4549a31b36408ed199c6ccd0e069f62ba65438x0; omtoken=00a8d53ee83b92ec4e3111998ca616ad566b9d6fe80814f1be12d2a5c1e7a267baf531f268514a1be2670c9e98da4549a31b36408ed199c6ccd0e069f62ba65438x0; wxky=1; alertclicked=%7C%7C\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Host\",\n\t\t\t\t\"value\": \"om.qq.com\"",
+        "file_id": 617,
+        "content": "ffmpeg -y -ss 00:01:59.866000 -to 00:02:06.300000 -i sample.mp4  output/46.flv\nffmpeg -y -ss 00:02:06.500000 -to 00:02:12.599000 -i sample.mp4  output/47.flv\nffmpeg -y -ss 00:02:12.799000 -to 00:02:14.233000 -i sample.mp4  output/48.flv\nffmpeg -y -ss 00:02:14.433000 -to 00:02:18.066000 -i sample.mp4  output/49.flv\nffmpeg -y -ss 00:02:18.266000 -to 00:02:20.499000 -i sample.mp4  output/50.flv\nffmpeg -y -ss 00:02:21.299000 -to 00:02:22.666000 -i sample.mp4  output/52.flv\nffmpeg -y -ss 00:02:22.866000 -to 00:02:25.966000 -i sample.mp4  output/53.flv\nffmpeg -y -ss 00:02:26.166000 -to 00:02:31.066000 -i sample.mp4  output/54.flv\nffmpeg -y -ss 00:02:31.266000 -to 00:02:34.533000 -i sample.mp4  output/55.flv\nffmpeg -y -ss 00:02:34.733000 -to 00:02:39.366000 -i sample.mp4  output/56.flv\nffmpeg -y -ss 00:02:39.566000 -to 00:02:42.399000 -i sample.mp4  output/57.flv\nffmpeg -y -ss 00:02:42.599000 -to 00:02:45.433000 -i sample.mp4  output/58.flv\nffmpeg -y -ss 00:02:45.633000 -to 00:02:47.799000 -i sample.mp4  output/59.flv",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/upload_img.py:69-82"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/render.sh:40-52"
     },
     "4735": {
-        "file_id": 613,
-        "content": "This code represents a request with various headers, including \"Cookie\" header storing multiple QQ session data and tokens, and \"Host\" set to \"om.qq.com\".",
+        "file_id": 617,
+        "content": "The code uses FFmpeg to extract specific segments of the video file \"sample.mp4\", from different starting and ending timestamps, and save them as separate output files named \"output/[number].flv\". Each command is executed one after another, resulting in a total of 59 output files.",
         "type": "comment"
     },
     "4736": {
-        "file_id": 613,
-        "content": "\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Origin\",\n\t\t\t\t\"value\": \"https://om.qq.com\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Referer\",\n\t\t\t\t\"value\": \"https://om.qq.com/userReg/mediaInfo\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Sec-Fetch-Dest\",\n\t\t\t\t\"value\": \"empty\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Sec-Fetch-Mode\",\n\t\t\t\t\"value\": \"cors\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"Sec-Fetch-Site\",\n\t\t\t\t\"value\": \"same-origin\"\n\t\t\t},\n\t\t\t{\n\t\t\t\t\"name\": \"User-Agent\",\n\t\t\t\t\"value\": \"Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0\"\n\t\t\t}\n\t\t]\nheaders = {item['name']: item['value'] for item in req_headers}\nrespone = requests.post(url, files=files,headers=headers)\nres = respone.json()\nprint(res)",
+        "file_id": 617,
+        "content": "ffmpeg -y -ss 00:02:47.999000 -to 00:02:50.966000 -i sample.mp4  output/60.flv\nffmpeg -y -ss 00:02:51.166000 -to 00:02:53.866000 -i sample.mp4  output/61.flv\nffmpeg -y -ss 00:02:54.066000 -to 00:02:58.799000 -i sample.mp4  output/62.flv",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/upload_img.py:83-112"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/render.sh:53-55"
     },
     "4737": {
-        "file_id": 613,
-        "content": "The code sends a POST request with specified headers to the given URL using requests library. It uses the provided headers for various purposes such as origin, referer, fetch destination mode, fetch site, and user agent. The response is then printed after converting it to JSON format.",
+        "file_id": 617,
+        "content": "The code uses FFmpeg to extract three segments of 3 seconds each, starting at different time points (02:51.166, 02:54.066, and 02:57.251), from the input video 'sample.mp4' and saves them as separate output files ('output/60.flv', 'output/61.flv', and 'output/62.flv').",
         "type": "comment"
     },
     "4738": {
-        "file_id": 614,
-        "content": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/test_upload_xml_qq.py",
+        "file_id": 618,
+        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/preview_clips.sh",
         "type": "filepath"
     },
     "4739": {
-        "file_id": 614,
-        "content": "The code creates an Action object for QQ messages, handles cover options, and sends XML/JSON messages using `sendFriendXml`/`sendGroupXml`. The \"SendMsgV2\" function sends a QQ message with XML content via a POST request to \"/v1/LuaApiCaller\", including the title, summary, and URL of a music file.",
+        "file_id": 618,
+        "content": "This code plays and pauses \"sample.mp4\" with ffplay for analysis or scene extraction, introducing 3-second delays between playback sessions.",
         "type": "summary"
     },
     "4740": {
-        "file_id": 614,
-        "content": "from botoy import Action\nqq = 917521610\nport = 8784\naction = Action(qq=qq, port=port, host=\"127.0.0.1\")\nuser = 1281727431\n# but the goddamn xml format is not right.\n# cover = \"http://inews.gtimg.com/newsapp_bt/0/15352117085/640\"\ncover = \"http://pubminishare-30161.picsz.qpic.cn/d4ad36fa-833e-4018-b994-a2da810f2d54\"\n# just need a better cover. i don't know.\n# cover = \"https://i0.hdslb.com/bfs/archive/c5a0d18ee077fb6a4ac0970ccb0a3788e137d14f.jpg\" # works.\n# content = \"\"\"<?xml version='1.0' encoding='UTF-8' standalone='yes'?><msg templateID=\"123\" url=\"https://b23.tv/5K7qh7K?share_medium=android&amp;share_source=qq&amp;bbid=XY46C7C4C74C8D645671EF7E8F4CC7810054A&amp;ts=1657521142233\" serviceID=\"1\" action=\"web\" actionData=\"\" a_actionData=\"\" i_actionData=\"\" brief=\"[QQ小程序]哔哩哔哩\" flag=\"0\"><item layout=\"2\"><picture cover=\"{}\"/><title>哔哩哔哩</title><summary>【C语言】《带你学C带你飞》</summary></item><source url=\"https://b23.tv/5K7qh7K?share_medium=android&amp;share_source=qq&amp;bbid=XY46C7C4C74C8D645671EF7E8F4CC7810054A&",
+        "file_id": 618,
+        "content": "ffplay -ss 00:00:00.000 -t 7.833 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:07.833 -t 6.567 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:14.400 -t 1.467 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:15.867 -t 2.033 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:17.900 -t 3.167 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:21.067 -t 3.2 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:24.267 -t 3.3 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:27.567 -t 3.767 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:31.333 -t 2.067 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:33.400 -t 0.6 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:34.000 -t 3.567 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:37.567 -t 3.167 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:40.733 -t 3.567 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:44.300 -t 6.4 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:50.700 -t 5.667 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:56.366 -t 3.433 -i sample.mp4 -autoexit ",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/test_upload_xml_qq.py:1-12"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/preview_clips.sh:1-31"
     },
     "4741": {
-        "file_id": 614,
-        "content": "The code is creating an Action object with QQ number, port, and host. It also includes a variable for the user, cover image URLs, and a template XML message with specific parameters. The current cover URL seems to be causing issues and there are alternative options provided.",
+        "file_id": 618,
+        "content": "This code plays and automatically exits various clips from the sample.mp4 video with specific start times and durations, followed by a 3-second pause between each clip playback.",
         "type": "comment"
     },
     "4742": {
-        "file_id": 614,
-        "content": "amp;ts=1657521142233\" icon=\"https://open.gtimg.cn/open/app_icon/00/95/17/76/100951776_100_m.png?t=1657091104\" name=\"哔哩哔哩\" appid=\"0\" action=\"web\" actionData=\"\" a_actionData=\"tencent0://\" i_actionData=\"\"/></msg>\"\"\".format(\n    # cover\n# )\n# content = \"\"\"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><msg templateID=\"123\" url=\"https://b23.tv/uHML5mi?share_medium=android&amp;share_source=qq&amp;bbid=XY1BB721B1F97348DBDE4297FE1B4ABE26BAA&amp;ts=1666023406285\" serviceID=\"1\" action=\"web\" actionData=\"\" a_actionData=\"\" i_actionData=\"\" brief=\"[QQ小程序]哔哩哔哩\" flag=\"0\"><item layout=\"2\"><picture cover=\"{}\"/><title>【AI动画】妮露PV动画 风转换【NovelAI】</title></item><source url=\"https://b23.tv/uHML5mi?share_medium=android&amp;share_source=qq&amp;bbid=XY1BB721B1F97348DBDE4297FE1B4ABE26BAA&amp;ts=1666023406285\" icon=\"http://miniapp.gtimg.cn/public/appicon/432b76be3a548fc128acaa6c1ec90131_200.jpg\" name=\"哔哩哔哩\" appid=\"0\" action=\"app\" actionData=\"\" a_actionData=\"tencent0://\" i_actionData=\"\"/></msg>\"\"\".format(cover)\n# i guess, it is just the way it send the data is different.",
+        "file_id": 618,
+        "content": "sleep 3\nffplay -ss 00:00:59.800 -t 2.2 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:02.000 -t 2.9 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:04.900 -t 0.8 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:05.700 -t 1.5 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:07.200 -t 2.067 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:09.266 -t 1.3 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:10.566 -t 2.933 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:13.500 -t 1.7 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:15.200 -t 1.6 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:16.800 -t 3.467 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:20.266 -t 1.633 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:21.900 -t 1.467 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:23.366 -t 3.367 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:26.733 -t 1.667 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:28.400 -t 1.4 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:29.800 -t 3.567 -i sample.mp4 -autoexit ",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/test_upload_xml_qq.py:12-16"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/preview_clips.sh:32-63"
     },
     "4743": {
-        "file_id": 614,
-        "content": "This code is formatting XML content for a QQ message template, including the URL, app icon, and app name. The code is using string formatting to replace placeholders with actual data before sending it via QQ.",
+        "file_id": 618,
+        "content": "This code uses ffplay to play predefined segments of a video file \"sample.mp4\" with specified start and stop times, allowing for analysis or extraction of specific scenes. The sleep commands introduce pauses between each command execution, ensuring the video segment plays before moving on to the next one.",
         "type": "comment"
     },
     "4744": {
-        "file_id": 614,
-        "content": "# result= action.sendFriendXml(user=user, content=content)\n# print(result)\n# content=\"\"\"{\"app\":\"com.tencent.gamecenter.gameshare\",\"desc\":\"\",\"view\":\"singleImg\",\"ver\":\"0.0.0.0\",\"prompt\":\"邪少QQXML论坛\",\"appID\":\"\",\"sourceName\":\"\",\"actionData\":\"\",\"actionData_A\":\"\",\"sourceUrl\":\"\",\"meta\":{\"singleImg\":{\"mainImage\":\"https://gchat.qpic.cn/gchatpic_new/3020005669/916530575-2949639428-6E45D21EADE33511C565E25AB432AB59/0?term=2\",\"mainUrl\":\"\"}},\"config\":{\"forward\":1},\"text\":\"\",\"sourceAd\":\"\"}\"\"\"\ngroup = 543780931\n# have error when sending group xml? why?\n# result = action.sendGroupXml(group=group, content=content)\n# successful!\n# this 'com.tencent.structmsg' might be our way. just maybe.\ncontent = \"\"\"{\"app\":\"com.tencent.structmsg\",\"desc\":\"\",\"view\":\"news\",\"ver\":\"0.0.0.1\",\"prompt\":\"邪少QQXML论坛\",\"appID\":100951776,\"sourceName\":\"\",\"actionData\":\"\",\"actionData_A\":\"\",\"sourceUrl\":\"\",\"meta\":{\"singleImg\":{\"mainImage\":\"https://gchat.qpic.cn/gchatpic_new/3020005669/916530575-2949639428-6E45D21EADE33511C565E25AB432AB59/0?term=2\",\"mainUrl\":\"\"}},\"text\":\"\",\"extraApps\":[],\"sourceAd\":\"\",\"config\":{\"forward\":1}}\"\"\"",
+        "file_id": 618,
+        "content": "sleep 3\nffplay -ss 00:01:33.366 -t 0.733 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:34.100 -t 0.6 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:34.700 -t 0.7 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:35.400 -t 0.967 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:36.366 -t 0.733 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:37.100 -t 0.8 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:37.900 -t 4.0 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:41.900 -t 1.0 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:42.900 -t 2.133 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:45.033 -t 3.0 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:48.033 -t 1.6 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:49.633 -t 3.0 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:52.633 -t 3.1 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:55.733 -t 4.033 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:59.766 -t 6.633 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:06.400 -t 6.3 -i sample.mp4 -autoexit ",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/test_upload_xml_qq.py:17-26"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/preview_clips.sh:64-95"
     },
     "4745": {
-        "file_id": 614,
-        "content": "This code attempts to send XML messages using the `sendFriendXml` and `sendGroupXml` methods. The first content is intended for individual chats, while the second content is meant for group chats. It encounters an error when sending group XML and suggests that using \"com.tencent.structmsg\" might be a solution.",
+        "file_id": 618,
+        "content": "The code is executing ffplay with different start times and durations to preview clips from a sample video file. It waits 3 seconds between each command execution.",
         "type": "comment"
     },
     "4746": {
-        "file_id": 614,
-        "content": "# content = \"\"\"{\"app\":\"com.tencent.gamecenter.gameshare\",\"desc\":\"\",\"view\":\"singleImg\",\"ver\":\"0.0.0.0\",\"prompt\":\"邪少QQXML论坛\",\"appID\":\"\",\"sourceName\":\"\",\"actionData\":\"\",\"actionData_A\":\"\",\"sourceUrl\":\"\",\"meta\":{\"singleImg\":{\"mainImage\":\"https://gchat.qpic.cn/gchatpic_new/3020005669/916530575-2949639428-6E45D21EADE33511C565E25AB432AB59/0?term=2\",\"mainUrl\":\"\"}},\"text\":\"\",\"extraApps\":[],\"sourceAd\":\"\",\"config\":{\"forward\":1}}\"\"\"\n# content = \"\"\"<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><msg templateID=\"123\" url=\"https://b23.tv/uHML5mi?share_medium=android&amp;share_source=qq&amp;bbid=XY1BB721B1F97348DBDE4297FE1B4ABE26BAA&amp;ts=1666023406285\" serviceID=\"1\" action=\"web\" actionData=\"\" a_actionData=\"\" i_actionData=\"\" brief=\"[QQ小程序]哔哩哔哩\" flag=\"0\"></msg>\"\"\"\nresult = action.sendGroupJson(group=group, content=content)\n# result = action.sendGroupXml(group=group, content=content)\nprint(result)\n# result = action.sendGroupText(group=group,content='test')\n# result = action.sendGroupText(group=group,content=content)",
+        "file_id": 618,
+        "content": "sleep 3\nffplay -ss 00:02:12.699 -t 1.633 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:14.333 -t 3.833 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:18.166 -t 2.433 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:20.599 -t 0.6 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:21.199 -t 1.567 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:22.766 -t 3.3 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:26.066 -t 5.1 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:31.166 -t 3.467 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:34.633 -t 4.833 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:39.466 -t 3.033 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:42.499 -t 3.033 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:45.533 -t 2.367 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:47.899 -t 3.167 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:51.066 -t 2.9 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:53.966 -t 4.933 -i sample.mp4 -autoexit \nsleep 3",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/test_upload_xml_qq.py:27-33"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/preview_clips.sh:96-126"
     },
     "4747": {
-        "file_id": 614,
-        "content": "Sending a group message in JSON format, with the option to send in XML format as well. The content variable holds the message data, and the result is the response from sending the message. Printing the result for further use or logging.",
+        "file_id": 618,
+        "content": "The code uses the ffplay command to play specific segments of a video file, \"sample.mp4\", with varying start times and durations. The -autoexit flag ensures that each playback session ends automatically after completion. Sleep commands are used between ffplay calls, introducing delays of 3 seconds each time.",
         "type": "comment"
     },
     "4748": {
-        "file_id": 614,
-        "content": "# funcname = \"SendMsgV2\"\n# content = \"\"\"<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><msg serviceID='1' templateID='1' action='' brief='&#91;群僵尸任务&#93;' sourceMsgId='0' url='' flag='2' adverSign='0' multiMsgFlag='0'><item layout='0'><title size='38' color='#9900CC' style='1'>🆕已经启动🆕</title></item><item layout='0'><hr hidden='false' style='0' /></item><item layout='6'><summary color='#FF0033'>1⃣️</summary><summary color='#FF0099'>💪正在扫秒僵尸💪</summary></item><source name='' icon='' action='' appid='-1' /></msg>\"\"\"\n# content = \"\"\"<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><msg serviceID=\"2\" templateID=\"1\" action=\"web\" brief=\"&#91;分享&#93; 十年\" sourceMsgId=\"0\" url=\"https://i.y.qq.com/v8/playsong.html?_wv=1&amp;songid=4830342&amp;souce=qqshare&amp;source=qqshare&amp;ADTAG=qqshare\" flag=\"0\" adverSign=\"0\" multiMsgFlag=\"0\" ><item layout=\"2\"><audio cover=\"http://imgcache.qq.com/music/photo/album_500/26/500_albumpic_89526_0.jpg\" src=\"http://ws.stream.qqmusic.qq.com/C400003mAan70z",
-        "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/test_upload_xml_qq.py:34-36"
+        "file_id": 619,
+        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py",
+        "type": "filepath"
     },
     "4749": {
-        "file_id": 614,
-        "content": "This code defines a function named \"SendMsgV2\" and includes an XML content string. The XML contains message details for QQ messenger, including the service ID, template ID, action, brief, source message ID, URL, flag, adverSign, multiMsgFlag, and item layout. It sets the message title and summary, as well as specifying the URL to share a song from QQ music.",
-        "type": "comment"
+        "file_id": 619,
+        "content": "The code reads CSV data, calculates statistics for video scene lengths, generates FFmpeg commands with duration threshold handling, filters and selects scenes based on even spacing criteria using random functions. The `getNeighborIndexs` function helps find neighboring values that meet specific thresholds.",
+        "type": "summary"
     },
     "4750": {
-        "file_id": 614,
-        "content": "Uy5O.m4a?guid=1535153710&amp;vkey=D5315B8C0603653592AD4879A8A3742177F59D582A7A86546E24DD7F282C3ACF81526C76E293E57EA1E42CF19881C561275D919233333ADE&amp;uin=&amp;fromtag=3\" /><title>十年</title><summary>陈奕迅</summary></item><source name=\"QQ音乐\" icon=\"https://i.gtimg.cn/open/app_icon/01/07/98/56/1101079856_100_m.png\" url=\"http://web.p.qq.com/qqmpmobile/aio/app.html?id=1101079856\" action=\"app\"  a_actionData=\"com.tencent.qqmusic\" i_actionData=\"tencent1101079856://\" appid=\"1101079856\" /></msg>\"\"\"\n# content = \"\"\"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><msg serviceID=\"1\" templateID=\"1\" action=\"\" brief=\"QQ红包\" sourceMsgId=\"0\" flag=\"8\" adverSign=\"0\" multiMsgFlag=\"0\"><item layout=\"6\"><title color=\"#EE00EE\" style=\"4\">阿深真帅</title><summary color=\"#9A32CD\">是不是很无语</summary><picture cover=\"http://t1.hddhhn.com/uploads/tu/20150507/20405-eBE9jO.jpg\" action=\"web\" url=\"http://url.cn/5g4eOiY\" w=\"0\" h=\"0\"/></item></msg>\"\"\"\n# payload = {\n#     \"ToUserUid\": group,\n#     \"SendToType\": 2,\n#     \"SendMsgType\": \"XmlMsg\",",
+        "file_id": 619,
+        "content": "import pandas\nmetric = \"video.stats.csv\"\nmetric = pandas.read_csv(metric)\nscenes = \"sample_scenes.csv\"\nwith open(scenes, \"r\") as f:\n    content = f.read()\n    lines = content.split(\"\\n\")\n    timecodeList = lines[0]\n    scenes = \"\\n\".join(lines[1:])\n    from io import StringIO\n    scenes = StringIO(scenes)\ntimecodeList = timecodeList.split(\",\")\ntimecodeList[0] = \"00:00:00.000\"\nscenes = pandas.read_csv(scenes)\nlengths = []\nsceneCuts = []\nfor index, row in scenes.iterrows():\n    # print(row)\n    # breakpoint()\n    start, end = row[\"Start Timecode\"], row[\"End Timecode\"]\n    length = row[\"Length (seconds)\"]\n    sceneCuts.append((start, end, length))\n    # print(start, end)\n    # please calculate the length!\n    lengths.append(length)\n    # print(length, type(length)) # float.\nflag = \"filter\"\nfilename = \"sample.mp4\"\nif flag == \"calculate_statistics\":\n    import numpy\n    std = numpy.std(lengths)\n    mean = numpy.mean(lengths)\n    print(std, mean)\n    # 1.6674874515595588 2.839698412698412\n    print(min(lengths), max(lengths))",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/test_upload_xml_qq.py:36-41"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:1-46"
     },
     "4751": {
-        "file_id": 614,
-        "content": "This code snippet is sending an XML message to QQ with content and media information for a music file. The message includes details such as title, summary, and URL of the music file along with the source name and icon of QQ Music app. It also specifies the action and action data associated with the app.",
+        "file_id": 619,
+        "content": "This code reads data from two CSV files and performs calculations on the \"Length (seconds)\" values for each scene in a video. It calculates the standard deviation, mean, minimum, and maximum of these lengths. The resulting values are then printed to the console.",
         "type": "comment"
     },
     "4752": {
-        "file_id": 614,
-        "content": "#     \"Content\": content,\n# }\n# result = action.baseRequest(\n#     method=\"POST\",\n#     funcname=funcname,\n#     path=\"/v1/LuaApiCaller\",\n#     params={\"qq\": qq, \"funcname\": funcname},\n#     payload=payload,\n# )\n# print(result)",
+        "file_id": 619,
+        "content": "    min(lengths), max(lengths)\n    # 0.6 7.833\n    # strange though.\n    # shall we adjust this accordingly? how to generate this shit?\nelif flag == \"generate_ffplay\":\n    for (start, end, duration) in sceneCuts:\n        print(\"ffplay -ss %s -t %s -i %s -autoexit \" % (start, duration, filename))\n        print(\"sleep 3\")\nelif flag == \"render\":\n    import os\n    import datetime\n    durationThreshold = 0.6674874515595588\n    mTimeDelta = datetime.timedelta(milliseconds=100)  # 0.1 seconds\n    getTimeObject = lambda timeString: datetime.datetime.strptime(\n        timeString, \"%H:%M:%S.%f\"\n    )\n    getTimeString = lambda timeObject: timeObject.strftime(\"%H:%M:%S.%f\")\n    if not os.path.exists(\"output\"):\n        os.mkdir(\"output\")\n    for index, (start, end, duration) in enumerate(sceneCuts):\n        estimatedDuration = duration - 0.2\n        if estimatedDuration < durationThreshold:\n            continue\n        start2 = getTimeObject(start) + mTimeDelta\n        end2 = getTimeObject(end) - mTimeDelta\n        start2, end2 = getTimeString(start2), getTimeString(end2)",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/test_upload_xml_qq.py:42-51"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:47-73"
     },
     "4753": {
-        "file_id": 614,
-        "content": "Sending XML data via POST request to \"/v1/LuaApiCaller\" with QQ number and funcname parameters, then printing the result.",
+        "file_id": 619,
+        "content": "This code segment is responsible for generating FFmpeg commands to play and render video scenes, with additional handling of scene duration threshold. It also checks if the output directory exists and creates it if necessary. The code adjusts start and end times by subtracting or adding 0.2 seconds from the original duration and compares the estimated duration to a given threshold before proceeding with FFmpeg commands.",
         "type": "comment"
     },
     "4754": {
-        "file_id": 615,
-        "content": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/test_upload_get_link.sh",
-        "type": "filepath"
+        "file_id": 619,
+        "content": "        output = \"output/%d.flv\" % index\n        print(\"ffmpeg -y -ss %s -to %s -i %s %s\" % (start2, end2, filename, output))\nelif (\n    flag == \"filter\"\n):  # to make sure the selected set will be evenly spaced. no two elements will get closer to each other than 5 seconds.\n    import random\n    durationMinThreshold = 0.6\n    durationMaxThreshold = 7.833\n    fakeQualificationFunction = lambda: random.uniform(\n        durationMinThreshold, durationMaxThreshold\n    )\n    fakeAcceptFunction = lambda: random.random() > 0.5\n    # select the closest one! must be closer than 0.9 to 1.1\n    candidates = []\n    import datetime\n    getTimeObject = lambda timeString: datetime.datetime.strptime(\n        timeString, \"%H:%M:%S.%f\"\n    )\n    getTimeString = lambda timeObject: timeObject.strftime(\"%H:%M:%S.%f\")\n    mTimeDelta = datetime.timedelta(milliseconds=100)  # 0.1 seconds\n    standardStartDatetime = datetime.datetime(year=1900, month=1, day=1)\n    standardStartTimestamp = standardStartDatetime.timestamp()\n    getTimestamp = lambda timeObject: timeObject.timestamp() - standardStartTimestamp",
+        "type": "code",
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:74-99"
     },
     "4755": {
-        "file_id": 615,
-        "content": "Code navigates to the \"free-img\" directory, sets the PICTURE variable to a specific image path, and runs the Python script \"cli/free-img.py\" with options \"-s gtimg\" and \"-i $PICTURE\", which uploads an image to the \"gtimg\" server using the specified picture.",
-        "type": "summary"
+        "file_id": 619,
+        "content": "This code snippet is responsible for filtering and selecting video scenes based on specific duration criteria. It ensures that the selected set of scenes is evenly spaced, with no two elements being closer than 5 seconds. The code uses random functions to generate duration thresholds and filters candidate scenes accordingly. It also includes time-related functions for converting between string and datetime formats, and calculating timestamps from datetimes.",
+        "type": "comment"
     },
     "4756": {
-        "file_id": 615,
-        "content": "cd free-img\nPICTURE=/root/Desktop/works/pyjom/tests/bilibili_video_recommendation_server/test_cover.jpg\npython3 cli/free-img.py -s gtimg -i $PICTURE",
+        "file_id": 619,
+        "content": "    for index, (start, end, duration) in enumerate(sceneCuts):\n        estimatedDurationAfterCut = duration - 0.2\n        if (\n            estimatedDurationAfterCut < durationMinThreshold\n            or estimatedDurationAfterCut > durationMaxThreshold\n        ):\n            continue\n        startCutDatetime = getTimeObject(start) + mTimeDelta\n        endCutDatetime = getTimeObject(end) - mTimeDelta\n        # print(getTimeStamp(startDatetime), getTimeStamp(endDatetime))\n        # print(startDatetime, endDatetime)\n        startCutTimestamp, endCutTimestamp = getTimestamp(\n            startCutDatetime\n        ), getTimestamp(endCutDatetime)\n        candidates.append(\n            (startCutTimestamp, endCutTimestamp, estimatedDurationAfterCut)\n        )\n    shuffledCandidates = [\n        (index, startCutDatetime, endCutDatetime, estimatedDurationAfterCut)\n        for index, (\n            startCutDatetime,\n            endCutDatetime,\n            estimatedDurationAfterCut,\n        ) in enumerate(candidates)\n    ]\n    random.shuffle(shuffledCandidates)",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/test_upload_get_link.sh:1-5"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:101-127"
     },
     "4757": {
-        "file_id": 615,
-        "content": "Code navigates to the \"free-img\" directory, sets the PICTURE variable to a specific image path, and runs the Python script \"cli/free-img.py\" with options \"-s gtimg\" and \"-i $PICTURE\", which uploads an image to the \"gtimg\" server using the specified picture.",
+        "file_id": 619,
+        "content": "Iterates through scene cuts, filters based on duration threshold, converts timestamps to Unix timestamps, appends as candidates, shuffles the candidates and assigns index.",
         "type": "comment"
     },
     "4758": {
-        "file_id": 616,
-        "content": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/test_launch_share.sh",
-        "type": "filepath"
+        "file_id": 619,
+        "content": "    bannedIndexs = set()\n    neighborThreshold = 5\n    def getNeighborIndexs(index, candidates, neighborThreshold, checkNeighbor):\n        assert neighborThreshold > 0\n        assert index < len(candidates) and index >= 0\n        leftNeighbors = candidates[:index][::-1]\n        rightNeighbors = candidates[index + 1 :]\n        neighborIndexs = []\n        for mIndex, neighbor in enumerate(leftNeighbors):\n            currentIndex = index - mIndex - 1\n            assert candidates[currentIndex] == neighbor\n            assert currentIndex >= 0 and currentIndex < len(candidates)\n            if checkNeighbor(neighbor, candidates[index]):\n                neighborIndexs.append(currentIndex)\n                print(\"left index:\", currentIndex)\n            else:\n                break\n        for mIndex, neighbor in enumerate(rightNeighbors):\n            currentIndex = index + mIndex + 1\n            assert candidates[currentIndex] == neighbor\n            assert currentIndex >= 0 and currentIndex < len(candidates)\n            if checkNeighbor(neighbor, candidates[index]):",
+        "type": "code",
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:128-150"
     },
     "4759": {
-        "file_id": 616,
-        "content": "This code launches the JumpActivity in the Tencent MobileQQ app, passing a complex URI with various data such as file type, file data, title, description, and URL to share. The shared content is related to Bilibili video recommendation server. It specifies the app name and package name (tv.danmaku.bili).",
-        "type": "summary"
+        "file_id": 619,
+        "content": "This function, `getNeighborIndexs`, takes an index, a list of candidates, and two parameters: `neighborThreshold` and `checkNeighbor`. It checks the neighboring values from both sides of the given index, appending their indices to the list if they satisfy a certain condition defined by `checkNeighbor`. It prints the left indices found while iterating through the candidates.",
+        "type": "comment"
     },
     "4760": {
-        "file_id": 616,
-        "content": "am start -n com.tencent.mobileqq/com.tencent.mobileqq.activity.JumpActivity -a android.intent.action.VIEW -d 'mqqapi://share/to_fri?src_type=app&version=1&file_type=news&file_data=L3N0b3JhZ2UvZW11bGF0ZWQvMC9QaWN0dXJlcy9zaGFyZS8xMjcyMDY0MzU0&file_uri=Y29udGVudDovL3R2LmRhbm1ha3UuYmlsaS5maWxlcHJvdmlkZXIvb3BlbnNka19leHRlcm5hbC9zaGFyZTJxcV90ZW1wNDIwOTU0OTNhYjhlZGRhZmYzMWQ1Y2ZjYWYzZjE3MDQuanBn&title=5ZOU5ZOp5ZOU5ZOp&description=5aSn5Z6L5pS/6K6654mH772c5paw5pe25Luj562U5Y23&share_id=100951776&url=aHR0cHM6Ly9iMjMudHYvdGRKZGd6WT9zaGFyZV9tZWRpdW09YW5kcm9pZCZzaGFyZV9zb3VyY2U9cXEmYmJpZD1YWTFCQjcyMUIxRjk3MzQ4REJERTQyOTdGRTFCNEFCRTI2QkFBJnRzPTE2NjcyNzU0ODI4MTY=&app_name=5ZOU5ZOp5ZOU5ZOp&req_type=Nw==&mini_program_appid=MTEwOTkzNzU1Nw==&mini_program_path=cGFnZXMvdmlkZW8vdmlkZW8/YnZpZD1CVjFuZTQxMUw3aHkmc2hhcmVfc291cmNlPXFxX3VnYyZ1bmlxdWVfaz10ZEpkZ3pZ&mini_program_type=Mw==&cflag=MA==&third_sd=dHJ1ZQ==' -e pkg_name tv.danmaku.bili",
+        "file_id": 619,
+        "content": "                neighborIndexs.append(currentIndex)\n                print(\"right index:\", currentIndex)\n            else:\n                break\n        return neighborIndexs\n    def checkNeighborForClipCandiates(clip_a, clip_b, threshold):\n        assert threshold > 0\n        s_a, e_a, l_a = clip_a\n        s_b, e_b, l_b = clip_b\n        e_min = min(e_a, e_b)\n        s_max = max(s_a, s_b)\n        distance = s_max - e_min\n        return distance < threshold  # check if is neighbor\n    while True:\n        print(\"BANNED:\", len(bannedIndexs), \"TOTAL:\", len(candidates))\n        target = fakeQualificationFunction()\n        isSimilar = lambda a, b, threshold: min(a, b) / max(a, b) >= threshold\n        similarThreshold = 0.9\n        if len(bannedIndexs) == len(shuffledCandidates):\n            print(\"No avaliable candidates\")\n            break\n        for (\n            index,\n            startCutDatetime,\n            endCutDatetime,\n            estimatedDurationAfterCut,\n        ) in shuffledCandidates:\n            if index in bannedIndexs:",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/test_launch_share.sh:1-1"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:151-180"
     },
     "4761": {
-        "file_id": 616,
-        "content": "This code launches the JumpActivity in the Tencent MobileQQ app, passing a complex URI with various data such as file type, file data, title, description, and URL to share. The shared content is related to Bilibili video recommendation server. It specifies the app name and package name (tv.danmaku.bili).",
+        "file_id": 619,
+        "content": "The code is iterating over candidate indexes and checking if they are neighbors. It appends the current index to a list of neighborIndexs, and checks if two clips are neighbors using a threshold value. If there are no available candidates left, it breaks the loop.",
         "type": "comment"
     },
     "4762": {
-        "file_id": 617,
-        "content": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/send_friend_xml_and_forward_xml_to_group.py",
-        "type": "filepath"
+        "file_id": 619,
+        "content": "                continue\n            if isSimilar(estimatedDurationAfterCut, target, similarThreshold):\n                accept = fakeAcceptFunction()\n                if accept:\n                    print(\n                        \"Accepting candidate\",\n                        (\n                            index,\n                            startCutDatetime,\n                            endCutDatetime,\n                            estimatedDurationAfterCut,\n                        ),\n                    )\n                    print(\"target:\", target)\n                    bannedIndexs.add(index)\n                    neighborIndexs = getNeighborIndexs(\n                        index,\n                        candidates,\n                        neighborThreshold,\n                        lambda a, b: checkNeighborForClipCandiates(\n                            a, b, neighborThreshold\n                        ),\n                    )\n                    print(\"NEIGHBOR INDEXS:\", neighborIndexs)\n                    for neighborIndex in neighborIndexs:",
+        "type": "code",
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:181-205"
     },
     "4763": {
-        "file_id": 617,
-        "content": "This code sends QQ messages containing video recommendations or Baidu website links to specific users and groups using XML format, and utilizes the requests library for API calls.",
-        "type": "summary"
+        "file_id": 619,
+        "content": "This code continues until finding a candidate that meets the similarity threshold, then accepts it if the fake acceptance function returns true. If accepted, it prints information about the candidate and its neighbors, along with the target duration.",
+        "type": "comment"
     },
     "4764": {
-        "file_id": 617,
-        "content": "cover = \"https://i0.hdslb.com/bfs/archive/c5a0d18ee077fb6a4ac0970ccb0a3788e137d14f.jpg\" # works.\ncontent = \"\"\"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><msg templateID=\"123\" url=\"https://b23.tv/uHML5mi?share_medium=android&amp;share_source=qq&amp;bbid=XY1BB721B1F97348DBDE4297FE1B4ABE26BAA&amp;ts=1666023406285\" serviceID=\"1\" action=\"web\" actionData=\"\" a_actionData=\"\" i_actionData=\"\" brief=\"[QQ小程序]哔哩哔哩\" flag=\"0\"><item layout=\"2\"><picture cover=\"{}\"/><title>【AI动画】妮露PV动画 风转换【NovelAI】</title></item><source url=\"https://b23.tv/uHML5mi?share_medium=android&amp;share_source=qq&amp;bbid=XY1BB721B1F97348DBDE4297FE1B4ABE26BAA&amp;ts=1666023406285\" icon=\"http://miniapp.gtimg.cn/public/appicon/432b76be3a548fc128acaa6c1ec90131_200.jpg\" name=\"哔哩哔哩\" appid=\"0\" action=\"app\" actionData=\"\" a_actionData=\"tencent0://\" i_actionData=\"\"/></msg>\"\"\".format(cover)\nqq = 917521610\nuser = 1281727431\ngroup = 543780931\nbaseUrl = \"http://0.0.0.0:5700\" # the thing is not ready yet.\nimport requests\nurl = baseUrl + \"/send_private_msg\"",
+        "file_id": 619,
+        "content": "                        bannedIndexs.add(neighborIndex)\n                        print(\"also banned:\", neighborIndex, candidates[neighborIndex])\n        random.shuffle(shuffledCandidates)",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/send_friend_xml_and_forward_xml_to_group.py:1-14"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:206-208"
     },
     "4765": {
-        "file_id": 617,
-        "content": "This code sends a QQ message with an XML format containing a video recommendation to a specific user and group. The cover image URL is set, the content is a formatted XML string, QQ account IDs are defined, and the base URL for sending the message is specified. The code uses the requests library to send the message to the server.",
+        "file_id": 619,
+        "content": "The code adds the current neighbor index to a list of banned indices, prints it along with the candidate at that index, and then shuffles the remaining candidates.",
         "type": "comment"
     },
     "4766": {
-        "file_id": 617,
-        "content": "message = '[CQ:share,url=http://baidu.com,title=百度]'\ndata = {\"user_id\": user, \"message\": message, \"auto_escape\": False}\nr = requests.post(url, data=data)\nprint(r.json())\n# message = \"[CQ:forward,id={}]\".format(291457889)\n# url = baseUrl+\"/send_group_msg\"\n# data = {\"group_id\":group, \"message\": message, \"auto_escape\": False}\n# r = requests.post(url,data=data)\n# print(r.json())",
-        "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/send_friend_xml_and_forward_xml_to_group.py:15-27"
+        "file_id": 620,
+        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/get_scene_cuts.sh",
+        "type": "filepath"
     },
     "4767": {
-        "file_id": 617,
-        "content": "This code sends a message containing a Baidu website link to a specific user using XML format and also includes an option to forward the message with a given ID to a group. The API call is made using requests library, and the response from the server is printed in JSON format.",
-        "type": "comment"
+        "file_id": 620,
+        "content": "This code uses the SceneDetect library to detect scenes in a video file and split it into separate clips based on scene changes. It opens the video, creates a SceneManager object, adds a ContentDetector with a threshold value, detects scenes using the detector, retrieves the list of detected scenes, and then splits the video using ffmpeg according to the scene list.",
+        "type": "summary"
     },
     "4768": {
-        "file_id": 618,
-        "content": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/run_qq_capture.sh",
-        "type": "filepath"
+        "file_id": 620,
+        "content": "scenedetect -i sample.mp4 -s video.stats.csv detect-content list-scenes -f sample_scenes.csv\n# for dynamic analysis:\n# https://github.com/Breakthrough/PySceneDetect/README.md\n# from scenedetect import open_video, SceneManager, split_video_ffmpeg\n# from scenedetect.detectors import ContentDetector\n# from scenedetect.video_splitter import split_video_ffmpeg\n# def split_video_into_scenes(video_path, threshold=27.0):\n#     # Open our video, create a scene manager, and add a detector.\n#     video = open_video(video_path)\n#     scene_manager = SceneManager()\n#     scene_manager.add_detector(\n#         ContentDetector(threshold=threshold))\n#     scene_manager.detect_scenes(video, show_progress=True)\n#     scene_list = scene_manager.get_scene_list()\n#     split_video_ffmpeg(video_path, scene_list, show_progress=True)",
+        "type": "code",
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/get_scene_cuts.sh:1-16"
     },
     "4769": {
-        "file_id": 618,
-        "content": "This code sets up a man-in-the-middle (MITM) proxy using MitmProxy, listening on port 8050 and logging all captured traffic to 'qq.log'. It also enables WebSocket stream processing for the 'tv.danmaku.bili' application.",
-        "type": "summary"
+        "file_id": 620,
+        "content": "This code uses the SceneDetect library to detect scenes in a video file and split it into separate clips based on scene changes. It opens the video, creates a SceneManager object, adds a ContentDetector with a threshold value, detects scenes using the detector, retrieves the list of detected scenes, and then splits the video using ffmpeg according to the scene list.",
+        "type": "comment"
     },
     "4770": {
-        "file_id": 618,
-        "content": "mitmproxy --mode socks5 --listen-port 8050 -w qq.log --set stream_websocket=true\n# tv.danmaku.bili",
-        "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/run_qq_capture.sh:1-3"
+        "file_id": 621,
+        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/generate_random_clip_lengths.py",
+        "type": "filepath"
     },
     "4771": {
-        "file_id": 618,
-        "content": "This code sets up a man-in-the-middle (MITM) proxy using MitmProxy, listening on port 8050 and logging all captured traffic to 'qq.log'. It also enables WebSocket stream processing for the 'tv.danmaku.bili' application.",
-        "type": "comment"
+        "file_id": 621,
+        "content": "This code generates 30 random clip lengths using a truncated Gaussian distribution with mean and standard deviation, ensuring values are within specified bounds. It utilizes the truncnorm function from scipy.stats for generating the distribution.",
+        "type": "summary"
     },
     "4772": {
-        "file_id": 619,
-        "content": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/run_bilibili_qq_share_xml.sh",
-        "type": "filepath"
+        "file_id": 621,
+        "content": "std, mean = 1.6674874515595588, 2.839698412698412\nscale, loc = std, mean\n# using gaussian distribution\n# accepting both mean and standard deviation\n# this is truncated gaussian, not just normal distribution\nmyclip_a, myclip_b = 0.6, 7.833\n# while you need to make sure the value is in bound.\n# import random\nfrom scipy.stats import truncnorm\na, b = (myclip_a - loc) / scale, (myclip_b - loc) / scale\nrandVar = truncnorm(a,b)\nrandomFunction = lambda: randVar.rvs(1)[0]*scale+loc\n# inBound = lambda number: min(nMax, max(nMin, number))\n# randomFunction = lambda: inBound(random.gauss(mean, std))\nfor _ in range(30):\n    print(randomFunction())",
+        "type": "code",
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/generate_random_clip_lengths.py:1-21"
     },
     "4773": {
-        "file_id": 619,
-        "content": "This code sets up a MitM proxy in Socks5 mode, listens on port 8050, and logs websocket activity for bilibili QQ share feature.",
-        "type": "summary"
+        "file_id": 621,
+        "content": "This code generates 30 random clip lengths using a truncated Gaussian distribution with mean and standard deviation, ensuring values are within specified bounds. It utilizes the truncnorm function from scipy.stats for generating the distribution.",
+        "type": "comment"
     },
     "4774": {
-        "file_id": 619,
-        "content": "mitmproxy --mode socks5 --listen-port 8050 -w bilibili_qq_xml_share.log --set stream_websocket=true\n# tv.danmaku.bili",
-        "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/run_bilibili_qq_share_xml.sh:1-3"
-    },
-    "4775": {
-        "file_id": 619,
-        "content": "This code sets up a MitM proxy in Socks5 mode, listens on port 8050, and logs websocket activity for bilibili QQ share feature.",
-        "type": "comment"
-    },
-    "4776": {
-        "file_id": 620,
-        "content": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/qq_gocqhttp_post_xml.py",
+        "file_id": 622,
+        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/download_sample.sh",
         "type": "filepath"
     },
-    "4777": {
-        "file_id": 620,
-        "content": "The code utilizes go-cqhttp and Requests library to send XML-formatted rich media messages, targeting group chats with audio and QQ Music items, requiring a group ID. It allows Python users to send messages containing JSON or XML data to a web URL with dynamic content.",
+    "4775": {
+        "file_id": 622,
+        "content": "This code uses yt-dlp to download a sample video from Bilibili at the given URL and save it as \"sample.mp4\".",
         "type": "summary"
     },
-    "4778": {
-        "file_id": 620,
-        "content": "baseUrl = \"http://0.0.0.0:5700\"\n# try to send xml to group.\n# 私聊可以发xml 但是群聊不行 群聊只能发加密好验证好的json\n# cover = \"http://pubminishare-30161.picsz.qpic.cn/d4ad36fa-833e-4018-b994-a2da810f2d54\"\n# content = \"\"\"<?xml version='1.0' encoding='UTF-8' standalone='yes'?><msg templateID=\"123\" url=\"https://b23.tv/5K7qh7K?share_medium=android&amp;share_source=qq&amp;bbid=XY46C7C4C74C8D645671EF7E8F4CC7810054A&amp;ts=1657521142233\" serviceID=\"1\" action=\"web\" actionData=\"\" a_actionData=\"\" i_actionData=\"\" brief=\"[QQ小程序]哔哩哔哩\" flag=\"0\"><item layout=\"2\"><picture cover=\"{}\"/><title>哔哩哔哩</title><summary>【C语言】《带你学C带你飞》</summary></item><source url=\"https://b23.tv/5K7qh7K?share_medium=android&amp;share_source=qq&amp;bbid=XY46C7C4C74C8D645671EF7E8F4CC7810054A&amp;ts=1657521142233\" icon=\"https://open.gtimg.cn/open/app_icon/00/95/17/76/100951776_100_m.png?t=1657091104\" name=\"哔哩哔哩\" appid=\"0\" action=\"web\" actionData=\"\" a_actionData=\"tencent0://\" i_actionData=\"\"/></msg>\"\"\".format(\n# cover)\ngroup = 543780931\nimport requests\nurl = baseUrl + \"/send_group_msg\"",
+    "4776": {
+        "file_id": 622,
+        "content": "yt-dlp -o sample.mp4 https://www.bilibili.com/video/BV1HS4y1w7PK",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/qq_gocqhttp_post_xml.py:1-12"
+        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/download_sample.sh:1-1"
     },
-    "4779": {
-        "file_id": 620,
-        "content": "The code attempts to send an XML message to a group chat using the GOCQHTTP API. The message contains a template with a cover image, title, and summary, promoting a video from Bilibili. The message can only be sent in group chats and not private chats. It uses the base URL \"http://0.0.0.0:5700\" and requires the group ID as input for sending the XML message.",
+    "4777": {
+        "file_id": 622,
+        "content": "This code uses yt-dlp to download a sample video from Bilibili at the given URL and save it as \"sample.mp4\".",
         "type": "comment"
     },
+    "4778": {
+        "file_id": 623,
+        "content": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/README.md",
+        "type": "filepath"
+    },
+    "4779": {
+        "file_id": 623,
+        "content": "This code covers device discovery, Termux daemon, remote unlock with ADB and scrcpy client, focused window titles, downloading a macOS keylogger, and executes input tests on the X server.",
+        "type": "summary"
+    },
     "4780": {
-        "file_id": 620,
-        "content": "# message = 'test'\n# content = \"\"\"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?><msg serviceID=\"2\" templateID=\"1\" action=\"web\" brief=\"\" sourceMsgId=\"0\" url=\"https://qm.qq.com/cgi-bin/qm/qr?k=wyw10nH14NxBzBmM2DZK_bj9y9yX-IJL\" flag=\"0\" adverSign=\"0\" multiMsgFlag=\"0\"><item layout=\"2\"><audio cover=\"https://python3student.github.io/img/avatar.jpg\" src=\"https://music.163.com/song/media/outer/url?id=449818326.mp3\" /><title>鹿 be free</title><summary>『作者』神奇</summary></item><source name=\"神奇永远的神！\" icon=\"https://python3student.github.io/img/avatar.jpg\" url=\"https://python3student.github.io/img/avatar.jpg\" action=\"app\" a_actionData=\"com.netease.cloudmusic\" i_actionData=\"tencent100495085://\" appid=\"100495085\" /></msg>\"\"\"\n# content = \"\"\"<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><msg serviceID=\"2\" templateID=\"1\" action=\"web\" brief=\"&#91;分享&#93; 十年\" sourceMsgId=\"0\" url=\"https://i.y.qq.com/v8/playsong.html?_wv=1&amp;songid=4830342&amp;souce=qqshare&amp;source=qqshare&amp;ADTAG=qqsh",
+        "file_id": 623,
+        "content": "device discovery, termux daemon, remote unlock\nunlock requires screenshot and input events.\nhttps://technastic.com/unlock-android-phone-pin-pattern-adb/\nclick ok after input password:\nhttps://stackoverflow.com/questions/29072501/how-to-unlock-android-phone-through-adb\nscrcpy client\nhttps://github.com/leng-yue/py-scrcpy-client\nhttps://leng-yue.github.io/py-scrcpy-client/guide.html#bind-events\nyou want to use android emulator on macos m1?\nhttps://github.com/google/android-emulator-m1-preview/releases/tag/0.3\ncheck android screen lock/unlock state\nhttps://android.stackexchange.com/questions/191086/adb-commands-to-get-screen-state-and-locked-state\nBonjour/Avahi/Zeroconf\nlogic: if the kill switch is off, when no physical input events happens, or not focused on scrcpy window with keyboard/mouse input events on pc for some time, allow to interact with the phone.\nget physical events:\nwarning: this command could be offline for a short period of time after using the scrcpy. must automatically reconnect if the device is not offline.",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/qq_gocqhttp_post_xml.py:13-15"
+        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/README.md:1-30"
     },
     "4781": {
-        "file_id": 620,
-        "content": "This code is setting a message and content for an XML-formatted message to be sent using the gocqhttp package. The message includes an image, audio, and links to a music source and app ID. It will be used for sending a rich media message with QQ Gocqhttp.",
+        "file_id": 623,
+        "content": "This code focuses on device discovery, termux daemon, remote unlock, using scrcpy client and android emulator on MacOS M1. It includes links for unlocking Android phone through ADB, checking screen lock/unlock state, utilizing Bonjour/Avahi/Zeroconf logic, handling physical events and reconnecting if necessary.",
         "type": "comment"
     },
     "4782": {
-        "file_id": 620,
-        "content": "are\" flag=\"0\" adverSign=\"0\" multiMsgFlag=\"0\" ><item layout=\"2\"><audio cover=\"http://imgcache.qq.com/music/photo/album_500/26/500_albumpic_89526_0.jpg\" src=\"http://ws.stream.qqmusic.qq.com/C400003mAan70zUy5O.m4a?guid=1535153710&amp;vkey=D5315B8C0603653592AD4879A8A3742177F59D582A7A86546E24DD7F282C3ACF81526C76E293E57EA1E42CF19881C561275D919233333ADE&amp;uin=&amp;fromtag=3\" /><title>十年</title><summary>陈奕迅</summary></item><source name=\"QQ音乐\" icon=\"https://i.gtimg.cn/open/app_icon/01/07/98/56/1101079856_100_m.png\" url=\"http://web.p.qq.com/qqmpmobile/aio/app.html?id=1101079856\" action=\"app\"  a_actionData=\"com.tencent.qqmusic\" i_actionData=\"tencent1101079856://\" appid=\"1101079856\" /></msg>\"\"\"\n# content = \"\"\"<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><msg serviceID=\"1\" templateID=\"1\" action=\"\" brief=\"QQ红包\" sourceMsgId=\"0\" flag=\"8\" adverSign=\"0\" multiMsgFlag=\"0\"><item layout=\"6\"><title color=\"#EE00EE\" style=\"4\">阿深真帅</title><summary color=\"#9A32CD\">是不是很无语</summary><picture cover=\"http:",
+        "file_id": 623,
+        "content": "```bash\nadb -s 192.168.10.3:5555 shell getevent\n```\nto get focused window title:\nhint: for headless ssh sessions, must set apropriate xorg environment variables, eg: `env XAUTHORITY=\"/run/user/0/gdm/Xauthority\" DISPLAY=:1 python3`\ngeneral method:\n```python\nimport pywinctl\npywinctl.getActiveWindowTitle()\n```\nfor linux:\n```bash\nwatch -n 2 xdotool getactivewindow getwindowname\n```\nfor macos: (allow permission first, deprecated since it will not get the window title instead of the program name)\nhttps://alvinalexander.com/mac-os-x/applescript-unix-mac-osx-foreground-application-result/\n(where is the window name?)\n```bash\nsleep 3 && osascript -e 'tell application \"System Events\"' -e 'set frontApp to name of first application process whose frontmost is true' -e 'end tell'\n```\nto get input events on macos:\ndownload keylogger here:\nhttps://hackernoon.com/writing-an-keylogger-for-macos-in-python-24adfa22722\nhttps://github.com/beatsbears/pkl?ref=hackernoon.com\n```bash\npython pkl_nowriting.py\n```\ninput events on linux:\n```bash",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/qq_gocqhttp_post_xml.py:15-16"
+        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/README.md:32-68"
     },
     "4783": {
-        "file_id": 620,
-        "content": "This code is creating an XML string for a QQ goCQHttp message, featuring an audio track and an item from QQ Music. It includes the audio source, title, summary, and source information. The message has a service ID of 1, template ID of 1, and a flag value of 8.",
+        "file_id": 623,
+        "content": "This code provides methods to obtain the focused window title on different operating systems: Bash commands for Android devices and Windows, Python script for Linux, Applescript for macOS. Additionally, it mentions downloading a keylogger for capturing input events on macOS.",
         "type": "comment"
     },
     "4784": {
-        "file_id": 620,
-        "content": "//t1.hddhhn.com/uploads/tu/20150507/20405-eBE9jO.jpg\" action=\"web\" url=\"http://url.cn/5g4eOiY\" w=\"0\" h=\"0\"/></item></msg>\"\"\"\n# message = \"[CQ:xml,data={}]\".format(content) # xml thing.\n# content=\"\"\"{\"app\":\"com.tencent.miniapp_01\"&#44;\"desc\":\"哔哩哔哩\"&#44;\"view\":\"view_8C8E89B49BE609866298ADDFF2DBABA4\"&#44;\"ver\":\"1.0.0.19\"&#44;\"prompt\":\"&#91;QQ小程序&#93;哔哩哔哩\"&#44;\"meta\":{\"detail_1\":{\"appType\":0&#44;\"appid\":\"1109937557\"&#44;\"desc\":\"Appium 手机 App 自动化 + Python\"&#44;\"gamePoints\":\"\"&#44;\"gamePointsUrl\":\"\"&#44;\"host\":{\"nick\":\"Yukio\"&#44;\"uin\":1281727431}&#44;\"icon\":\"https:\\/\\/open.gtimg.cn\\/open\\/app_icon\\/00\\/95\\/17\\/76\\/100951776_100_m.png?t=1659061321\"&#44;\"preview\":\"pubminishare-30161.picsz.qpic.cn\\/a0b8d306-5b6d-4b27-9539-021a2adcc264\"&#44;\"qqdocurl\":\"https:\\/\\/b23.tv\\/4hWdtET?share_medium=android&amp;share_source=qq&amp;bbid=XY1BB721B1F97348DBDE4297FE1B4ABE26BAA&amp;ts=1665924308147\"&#44;\"scene\":1036&#44;\"shareTemplateData\":{}&#44;\"shareTemplateId\":\"8C8E89B49BE609866298ADDFF2DBABA4\"&#44;\"showLi",
+        "file_id": 623,
+        "content": "xinput test-xi2 --root\n```",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/qq_gocqhttp_post_xml.py:16-18"
+        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/README.md:69-70"
     },
     "4785": {
-        "file_id": 620,
-        "content": "This code is formatting a JSON message with app details, prompt, and other information. It will be used in QQ gocqhttp post XML function.",
+        "file_id": 623,
+        "content": "Executes an input test on the X server, affecting all connected devices.",
         "type": "comment"
     },
     "4786": {
-        "file_id": 620,
-        "content": "ttleTail\":\"\"&#44;\"title\":\"哔哩哔哩\"&#44;\"url\":\"m.q.qq.com\\/a\\/s\\/ea6d34b58a6a6209cd5088c436a254de\"}}&#44;\"config\":{\"autoSize\":0&#44;\"ctime\":1665924338&#44;\"forward\":1&#44;\"height\":0&#44;\"token\":\"a2458ec4231b7b8204c717f3a955a9fc\"&#44;\"type\":\"normal\"&#44;\"width\":0}}\"\"\"\ncontent = \"\"\"{\"app\":\"com.tencent.structmsg\"&#44;\"desc\":\"新闻\"&#44;\"view\":\"news\"&#44;\"ver\":\"0.0.0.1\"&#44;\"prompt\":\"&#91;分享&#93;哔哩哔哩\"&#44;\"meta\":{\"news\":{\"action\":\"\"&#44;\"android_pkg_name\":\"\"&#44;\"app_type\":1&#44;\"appid\":100951776&#44;\"ctime\":1666081902&#44;\"desc\":\"外国博主英文讲解：二十大为什么如此重要？\"&#44;\"jumpUrl\":\"https:\\/\\/b23.tv\\/B64KMQq?share_medium=android&amp;share_source=qq&amp;bbid=XY1BB721B1F97348DBDE4297FE1B4ABE26BAA&amp;ts=1666081860133\"&#44;\"preview\":\"https:\\/\\/pic.ugcimg.cn\\/58a74c8432a80e7e2de612e6e53e37f3\\/jpg1\"&#44;\"source_icon\":\"https:\\/\\/open.gtimg.cn\\/open\\/app_icon\\/00\\/95\\/17\\/76\\/100951776_100_m.png?t=1659061321\"&#44;\"source_url\":\"\"&#44;\"tag\":\"哔哩哔哩\"&#44;\"title\":\"哔哩哔哩\"&#44;\"uin\":1281727431}}&#44;\"config\":{\"ctime\":1666081902&#44;\"forward\":true&#44;\"token\":\"d7cc3a93e7c3a9acd1c8662157e3e5fb\"&#44;\"type\":\"normal\"}}\"\"\"",
-        "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/qq_gocqhttp_post_xml.py:18-19"
+        "file_id": 624,
+        "content": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/unlock_phone_on_given_ip.py",
+        "type": "filepath"
     },
     "4787": {
-        "file_id": 620,
-        "content": "This code contains two JSON strings representing messages in a chat application. The first message is from QQ and includes title, URL, and config details, while the second message is for sharing news on bilibili and has app, desc, view, ver, prompt, meta (with news info), config details, and more. Both messages contain timestamps, tokens, and forward options.",
-        "type": "comment"
+        "file_id": 624,
+        "content": "Device address is set to connect to the phone on a specific IP and port for further interactions.",
+        "type": "summary"
     },
     "4788": {
-        "file_id": 620,
-        "content": "# content = \"\"\"{\"app\":\"com.tencent.structmsg\"&#44;\"desc\":\"音乐\"&#44;\"view\":\"music\"&#44;\"ver\":\"0.0.0.1\"&#44;\"prompt\":\"\"&#44;\"meta\":{}}\"\"\"\n# content = (\n    # \"\"\"{\"app\":\"com.tencent.structmsg\",\"desc\":\"\",\"view\":\"singleImg\",\"ver\":\"0.0.0.1\",\"prompt\":\"邪少QQXML论坛\",\"appID\":\"\",\"sourceName\":\"\",\"actionData\":\"\",\"actionData_A\":\"\",\"sourceUrl\":\"\",\"meta\":{\"singleImg\":{\"mainImage\":\"https://gchat.qpic.cn/gchatpic_new/3020005669/916530575-2949639428-6E45D21EADE33511C565E25AB432AB59/0?term=2\",\"mainUrl\":\"\"}},\"text\":\"\",\"extraApps\":[],\"sourceAd\":\"\",\"config\":{\"forward\":1}}\"\"\".replace(\n#         \"&\", \"&amp;\"\n#     )\n#     .replace(\",\", \"&#44;\")\n#     .replace(\"[\", \"&#91;\")\n#     .replace(\"]\", \"&#93;\")\n# )\n# the token is likely to be some checksum, md5 or something. some aes/rsa?\nmessage = \"[CQ:json,data={}]\".format(content)  # json thing.\n# message = \"[CQ:tts,text=嘤嘤嘤]\"\n# content = \"\"\"<?xml version='1.0' encoding='UTF-8' standalone='yes' ?><msg serviceID=\"2\" templateID=\"1\" action=\"web\" brief=\"&#91;分享&#93; 十年\" sourceMsgId=\"0\"",
+        "file_id": 624,
+        "content": "# first, check phone status.\ndevice_address = \"192.168.10.3:5555\"",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/qq_gocqhttp_post_xml.py:20-34"
+        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/unlock_phone_on_given_ip.py:1-2"
     },
     "4789": {
-        "file_id": 620,
-        "content": "This code is likely related to a messaging application and involves sending messages containing XML or JSON data, possibly for a chat bot or communication tool. It includes functions for formatting the message content and converting it into CQ:json or CQ:tts formats. The content of the messages seems to be dynamic and can contain various types of data like app information, descriptions, images, and text prompts.",
+        "file_id": 624,
+        "content": "Device address is set to connect to the phone on a specific IP and port for further interactions.",
         "type": "comment"
     },
     "4790": {
-        "file_id": 620,
-        "content": " url=\"http://music.163.com/m/song/409650368\" flag=\"0\" adverSign=\"0\" multiMsgFlag=\"0\" ><item layout=\"2\"><audio cover=\"http://p2.music.126.net/g-Qgb9ibk9Wp_0HWra0xQQ==/16636710440565853.jpg?param=90y90\" src=\"https://music.163.com/song/media/outer/url?id=409650368.mp3\" /><title>十年</title><summary>黄梦之</summary></item><source name=\"网易云音乐\" icon=\"https://pic.rmb.bdstatic.com/911423bee2bef937975b29b265d737b3.png\" url=\"http://web.p.qq.com/qqmpmobile/aio/app.html?id=1101079856\" action=\"app\" a_actionData=\"com.netease.cloudmusic\" i_actionData=\"tencent100495085://\" appid=\"100495085\" /></msg>\"\"\"\n# message = '[CQ:xml,data={}]'.format(content)\ndata = {\"group_id\": group, \"message\": message, \"auto_escape\": False}\nr = requests.post(url, data=data)\nprint(r.json())\n# cannot send json. wtf?\n# 请参考 go-cqhttp 端输出",
-        "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/qq_gocqhttp_post_xml.py:34-40"
-    },
-    "4791": {
-        "file_id": 620,
-        "content": "The code is constructing an XML message and sending it to a web URL using the Requests library in Python. It uses go-cqhttp for communication, and the code includes a group ID and a message formatted as XML data. The response from the server is printed in JSON format.",
-        "type": "comment"
-    },
-    "4792": {
-        "file_id": 621,
-        "content": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/print_xml_message.py",
+        "file_id": 625,
+        "content": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/pkl_nowriting.py",
         "type": "filepath"
     },
-    "4793": {
-        "file_id": 621,
-        "content": "The given code uses the xmltodict library to parse an XML message containing Bilibili video sharing information, then prints its details. The \"print_xml_message\" function handles exceptions during parsing and printing.",
+    "4791": {
+        "file_id": 625,
+        "content": "This Python script logs keystrokes and mouse events via Cocoa, for educational purposes, requires privilege settings adjustment, and has an event loop with interrupt handling.",
         "type": "summary"
     },
-    "4794": {
-        "file_id": 621,
-        "content": "# arc_share\nxml_msg='{\"Content\":\"\\\\u003c?xml version=\\'1.0\\' encoding=\\'UTF-8\\' standalone=\\'yes\\'?\\\\u003e\\\\u003cmsg templateID=\\\\\"123\\\\\" url=\\\\\"https://b23.tv/5K7qh7K?share_medium=android\\\\u0026amp;share_source=qq\\\\u0026amp;bbid=XY46C7C4C74C8D645671EF7E8F4CC7810054A\\\\u0026amp;ts=1657521142233\\\\\" serviceID=\\\\\"1\\\\\" action=\\\\\"web\\\\\" actionData=\\\\\"\\\\\" a_actionData=\\\\\"\\\\\" i_actionData=\\\\\"\\\\\" brief=\\\\\"[QQ小程序]哔哩哔哩\\\\\" flag=\\\\\"0\\\\\"\\\\u003e\\\\u003citem layout=\\\\\"2\\\\\"\\\\u003e\\\\u003cpicture cover=\\\\\"http://pubminishare-30161.picsz.qpic.cn/d4ad36fa-833e-4018-b994-a2da810f2d54\\\\\"/\\\\u003e\\\\u003ctitle\\\\u003e哔哩哔哩\\\\u003c/title\\\\u003e\\\\u003csummary\\\\u003e【C语言】《带你学C带你飞》\\\\u003c/summary\\\\u003e\\\\u003c/item\\\\u003e\\\\u003csource url=\\\\\"https://b23.tv/5K7qh7K?share_medium=android\\\\u0026amp;share_source=qq\\\\u0026amp;bbid=XY46C7C4C74C8D645671EF7E8F4CC7810054A\\\\u0026amp;ts=1657521142233\\\\\" icon=\\\\\"https://open.gtimg.cn/open/app_icon/00/95/17/76/100951776_100_m.png?t=1657091104\\\\\" name=\\\\\"哔哩哔哩\\\\\" appid=\\\\\"0\\\\\" action=\\",
+    "4792": {
+        "file_id": 625,
+        "content": "#!/usr/bin/env python\n\"\"\"\npkl.py\n:author: Andrew Scott\n:date: 9-3-2018\nIf executed successfully this script will log key strokes until the process is killed.\nThis script is for EDUCATIONAL PURPOSES ONLY. \n\"\"\"\n# can be run without root, but must enable the privilege in privacy settings\nimport os, sys\nsys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nfrom AppKit import NSApplication, NSApp\nfrom Foundation import NSObject\nfrom Cocoa import (\n    NSEvent,\n    NSKeyDownMask, # keyboard\n    NSLeftMouseUpMask, # mouse\n    NSLeftMouseDownMask,\n    NSLeftMouseDraggedMask,\n    NSRightMouseDownMask,\n    NSRightMouseDraggedMask,\n    NSRightMouseUpMask,\n    NSMouseMovedMask,\n)\nfrom PyObjCTools import AppHelper\n# NSLeftMouseUpMask, NSLeftMouseDownMask, NSLeftMouseDraggedMask, NSRightMouseDownMask, NSRightMouseDraggedMask, NSRightMouseUpMask, NSMouseMovedMask\nclass AppDelegate(NSObject):\n    \"\"\"\n    The App Delegate creates a mask to detect the key being pressed and adds\n    a global monitor for this mask.",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/print_xml_message.py:1-2"
+        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/pkl_nowriting.py:1-38"
+    },
+    "4793": {
+        "file_id": 625,
+        "content": "This Python script logs key strokes until the process is killed, intended for educational purposes only. It uses AppKit and Foundation modules from Cocoa and PyObjCTools to create an app delegate that detects keyboard and mouse events without root access, but requires enabling privilege in privacy settings.",
+        "type": "comment"
+    },
+    "4794": {
+        "file_id": 625,
+        "content": "    \"\"\"\n    def applicationDidFinishLaunching_(self, notification):\n        mask_down = NSKeyDownMask\n        mouse_masks = [\n            NSLeftMouseUpMask,\n            NSLeftMouseDownMask,\n            NSLeftMouseDraggedMask,\n            NSRightMouseDownMask,\n            NSRightMouseDraggedMask,\n            NSRightMouseUpMask,\n            NSMouseMovedMask,\n        ]\n        NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(mask_down, key_handler)\n        for mouse_mask in mouse_masks:\n            NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(\n                mouse_mask, mouse_handler\n            )\n# w = Writer()\ndef mouse_handler(event):\n    import time\n    print(\"mouse have actions\", time.time())\ndef key_handler(event):\n    \"\"\"\n    Translates the key press events into readable characters if one exists\n    the key code is also recorded for non-character input.\n    \"\"\"\n    try:\n        capture_char = event.characters()\n        capture_raw = event.keyCode()\n        print(capture_char, capture_raw)\n        # w.write_to_log(capture_char, capture_raw)",
+        "type": "code",
+        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/pkl_nowriting.py:39-74"
     },
     "4795": {
-        "file_id": 621,
-        "content": "This code represents an XML message with various attributes and data for sharing a Bilibili video on QQ. It contains the template ID, URL to share the video, service ID, action type and data, brief description of the shared content, and more specific details about the item being shared, such as its cover image and title.",
+        "file_id": 625,
+        "content": "The code sets up event handlers for various mouse actions and keyboard events. It adds a global monitor to track these events, and when an event occurs, it logs the characters (if any) and keyCode. The code also includes functions for handling the mouse and key events, but they do not appear to perform any specific actions beyond logging.",
         "type": "comment"
     },
     "4796": {
-        "file_id": 621,
-        "content": "\\\"web\\\\\" actionData=\\\\\"\\\\\" a_actionData=\\\\\"tencent0://\\\\\" i_actionData=\\\\\"\\\\\"/\\\\u003e\\\\u003c/msg\\\\u003e\"}'\ncontentDict = eval(xml_msg)\ncontent = contentDict['Content']\nprint(content) # let's understand this shit.\n\"\"\"\n<?xml version='1.0' encoding='UTF-8' standalone='yes'?><msg templateID=\"123\" url=\"https://b23.tv/5K7qh7K?share_medium=android&amp;share_source=qq&amp;bbid=XY46C7C4C74C8D645671EF7E8F4CC7810054A&amp;ts=1657521142233\" serviceID=\"1\" action=\"web\" actionData=\"\" a_actionData=\"\" i_actionData=\"\" brief=\"[QQ小程序]哔哩哔哩\" flag=\"0\"><item layout=\"2\"><picture cover=\"http://pubminishare-30161.picsz.qpic.cn/d4ad36fa-833e-4018-b994-a2da810f2d54\"/><title>哔哩哔哩</title><summary>【C语言】《带你学C带你飞》</summary></item><source url=\"https://b23.tv/5K7qh7K?share_medium=android&amp;share_source=qq&amp;bbid=XY46C7C4C74C8D645671EF7E8F4CC7810054A&amp;ts=1657521142233\" icon=\"https://open.gtimg.cn/open/app_icon/00/95/17/76/100951776_100_m.png?t=1657091104\" name=\"哔哩哔哩\" appid=\"0\" action=\"web\" actionData=\"\" a_actionData=\"tencent0://\" i_actionData=\"\"/></msg>",
+        "file_id": 625,
+        "content": "    except KeyboardInterrupt:\n        AppHelper.stopEventLoop()\nif __name__ == \"__main__\":\n    app = NSApplication.sharedApplication()\n    delegate = AppDelegate.alloc().init()\n    NSApp().setDelegate_(delegate)\n    AppHelper.runEventLoop()",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/print_xml_message.py:2-9"
+        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/pkl_nowriting.py:75-83"
     },
     "4797": {
-        "file_id": 621,
-        "content": "This code is parsing an XML message, specifically for QQ share, extracting the content and printing it. The message contains information about a video recommendation from Bilibili, including title, summary, URL, and more.",
+        "file_id": 625,
+        "content": "The code sets up an event loop and handles interrupts, ensuring that the application properly terminates when needed.",
         "type": "comment"
     },
     "4798": {
-        "file_id": 621,
-        "content": "\"\"\"",
-        "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/xml_and_json_qq_send/print_xml_message.py:11-11"
+        "file_id": 626,
+        "content": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/get_modifier_with_masscan_scapy.py",
+        "type": "filepath"
     },
     "4799": {
-        "file_id": 621,
-        "content": "The code defines a function called \"print_xml_message\" that takes in an XML message and prints it. It uses the xmltodict library to parse the XML message into a Python dictionary format, then iterates over each element in the dictionary and prints its text content. The code also handles any potential exceptions that may occur during parsing or printing of the XML message.",
-        "type": "comment"
+        "file_id": 626,
+        "content": "This code uses Masscan to scan for open ports, connects to the desired port with AdbWrapper, and stores connected addresses in a list. It is part of a script for controlling devices over the network.",
+        "type": "summary"
     }
 }

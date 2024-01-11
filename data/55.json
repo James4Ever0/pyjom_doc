@@ -1,303 +1,305 @@
 {
     "5500": {
-        "file_id": 719,
-        "content": "/tests/title_rewrite_paraphrase/test_local.py",
-        "type": "filepath"
+        "file_id": 720,
+        "content": "                )\n            return extract_entity_list\n        else:\n            return entity_text_list\n    def get_entity_dict(self, words_entity_note_list, repead):\n        \"\"\"\n        功能：根据实体识别的标志，统计文本中的命名实体\n        参数repead：表示是否进行去重处理 ，默认是不去重\n        返回值：{'person':[],'place':[],'organization':[]}\n        \"\"\"\n        \"\"\"\n        O：这个词不是NE\n        S：这个词单独构成一个NE\n        B：这个词为一个NE的开始\n        I：这个词为一个NE的中间\n        E：这个词位一个NE的结尾\n        Nh：人名\n        Ni：机构名\n        Ns：地名\n        \"\"\"\n        name_entity_dist = {}\n        # 存储不同实体的列表\n        name_entity_list = []\n        place_entity_list = []\n        organization_entity_list = []\n        ntag_E_Nh = \"\"\n        ntag_E_Ni = \"\"\n        ntag_E_Ns = \"\"\n        for word, ntag in words_entity_note_list:\n            # print word+\"/\"+ntag,\n            if ntag[0] != \"O\":\n                if ntag[0] == \"S\":\n                    if ntag[-2:] == \"Nh\":\n                        name_entity_list.append(word)\n                    elif ntag[-2:] == \"Ni\":\n                        organization_entity_list.append(word)",
+        "type": "code",
+        "location": "/tests/title_cover_generator/pyltp_server.py:114-151"
     },
     "5501": {
-        "file_id": 719,
-        "content": "The code defines a paraphrasing function using tokenizer, model, sample and top_p options. The displayed elapsed time indicates acceptable performance for the task.",
-        "type": "summary"
+        "file_id": 720,
+        "content": "This code segment is part of a class method that identifies and categorizes named entities such as persons, places, and organizations from a given list. The code iterates through the list of words along with their corresponding entity tags (O, S, B, I, E) and adds them to separate lists based on the type of entity they represent. If the repead parameter is True, it performs deduplication on the final result.",
+        "type": "comment"
     },
     "5502": {
-        "file_id": 719,
-        "content": "# 加载模型\nfrom transformers import T5Tokenizer, T5ForConditionalGeneration\nmodelID = \"ClueAI/PromptCLUE-base-v1-5\"\n# https://github.com/James4Ever0/transformers/blob/main/src/transformers/models/auto/configuration_auto.py\n# https://github.com/James4Ever0/transformers/blob/main/src/transformers/modeling_utils.py (need change)\ntokenizer = T5Tokenizer.from_pretrained(modelID, local_files_first=True)\nmodel = T5ForConditionalGeneration.from_pretrained(\n    modelID, local_files_first=True\n)  # oh shit! 1G model\n# print(\"TOKENIZER?\", tokenizer) # always cpu. no \"device\" attribute.\n# print(\"_\"*20)\n# print(\"MODEL?\", model.device)\n# breakpoint()\n# what are these devices? all default CPU?\ndef preprocess(text):\n    return text.replace(\"\\n\", \"_\")\ndef postprocess(text):\n    return text.replace(\"_\", \"\\n\")\ndef answer(text, sample=True, top_p=0.8, device=\"cpu\"):\n    \"\"\"sample：是否抽样。生成任务，可以设置为True;\n    top_p：0-1之间，生成的内容越多样\"\"\"\n    text = preprocess(text)\n    encoding = tokenizer(\n        text=[text], truncation=True, padding=True, max_length=768, return_tensors=\"pt\"",
+        "file_id": 720,
+        "content": "                    else:\n                        place_entity_list.append(word)\n                elif ntag[0] == \"B\":\n                    if ntag[-2:] == \"Nh\":\n                        ntag_E_Nh = ntag_E_Nh + word\n                    elif ntag[-2:] == \"Ni\":\n                        ntag_E_Ni = ntag_E_Ni + word\n                    else:\n                        ntag_E_Ns = ntag_E_Ns + word\n                elif ntag[0] == \"I\":\n                    if ntag[-2:] == \"Nh\":\n                        ntag_E_Nh = ntag_E_Nh + word\n                    elif ntag[-2:] == \"Ni\":\n                        ntag_E_Ni = ntag_E_Ni + word\n                    else:\n                        ntag_E_Ns = ntag_E_Ns + word\n                else:\n                    if ntag[-2:] == \"Nh\":\n                        ntag_E_Nh = ntag_E_Nh + word\n                        name_entity_list.append(ntag_E_Nh)\n                        ntag_E_Nh = \"\"\n                    elif ntag[-2:] == \"Ni\":\n                        ntag_E_Ni = ntag_E_Ni + word\n                        organization_entity_list.append(ntag_E_Ni)",
         "type": "code",
-        "location": "/tests/title_rewrite_paraphrase/test_local.py:1-33"
+        "location": "/tests/title_cover_generator/pyltp_server.py:152-175"
     },
     "5503": {
-        "file_id": 719,
-        "content": "Loading T5 tokenizer and model with specified ID from local files first. Preprocessing function replaces newline characters with underscores, while postprocessing does the opposite. Function answer generates text using tokenizer, model, sample option, top_p value, and specified device (default: CPU).",
+        "file_id": 720,
+        "content": "The code is segmenting named entities (name and organization) using the NER (Named Entity Recognition) model. It appends words to separate variables based on their tags, forming name and organization lists when encountering \"Nh\" or \"Ni\". If no entity is detected, it simply adds the word to the place entity list.",
         "type": "comment"
     },
     "5504": {
-        "file_id": 719,
-        "content": "    ).to(device)\n    if not sample:\n        out = model.generate(\n            **encoding,\n            return_dict_in_generate=True,\n            output_scores=False,\n            max_length=128,\n            num_beams=4,\n            length_penalty=1\n        )\n    else:\n        out = model.generate(  # check \"generate_config\" in test.py?\n            **encoding,\n            return_dict_in_generate=True,\n            output_scores=False,\n            max_length=128,\n            min_length=5,\n            do_sample=True,\n            length_penalty=1,\n            num_beams=4,\n            top_p=top_p\n        )\n    out_text = tokenizer.batch_decode(out[\"sequences\"], skip_special_tokens=True)\n    return postprocess(out_text[0])\ndef my_function():\n    # Function code goes here\n    q = \"\"\"重写句子：\n支持几十个不同类型的任务，具有较好的零样本学习能力和少样本学习能力。\n答案：\n\"\"\"  # i think this model just doesn't get it.\n    output = answer(q)\n    print(\"Output:\", output)\nimport timeit\n# Time the function\nelapsed_time = timeit.timeit(my_function, number=1)\nprint(\"Elapsed time:\", elapsed_time)",
+        "file_id": 720,
+        "content": "                        ntag_E_Ni = \"\"\n                    else:\n                        ntag_E_Ns = ntag_E_Ns + word\n                        place_entity_list.append(ntag_E_Ns)\n                        ntag_E_Ns = \"\"\n        if repead:\n            name_entity_dist[\"person\"] = list(set(name_entity_list))\n            name_entity_dist[\"organization\"] = list(set(organization_entity_list))\n            name_entity_dist[\"place\"] = list(set(place_entity_list))\n        else:\n            name_entity_dist[\"person\"] = name_entity_list\n            name_entity_dist[\"organization\"] = organization_entity_list\n            name_entity_dist[\"place\"] = place_entity_list\n        return name_entity_dist\n    def SyntaxParser(self, input_list, return_words_pos=False):\n        \"\"\"\n        # head = parent+1\n        # relation = relate  可以从中间抽取head 和 relation 构成LTP 的标准输出，但是为了根据自己的情况，直接输出返回的全部的信息\n        功能：实现依存句法分析\n        返回值：每个文本的形成一个列表\n        [[{u'relate': u'WP', u'cont': u'\\uff0c', u'id': 4, u'parent': 3, u'pos': u'wp'},{u'relate': u'RAD', u'cont': u'\\u7684', u'id': 1, u'parent': 0, u'pos': u'u'}],……]",
         "type": "code",
-        "location": "/tests/title_rewrite_paraphrase/test_local.py:34-75"
+        "location": "/tests/title_cover_generator/pyltp_server.py:176-198"
     },
     "5505": {
-        "file_id": 719,
-        "content": "The code defines a function that generates text using a model, specifically for the purpose of paraphrasing or rewriting sentences. The model takes an input sentence and outputs a generated response. The function also measures the elapsed time to execute the code.",
+        "file_id": 720,
+        "content": "This code defines a function `name_entity_dist` that handles named entity recognition and extraction. It identifies named entities (person, organization, place) and stores them in separate lists. The function then adds these lists to a dictionary called `name_entity_dist`, which is returned at the end. Additionally, there's another function `SyntaxParser` that performs dependency syntax parsing on the input list and returns a list of parsed relations between words.",
         "type": "comment"
     },
     "5506": {
-        "file_id": 719,
-        "content": "# Elapsed time: 10.513529631891288\n# not too bad?",
+        "file_id": 720,
+        "content": "        \"\"\"\n        words_list, postags_list = self.postagger(input_list, return_words_list=True)\n        syntaxparser_text_list = []\n        for words, postags in zip(words_list, postags_list):\n            arcs = self.parser.parse(words, postags)  # 句法分析\n            # res = [(arc.head, arc.relation) for arc in arcs]\n            res = [arc for arc in arcs] # arguable.\n            # for arc in arcs:\n            #     print(arc)\n            # breakpoint()\n            text = []\n            for i in range(len(words)):\n                tt = {\n                    \"id\": i,\n                    \"cont\": words[i],\n                    \"pos\": postags[i],\n                    \"parent\": res[i][0],\n                    \"relate\": res[i][1],\n                }\n                text.append(tt)\n            syntaxparser_text_list.append(text)\n        if return_words_pos:\n            return words_list, postags_list, syntaxparser_text_list\n        else:\n            return syntaxparser_text_list\n    def triple_extract(self, intput_list):\n        \"\"\"",
         "type": "code",
-        "location": "/tests/title_rewrite_paraphrase/test_local.py:76-77"
+        "location": "/tests/title_cover_generator/pyltp_server.py:199-229"
     },
     "5507": {
-        "file_id": 719,
-        "content": "These lines are displaying the elapsed time for a certain task or operation, and indicating that it was completed within an acceptable range. The comment suggests that the performance of this specific action is considered satisfactory by the developer.",
+        "file_id": 720,
+        "content": "The code is performing syntax parsing using a parser. It takes an input list of words and their corresponding part-of-speech tags, then applies the parser to generate a syntactic parse tree for each word in the input list. The resulting parse trees are stored as a list of dictionaries with information about each word's id, content, part-of-speech tag, parent, and relation. If 'return_words_pos' is True, it returns the words list, postags list, and syntaxparser_text_list. Otherwise, it only returns the syntaxparser_text_list.",
         "type": "comment"
     },
     "5508": {
         "file_id": 720,
-        "content": "/tests/topic_modeling/poc_english_preprocessing.py",
-        "type": "filepath"
+        "content": "        功能: 对于给定的句子进行事实三元组抽取\n        Args:\n            sentence: 要处理的语句\n                        形式是：'真实的句子'\n        \"\"\"\n        Subjective_guest = []  # 主谓宾关系(e1,r,e2)\n        Dynamic_relation = []  # 动宾关系\n        Guest = []  # 介宾关系\n        Name_entity_relation = []  # 命名实体之间的关系\n        # 分词后词的列表 words，词性列表 postags，实体标志列表 netags，语法分析列表 arcs\n        words = []\n        postags = []\n        netags = []\n        arcs = []\n        syntaxparser_text_list = self.SyntaxParser(intput_list)\n        entity_list = self.NamedEntityRecognizer(intput_list)\n        for words_property_list in syntaxparser_text_list[0]:\n            words.append(words_property_list[\"cont\"])\n            postags.append(words_property_list[\"pos\"])\n            arcs.append(\n                {\n                    \"head\": words_property_list[\"parent\"],\n                    \"relation\": words_property_list[\"relate\"],\n                }\n            )\n        for words_entity_list in entity_list[0]:\n            netags.append(words_entity_list[1])\n        child_dict_list = self.build_parse_child_dict(words, postags, arcs)",
+        "type": "code",
+        "location": "/tests/title_cover_generator/pyltp_server.py:230-258"
     },
     "5509": {
         "file_id": 720,
-        "content": "The code imports the spaCy English language model, tokenizes text, sets stopwords, applies Porter stemming, initializes a sentence splitter, and stores lemmatized words in a variable. The document is preprocessed by removing certain parts of speech and stop words, then stemmed using the PorterStemmer, resulting in Stem_words.",
-        "type": "summary"
+        "content": "This function performs triplet extraction for a given sentence. It initializes various lists for different relationships and then extracts words, postags, arcs (syntax), and netags (named entities) using the input list. Finally, it builds a dictionary of child relationships from the extracted data.",
+        "type": "comment"
     },
     "5510": {
         "file_id": 720,
-        "content": "# https://huggingface.co/spacy/en_core_web_sm\n# https://medium.com/analytics-vidhya/nlp-essentials-removing-stopwords-and-performing-text-normalization-using-nltk-and-spacy-in-python-2c4024d2e343\nfrom nltk.corpus import stopwords\nfrom nltk.tokenize import word_tokenize\nfrom nltk.stem import PorterStemmer\n# from lazero.utils import inspectObject\nfrom lazero.utils import sprint # print with spliter\n# metalazero belongs to lazero package.\nimport en_core_web_sm\nnlp = en_core_web_sm.load()\ndoc = nlp(\n    \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and fishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had indeed the vaguest idea where the wood and river in question were.\"\"\"\n)\n# the sentence spliter includes unwanted \"\\n\" char\nset(stopwords.words(\"english\"))\nstop_words = set([elem.lower() for elem in stopwords.words(\"english\")])\nlemma_word1 = []\n# this shit has the lang tag. it might be useful for language detection. really?",
+        "content": "        for index in range(len(postags)):\n            # 抽取以谓词为中心的事实三元组\n            if postags[index] == \"v\":\n                child_dict = child_dict_list[index]\n                # 主谓宾\n                if \"SBV\" in child_dict and \"VOB\" in child_dict:\n                    e1 = self.complete_e(\n                        words, postags, child_dict_list, child_dict[\"SBV\"][0]\n                    )\n                    r = words[index]\n                    e2 = self.complete_e(\n                        words, postags, child_dict_list, child_dict[\"VOB\"][0]\n                    )\n                    Subjective_guest.append((e1, r, e2))\n                # 定语后置，动宾关系\n                if arcs[index][\"relation\"] == \"ATT\":\n                    if \"VOB\" in child_dict:\n                        e1 = self.complete_e(\n                            words, postags, child_dict_list, arcs[index][\"head\"] - 1\n                        )\n                        r = words[index]\n                        e2 = self.complete_e(\n                            words, postags, child_dict_list, child_dict[\"VOB\"][0]",
         "type": "code",
-        "location": "/tests/topic_modeling/poc_english_preprocessing.py:1-27"
+        "location": "/tests/title_cover_generator/pyltp_server.py:260-284"
     },
     "5511": {
         "file_id": 720,
-        "content": "This code imports necessary libraries and loads the English language model from spaCy, tokenizes text, sets stopwords, applies Porter stemming, initializes a sentence splitter, and defines a variable to hold lemmatized words.",
+        "content": "This code is extracting subject-predicate-object (SPO) triples from a natural language sentence using PyLTP library. It identifies the verb as the center of the triple and checks for two possible structures: \"SBV\" followed by \"VOB\" or \"ATT\" relation after the verb. The code fills in the subject, predicate, and object entities based on the identified positions in the sentence.",
         "type": "comment"
     },
     "5512": {
         "file_id": 720,
-        "content": "for token in doc:\n    if token.pos_ in ['PRON','CCONJ','ADP','PART','PUNCT','AUX']:\n        continue\n    if token.text.lower() in stop_words:\n        continue\n    lemma_word1.append(token.text)\nsprint(lemma_word1)  # there is no such -PRON- thing.\n# 1st step.\nStem_words = []\nps = PorterStemmer()\nfor w in lemma_word1:\n    rootWord = ps.stem(w)\n    Stem_words.append(rootWord)\nsprint(Stem_words) # 3rd step",
+        "content": "                        )\n                        temp_string = r + e2\n                        if temp_string == e1[: len(temp_string)]:\n                            e1 = e1[len(temp_string) :]\n                        if temp_string not in e1:\n                            Dynamic_relation.append((e1, r, e2))\n                # 含有介宾关系的主谓动补关系\n                if \"SBV\" in child_dict and \"CMP\" in child_dict:\n                    # e1 = words[child_dict['SBV'][0]]\n                    e1 = self.complete_e(\n                        words, postags, child_dict_list, child_dict[\"SBV\"][0]\n                    )\n                    cmp_index = child_dict[\"CMP\"][0]\n                    r = words[index] + words[cmp_index]\n                    if \"POB\" in child_dict_list[cmp_index]:\n                        e2 = self.complete_e(\n                            words,\n                            postags,\n                            child_dict_list,\n                            child_dict_list[cmp_index][\"POB\"][0],\n                        )",
         "type": "code",
-        "location": "/tests/topic_modeling/poc_english_preprocessing.py:28-42"
+        "location": "/tests/title_cover_generator/pyltp_server.py:285-306"
     },
     "5513": {
         "file_id": 720,
-        "content": "This code preprocesses a document by removing certain parts of speech and stop words, then applies stemming using the PorterStemmer to reduce words to their root form. The resulting list of stemmed words is stored in Stem_words.",
+        "content": "This code checks for a specific relationship between the subject, verb, object, and complement in a sentence. It appends the relationship (e1, r, e2) to Dynamic_relation if it meets certain conditions such as not containing an existing temporary string or being part of the original text.",
         "type": "comment"
     },
     "5514": {
-        "file_id": 721,
-        "content": "/tests/topic_modeling/poc_english_topic_modeling.py",
-        "type": "filepath"
+        "file_id": 720,
+        "content": "                        Guest.append((e1, r, e2))\n            # 尝试抽取命名实体有关的三元组\n            if netags[index][0] == \"S\" or netags[index][0] == \"B\":\n                ni = index\n                if netags[ni][0] == \"B\":\n                    while netags[ni][0] != \"E\":\n                        ni += 1\n                    e1 = \"\".join(words[index : ni + 1])\n                else:\n                    e1 = words[ni]\n                # 上面是抽取实体，没有判断是什么类型的实体。。\n                if (\n                    arcs[ni][\"relation\"] == \"ATT\"\n                    and postags[arcs[ni][\"head\"] - 1] == \"n\"\n                    and netags[arcs[ni][\"head\"] - 1] == \"O\"\n                ):\n                    r = self.complete_e(\n                        words, postags, child_dict_list, arcs[ni][\"head\"] - 1\n                    )\n                    if e1 in r:\n                        r = r[(r.index(e1) + len(e1)) :]\n                    if (\n                        arcs[arcs[ni][\"head\"] - 1][\"relation\"] == \"ATT\"\n                        and netags[arcs[arcs[ni][\"head\"] - 1][\"head\"] - 1] != \"O\"",
+        "type": "code",
+        "location": "/tests/title_cover_generator/pyltp_server.py:307-331"
     },
     "5515": {
-        "file_id": 721,
-        "content": "This code imports libraries, applies language models and topic modeling techniques using CountVectorizer and LatentDirichletAllocation to analyze document content.",
-        "type": "summary"
+        "file_id": 720,
+        "content": "This code attempts to extract named entity triples. It checks if the current tag is a start or begin tag, and then extracts the named entity based on that. If it meets specific conditions involving \"ATT\" relation and certain postags, it completes the entity and checks if the extracted entity is in the result.",
+        "type": "comment"
     },
     "5516": {
-        "file_id": 721,
-        "content": "# https://huggingface.co/spacy/en_core_web_sm\n# https://medium.com/analytics-vidhya/nlp-essentials-removing-stopwords-and-performing-text-normalization-using-nltk-and-spacy-in-python-2c4024d2e343\nfrom nltk.corpus import stopwords\nfrom nltk.tokenize import word_tokenize\nfrom nltk.stem import PorterStemmer\n# from lazero.utils import inspectObject\nfrom lazero.utils import sprint  # print with spliter\n# metalazero belongs to lazero package.\nimport en_core_web_sm\nnlp = en_core_web_sm.load()\ndoc = nlp(\n    \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and fishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had indeed the vaguest idea where the wood and river in question were.\"\"\"\n)\n# the sentence spliter includes unwanted \"\\n\" char\nset(stopwords.words(\"english\"))\nstop_words = set([elem.lower() for elem in stopwords.words(\"english\")])\nlemma_word1 = []\n# this shit has the lang tag. it might be useful for language detection. really?",
+        "file_id": 720,
+        "content": "                    ):\n                        e2 = self.complete_e(\n                            words,\n                            postags,\n                            child_dict_list,\n                            arcs[arcs[ni][\"head\"] - 1][\"head\"] - 1,\n                        )\n                        mi = arcs[arcs[ni][\"head\"] - 1][\"head\"] - 1\n                        li = mi\n                        if netags[mi][0] == \"B\":\n                            while netags[mi][0] != \"E\":\n                                mi += 1\n                            e = \"\".join(words[li + 1 : mi + 1])\n                            e2 += e\n                        if r in e2:\n                            e2 = e2[(e2.index(r) + len(r)) :]\n                        if r + e2 in sentence:\n                            Name_entity_relation.append((e1, r, e2))\n        return Subjective_guest, Dynamic_relation, Guest, Name_entity_relation\n    def build_parse_child_dict(self, words, postags, arcs):\n        \"\"\"\n        功能：为句子中的每个词语维护一个保存句法依存儿子节点的字典",
         "type": "code",
-        "location": "/tests/topic_modeling/poc_english_topic_modeling.py:1-27"
+        "location": "/tests/title_cover_generator/pyltp_server.py:332-354"
     },
     "5517": {
-        "file_id": 721,
-        "content": "The code is importing necessary libraries, such as stopwords and tokenize from nltk, PorterStemmer for stemming, and spacy's en_core_web_sm model. It then loads the model and applies it to a text. The code also defines stop words which will be used to filter out common words like \"the\" or \"and\" from the text. Additionally, it initializes an empty list for lemma word 1 and mentions the inclusion of language tags in some elements.",
+        "file_id": 720,
+        "content": "The code defines a function called `build_parse_child_dict` which takes in the words, postags, and arcs of a sentence. It creates a dictionary for each word in the sentence that stores its syntactic dependency children. If a relation word exists between two named entities, it is added to the Name_entity_relation list. The function returns four variables: Subjective_guest, Dynamic_relation, Guest, and Name_entity_relation",
         "type": "comment"
     },
     "5518": {
-        "file_id": 721,
-        "content": "for token in doc:\n    if token.pos_ in [\"PRON\", \"CCONJ\", \"ADP\", \"PART\", \"PUNCT\", \"AUX\"]:\n        continue\n    if token.text.lower() in stop_words:\n        continue\n    lemma_word1.append(token.text)\nsprint(lemma_word1)  # there is no such -PRON- thing.\n# 1st step.\nStem_words = []\nps = PorterStemmer()\nfor w in lemma_word1:\n    rootWord = ps.stem(w)\n    Stem_words.append(rootWord)\nsprint(Stem_words)  # 3rd step\nStem_words += ((len(Stem_words) - 1) % 5) * [\"\"]  # padding\nimport numpy as np\nStem_words = np.array(Stem_words)\nStem_words = Stem_words.reshape(5, -1)\n# sprint(Stem_words)\n# row, col = Stem_words.shape\n# exit()\n# for reasons that shit can understand.\n# np.nditer is for iteration over every elem\ndataList = []\nfor row in Stem_words:\n    # print(row)\n    elem = \" \".join(row)\n    dataList.append(elem)\ndata = \"\\n\".join(dataList)\nfrom sklearn.feature_extraction.text import TfidfVectorizer\n# In[8]:\n# 创建一个CountVectoerizer实例\ntfidf = TfidfVectorizer(ngram_range=(1, 2))\n# 打开刚刚保存的txt文档\nfrom io import StringIO\nf = StringIO(data)",
+        "file_id": 720,
+        "content": "        Args:\n            words: 分词列表\n            postags: 词性列表\n            arcs: 句法依存列表\n        \"\"\"\n        child_dict_list = []\n        for index in range(len(words)):\n            child_dict = dict()\n            for arc_index in range(len(arcs)):\n                if arcs[arc_index][\"head\"] == index + 1:\n                    if arcs[arc_index][\"relation\"] in child_dict:\n                        child_dict[arcs[arc_index][\"relation\"]].append(arc_index)\n                    else:\n                        child_dict[arcs[arc_index][\"relation\"]] = []\n                        child_dict[arcs[arc_index][\"relation\"]].append(arc_index)\n            child_dict_list.append(child_dict)\n        return child_dict_list\n    def complete_e(self, words, postags, child_dict_list, word_index):\n        \"\"\"\n        功能：完善识别的部分实体\n        \"\"\"\n        child_dict = child_dict_list[word_index]\n        prefix = \"\"\n        if \"ATT\" in child_dict:\n            for i in range(len(child_dict[\"ATT\"])):\n                prefix += self.complete_e(\n                    words, postags, child_dict_list, child_dict[\"ATT\"][i]",
         "type": "code",
-        "location": "/tests/topic_modeling/poc_english_topic_modeling.py:28-71"
+        "location": "/tests/title_cover_generator/pyltp_server.py:355-383"
     },
     "5519": {
-        "file_id": 721,
-        "content": "The code preprocesses text data by removing certain tokens, stemming words, and padding the resulting list. It then converts the list of words into a string, creates a TF-IDF vectorizer with unigrams and bigrams, and reads the string as input using StringIO.",
+        "file_id": 720,
+        "content": "This function takes in a list of words, their respective parts of speech (postags), and syntactic dependency relations (arcs) as input. It organizes the arcs into a dictionary structure for each word in the list, and returns this dictionary list. The next function aims to further refine or \"complete\" part of the identified entities by recursively calling itself with the appropriate parameters.",
         "type": "comment"
     },
     "5520": {
-        "file_id": 721,
-        "content": "# 使用CountVectorizer拟合数据\nx_train = tfidf.fit_transform(f)\nfrom sklearn.decomposition import LatentDirichletAllocation\nlda = LatentDirichletAllocation(n_components=5)\nlda.fit(x_train)\ndef print_topics(model, feature_names, n_top_words):\n    # 首先是遍历模型中存储的话题序号和话题内容\n    for topic_idx, topic in enumerate(model.components_):\n        # 然后打印话题的序号以及指定数量的最高频的关键词\n        message = \"topic #%d:\" % topic_idx\n        mList = [feature_names[i] for i in topic.argsort()[: -n_top_words - 1 : -1]]\n        mListStr = \" \".join(\n            mList\n        )\n        message += mListStr\n        mSet  = set(mList) # the set contains word groups like 'river question'\n        cDict = {k:mList.count(k) for k in mSet}\n        mRealList = mListStr.split(\" \")\n        mRealList = [x.strip() for x in mRealList if len(x.strip()) > 1] # usually things shorter than 2 letters are no good.\n        mRealSet = set(mRealList)\n        cRealDict = {k:mRealList.count(k) for k in mRealSet}\n        print(\"MESSAGE\",message)\n        print(\"SET\", mSet)\n        print(\"COUNT DICT\", cDict) # pointless to count here?",
+        "file_id": 720,
+        "content": "                )\n        postfix = \"\"\n        if postags[word_index] == \"v\":\n            if \"VOB\" in child_dict:\n                postfix += self.complete_e(\n                    words, postags, child_dict_list, child_dict[\"VOB\"][0]\n                )\n            if \"SBV\" in child_dict:\n                prefix = (\n                    self.complete_e(\n                        words, postags, child_dict_list, child_dict[\"SBV\"][0]\n                    )\n                    + prefix\n                )\n        return prefix + words[word_index] + postfix\nif __name__ == \"__main__\":\n    # intput_list = [\"中国自称为炎黄子孙、龙的传人\"]\n    # incorrect name spliters.\n    from commons import sample_data\n    intput_list = sample_data\n    model = LTP_MODEL()\n    input_sentence = \"雅生活服务的物业管理服务。\"\n    # print(model.SplitSentence(input_sentence))\n    # print(model.segment(intput_list))\n    # print(model.postagger(intput_list))\n    # print(model.NamedEntityRecognizer(intput_list, Entity_dist=True))\n    print(model.NamedEntityRecognizer(intput_list))",
         "type": "code",
-        "location": "/tests/topic_modeling/poc_english_topic_modeling.py:72-99"
+        "location": "/tests/title_cover_generator/pyltp_server.py:384-414"
     },
     "5521": {
-        "file_id": 721,
-        "content": "This code uses CountVectorizer to transform data and LatentDirichletAllocation to fit the transformed data, then defines a function print_topics that iterates over the topics in the model, prints their index, and displays the highest frequency words for each topic. It also calculates and prints the set of word groups, word count dictionary, and filtered list of meaningful words.",
+        "file_id": 720,
+        "content": "This code segment is a part of the Named Entity Recognizer function in a Chinese language processing model. It takes an input list containing sentences, and based on postags (part-of-speech tags), it identifies named entities within the text and returns them. The code snippet handles verbs with \"VOB\" or \"SBV\" child nodes differently by appending prefixes accordingly, and then combines prefix, word, and postfix to generate the final output.",
         "type": "comment"
     },
     "5522": {
-        "file_id": 721,
-        "content": "        print(\"RealSET\", mRealSet)\n        print(\"RealCOUNT DICT\", cRealDict)\n    print()\nn_top_words = 10\nprint_topics(lda, tfidf.get_feature_names(), n_top_words)",
+        "file_id": 720,
+        "content": "    # print(model.SyntaxParser(intput_list))\n    (\n        Subjective_guest,\n        Dynamic_relation,\n        Guest,\n        Name_entity_relation,\n    ) = model.triple_extract(intput_list)\n    print(\"=\" * 30)\n    print(Subjective_guest, Dynamic_relation, Guest, Name_entity_relation)\n    model.__release__()",
         "type": "code",
-        "location": "/tests/topic_modeling/poc_english_topic_modeling.py:100-106"
+        "location": "/tests/title_cover_generator/pyltp_server.py:415-426"
     },
     "5523": {
-        "file_id": 721,
-        "content": "This code section prints the real set (mRealSet) and count dictionary (cRealDict), then it displays the top words from LDA topic modeling using print_topics function. This helps in analyzing the distribution of topics across documents.",
+        "file_id": 720,
+        "content": "Extracting triples from input list using the model's triple_extract method, then printing them and releasing resources.",
         "type": "comment"
     },
     "5524": {
-        "file_id": 722,
-        "content": "/tests/topic_modeling/english_test.py",
+        "file_id": 721,
+        "content": "/tests/title_cover_generator/pegasus_trainer.py",
         "type": "filepath"
     },
     "5525": {
-        "file_id": 722,
-        "content": "This code utilizes NLTK, Spacy and TextBlob for text preprocessing, stemming, lemmatization, and token iteration. It processes tokens, collects POS and text values, stores them, and checks for \"-PRON-\" absence.",
+        "file_id": 721,
+        "content": "This code trains a PEGASUS machine translation model using MT5ForConditionalGeneration, loads data, tokenizes text, and saves weights every 5000 updates for 1000 epochs. It includes optimization steps, error handling, and backup saving functionality. The trainer is dissatisfied with the current performance.",
         "type": "summary"
     },
     "5526": {
-        "file_id": 722,
-        "content": "# https://huggingface.co/spacy/en_core_web_sm\n# https://medium.com/analytics-vidhya/nlp-essentials-removing-stopwords-and-performing-text-normalization-using-nltk-and-spacy-in-python-2c4024d2e343\nfrom nltk.corpus import stopwords\nfrom nltk.tokenize import word_tokenize\nfrom nltk.stem import PorterStemmer\nfrom lazero.utils import inspectObject\n# metalazero belongs to lazero package.\nset(stopwords.words(\"english\"))\ntext = \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and \nfishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had \nindeed the vaguest idea where the wood and river in question were.\"\"\"\nstop_words = set(stopwords.words(\"english\"))\nword_tokens = word_tokenize(text)\nfiltered_sentence = []\nfor w in word_tokens:\n    if w not in stop_words:\n        filtered_sentence.append(w)\nStem_words = []\nps = PorterStemmer()\nfor w in filtered_sentence:\n    rootWord = ps.stem(w)\n    Stem_words.append(rootWord)",
+        "file_id": 721,
+        "content": "from commons import load_train_data_core, import_word\nWord = import_word()\n# print(Word)\n# break()\n#importing the PEGASUS Transformer model\nimport torch\nfrom transformers import MT5ForConditionalGeneration\nfrom tokenizer import T5PegasusTokenizer\nmodel_path = \"./pegasus_title_generation/pegasus_1\" # trained on paraphrase tasks.\n# model_name = './t5_pegasus_training/t5_pegasus'\nmodel_name = model_path\nmodel_name_or_path = model_name\ntorch_device = 'cuda' if torch.cuda.is_available() else 'cpu'\ndevice = torch.device(\"cuda\" if torch.cuda.is_available() else \"cpu\")\ntokenizer = T5PegasusTokenizer.from_pretrained(model_name)\nmodel = MT5ForConditionalGeneration.from_pretrained(model_name).to(torch_device)\n# import random\n# import progressbar\ndef mydataset(len_threshold = 2,batchsize=1): # train till you fucking die. this almost depleted my VRAM. better train this shit elsewhere.\n    for a,b in load_train_data_core(len_threshold = 2,batchsize=1): yield a,b # freaking shit.\ndef get_train_data(batchsize=2,max_length=1024):",
         "type": "code",
-        "location": "/tests/topic_modeling/english_test.py:1-30"
+        "location": "/tests/title_cover_generator/pegasus_trainer.py:2-27"
     },
     "5527": {
-        "file_id": 722,
-        "content": "This code uses NLTK and Spacy libraries to perform text preprocessing. It loads the English stopwords, tokenizes the input text, removes stopwords, applies stemming using PorterStemmer, and stores the resulting words in Stem_words list.",
+        "file_id": 721,
+        "content": "Code imports necessary libraries for loading training data, tokenizing text with T5PegasusTokenizer and initializing the PEGASUS Transformer model. The MT5ForConditionalGeneration model is loaded from a pre-trained checkpoint located at `model_path` or `model_name`. The code also specifies the device to use for training (either CPU or CUDA-enabled GPU). A function named `mydataset` is defined, which generates a dataset from load_train_data_core with specified batch size and length threshold. Another function `get_train_data` takes in batch size and maximum sequence length as inputs. This code seems to be used for training the PEGASUS model on specific tasks.",
         "type": "comment"
     },
     "5528": {
-        "file_id": 722,
-        "content": "print(filtered_sentence) # 1st step\nprint(Stem_words) # 3rd step\n# from textblob lib import Word method\n# if textblobTest:\nfrom textblob import Word\ntext = \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and \nfishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had \nindeed the vaguest idea where the wood and river in question were.\"\"\"\nlem = []\nfor i in text.split():\n    word1 = Word(i).lemmatize(\"n\")\n    word2 = Word(word1).lemmatize(\"v\")\n    word3 = Word(word2).lemmatize(\"a\")\n    lem.append(Word(word3).lemmatize())\nprint(lem) # incorrect and shitty. don't know what is its use\nimport en_core_web_sm\nnlp = en_core_web_sm.load()\ndoc = nlp(\n    \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and fishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had indeed the vaguest idea where the wood and river in question were.\"\"\"",
+        "file_id": 721,
+        "content": "    for source_sentences, target_sentences in mydataset(batchsize=batchsize):\n        # targetSentence = [\"今天天气不错\",\"你吃了没有\"]\n        batchsize = len(source_sentences)\n        if batchsize >0:\n        # print([source_sentence,target_sentence])\n            input_ids = tokenizer.batch_encode_plus(source_sentences,max_length=max_length,padding=True,truncation=True, return_tensors=\"pt\").input_ids.to(device)\n            labels = tokenizer.batch_encode_plus(target_sentences,return_tensors=\"pt\",padding=True,truncation=True,max_length=max_length,).input_ids.to(device) # what is the freaking max_length?\n            yield input_ids, labels\n# from torch.optim import SGD\n# from torch.optim import ASGD as SGD\nfrom torch.optim import RMSprop as SGD\nbatchsize = 2\n# optimizer = SGD(model.parameters(), momentum=0.9, lr=0.000001*batchsize, weight_decay=0.0001)\noptimizer = SGD(model.parameters(), lr=0.00001*batchsize, weight_decay=0.0001)\nloss_mean = []\nmean_loss_period = 100\nepochs = 1000\nmsaveperiod = 5000 # wtf is 30000\nupdate_period = 1 # hell man.",
         "type": "code",
-        "location": "/tests/topic_modeling/english_test.py:31-56"
+        "location": "/tests/title_cover_generator/pegasus_trainer.py:28-49"
     },
     "5529": {
-        "file_id": 722,
-        "content": "Code imports the TextBlob library and uses lemmatization to simplify words in a given text. It first prints the original list of lemmatized words, then loads the English language model from TextBlob, and applies it to the same text, likely resulting in similar but potentially different lemmatized words. The purpose of this code is unclear due to incorrect usage and possible redundancy.",
+        "file_id": 721,
+        "content": "This code is training a model with batch size 2. The maximum length of input sentences is not defined. The optimizer is using RMSprop algorithm, with a learning rate adjusted by the batch size. The mean loss over the last 100 batches is stored in 'loss_mean' list. Training continues for 1000 epochs and model weights are saved every 5000 updates. Updates to the model occur once per iteration.",
         "type": "comment"
     },
     "5530": {
-        "file_id": 722,
-        "content": ")\n# the sentence spliter includes unwanted \"\\n\" char\nlemma_word1 = []\n# this shit has the lang tag. it might be useful for language detection. really?\nfor token in doc:\n    # print(\"LEMMA\", token.lemma_)\n    # not reliable.\n    # ['ancestors', 'check_flag', 'children', 'cluster', 'conjuncts', 'dep', 'dep_', 'doc', 'ent_id', 'ent_id_', 'ent_iob', 'ent_iob_', 'ent_kb_id', 'ent_kb_id_', 'ent_type', 'ent_type_', 'get_extension', 'has_dep', 'has_extension', 'has_head', 'has_morph', 'has_vector', 'head', 'i', 'idx', 'iob_strings', 'is_alpha', 'is_ancestor', 'is_ascii', 'is_bracket', 'is_currency', 'is_digit', 'is_left_punct', 'is_lower', 'is_oov', 'is_punct', 'is_quote', 'is_right_punct', 'is_sent_end', 'is_sent_start', 'is_space', 'is_stop', 'is_title', 'is_upper', 'lang', 'lang_', 'left_edge', 'lefts', 'lemma', 'lemma_', 'lex', 'lex_id', 'like_email', 'like_num', 'like_url', 'lower', 'lower_', 'morph', 'n_lefts', 'n_rights', 'nbor', 'norm', 'norm_', 'orth', 'orth_', 'pos', 'pos_', 'prefix', 'pref",
+        "file_id": 721,
+        "content": "#setting up the model\n# def get_response(input_text):\n#   batch = tokenizer.encode(input_text, return_tensors=\"pt\").to(torch_device)\n#   translated = model.generate(batch,decoder_start_token_id=tokenizer.cls_token_id,eos_token_id=tokenizer.sep_token_id,max_length=30).cpu().numpy()[0]\n#   tgt_text = ''.join(tokenizer.decode(translated[1:])).replace(' ', '')\n#   return tgt_text\n# not so bad?\n# can you train this shit?\n# print(get_response(\"你吃了没有\"))\nfor epoch in range(epochs):\n    print(\"STARTING EPOCH {} TOTAL {}\".format(epoch,epochs))\n    for index, (input_ids, labels) in enumerate(get_train_data(batchsize=batchsize)):\n        try:\n            if index%update_period == 0:\n                optimizer.zero_grad()\n            # print([input_ids, labels])\n            outputs = model(input_ids=input_ids, labels=labels)\n            loss = outputs.loss\n            floss = loss.tolist()\n            loss_mean.append(floss)\n            if len(loss_mean) == mean_loss_period:\n                mloss = sum(loss_mean)/mean_loss_period",
         "type": "code",
-        "location": "/tests/topic_modeling/english_test.py:57-66"
+        "location": "/tests/title_cover_generator/pegasus_trainer.py:52-77"
     },
     "5531": {
-        "file_id": 722,
-        "content": "This code segment seems to be part of a natural language processing (NLP) task. It appears to be iterating through each token in the given document and potentially performing some operations or extractions on them. The variable 'lemma_word1' is initially empty but will presumably store lemmatized words from the tokens, which could be useful for further analysis.",
+        "file_id": 721,
+        "content": "This code sets up a model for generating translations, trains it using train data, and calculates the loss. It uses a tokenizer to encode input texts and generate translations, then calculates the mean loss over a specified period.",
         "type": "comment"
     },
     "5532": {
-        "file_id": 722,
-        "content": "ix_', 'prob', 'rank', 'remove_extension', 'right_edge', 'rights', 'sent', 'sent_start', 'sentiment', 'set_extension', 'set_morph', 'shape', 'shape_', 'similarity', 'subtree', 'suffix', 'suffix_', 'tag', 'tag_', 'tensor', 'text', 'text_with_ws', 'vector', 'vector_norm', 'vocab', 'whitespace_']\n    # print(dir(token))\n    # breakpoint()\n    # inspectObject(token)\n    elem = (token.pos_, token.text)\n    # breakpoint()\n    lemma_word1.append(elem)\nprint(lemma_word1)  # there is no such -PRON- thing.\n# 2nd step.",
+        "file_id": 721,
+        "content": "                print(\"EPOCH {} TOTAL {}\".format(epoch,epochs))\n                print(\"MEAN LOSS OVER {} SAMPLES: {}\".format(mean_loss_period,str(mloss)[:5]))\n                loss_mean = []\n            loss.backward()\n            # logits = outputs.logits\n            if index % update_period == 0:\n                optimizer.step() # this is shit. i should run this shit in kaggle.\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"POSSIBLY OOM\")\n        if index > (msaveperiod - 1) and index%msaveperiod == 0:\n            print(\"SAVING MODEL AT {} SAMPLES\".format(index))\n            model.save_pretrained(model_name_or_path)\n            # shutil.copy(model_name_or_path,model_name_or_path+\"-backup\")\n            model.save_pretrained(model_name_or_path+\"-backup\")\n            ## it is working.",
         "type": "code",
-        "location": "/tests/topic_modeling/english_test.py:66-74"
+        "location": "/tests/title_cover_generator/pegasus_trainer.py:78-94"
     },
     "5533": {
-        "file_id": 722,
-        "content": "The code appears to be processing tokens and collecting their pos (part of speech) and text values. These values are stored in the lemma_word1 list for further use, while a \"breakpoint()\" is included for debugging purposes, and a print statement shows that there is no \"-PRON-\" element present. The code continues with a 2nd step, implying further processing may follow.",
+        "file_id": 721,
+        "content": "This code appears to be part of a training loop for a machine learning model. It keeps track of the mean loss over a certain period and saves the model after a set number of samples. The code includes an optimization step, error handling, and backup saving functionality. The trainer seems frustrated with the line \"this is shit. i should run this shit in kaggle.\"",
         "type": "comment"
     },
     "5534": {
-        "file_id": 723,
-        "content": "/tests/tkinter_tag_toggle_button/toggle_button.py",
+        "file_id": 722,
+        "content": "/tests/title_cover_generator/paddlenlp_word_label.py",
         "type": "filepath"
     },
     "5535": {
-        "file_id": 723,
-        "content": "This code uses Tkinter to create buttons for toggling video tags and feeds the information into the main logic using mlt xml format.",
+        "file_id": 722,
+        "content": "This code imports Taskflow from paddlenlp and commons.sample_data. It iterates through sample data, applying various tasks (word segmentation, NER, POS tagging, etc.) to each element using Taskflow. If the flow is information extraction, it uses a schema for processing. After processing, it deletes the Taskflow object and prints the task name along with the processed data.",
         "type": "summary"
     },
     "5536": {
-        "file_id": 723,
-        "content": "# Import Module\nfrom tkinter import *\n# Create Object\nroot = Tk()\n# Add Title\nroot.title('On/Off Switch!')\n# Add Geometry\nroot.geometry(\"500x300\")\n# Keep track of the button state on/off\n#global is_on\nis_on = {\"myTag\":False,\"myTag2\":False,\"myTag3\":False}\n# Create Label\n# Define our switch function\ndef switch(key, buttons, index, is_on):\n    button = buttons[index]\n    if is_on[key]:\n        button.config(text=key ,bg = \"grey\",fg=\"black\")\n        is_on[key] = False\n    else:\n        button.config(text = key,bg = \"green\",fg=\"white\")\n        is_on[key] = True\n# Define Our Images\n# on = PhotoImage(file = \"on.png\")\n# off = PhotoImage(file = \"off.png\")\n# Create A Button\non_buttons = []\nmfunctions = []\n# for j in range(n):\n#     e = Button(my_w, text=j) \n#     e.grid(row=i, column=j) \ndef getSwitchLambda(text, on_buttons, index, is_on):\n    return lambda:switch(text, on_buttons, index, is_on)\nfor index, text in enumerate(is_on.keys()):\n    # print(\"TEXT:\", text)\n    on_buttons.append(Button(root, text=text, bd = 0,bg=\"grey\",fg=\"black\"))",
+        "file_id": 722,
+        "content": "from paddlenlp import  Taskflow\nfrom commons import sample_data\n# LAC 词语重要性\nfor elem in sample_data:\n    flows = [\"word_segmentation\",\"ner\",\"pos_tagging\",\"dependency_parsing\",\"information_extraction\",\"sentiment_analysis\",\"text_correction\",\"knowledge_mining\"]\n    for flow in flows:\n        if flow !=\"information_extraction\":\n            seg = Taskflow(flow) # need schema for information extraction.\n        else:\n            schema = [\"主语\",\"谓语\",\"宾语\"]\n            seg = Taskflow(flow, schema=schema) # need schema for information extraction\n        data = seg(elem)\n        del seg\n        print(flow,data)",
         "type": "code",
-        "location": "/tests/tkinter_tag_toggle_button/toggle_button.py:1-46"
+        "location": "/tests/title_cover_generator/paddlenlp_word_label.py:1-16"
     },
     "5537": {
-        "file_id": 723,
-        "content": "Code imports the Tkinter module, creates a root window with title and geometry, defines a global dictionary to track button states, and defines a function to switch button text and colors based on its state. It also includes a placeholder for creating buttons with images for \"on\" and \"off\" states, but they are currently not implemented. A separate function is defined to create buttons with lambda functions that call the switch function when clicked. The loop creates buttons with their respective texts and sets initial state according to the dictionary.",
+        "file_id": 722,
+        "content": "This code imports Taskflow from paddlenlp and commons.sample_data. It iterates through sample data, applying various tasks (word segmentation, NER, POS tagging, etc.) to each element using Taskflow. If the flow is information extraction, it uses a schema for processing. After processing, it deletes the Taskflow object and prints the task name along with the processed data.",
         "type": "comment"
     },
     "5538": {
         "file_id": 723,
-        "content": "    mfunctions.append(getSwitchLambda(text, on_buttons, index, is_on))\n    on_buttons[index].config(command=mfunctions[index])\n    on_buttons[index].grid(row=1, column=0+index)\n# for x in mfunctions: x()\n# def getLambda(x): return lambda:print(x)\n# # great. much fucking better.\n# for y in [getLambda(x) for x in range(3)]: y()\n# so that is what's weird about the freaking lambda!\n# on_button1 = Button(root, text=\"myTag2\", bd = 0,bg=\"grey\",fg=\"black\")\n# # on_button1.command = lambda:switch(key=\"myTag\", button=on_button1)\n# on_button1.config(command=lambda:switch(key=\"myTag2\", button=on_button1))\n# on_button1.pack(pady = 50)\n# Execute Tkinter\nroot.mainloop()\n# so we would also like to use shotcut to manually cut videos and feed that info into the main production logic, by means of mlt xml.",
-        "type": "code",
-        "location": "/tests/tkinter_tag_toggle_button/toggle_button.py:47-67"
+        "content": "/tests/title_cover_generator/gpt2_train.sh",
+        "type": "filepath"
     },
     "5539": {
         "file_id": 723,
-        "content": "This code creates Tkinter buttons for toggling tags and configures them with lambda functions. It then executes the Tkinter event loop to display the buttons. The purpose is to allow users to manually cut videos and feed that information into the main production logic using mlt xml format.",
-        "type": "comment"
+        "content": "This code navigates into the \"GPT2-NewsTitle\" directory and creates a new directory named \"output_dir\". It then runs the Python script \"train.py\" to train a GPT-2 model for generating news titles or covers.",
+        "type": "summary"
     },
     "5540": {
-        "file_id": 724,
-        "content": "/tests/blur_image_detection_mask/test_blur_detection.py",
-        "type": "filepath"
+        "file_id": 723,
+        "content": "cd GPT2-NewsTitle\nmkdir output_dir\npython3 train.py",
+        "type": "code",
+        "location": "/tests/title_cover_generator/gpt2_train.sh:1-3"
     },
     "5541": {
-        "file_id": 724,
-        "content": "This code imports necessary modules, reads an image, applies blur detection algorithm using blur_detector.detectBlur(img), displays the original image and blur map using cv2.imshow(), and waits for user input before closing the windows with cv2.waitKey(0).",
-        "type": "summary"
+        "file_id": 723,
+        "content": "This code navigates into the \"GPT2-NewsTitle\" directory and creates a new directory named \"output_dir\". It then runs the Python script \"train.py\" to train a GPT-2 model for generating news titles or covers.",
+        "type": "comment"
     },
     "5542": {
         "file_id": 724,
-        "content": "from lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport blur_detector\nimport cv2\nimagePath = \"/root/Desktop/works/pyjom/samples/image/dog_blue_sky_split_line.png\"\nif __name__ == '__main__':\n    img = cv2.imread(imagePath,0)\n    blur_map = blur_detector.detectBlur(img, downsampling_factor=4, num_scales=4, scale_start=2, num_iterations_RF_filter=3)\n    cv2.imshow('ori_img', img)\n    cv2.imshow('blur_map', blur_map)\n    cv2.waitKey(0)",
-        "type": "code",
-        "location": "/tests/blur_image_detection_mask/test_blur_detection.py:1-12"
+        "content": "/tests/title_cover_generator/gpt2_title_data_prep.py",
+        "type": "filepath"
     },
     "5543": {
         "file_id": 724,
-        "content": "This code imports necessary modules, reads an image, applies blur detection algorithm using blur_detector.detectBlur(img), displays the original image and blur map using cv2.imshow(), and waits for user input before closing the windows with cv2.waitKey(0).",
-        "type": "comment"
+        "content": "Code copies train data as test data, creates a new data directory if it doesn't exist, writes train data to a JSON file, and then copies the train file to the test file.",
+        "type": "summary"
     },
     "5544": {
-        "file_id": 725,
-        "content": "/tests/blur_image_detection_mask/BlurDetection_install/test.py",
-        "type": "filepath"
+        "file_id": 724,
+        "content": "# simply copy train shit as test shit.\nfrom commons import load_train_data_core, import_word\nWord = import_word()\nimport json\ndata = []\nimport os\ndata_dir = \"/media/root/help/pyjom/tests/title_cover_generator/GPT2-NewsTitle/data_dir\"\nif not os.path.exists(data_dir):\n    os.mkdir(data_dir)\ntrain_file = os.path.join(data_dir,\"train_data.json\")\ntest_file = os.path.join(data_dir,\"test_data.json\")\nfor content, title in load_train_data_core():\n    sample = {\"title\": title[0],\"content\":content[0]}\n    data.append(sample) # is that necessary?\nwith open(train_file,\"w+\",encoding=\"utf8\") as f:\n    f.write(json.dumps(data,ensure_ascii=False,indent=4))\nimport shutil\nshutil.copy(train_file, test_file)",
+        "type": "code",
+        "location": "/tests/title_cover_generator/gpt2_title_data_prep.py:1-26"
     },
     "5545": {
-        "file_id": 725,
-        "content": "The code detects and removes watermarks, crops images, performs inpainting, adjusts text area ratios, and displays images. It identifies contours and draws bounding boxes for detection.",
-        "type": "summary"
+        "file_id": 724,
+        "content": "Code copies train data as test data, creates a new data directory if it doesn't exist, writes train data to a JSON file, and then copies the train file to the test file.",
+        "type": "comment"
     },
     "5546": {
         "file_id": 725,
-        "content": "# order:\n# detect if dog/cat is there, satisfying the qualification\n# remove watermark, remove text, remove potential watermark around corners using inpainting\n# use ffmpeg cropdetect, if has significant area change then no further processing\n# if no significant area change, use this blur detection to get the main area\n# remove watermark again?? around corners?\n# then reuse the dog detection and get the crop from processed/cropped image.\nimport os\n# from cv2 import waitKey\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\nimport numpy\n# import logger\nimport BlurDetection\n# img_path = raw_input(\"Please Enter Image Path: \")\n# img_path = \"/root/Desktop/works/pyjom/samples/image/dog_blue_sky_split_line.png\"\n# img_path = \"/root/Desktop/works/pyjom/samples/image/blur_sample.webp\"\nimg_path = \"/root/Desktop/works/pyjom/samples/image/blur_sample_2.webp\"\n# img_path = \"/root/Desktop/works/pyjom/samples/image/dog_with_black_borders.png\"\n# ffmpeg -loop 1 -i /root/Desktop/works/pyjom/samples/image/dog_with_black_borders.png -t 15 -vf cropdetect -f null -",
-        "type": "code",
-        "location": "/tests/blur_image_detection_mask/BlurDetection_install/test.py:1-28"
+        "content": "/tests/title_cover_generator/commons.py",
+        "type": "filepath"
     },
     "5547": {
         "file_id": 725,
-        "content": "The code imports necessary libraries, initializes OpenCV, sets the image path, and starts by detecting if a dog or cat is present in the image. It then proceeds to remove watermarks, potentially using inpainting for corners, and checks for significant area changes with ffmpeg cropdetect. If no change, it uses blur detection for the main area. Finally, it may remove watermarks around corners again and reuses dog detection to get the final cropped image.",
-        "type": "comment"
+        "content": "The code loads and preprocesses training data using load_train_data_core function, iterating through indexes of text chunks, transforming words, and creating Word class instances. It applies shuffle and progress bar for efficient data access.",
+        "type": "summary"
     },
     "5548": {
         "file_id": 725,
-        "content": "# img_path=\"/root/Desktop/works/pyjom/samples/image/husky_cry.png\"\nassert os.path.exists(img_path), \"img_path does not exists\"\nimg = cv2.imread(img_path)\nimport sys\nsys.path.append(\"/root/Desktop/works/pyjom/\")\nfrom pyjom.imagetoolbox import imageFourCornersInpainting, getImageTextAreaRatio\nimg = imageFourCornersInpainting(img)\nimg = getImageTextAreaRatio(img, inpaint=True, edgeDetection=True)\nimg_fft, val, blurry = BlurDetection.blur_detector(img)\nprint(\"this image {0} blurry\".format([\"isn't\", \"is\"][blurry]))\nmsk, result, blurry = BlurDetection.blur_mask(img, max_thresh=120)\ninv_msk = 255 - msk\n# import numpy as np\n# print(np.max(msk), np.min(msk))\n# print(msk.shape)\n# breakpoint()\ndef display(title, img, max_size=200000):\n    assert isinstance(img, numpy.ndarray), \"img must be a numpy array\"\n    assert isinstance(title, str), \"title must be a string\"\n    scale = numpy.sqrt(min(1.0, float(max_size) / (img.shape[0] * img.shape[1])))\n    print(\"image is being scaled by a factor of {0}\".format(scale))\n    shape = (int(scale * img.shape[1]), int(scale * img.shape[0]))",
+        "content": "sample_data = [\"【翎伶】world.execute;(me);\", \"【封校日常】沙拉制作\", \"【Blender场景动画】新代 : 城市【VictoryLuode】\", \"历时733天! 圆了挖机梦，我独立造了一台可遥控小型挖机\", \"【难懂的数学】傅里叶、拉普拉斯、卷积、欧拉方程、梯度散度、拉格朗日方程、奈奎斯特采样、虚数等抽象难懂数学一网打尽\", \"这些up主是中学生和大学生的救星啊啊啊啊啊！！！学习方法｜免费课程｜兴趣技能｜生涯规划\", \"【不止游戏】游戏和电影中的M4，究竟有多经典？\", \"Steam++ 新版v2.7发布 新功能介绍\", \"手绘503张！还原数码宝贝OP\", \"好可爱鸭~ summertime\", \"男室友偷偷逛站酷网，毕设惊艳全校！\", \"对不起，我笑得真的很大声！【第一届立直麻将联赛】\", \"在南京每天画画一小时，在家接单养活自己！\", \"没有什么事情是一个纸团解决不了的，如果有那就用很多个\", \"到底是什么让我能在公园大爷面前如此的自信？\", \"欲拔山城寨，先过五虎将\", \"杨侃最下饭｜27 杨毅：经纪人不能太贪心\", \"【深渊的呼唤V】全球总决赛-决赛 Wolves vs SST\", \"【安特卫普MAJOR】亚洲区预选赛 TYLOO vs Renegades\", \"狼队第五人格分部成立两周年啦！\", \"【守望先锋联赛】英雄崛起!准备好迎接2022赛季!\"]\nimport progressbar\nimport random\ndef load_train_data_core(shuffle=True,batchsize=1,len_threshold = 2,no_unk=True):\n    filepath = \"/media/root/help/pyjom/tests/title_cover_generator/DianJing/data/basic_data_80k_v2.pkl\"\n    # warning...\n    import pickle\n    fobj = open(filepath, 'rb')\n    # print([fobj])\n    # breakpoint()\n    class Word:\n        def __init__(self,val,tf,df):\n            self.val = val",
         "type": "code",
-        "location": "/tests/blur_image_detection_mask/BlurDetection_install/test.py:29-57"
+        "location": "/tests/title_cover_generator/commons.py:1-17"
     },
     "5549": {
         "file_id": 725,
-        "content": "This code performs blur detection and inpainting on an image. It first checks if the image path exists, reads the image using OpenCV, appends the necessary directory to the system path, applies four-corners inpainting and text area ratio adjustment, determines the blurriness of the image, and then uses the BlurDetection class for blur detection and mask generation. Finally, it displays the image with optional scaling and prints the maximum and minimum values of the mask.",
+        "content": "The code imports the progressbar and random libraries, defines a function load_train_data_core which takes optional parameters shuffle, batchsize, len_threshold, and no_unk. The filepath variable stores the path to a pickle file containing data for training. The function opens the file using pickle's open function in read binary mode and does not perform any additional operations on its contents before returning.",
         "type": "comment"
     },
     "5550": {
         "file_id": 725,
-        "content": "    img = cv2.resize(img, shape)\n    cv2.imshow(title, img)\n# BlurDetection.scripts.display('img', img)\ndisplay(\"img\", img)\n# display(\"msk\", msk)\ndisplay(\"inv_msk\", inv_msk)\n# Generate contours based on our mask\n# This function allows us to create a descending sorted list of contour areas.\n# def contour_area(contours):\n#     # create an empty list\n#     cnt_area = []\n#     # loop through all the contours\n#     for i in range(0, len(contours), 1):\n#         # for each contour, use OpenCV to calculate the area of the contour\n#         cnt_area.append(cv2.contourArea(contours[i]))\n#     # Sort our list of contour areas in descending order\n#     list.sort(cnt_area, reverse=True)\n#     return cnt_area\ndef draw_bounding_box_with_contour(\n    contours, image, area_threshold=20, debug=False\n):  # are you sure?\n    # this is the top-k approach.\n    # Call our function to get the list of contour areas\n    # cnt_area = contour_area(contours)\n    # Loop through each contour of our image\n    x0, y0, x1, y1 = [None] * 4\n    for i in range(0, len(contours), 1):",
+        "content": "            self.tf = tf\n            self.df = df\n        def __repr__(self):\n            pass\n    _, word2idx, idx2word, targets, srcs= pickle.load(fobj) # freaking swap.\n    # titles, abstracts\n    # print(titles) # these are not freaking words. numbers.\n    # print(abstracts)\n    for key in idx2word:\n        elem = idx2word[key]\n        if elem.startswith('<') and elem.endswith('>'):\n            elem = elem[1:-1].upper()\n            elem = \"[{}]\".format(elem)\n            idx2word[key] =elem\n    # you can freaking get the data.\n    # title = titles[0]\n    len_indexs = len(targets)\n    # indexs = [x for x in range(indexs)]\n        # random.shuffle(indexs)\n    randomIdx = [x for x in range(len_indexs)]\n    if shuffle:\n        random.shuffle(randomIdx)\n    randomIdx2 = [randomIdx[x*batchsize:(x+1)*batchsize] for x in range(len(randomIdx)//batchsize+1)]\n    len_srcs = len(srcs)\n    len_targets = len(targets)\n    # mfilter = lambda x: x.replace(\" \",\"\").replace(\"\\n\",\"\")\n    for indexs in progressbar.progressbar(randomIdx2):",
         "type": "code",
-        "location": "/tests/blur_image_detection_mask/BlurDetection_install/test.py:58-93"
+        "location": "/tests/title_cover_generator/commons.py:18-44"
     },
     "5551": {
         "file_id": 725,
-        "content": "Resizes image, displays it with cv2.imshow, and calls the display function for other images. Defines a contour_area function to calculate and sort contour areas in descending order. Draws bounding boxes around the largest contours with the draw_bounding_box_with_contour function.",
+        "content": "The code is loading a pickle file, extracting relevant data including titles and abstracts. It then modifies some elements in the idx2word dictionary by replacing specific characters with formatted strings. The code provides random indexes for accessing the data and applies a shuffle if required. Lastly, it uses a progress bar for iterating over the shuffled indexes to access the data.",
         "type": "comment"
     },
     "5552": {
         "file_id": 725,
-        "content": "        cnt = contours[i]\n        # Only draw the the largest number of boxes\n        if cv2.contourArea(cnt) > area_threshold:\n            # if (cv2.contourArea(cnt) > cnt_area[number_of_boxes]):\n            # Use OpenCV boundingRect function to get the details of the contour\n            x, y, w, h = cv2.boundingRect(cnt)\n            if x0 == None:\n                x0, y0, x1, y1 = x, y, x + w, y + h\n            if x < x0:\n                x0 = x\n            if y < y0:\n                y0 = y\n            if x + w > x1:\n                x1 = x + w\n            if y + h > y1:\n                y1 = y + h\n            # Draw the bounding box\n    if x0 is not None:\n        if debug:\n            image = cv2.rectangle(image, (x0, y0), (x1, y1), (0, 0, 255), 2)\n            cv2.imshow(\"with_bounding_box\", image)\n            cv2.waitKey(0)\n    if x0 is None:\n        height, width = image.shape[:2]\n        x0, y0, x1, y1 = 0, 0, width, height\n    return (x0, y0), (x1, y1)\n# BlurDetection.scripts.display('msk', msk)\ncontours, hierarchy = cv2.findContours(inv_msk, 1, 2)",
+        "content": "        src_result=[]\n        target_result=[]\n        for index in indexs:\n            if index < len_srcs and index < len_targets:\n                src, target = srcs[index], targets[index]\n                src, target = [idx2word[x] for x in src], [idx2word[x] for x in target]\n                src, target = \"\".join(src),\"\".join(target)\n                if no_unk:\n                    src, target = src.replace(\"[UNK]\",\"\"), target.replace(\"[UNK]\",\"\")\n                # src, target = mfilter(src), mfilter(target)\n                if max(len(src),len(target)) > len_threshold:\n                    src_result.append(src)\n                    target_result.append(target)\n        if len(src_result) >0:\n            yield src_result,target_result\n    # for index in indexs:\n    #     title = titles[index]\n    #     mytitle = [idx2word[x] for x in title]\n    #     abstract = abstracts[index]\n    #     myabstract = [idx2word[x] for x in abstract]\n    #     if join:\n    #         yield \"\".join(mytitle), \"\".join(myabstract)\n    #     else: yield mytitle, myabstract",
         "type": "code",
-        "location": "/tests/blur_image_detection_mask/BlurDetection_install/test.py:94-126"
+        "location": "/tests/title_cover_generator/commons.py:45-67"
     },
     "5553": {
         "file_id": 725,
-        "content": "This code finds contours in an image, selects the largest one based on area threshold, and calculates the bounding box coordinates. It then draws a rectangle around the detected contour (if debug is enabled) and returns the bounding box coordinates. The code also initializes the bounding box parameters if they are None.",
+        "content": "This code is iterating through indexes in two lists of text chunks, transforming them to word form, joining the words into strings, and removing [UNK] tokens if specified. If any resulting string exceeds a certain length threshold, it appends them to two result lists. The code yields these two result lists if there are at least one entry.",
         "type": "comment"
     },
     "5554": {
         "file_id": 725,
-        "content": "rectangle_boundingbox = draw_bounding_box_with_contour(contours, img, debug=True)\n# cv2.waitKey(0)",
+        "content": "    # print(mytitle)\n    # breakpoint()\ndef import_word():\n    # if __name__ == \"__main__\":\n    class Word:\n        def __init__(self,val,tf,df):\n            self.val = val\n            self.tf = tf\n            self.df = df\n        def __repr__(self):\n            pass\n    return Word\nif __name__ == '__main__':\n    Word = import_word()\n    for title, abstract in load_train_data_core():\n        print(title)\n        print(abstract) # we have <unk> tokens. how do we freaking deal with it?\n        breakpoint()",
         "type": "code",
-        "location": "/tests/blur_image_detection_mask/BlurDetection_install/test.py:127-128"
+        "location": "/tests/title_cover_generator/commons.py:68-87"
     },
     "5555": {
         "file_id": 725,
-        "content": "The code snippet detects contours and draws a bounding box around them using the function draw_bounding_box_with_contour. It also displays an image window with cv2.waitKey(0) but it is commented out, so it's not currently being executed.",
+        "content": "The code defines a function `import_word` that returns a class named Word. The class has attributes `val`, `tf`, and `df`. The code then checks if it is being run as the main program and creates instances of the Word class from loaded data, printing title and abstract. It encounters a breakpoint to debug or inspect the handling of tokens in the code.",
         "type": "comment"
     }
 }

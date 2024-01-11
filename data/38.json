@@ -1,543 +1,535 @@
 {
     "3800": {
-        "file_id": 480,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/test_curve_converter.py",
-        "type": "filepath"
+        "file_id": 460,
+        "content": "# now cluster shit shall we?\n# from sklearn.neighbors import NearestNeighbors\n# neigh = NearestNeighbors(n_neighbors=5)\n# X = sample\n# neigh.fit(X)\n# A = neigh.kneighbors_graph(X)\n# A.toarray()\n# print(A)\n# print(A.shape) # sparse matrix? wtf?\nfrom sklearn.cluster import MiniBatchKMeans  # better?\n# from sklearn.cluster import KMeans\nX = sample\nbatch_size = 45\n# kmeans = KMeans(n_clusters=5).fit(X) # not deterministic please?\nn_clusters = 5\nkmeans = MiniBatchKMeans(\n    init=\"k-means++\",\n    n_clusters=n_clusters,\n    batch_size=batch_size,\n    # n_init=10,\n    max_no_improvement=10,\n    verbose=0,\n).fit(X)\n# from lazero.utils import inspectObject\n# inspectObject(kmeans)\n# breakpoint()\nlabels = kmeans.labels_\ncluster_centers = kmeans.cluster_centers_\nprint(labels)\nprint(cluster_centers)\nlabel_percentage = {\n    x: np.count_nonzero(labels == x) / sample_size for x in range(n_clusters)\n}\nflagged_image = image.copy()\nflagged_image[:,:,:] = 1 # every element is 1 now.\nepsilon = 0.01 # shit man.\npercents = []\nshift=2\nfor center5 in cluster_centers:",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py:124-165"
     },
     "3801": {
-        "file_id": 480,
-        "content": "The code defines a function `curve_converter` that applies bitwise operations and conditional logic on an input value using a provided curve function, transforming it into an output array after iterating through pairs of points from the curve and maintaining data types.",
-        "type": "summary"
+        "file_id": 460,
+        "content": "Code is performing clustering using MiniBatchKMeans from sklearn.cluster, with n_clusters=5 and batch_size=45 to handle larger datasets. After fitting the data, it prints labels and cluster centers. Then, it calculates label percentages based on the labels assigned by KMeans, initializes a flagged image with all elements set to 1, and starts iterating through each cluster center to perform further operations (not shown in code snippet).",
+        "type": "comment"
     },
     "3802": {
-        "file_id": 480,
-        "content": "import numpy as np\ndef curve_converter(value,curve_function):\n    # do bitwise operation.\n    marray = None\n    curve2 = zip(curve_function[:-1],curve_function[1:])\n    dtype = value.dtype\n    for (orig, target0), (forig,ftarget) in curve2:\n        locs1 = value>orig # forget about zero.\n        locs1 = locs1.astype(dtype)\n        locs2 = value<=forig\n        locs2 = locs2.astype(dtype)\n        # new_value = locs1 and locs2\n        new_value = locs1 * locs2\n        mask_backup = new_value.copy()\n        # print(\"LOCMAP:\",new_value)\n        # new_value = new_value.astype(dtype)\n        new_value = value * new_value\n        # print(\"MASKED VALUES:\", new_value)\n        new_value = new_value.astype(np.float32)\n        new_value2 = (new_value-orig)/(forig-orig)\n        new_diff = new_value2*(ftarget-target0)\n        new_value = target0+new_diff\n        new_value = new_value*mask_backup\n        new_value = new_value.astype(dtype)\n        if marray is None:\n            marray = new_value.copy()\n        else:\n            # assert np.all(marray< value) # NOT RIGHT. WHERE?",
+        "file_id": 460,
+        "content": "    # fetch area nearby given center\n    if use_spatial:\n        center = center5[:3]\n    else:\n        center = center5\n    # center_int = center.astype(np.uint8)\n    # i just don't know what the fuck is going on here.\n    upper = center + shift\n    lower = center - shift\n    mask = cv2.inRange(image, lower, upper)\n    # not image.\n    output = cv2.bitwise_and(flagged_image, flagged_image, mask=mask)\n    # print(output)\n    # print(output.shape)\n    mOutput = output.reshape(-1, 3)\n    mOutput = np.sum(mOutput, axis=1)\n    mSum = sum(mOutput)\n    # breakpoint()\n    positive_count = np.count_nonzero(abs(mOutput - 3) < epsilon)\n    percent = positive_count/len(mOutput)\n    # print(mOutput)\n    # print(mOutput.shape)\n    # breakpoint()\n    print(\"CENTER:\",center)\n    print('POSITIVE COUNT:', positive_count)\n    print(\"SUM:\", mSum, \"MIN:\", min(mOutput), 'MAX:', max(mOutput))\n    print(\"NEARBY CENTER PERCENTAGE: {:.2f} %\".format(percent*100))\n    percents.append(percent)\nprint(\"CENTRALITY: {:.2f} %\".format(sum(percents)*100))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/test_curve_converter.py:1-33"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py:166-195"
     },
     "3803": {
-        "file_id": 480,
-        "content": "This code defines a function `curve_converter` that performs bitwise operations on an input `value` using a provided curve function. The function iterates through pairs of points from the curve and applies conditional logic based on the value's relationship to these points, resulting in a transformed output array. The function also checks for duplicate values and ensures the proper data types are maintained throughout the process.",
+        "file_id": 460,
+        "content": "The code calculates the centrality of a center by extracting nearby pixel values and checking if they are within a specified epsilon threshold. It uses image processing functions from OpenCV (cv2) and numpy for masking, reshaping, and summing operations. The code then prints various metrics related to the center's centrality, such as positive count, sum of pixel values, minimum and maximum values, and finally calculates the overall centrality percentage.",
         "type": "comment"
     },
     "3804": {
-        "file_id": 480,
-        "content": "            marray += new_value\n        # print(\"INTERMEDIATES:\",marray)\n    return marray\nif __name__ == '__main__':\n    data = np.array([1,40,100,245])\n    curve_function = [[0,0],[40,30],[100,50],[150,100],[255,130]]\n    out = curve_converter(data,curve_function)\n    print(data)\n    print(out)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/test_curve_converter.py:34-44"
-    },
-    "3805": {
-        "file_id": 480,
-        "content": "The code defines a function called curve_converter that takes two inputs - data and curve_function. It then adds the new values to marray, which seems to be an array of intermediate values. The code returns the marray after performing the calculations. In the main block, it tests the function by creating arrays for data and curve_function and prints out both the original data and the output of the curve_converter function.",
-        "type": "comment"
-    },
-    "3806": {
-        "file_id": 481,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_english_text.py",
+        "file_id": 461,
+        "content": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py",
         "type": "filepath"
     },
-    "3807": {
-        "file_id": 481,
-        "content": "This code utilizes PaddleOCR to translate and rectify text from images, applies Levenshtein distance filtering, calculates text size and positioning, and saves results.",
+    "3805": {
+        "file_id": 461,
+        "content": "The user is experiencing issues with image centrality and nearby center percentages when using OpenCV (cv2) and MiniBatchKMeans for clustering in numpy. The code extracts similar color frames, calculates percentages of nearby centers, and prints related statistics to calculate overall centrality.",
         "type": "summary"
     },
-    "3808": {
-        "file_id": 481,
-        "content": "from paddleocr import PaddleOCR\n# cannot translate everything... not frame by frame...\n# can summarize things. can block texts on location.\n# Paddleocr supports Chinese, English, French, German, Korean and Japanese.\n# You can set the parameter `lang` as `ch`, `en`, `french`, `german`, `korean`, `japan`\n# to switch the language model in order.\nocr = PaddleOCR(use_angle_cls=True, lang='en') # need to run only once to download and load model into memory\nimg_path = 'target.png' # only detect english. or not?\nimport cv2\nimage = cv2.imread(img_path)\nresult2 = ocr.ocr(image, cls=True)\nprob_thresh = 0.6 # found watermark somewhere. scorpa\nresult = []\nimport wordninja\nfor index, line in enumerate(result2):\n    # print(line)\n    # breakpoint()\n    coords, (text, prob) = line\n    prob = float(prob)\n    if prob > prob_thresh:\n        rectified_text = \" \".join(wordninja.split(text))\n        line[1] = (rectified_text, prob)\n        print(line)\n        result.append(line)\nimport numpy as np\na,b,c = image.shape\nblank_image = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order",
+    "3806": {
+        "file_id": 461,
+        "content": "# i'd say i want centrality below 6 percent. what's the catch?\n# we'd like to adjust the shift.\n# another tip: you have forgot the spatial coordinates.\n# fuck!\n# src = \"/root/Desktop/works/pyjom/samples/image/cute_cat.bmp\"\n# CENTRALITY: 0.00 %\n# single not go beyond 4 percent.\n# total not go beyond 6 percent.\n# is that right? fuck?\n# src = \"/root/Desktop/works/pyjom/samples/image/dog_with_text.png\"\n# and yet this does not look right.\n# NEARBY CENTER PERCENTAGE: 0.84 %\n# CENTRALITY: 2.57 %\n# src = \"/root/Desktop/works/pyjom/samples/image/miku_on_green.png\"\n# for this one we have double centers. fuck.\n# CENTRALITY: 181.80 %\n# it is off the charge!\n# with text. a meme.\n# src = \"/root/Desktop/works/pyjom/samples/image/dog_saturday_night.bmp\"\n# CENTRALITY: 1.26 %\n# src = \"/root/Desktop/works/pyjom/samples/image/similar_color_extraction.bmp\"  # use some filter first, or rather not to?\n# CENTER: [254.62436869 254.63794192 254.79734848]\n# POSITIVE COUNT: 188772\n# SUM: 566316.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 81.93 %",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_english_text.py:1-38"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:1-35"
+    },
+    "3807": {
+        "file_id": 461,
+        "content": "The code snippet is displaying image centrality, nearby center percentage, and other related information for several images. The user seems to be adjusting the shift and working with spatial coordinates. However, they are encountering issues like double centers and results that do not look right. They seem to be unsure about some parameters and considering using a filter on an image.",
+        "type": "comment"
+    },
+    "3808": {
+        "file_id": 461,
+        "content": "# CENTRALITY: 82.33 %\n# let's try some cats.\n# the filter: removegrain\n# src = \"/root/Desktop/works/pyjom/samples/image/kitty_flash.bmp\"  # use some filter first, or rather not to?\n# CENTER: [1.37254902 2.34313725 9.46078431]\n# POSITIVE COUNT: 2600\n# SUM: 7800.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 3.91 %\n# CENTRALITY: 3.91 %\n# now the 八点半配音\n# src = \"/root/Desktop/works/pyjom/samples/image/is_this_duck.bmp\"\n# CENTER: [252.66293811 177.62005966 126.37844892]\n# POSITIVE COUNT: 222893\n# SUM: 668679.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 36.49 %\n# CENTRALITY: 36.55 %\n# likely to be the blue.\nsrc = \"/root/Desktop/works/pyjom/samples/image/pig_really.bmp\"\n# multiple centers.\n# CENTER: [246.76865924 226.40763256 216.41472476]\n# POSITIVE COUNT: 95497\n# SUM: 286491.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 6.74 %\n# CENTRALITY: 7.32 %\nimport numpy as np\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\nimage = cv2.imread(src)\nshape = image.shape\nif len(shape) != 3:\n    print(\"weird shit.\")",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:36-75"
     },
     "3809": {
-        "file_id": 481,
-        "content": "The code utilizes the PaddleOCR library to translate text from an image. It supports multiple languages and requires model downloading upon initialization. The code reads an image, detects English text using OCR, and applies a rectification process to improve readability. It then filters out results below a probability threshold before saving the final results.",
+        "file_id": 461,
+        "content": "This code reads an image from a specific file and applies filters to detect and remove duplicate frames. The results include information about centrality, positive counts, nearby center percentages, and more. The code uses OpenCV (cv2) for image processing and numpy for array manipulation.",
         "type": "comment"
     },
     "3810": {
-        "file_id": 481,
-        "content": "for coords, (text,prob) in result:\n    polyArray = np.array(coords).astype(np.int64) # fuck.\n    # print(polyArray)\n    # print(polyArray.shape)\n    # breakpoint()\n    # points = np.array([[160, 130], [350, 130], [250, 300]])\n    # print(points.dtype)\n    # points = np.array([[454.0, 22.0], [464.0, 26.0], [464.0, 85.0]]).astype(np.int64)\n    color= 255\n    cv2.fillPoly(blank_image,[polyArray],color)\n    isClosed = True\n    thickness = 30\n    cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n#     # cv2.fillPoly(blank_image,pts=[points],color=(255, 255,255))\n# cv2.imshow(\"mask\",blank_image)\n# cv2.waitKey(0)\n# use wordninja.\n# before translation we need to lowercase these shits.\ndst = cv2.inpaint(image,blank_image,3,cv2.INPAINT_TELEA)\n# from PIL import Image\nfrom PIL import Image, ImageFont, ImageDraw  \ndef np2pillow(opencv_image):\n    color_coverted = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)\n    pil_image = Image.fromarray(color_coverted)\n    return pil_image\n    # pil_image.show()",
+        "file_id": 461,
+        "content": "if shape[2] != 3:\n    print(\"depth not right.\")\n# for i in range(3):\n#     image[:,:,i] = i\n# col_0, col_1 = shape[:2]\n# coords = []\n# for c0 in range(col_0):\n#     for c1 in range(col_1):\n#         coords.append((c0,c1))\n# coords = np.array(coords)\n# print(image.reshape(-1,3))\nreshapedImage = image.reshape(-1, 3)  # are you sure about this?\nlength, depth = reshapedImage.shape\nsample_size_limit = 5000\nreshapedImageIndexs = np.arange(0, length)\n# so now it is good.\nsampleIndexs = np.random.choice(reshapedImageIndexs, size=min(sample_size_limit, length))\nprint(sampleIndexs)\nprint(sampleIndexs.shape)\nsample_size = len(sampleIndexs)\nsample = reshapedImageIndexs[sampleIndexs]\nsample = reshapedImage[sample, :]\nprint(sample)\nprint(sample.shape)\n# breakpoint()\n# sampleCoords = coords[sampleIndexs]\n# sample = np.hstack([sample, sampleCoords])\n# print(sample)\n# print(sample.shape)\n# breakpoint()\n# warning: OOM?\n# now cluster shit shall we?\n# from sklearn.neighbors import NearestNeighbors\n# neigh = NearestNeighbors(n_neighbors=5)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_english_text.py:40-67"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:76-119"
     },
     "3811": {
-        "file_id": 481,
-        "content": "Iterating through coordinates and text-probability pairs, converting coordinates to numpy array for drawing on image. Using cv2.fillPoly() and cv2.polylines() for shape fills and outlines. Inpainting image with cv2.inpaint(), then converting opencv image to pillow image using np2pillow() function.",
+        "file_id": 461,
+        "content": "The code extracts color samples from an image and selects a random sample of up to 5000 indices. It then reshapes the image into a 1D array, creates new sample indices, retrieves the sample data, and prepares for clustering.",
         "type": "comment"
     },
     "3812": {
-        "file_id": 481,
-        "content": "def pillow2np(pil_image):\n    # pil_image=Image.open(\"demo2.jpg\") # open image using PIL\n    # use numpy to convert the pil_image into a numpy array\n    numpy_image=np.array(pil_image)  \n    # convert to a openCV2 image, notice the COLOR_RGB2BGR which means that \n    # the color is converted from RGB to BGR format\n    opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR) \n    return opencv_image\n# draw text now!\nmpil_image = np2pillow(dst)\ndraw = ImageDraw.Draw(mpil_image)\nfont_location = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\" # not usual english shit.\ndef get_coord_orientation_font_size_and_center(coords):\n    xlist, ylist = [x[0] for x in coords], [x[1] for x in coords]\n    min_x, max_x = min(xlist), max(xlist)\n    min_y, max_y = min(ylist), max(ylist)\n    width,height = max_x-min_x, max_y-min_y\n    center = (int((max_x+min_x)/2),int((max_y+min_y)/2))\n    # what about rotation? forget about it...\n    if (width / height) < 0.8:\n        orientation = \"vertical\"\n        font_size = int(width)\n    else:",
+        "file_id": 461,
+        "content": "# X = sample\n# neigh.fit(X)\n# A = neigh.kneighbors_graph(X)\n# A.toarray()\n# print(A)\n# print(A.shape) # sparse matrix? wtf?\nfrom sklearn.cluster import MiniBatchKMeans  # better?\n# from sklearn.cluster import KMeans\nX = sample\nbatch_size = 45\n# kmeans = KMeans(n_clusters=5).fit(X) # not deterministic please?\nn_clusters = 5\nkmeans = MiniBatchKMeans(\n    init=\"k-means++\",\n    n_clusters=n_clusters,\n    batch_size=batch_size,\n    # n_init=10,\n    max_no_improvement=10,\n    verbose=0,\n).fit(X)\n# from lazero.utils import inspectObject\n# inspectObject(kmeans)\n# breakpoint()\nlabels = kmeans.labels_\ncluster_centers = kmeans.cluster_centers_\nprint(labels)\nprint(cluster_centers)\nlabel_percentage = {\n    x: np.count_nonzero(labels == x) / sample_size for x in range(n_clusters)\n}\nflagged_image = image.copy()\nflagged_image[:,:,:] = 1 # every element is 1 now.\nepsilon = 0.01 # shit man.\npercents = []\nshift=2\nfor center in cluster_centers:\n    # fetch area nearby given center\n    # center = center5[:3]\n    # center_int = center.astype(np.uint8)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_english_text.py:69-93"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:120-161"
     },
     "3813": {
-        "file_id": 481,
-        "content": "Function `pillow2np` converts a PIL image to a numpy array, then converts it to an OpenCV BGR format. Draws text on the image using PIL's ImageDraw module and specifies font location. Function `get_coord_orientation_font_size_and_center` calculates image dimensions, center, and determines orientation based on aspect ratio for possible vertical text.",
+        "file_id": 461,
+        "content": "This code performs clustering using MiniBatchKMeans to find clusters in a dataset, extracts cluster centers, calculates label percentages for each cluster, and then sets the entire flagged image to 1 before iterating through cluster centers and performing an unknown operation on nearby areas.",
         "type": "comment"
     },
     "3814": {
-        "file_id": 481,
-        "content": "        orientation = \"horizontal\"\n        font_size = int(height)\n    return orientation, font_size, center,(width,height)\nreadjust_size=True\ncomparedWaterMarkString = \"scorpa\".lower() # the freaking name \ncomparedWaterMarkStringLength = len(comparedWaterMarkString)\nimport Levenshtein\nfor coords, (text,prob) in result:\n    # remove watermarks? how to filter?\n    editDistanceThreshold = 4\n    probThreshold = 0.8\n    textCompareCandidate = text.replace(\" \",\"\").lower()\n    distance = Levenshtein.distance(textCompareCandidate,comparedWaterMarkString)\n    string_length = len(text)\n    string_length_difference = abs(string_length-comparedWaterMarkStringLength)\n    length_difference_threshold = 3\n    if (distance < editDistanceThreshold and string_length_difference < length_difference_threshold) or prob < probThreshold:\n        continue # skip all shits.\n    # specified font size \n    orientation, font_size, center ,(width,height) = get_coord_orientation_font_size_and_center(coords)\n    if orientation == \"horizontal\":",
+        "file_id": 461,
+        "content": "    # i just don't know what the fuck is going on here.\n    upper = center + shift\n    lower = center - shift\n    mask = cv2.inRange(image, lower, upper)\n    # not image.\n    output = cv2.bitwise_and(flagged_image, flagged_image, mask=mask)\n    # print(output)\n    # print(output.shape)\n    mOutput = output.reshape(-1, 3)\n    mOutput = np.sum(mOutput, axis=1)\n    mSum = sum(mOutput)\n    # breakpoint()\n    positive_count = np.count_nonzero(abs(mOutput - 3) < epsilon)\n    percent = positive_count/len(mOutput)\n    # print(mOutput)\n    # print(mOutput.shape)\n    # breakpoint()\n    print(\"CENTER:\",center)\n    print('POSITIVE COUNT:', positive_count)\n    print(\"SUM:\", mSum, \"MIN:\", min(mOutput), 'MAX:', max(mOutput))\n    print(\"NEARBY CENTER PERCENTAGE: {:.2f} %\".format(percent*100))\n    percents.append(percent)\nprint(\"CENTRALITY: {:.2f} %\".format(sum(percents)*100))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_english_text.py:94-116"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:162-185"
     },
     "3815": {
-        "file_id": 481,
-        "content": "This code is filtering and processing text from the results. It checks the distance between the text and a given string (comparedWaterMarkString) using Levenshtein distance algorithm. If the difference in length is less than a threshold, or the probability of the text being correct is below a certain threshold, the code skips that particular text. The orientation, font size, center, and dimensions are obtained from the coordinates and returned.",
+        "file_id": 461,
+        "content": "This code extracts similar color frames and calculates the percentage of nearby centers. It reshapes the output, sums values, counts non-zero absolute differences, and calculates the percentage of nearby centers. The code then appends the percentages to a list for later calculation of centrality. Finally, it prints various statistics about the image and calculates the overall centrality based on the accumulated percentages.",
         "type": "comment"
     },
     "3816": {
-        "file_id": 481,
-        "content": "        font = ImageFont.truetype(font_location, font_size)\n        # text = original_text\n        # drawing text size \n        stroke_width = int(0.1*font_size)\n        (string_width,string_height) = draw.textsize(text,font=font,stroke_width=stroke_width)\n        # print(string_width)\n        # breakpoint()\n        if readjust_size:\n            change_ratio = width/string_width\n            new_fontsize = font_size*change_ratio\n            font = ImageFont.truetype(font_location, new_fontsize)\n            start_x = int(center[0]-width/2)\n            start_y = int(center[1]-height/2)\n        else:\n            start_x = int(center[0]-string_width/2)\n            start_y = int(center[1]-font_size/2)\n        draw.text((start_x, start_y), text, font = font, fill=(255,255,255),stroke_fill=(0,0,0),stroke_width = stroke_width,align =\"left\") # what is the freaking align?\n# mpil_image.show() \nmpil_image.save(\"redraw_english.png\")\n# cv2.imshow('dst',dst2)\n# cv2.waitKey(0)\n# cv2.destroyAllWindows()\n# expand the area somehow.",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_english_text.py:117-141"
+        "file_id": 462,
+        "content": "/tests/nearly_duplicate_frames_detection_removal/fast_vqa_test.sh",
+        "type": "filepath"
     },
     "3817": {
-        "file_id": 481,
-        "content": "This code calculates the size of text using a given font, adjusts it based on image size, and draws the text centered or aligned to the left. It then saves the resulting image.",
-        "type": "comment"
+        "file_id": 462,
+        "content": "Code changes the video file being tested, mentions quality scores and potential issues with large white areas, suggests using k-NN (k=5), and runs the VQA script on a CPU.",
+        "type": "summary"
     },
     "3818": {
-        "file_id": 481,
-        "content": "# draw result\n# simhei_path = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\"\n# from PIL import Image\n# image = Image.open(img_path).convert('RGB')\n# boxes = [line[0] for line in result]\n# txts = [line[1][0] for line in result]\n# scores = [line[1][1] for line in result]\n# im_show = draw_ocr(image, boxes, txts, scores, font_path=simhei_path)\n# im_show = Image.fromarray(im_show)\n# im_show.save('result.jpg')\n# we will be testing one image only. not the whole goddamn video.\n# may have cuda error when using my cv2 cuda libs.",
+        "file_id": 462,
+        "content": "cd FAST-VQA\n# VIDEO=\"/root/Desktop/works/pyjom/samples/video/nearly_duplicate_frames_detection_30fps.mp4\"\n# The quality score of the video is 0.11833.\nVIDEO=\"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.mp4\"\n# The quality score of the video is 0.12778.\n# nothing serious. it does not produce significant shits.\npython3 vqa.py -o ./options/fast/f3dvqa-b.yml -v $VIDEO -d cpu\n# another feature is that this video produces a large area in white, which is not what we really want.\n# use knn?\n# k=5",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_english_text.py:142-154"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/fast_vqa_test.sh:1-13"
     },
     "3819": {
-        "file_id": 481,
-        "content": "This code snippet is responsible for drawing OCR results on an image, saving the result as 'result.jpg'. It uses a specific font path and processes one image only to avoid potential CUDA errors with cv2 CUDA libraries.",
+        "file_id": 462,
+        "content": "Code changes the video file being tested, mentions quality scores and potential issues with large white areas, suggests using k-NN (k=5), and runs the VQA script on a CPU.",
         "type": "comment"
     },
     "3820": {
-        "file_id": 482,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_chinese_text.py",
+        "file_id": 463,
+        "content": "/tests/music_analysis/download_exciting_bgm_with_lyric.py",
         "type": "filepath"
     },
     "3821": {
-        "file_id": 482,
-        "content": "This code utilizes PaddleOCR for OCR, applies text rectification with probability threshold and WordNinja, performs color inpainting, filters coordinates, removes watermarks, adjusts font size/position, and outputs 'result.jpg'. Issues may arise with CUDA-based OpenCV libraries.",
+        "file_id": 463,
+        "content": "The code utilizes requests to interact with an API, defines a download path based on file extension, and has functions for login, logout, registration, and downloading BGMs. It searches endpoints for song details, extracts them, downloads and saves the songs as binary files, retrieves lyrics from a local server, writes them to a file, and handles potential issues with duration or service login.",
         "type": "summary"
     },
     "3822": {
-        "file_id": 482,
-        "content": "from paddleocr import PaddleOCR\n# cannot translate everything... not frame by frame...\n# can summarize things. can block texts on location.\n# Paddleocr supports Chinese, English, French, German, Korean and Japanese.\n# You can set the parameter `lang` as `ch`, `en`, `french`, `german`, `korean`, `japan`\n# to switch the language model in order.\nocr = PaddleOCR(use_angle_cls=True, lang='en') # need to run only once to download and load model into memory\nimg_path = 'target.png' # only detect english. or not?\nimport cv2\nimage = cv2.imread(img_path)\nresult2 = ocr.ocr(image, cls=True)\nprob_thresh = 0.6 # found watermark somewhere. scorpa\nresult = []\nimport wordninja\nfor index, line in enumerate(result2):\n    # print(line)\n    # breakpoint()\n    coords, (text, prob) = line\n    prob = float(prob)\n    if prob > prob_thresh:\n        rectified_text = \" \".join(wordninja.split(text))\n        line[1] = (rectified_text, prob)\n        print(line)\n        result.append(line)\nimport numpy as np\na,b,c = image.shape\nblank_image = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order",
+        "file_id": 463,
+        "content": "get_download_path = lambda extension:\"exciting_bgm.{}\".format(extension) # is the extension right?\nimport requests\nbaseUrl = \"http://localhost:4000\"\n# now what is the port?\n# 4042\nkeywords = \"last friday night\" # american pop music?\nimport time\ndef getJSTimeStamp(): return int(time.time()*1000)\n# {'data': {'code': 200, 'account': {'id': 7935782775, 'userName': '0_fxg_pxw@163.com', 'type': 0, 'status': -10, 'whitelistAuthority': 0, 'createTime': 1657240405751, 'tokenVersion': 0, 'ban': 0, 'baoyueVersion': 0, 'donateVersion': 0, 'vipType': 0, 'anonimousUser': False, 'paidFee': False}, 'profile': None}}\n# breakpoint()\n# phone, password = \"19825089619\",\"dbH361210110\"\n# login_response = requests.get(baseUrl+\"/login/cellphone\",params={\"phone\": phone,\"password\": password})\n# login_response = requests.get(baseUrl+\"/logout\")\n# login_response_json = login_response.json()\n# print(login_response_json)\n# login_response = requests.get(baseUrl+\"/register/anonimous\")\n# login_response_json = login_response.json()\n# # {'code': -460, 'message': '网络太拥挤，请稍候再试！'}",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_chinese_text.py:1-38"
+        "location": "/tests/music_analysis/download_exciting_bgm_with_lyric.py:1-23"
     },
     "3823": {
-        "file_id": 482,
-        "content": "This code uses PaddleOCR to perform optical character recognition (OCR) on an image file. It detects English text in the image and applies a probability threshold for accuracy. The code rectifies the detected text by splitting it into words using WordNinja, then stores the result in a list. The script also creates a blank image using NumPy.",
+        "file_id": 463,
+        "content": "The code defines a download path based on file extension and uses requests to interact with an API at \"http://localhost:4000\". It seems to be related to music analysis and has functions for login, logout, and registration. The API endpoints are used to verify the account and perform operations related to downloading exciting background music (BGMs) with lyrics. The code also uses time.time() function to get the current timestamp in JST format. The purpose of the code is unclear without further context or knowledge of the specific project it's part of.",
         "type": "comment"
     },
     "3824": {
-        "file_id": 482,
-        "content": "for coords, (text,prob) in result:\n    polyArray = np.array(coords).astype(np.int64) # fuck.\n    # print(polyArray)\n    # print(polyArray.shape)\n    # breakpoint()\n    # points = np.array([[160, 130], [350, 130], [250, 300]])\n    # print(points.dtype)\n    # points = np.array([[454.0, 22.0], [464.0, 26.0], [464.0, 85.0]]).astype(np.int64)\n    color= 255\n    cv2.fillPoly(blank_image,[polyArray],color)\n    isClosed = True\n    thickness = 30\n    cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n#     # cv2.fillPoly(blank_image,pts=[points],color=(255, 255,255))\n# cv2.imshow(\"mask\",blank_image)\n# cv2.waitKey(0)\n# use wordninja.\n# before translation we need to lowercase these shits.\ndst = cv2.inpaint(image,blank_image,3,cv2.INPAINT_TELEA)\n# from PIL import Image\nfrom PIL import Image, ImageFont, ImageDraw  \ndef np2pillow(opencv_image):\n    color_coverted = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)\n    pil_image = Image.fromarray(color_coverted)\n    return pil_image\n    # pil_image.show()",
+        "file_id": 463,
+        "content": "# # what the fuck is this shit?\n# print(login_response_json)\n# login_status = requests.get(baseUrl+\"/login/status\")\n# login_status_json = login_status.json()\n# print(login_status_json)\n# breakpoint()\nsearch_result = requests.get(baseUrl+\"/search\", params={\"keywords\": keywords, \"timestamp\":getJSTimeStamp()})\n# search_result = requests.get(baseUrl+\"/cloudsearch\", params={\"keywords\": keywords, \"timestamp\":getJSTimeStamp()})\nsearch_result_json = search_result.json() # check search_result.json\n# breakpoint()\ncode = search_result_json[\"code\"]\n# print(search_result_json)\n# breakpoint()\n# {'msg': '操作频繁，请稍候再试', 'code': 405, 'message': '操作频繁，请稍候再试'} # too frequent.\nif not code == 200:\n    print(\"ERROR CODE IN SEARCH:\", code)\n    print(search_result_json)\nelse:# no error here.\n    result = search_result_json[\"result\"]\n    songs = result[\"songs\"]\n    mySong = songs[1]\n    mySongName = mySong[\"name\"]\n    mySongId = mySong[\"id\"]\n    if \"ar\" in mySong.keys():\n        mySongArtists = mySong[\"ar\"] # reserved for further use. like find other songs by the artist.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_chinese_text.py:40-67"
+        "location": "/tests/music_analysis/download_exciting_bgm_with_lyric.py:24-55"
     },
     "3825": {
-        "file_id": 482,
-        "content": "Iterates through result coordinates and text probabilities, converts coordinates to numpy array, fills polygon on the image, draws polyline, performs color inpainting on the image, and converts the final image from OpenCV to PIL format.",
+        "file_id": 463,
+        "content": "This code makes a GET request to a search endpoint with specified keywords and timestamp. If the response code is not 200, it prints an error message along with the response JSON. Otherwise, it extracts song details from the response and assigns them to variables for further use.",
         "type": "comment"
     },
     "3826": {
-        "file_id": 482,
-        "content": "def pillow2np(pil_image):\n    # pil_image=Image.open(\"demo2.jpg\") # open image using PIL\n    # use numpy to convert the pil_image into a numpy array\n    numpy_image=np.array(pil_image)  \n    # convert to a openCV2 image, notice the COLOR_RGB2BGR which means that \n    # the color is converted from RGB to BGR format\n    opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR) \n    return opencv_image\n# draw text now!\nmpil_image = np2pillow(dst)\ndraw = ImageDraw.Draw(mpil_image)\nfont_location = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\" # not usual english shit.\ndef get_coord_orientation_font_size_and_center(coords):\n    xlist, ylist = [x[0] for x in coords], [x[1] for x in coords]\n    min_x, max_x = min(xlist), max(xlist)\n    min_y, max_y = min(ylist), max(ylist)\n    width,height = max_x-min_x, max_y-min_y\n    center = (int((max_x+min_x)/2),int((max_y+min_y)/2))\n    # what about rotation? forget about it...\n    if (width / height) < 0.8:\n        orientation = \"vertical\"\n        font_size = int(width)\n    else:",
+        "file_id": 463,
+        "content": "    elif \"artists\" in mySong.keys():\n        mySongArtists = mySong[\"artists\"]\n    else: mySongArtists = []\n    # mySong[\"artists\"]\n    print(\"SELECTED SONG:\")\n    print(mySongName, mySongId, mySongArtists)\n    # download that thing.\n    download_result = requests.get(baseUrl + \"/song/url\", params = {\"id\":mySongId}) # 试听歌曲\n    # download_result = requests.get(baseUrl + \"/song/url\", params = {\"id\":mySongId, \"timestamp\":getJSTimeStamp()}) # 试听歌曲\n    download_result_json = download_result.json()\n    print(download_result_json) # no download url!\n    # breakpoint()\n    code = download_result_json[\"code\"]\n    if code == 200: # allow to download now?\n        myDownloads = download_result_json[\"data\"]\n        myDownload = myDownloads[0]\n        myDownloadUrl = myDownload[\"url\"]\n        myDownloadType = myDownload[\"type\"]\n        # now download the thing.\n        result = requests.get(myDownloadUrl) # no need for timestamp?\n        if result.status_code == 200:\n            data = result.content\n            with open(get_download_path(myDownloadType),\"wb\") as f:",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_chinese_text.py:69-93"
+        "location": "/tests/music_analysis/download_exciting_bgm_with_lyric.py:56-82"
     },
     "3827": {
-        "file_id": 482,
-        "content": "Function `pillow2np` converts a PIL image to a numpy array and then to an OpenCV image, changing the color format from RGB to BGR.\nIn the `get_coord_orientation_font_size_and_center` function, it calculates width, height, center coordinates of the bounding box based on given coordinates, and determines the font size and orientation (vertical or horizontal) based on aspect ratio of the image.",
+        "file_id": 463,
+        "content": "This code is checking if the song has associated artists and then prints the selected song's name, ID, and artists. It attempts to download the song's URL based on the provided parameters. If successful, it downloads the song data and saves it as a binary file using the downloaded type and path.",
         "type": "comment"
     },
     "3828": {
-        "file_id": 482,
-        "content": "        orientation = \"horizontal\"\n        font_size = int(height)\n    return orientation, font_size, center,(width,height)\nreadjust_size=False # just center.\ncomparedWaterMarkString = \"scorpa\".lower() # the freaking name \ncomparedWaterMarkStringLength = len(comparedWaterMarkString)\nimport Levenshtein\nfrom web_translator import zh_to_en_translator as translator\nfor coords, (text,prob) in result:\n    # remove watermarks? how to filter?\n    editDistanceThreshold = 4\n    probThreshold = 0.8\n    textCompareCandidate = text.replace(\" \",\"\").lower() # original text, no translation.\n    distance = Levenshtein.distance(textCompareCandidate,comparedWaterMarkString)\n    string_length = len(text)\n    string_length_difference = abs(string_length-comparedWaterMarkStringLength)\n    length_difference_threshold = 3\n    if (distance < editDistanceThreshold and string_length_difference < length_difference_threshold) or prob < probThreshold:\n        continue # skip all shits.\n    # specified font size \n    text = translator(text) # now translate.",
+        "file_id": 463,
+        "content": "                f.write(data)\n            print(\"DOWNLOAD SONG DONE.\") # you should check the duration of this music file.\n            # 2871154\n            lyrics_result = requests.get(\"http://localhost:4000/lyric\",{\"id\":mySongId, \"timestamp\":getJSTimeStamp()})\n            # this is cached.\n            lyrics_result_json = lyrics_result.json()\n            if lyrics_result_json[\"code\"] == 200:\n                lrc = lyrics_result_json[\"lrc\"]\n                if type(lrc) == dict:\n                    version = lrc[\"version\"]\n                    lyric = lrc[\"lyric\"]\n                    if type(lyric) == str:\n                        with open(\n                            \"exciting_bgm.lrc\",\"w\") as f0: f0.write(lyric)\n                        print(\"LYRIC DOWNLOAD DONE.\")\n            # THIS IS FREAKING WRONG... SHALL I LOGIN?\n            # Duration                                 : 30 s 41 ms",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_chinese_text.py:94-117"
+        "location": "/tests/music_analysis/download_exciting_bgm_with_lyric.py:83-99"
     },
     "3829": {
-        "file_id": 482,
-        "content": "Code snippet is filtering and translating text from a given list of coordinates and text-probability pairs. It removes watermarks by comparing the original text to \"scorpa\" (lowercase) and skips texts with high edit distance, length difference or low probability. The font size is set, and the translated text is returned.",
+        "file_id": 463,
+        "content": "This code downloads a music file, then retrieves its lyrics from a local server. It writes the lyrics to a file named \"exciting_bgm.lrc\" and prints messages indicating when the song and lyric downloads are done. The code also includes a comment pointing out an issue, possibly with the duration of the song or logging in to a service.",
         "type": "comment"
     },
     "3830": {
-        "file_id": 482,
-        "content": "    orientation, font_size, center ,(width,height) = get_coord_orientation_font_size_and_center(coords)\n    if orientation == \"horizontal\":\n        font = ImageFont.truetype(font_location, font_size)\n        # text = original_text\n        # drawing text size \n        stroke_width = int(0.1*font_size)\n        (string_width,string_height) = draw.textsize(text,font=font,stroke_width=stroke_width)\n        # print(string_width)\n        # breakpoint()\n        if readjust_size:\n            change_ratio = width/string_width\n            new_fontsize = font_size*change_ratio\n            font = ImageFont.truetype(font_location, new_fontsize)\n            start_x = int(center[0]-width/2)\n            start_y = int(center[1]-height/2)\n        else:\n            start_x = int(center[0]-string_width/2)\n            start_y = int(center[1]-font_size/2)\n        draw.text((start_x, start_y), text, font = font, fill=(255,255,255),stroke_fill=(0,0,0),stroke_width = stroke_width,align =\"left\") # what is the freaking align?\n# mpil_image.show() ",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_chinese_text.py:118-138"
+        "file_id": 464,
+        "content": "/tests/music_analysis/lyric_change_detector/read_lyrics.py",
+        "type": "filepath"
     },
     "3831": {
-        "file_id": 482,
-        "content": "The code calculates the text's dimensions and adjusts the font size and position based on the provided coordinates. If 'readjust_size' is True, it resizes the font to fit within the given width. It then draws the text with specified alignment using the ImageDraw module.",
-        "type": "comment"
+        "file_id": 464,
+        "content": "Reading lyrics from \"some_lyrics.json.lrc\" file using pylrc library, parsing the LRC format and storing time and content for each subtitle in subs variable.",
+        "type": "summary"
     },
     "3832": {
-        "file_id": 482,
-        "content": "mpil_image.save(\"redraw_eng_to_chinese.png\")\n# cv2.imshow('dst',dst2)\n# cv2.waitKey(0)\n# cv2.destroyAllWindows()\n# expand the area somehow.\n# draw result\n# simhei_path = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\"\n# from PIL import Image\n# image = Image.open(img_path).convert('RGB')\n# boxes = [line[0] for line in result]\n# txts = [line[1][0] for line in result]\n# scores = [line[1][1] for line in result]\n# im_show = draw_ocr(image, boxes, txts, scores, font_path=simhei_path)\n# im_show = Image.fromarray(im_show)\n# im_show.save('result.jpg')\n# we will be testing one image only. not the whole goddamn video.\n# may have cuda error when using my cv2 cuda libs.",
+        "file_id": 464,
+        "content": "import pylrc\nwith open(\"some_lyrics.json.lrc\",\"r\") as f:\n    lrc_string = f.read()\n    subs = pylrc.parse(lrc_string)\n    for sub in subs:\n        time_in_secs = sub.time\n        content = sub.text\n    # skip those which are too short.\n    # print(subs)\n    # breakpoint()",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_chinese_text.py:139-157"
+        "location": "/tests/music_analysis/lyric_change_detector/read_lyrics.py:1-11"
     },
     "3833": {
-        "file_id": 482,
-        "content": "This code saves an image, displays it using OpenCV, expands the area of the image and draws the result using a specific font, and finally saves the final output as 'result.jpg'. It is specifically testing one image from a video, and may encounter issues when using CUDA-based OpenCV libraries due to potential errors.",
+        "file_id": 464,
+        "content": "Reading lyrics from \"some_lyrics.json.lrc\" file using pylrc library, parsing the LRC format and storing time and content for each subtitle in subs variable.",
         "type": "comment"
     },
     "3834": {
-        "file_id": 483,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/main_mask_english_text.py",
+        "file_id": 465,
+        "content": "/tests/music_analysis/lyric_change_detector/launch_lyric_api_server.sh",
         "type": "filepath"
     },
     "3835": {
-        "file_id": 483,
-        "content": "This code uses PaddleOCR to detect English text in images, applies a specific font for OCR, and visualizes the results. Testing is limited to one image, and CUDA errors may occur with certain CV2 libraries.",
+        "file_id": 465,
+        "content": "The code changes the directory to the NeteaseCloudMusicApi project and starts a server on port 4000 with Node.js, launching the music API server.",
         "type": "summary"
     },
     "3836": {
-        "file_id": 483,
-        "content": "from paddleocr import PaddleOCR,draw_ocr\n# cannot translate everything... not frame by frame...\n# can summarize things. can block texts on location.\n# Paddleocr supports Chinese, English, French, German, Korean and Japanese.\n# You can set the parameter `lang` as `ch`, `en`, `french`, `german`, `korean`, `japan`\n# to switch the language model in order.\nocr = PaddleOCR(use_angle_cls=True, lang='en') # need to run only once to download and load model into memory\nimg_path = 'target.png' # only detect english. or not?\nimport cv2\nimage = cv2.imread(img_path)\nresult2 = ocr.ocr(image, cls=True)\nprob_thresh = 0.8\nresult = []\nimport wordninja\nfor index, line in enumerate(result2):\n    # print(line)\n    # breakpoint()\n    coords, (text, prob) = line\n    prob = float(prob)\n    if prob > prob_thresh:\n        rectified_text = \" \".join(wordninja.split(text))\n        line[1] = (rectified_text, prob)\n        print(line)\n        result.append(line)\nimport numpy as np\na,b,c = image.shape\nblank_image = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order",
+        "file_id": 465,
+        "content": "cd ../../../externals/NeteaseCloudMusicApi\nPORT=4000 node app.js",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_mask_english_text.py:1-38"
+        "location": "/tests/music_analysis/lyric_change_detector/launch_lyric_api_server.sh:1-3"
     },
     "3837": {
-        "file_id": 483,
-        "content": "The code uses PaddleOCR to detect English text in an image. It loads the model once and then reads the image file 'target.png'. The OCR function is used to recognize the text in the image, and a probability threshold is set. The detected lines with probabilities above the threshold are processed further using wordninja to rectify the text. These lines are stored in the result list. Finally, a blank image is created for an unknown purpose.",
+        "file_id": 465,
+        "content": "The code changes the directory to the NeteaseCloudMusicApi project and starts a server on port 4000 with Node.js, launching the music API server.",
         "type": "comment"
     },
     "3838": {
-        "file_id": 483,
-        "content": "for coords, (text,prob) in result:\n    polyArray = np.array(coords).astype(np.int64) # fuck.\n    # print(polyArray)\n    # print(polyArray.shape)\n    # breakpoint()\n    # points = np.array([[160, 130], [350, 130], [250, 300]])\n    # print(points.dtype)\n    # points = np.array([[454.0, 22.0], [464.0, 26.0], [464.0, 85.0]]).astype(np.int64)\n    color= 255\n    cv2.fillPoly(blank_image,[polyArray],color)\n    isClosed = True\n    thickness = 30\n    cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n#     # cv2.fillPoly(blank_image,pts=[points],color=(255, 255,255))\n# cv2.imshow(\"mask\",blank_image)\n# cv2.waitKey(0)\n# use wordninja.\n# before translation we need to lowercase these shits.\ndst = cv2.inpaint(image,blank_image,3,cv2.INPAINT_TELEA)\ncv2.imshow('dst',dst)\ncv2.waitKey(0)\ncv2.destroyAllWindows()\n# expand the area somehow.\n# draw result\n# simhei_path = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\"\n# from PIL import Image\n# image = Image.open(img_path).convert('RGB')\n# boxes = [line[0] for line in result]",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_mask_english_text.py:40-68"
+        "file_id": 466,
+        "content": "/tests/music_analysis/lyric_change_detector/extract_lyrics_from_netease_json.py",
+        "type": "filepath"
     },
     "3839": {
-        "file_id": 483,
-        "content": "Iterating through result coordinates, creating a numpy array for each set of coordinates, filling the poly with color and drawing polylines on blank image. Displaying and destroying windows after inpainting, expanding area, and converting to RGB using PIL Image.",
-        "type": "comment"
+        "file_id": 466,
+        "content": "This code reads a JSON file, checks if it ends with \".json\", and extracts the lyric content. It then writes the extracted lyric to another file with the same name but with an additional \".lrc\" extension.",
+        "type": "summary"
     },
     "3840": {
-        "file_id": 483,
-        "content": "# txts = [line[1][0] for line in result]\n# scores = [line[1][1] for line in result]\n# im_show = draw_ocr(image, boxes, txts, scores, font_path=simhei_path)\n# im_show = Image.fromarray(im_show)\n# im_show.save('result.jpg')\n# we will be testing one image only. not the whole goddamn video.\n# may have cuda error when using my cv2 cuda libs.",
+        "file_id": 466,
+        "content": "import json\nimport sys\njson_file = sys.argv[1]\nassert json_file.endswith(\".json\")\nwith open(json_file,\"r\", encoding=\"utf-8\") as f:\n    json_data = json.loads(f.read())\n    lrc = json_data[\"lrc\"]\n    version = lrc[\"version\"]\n    lyric = lrc[\"lyric\"]\n    with open(json_file+\".lrc\",\"w\") as f0: f0.write(lyric)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/main_mask_english_text.py:69-76"
+        "location": "/tests/music_analysis/lyric_change_detector/extract_lyrics_from_netease_json.py:1-12"
     },
     "3841": {
-        "file_id": 483,
-        "content": "This code segment retrieves text and scores from the result, applies OCR to an image using a specific font, and saves the resulting image as 'result.jpg'. It mentions that testing is focused on one image only, and CUDA errors may occur when using certain CV2 libraries.",
+        "file_id": 466,
+        "content": "This code reads a JSON file, checks if it ends with \".json\", and extracts the lyric content. It then writes the extracted lyric to another file with the same name but with an additional \".lrc\" extension.",
         "type": "comment"
     },
     "3842": {
-        "file_id": 484,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/m2m100_1b_translator.py",
+        "file_id": 467,
+        "content": "/tests/music_analysis/lyric_change_detector/download_lyric.sh",
         "type": "filepath"
     },
     "3843": {
-        "file_id": 484,
-        "content": "This code imports the `m2m100_zte_translator` function from the `functional_dl_translator_1b_deepspeed` module, and defines two helper functions: `fixline` to remove specific Chinese ending characters, and `zh_to_en_translator` which uses `m2m100_zte_translator` to translate Chinese text to English and applies the line-fixing function if needed.",
+        "file_id": 467,
+        "content": "The code downloads a JSON file containing lyrics from an API endpoint, then extracts the lyrics using a separate script. The goal is to obtain the \"lrc\" part of the lyrics.",
         "type": "summary"
     },
     "3844": {
-        "file_id": 484,
-        "content": "from functional_dl_translator_1b_deepspeed import get_response as m2m100_zte_translator # this shit could consume much computational resource.\n# advice you to do it with json.\ndef fixline(line):\n    notEndings = [\"。\",\"，\"]\n    for x in notEndings:\n        if line.endswith(x): return line[:-1]\n    return line\ndef zh_to_en_translator(text,needFixLine=True):\n    result = m2m100_zte_translator(text)[0] # shit.\n    if needFixLine: result = fixline(result)\n    return result",
+        "file_id": 467,
+        "content": "curl -L -o some_lyrics.json http://localhost:4000/lyric?id=33894312\npython3 extract_lyrics_from_netease_json.py some_lyrics.json\n# just want the \"lrc\" part.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/m2m100_1b_translator.py:1-13"
+        "location": "/tests/music_analysis/lyric_change_detector/download_lyric.sh:1-4"
     },
     "3845": {
-        "file_id": 484,
-        "content": "This code imports the `m2m100_zte_translator` function from the `functional_dl_translator_1b_deepspeed` module, and defines two helper functions: `fixline` to remove specific Chinese ending characters, and `zh_to_en_translator` which uses `m2m100_zte_translator` to translate Chinese text to English and applies the line-fixing function if needed.",
+        "file_id": 467,
+        "content": "The code downloads a JSON file containing lyrics from an API endpoint, then extracts the lyrics using a separate script. The goal is to obtain the \"lrc\" part of the lyrics.",
         "type": "comment"
     },
     "3846": {
-        "file_id": 485,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/launch_frame_translate.sh",
+        "file_id": 468,
+        "content": "/tests/music_analysis/bpm_tracking/test_audioowl.py",
         "type": "filepath"
     },
     "3847": {
-        "file_id": 485,
-        "content": "This code launches three different Python scripts for video frame translation: 'frame_translate_processor.py', 'frame_translate_processor2.py', and 'frame_translate_processor3.py'. Each script is likely used for a specific video frame translation task, potentially with improvements or updates from the previous versions.",
+        "file_id": 468,
+        "content": "The code uses AudioOwl library to import audio file data, calculates beat times, slices beats, finds closest BPM time and selects startup beat. It then detects the closest beat time to a specified value, appends it to 'selected_beat_times' and prints this list.",
         "type": "summary"
     },
     "3848": {
-        "file_id": 485,
-        "content": "# python3 frame_translate_processor.py\npython3 frame_translate_processor2.py\n# python3 frame_translate_processor3.py",
+        "file_id": 468,
+        "content": "import matplotlib\nmatplotlib.use(\"TkAgg\")\nimport matplotlib.pyplot as plt # cannot plot shit. must change the thing.\nimport audioowl # do not install with dependencies. check it in setup.py and install latest versions.\nmyMusic = \"tarot_desc_acc_exceprt.wav\"\n# myMusic = \"/root/Desktop/works/bilibili_tarot/tarot_desc_acc.wav\"\nfrom MediaInfo import MediaInfo\ninfo = MediaInfo(filename = myMusic)\ninfo = info.getInfo()\nprint(info)\n# breakpoint()\naudioSampleRate = info[\"audioSamplingRate\"]\naudioSampleRate = int(audioSampleRate)\nwaveform = audioowl.get_waveform(myMusic,sr=audioSampleRate)\ndata = audioowl.analyze_file(myMusic,sr=audioSampleRate) # how fucking long?\n# plt.figure()\n# plt.vlines(data['beat_samples'], -1.0, 1.0)\n# plt.plot(waveform)\n# plt.show()\n# dict_keys(['sample_rate', 'duration', 'beat_samples', 'number_of_beats', 'tempo_float', 'tempo_int', 'zero_crossing', 'noisiness_median', 'noisiness_sum', 'notes', 'dominant_note'])\ndef getClosest(mlist,standard):\n    # mlist is sorted.\n    # assert mlist == list(sorted(mlist))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/launch_frame_translate.sh:1-3"
+        "location": "/tests/music_analysis/bpm_tracking/test_audioowl.py:1-30"
     },
     "3849": {
-        "file_id": 485,
-        "content": "This code launches three different Python scripts for video frame translation: 'frame_translate_processor.py', 'frame_translate_processor2.py', and 'frame_translate_processor3.py'. Each script is likely used for a specific video frame translation task, potentially with improvements or updates from the previous versions.",
+        "file_id": 468,
+        "content": "The code imports necessary libraries, reads audio file information and waveform using AudioOwl library, stores the relevant data in a dictionary, and provides a function to find the closest element in a sorted list.",
         "type": "comment"
     },
     "3850": {
-        "file_id": 486,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py",
-        "type": "filepath"
+        "file_id": 468,
+        "content": "    queue_list = []\n    last_elem = None\n    for elem in mlist:\n        mred = abs(elem-standard)\n        queue_list.append(mred)\n        if len(queue_list) > 2:\n            queue_list.pop(0)\n        if len(queue_list) == 2:\n            #compare now.\n            last_mred = queue_list[0]\n            if mred >= last_mred: return last_elem\n        last_elem = elem\n    return last_elem\na,b,c,d = [data[k] for k in [\"beat_samples\",\"duration\",\"sample_rate\",\"tempo_float\"]]\nprint(data)\nbreakpoint()\nsingle_bpm_time = 60/d\nbpm_times = [single_bpm_time*(2**x) for x in range(5)] #usually works.\nmin_beat_time = 2 # minimum beat skip time.\nclosest_beat_time = getClosest(bpm_times,min_beat_time)\n# breakpoint()\nmin_outro_time = 3 # must longer than the song.\n# total_samples = b*c\nbeat_times = [x/c for x in a if x <= c*(b - min_outro_time)] # no final cut.\n# so the beats are evenly sliced.\n# print(beat_times)\n# breakpoint()\nselected_beat_times = [0] # original beat. the startup.\nfor i,x in enumerate(beat_times):\n    lastBeat = selected_beat_times[-1]",
+        "type": "code",
+        "location": "/tests/music_analysis/bpm_tracking/test_audioowl.py:31-69"
     },
     "3851": {
-        "file_id": 486,
-        "content": "This code uses CUDA with OpenCV for image processing, inpainting and masked blurring. It converts images to Pillow for text rotation, stroke width handling, and transparency blending. The function estimates text orientation, size, and center, then applies image processing tasks before saving and returning the result.",
-        "type": "summary"
+        "file_id": 468,
+        "content": "Calculates beat times for audio, ensures beats are evenly sliced, finds closest bpm time, selects original beat as startup.",
+        "type": "comment"
     },
     "3852": {
-        "file_id": 486,
-        "content": "use_cuda_cv2 = True # after we compile shit\nif use_cuda_cv2: # the freaking speed is awful.\n    import pathlib\n    import site\n    import sys\n    # this is root. this is not site-packages.\n    # site_path = pathlib.Path([x for x in site.getsitepackages() if \"site-packages\" in x][0])\n    site_path = pathlib.Path(\"/usr/local/lib/python3.9/site-packages\") # maybe it is done after you make install the whole cv2 shit.\n    cv2_libs_dir = site_path / 'cv2' / f'python-{sys.version_info.major}.{sys.version_info.minor}'\n    print(cv2_libs_dir)\n    cv2_libs = sorted(cv2_libs_dir.glob(\"*.so\"))\n    if len(cv2_libs) == 1:\n        print(\"INSERTING:\",cv2_libs[0].parent)\n        sys.path.insert(1, str(cv2_libs[0].parent))\nimport cv2\nimport numpy as np\nfrom PIL import Image, ImageFont, ImageDraw  \nimport Levenshtein\nimport math\n# from m2m100_1b_translator import zh_to_en_translator as translator\n# i just want to do the freaking inpainting.\n# import statistics\ndef redraw_english_to_chinese2(image,resultChineseInternal): \n    a,b,c = image.shape",
+        "file_id": 468,
+        "content": "    if x <= lastBeat:\n        continue\n    ired_beat_times = beat_times[i:] # exactly what we want.\n    selectedBeat = getClosest(ired_beat_times,lastBeat+closest_beat_time)\n    selected_beat_times.append(selectedBeat)\nprint('selected beat times:')\nprint(selected_beat_times)\n# we have to check the thing.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:1-30"
+        "location": "/tests/music_analysis/bpm_tracking/test_audioowl.py:70-78"
     },
     "3853": {
-        "file_id": 486,
-        "content": "The code is setting up the environment for using CUDA with OpenCV and importing necessary libraries. It checks if a specific OpenCV library file exists, and if so, it adds its parent directory to the system path. The function redraw_english_to_chinese2 is defined at the end of the code snippet, but its implementation is not visible in this chunk.",
+        "file_id": 468,
+        "content": "This code segment is finding the closest beat time to a specified value from a set of beat times. It continues from the last detected beat and appends the selected beat time to the 'selected_beat_times' list. Finally, it prints out the 'selected_beat_times'.",
         "type": "comment"
     },
     "3854": {
-        "file_id": 486,
-        "content": "    total_area = a*b\n    total_center = (a/2,b/2)\n    total_corners = [(a,0),(0,0),(0,b),(a,b)]\n    total_strings = [\"scorpa\"]\n    area_threshold = 1/15 # don't know.\n    area_threshold = total_area*area_threshold\n    mask3_threshold = area_threshold*0.6\n    blank_image = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    blank_image2 = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    blank_image3 = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    def compareStringSimilarity(text,targetCompareString=\"scorpa\"):\n        # what is this?\n        comparedWaterMarkString = targetCompareString.lower() # the freaking name \n        comparedWaterMarkStringLength = len(comparedWaterMarkString)\n            # remove watermarks? how to filter?\n            # no fucking translation at all.\n        editDistanceThreshold = 4\n        textCompareCandidate = text.replace(\" \",\"\").lower() # original text, no translation.\n        distance = Levenshtein.distance(textCompareCandidate,comparedWaterMarkString)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:32-52"
+        "file_id": 469,
+        "content": "/tests/pyidm_yd_dlp_download_manager_multithread/test.py",
+        "type": "filepath"
     },
     "3855": {
-        "file_id": 486,
-        "content": "This code calculates the total area and center of an image, sets the corners and initializes blank images. It defines a function to compare string similarity between two strings with an edit distance threshold, likely for text recognition or watermark detection.",
-        "type": "comment"
+        "file_id": 469,
+        "content": "Code checks the value of 'option' variable and performs different download tasks based on its value. If option is 1, it uses yt_dlp library to download a video file. If option is 2, it uses pySmartDL library to download a GIF file. If option is 3, it uses firedm library for the same purpose. After each download task, it prints the status and downloaded file path.",
+        "type": "summary"
     },
     "3856": {
-        "file_id": 486,
-        "content": "        string_length = len(text)\n        string_length_difference = abs(string_length-comparedWaterMarkStringLength)\n        length_difference_threshold = 3\n        if (distance < editDistanceThreshold and string_length_difference < length_difference_threshold):\n            return True\n        return False\n    def get_center(rectangle_coords):\n        x0,y0 = rectangle_coords[0]\n        x1,y1 = rectangle_coords[2]\n        return ((x0+x1)/2,(y0+y1)/2)\n    def get_distance(a,b): x = a[0]-b[0]; x2 = x**2; y = a[1]-b[1];y2 = y**2; return(math.sqrt(x2+y2))\n    resultChineseInternal2 = list(sorted(resultChineseInternal,key=lambda x:min([get_distance(corner,get_center(x[0])) for corner in total_corners]))) # sort by centrality. but not by corner. use corner instead.\n    resultChineseInternal2 = sorted(resultChineseInternal2,key=lambda x:1-max([int(compareStringSimilarity(x[1][0],tstring)) for tstring in total_strings])) # sort by centrality. but not by corner. use corner instead.\n    for coords, (text,prob) in resultChineseInternal2: # get boundary coords first.",
+        "file_id": 469,
+        "content": "url = \"https://media3.giphy.com/media/wTrXRamYhQzsY/giphy.gif?cid=dda24d502m79hkss38jzsxteewhs4e3ocd3iqext2285a3cq&rid=giphy.gif&ct=g\"\n# url = \"https://media3.giphy.com/media/J9asIpW5apX7cjT2oh/giphy.gif\"\noption = 3\nif option == 1:\n    import yt_dlp\n    # import pyidm\n    path = \"./randomName.mp4\"\n    x = yt_dlp.YoutubeDL({\"outtmpl\":path,'format':'[ext=mp4]'})\n    y = x.download([url])\n    breakpoint()\nelif option == 2:\n    from pySmartDL import SmartDL\n    dest = \"./test.gif\"\n    obj = SmartDL(url, dest, threads=20)\n    obj.start()\n    # [*] 0.23 Mb / 0.37 Mb @ 88.00Kb/s [##########--------] [60%, 2s left]\n    print('DOWNLOAD FINISHED')\n    path = obj.get_dest()\n    print(\"DOWNLOADED AT:\", path)\nelif option == 3:\n    from firedm import FireDM\n    args = [\"-o\",\"./test.gif\", url]\n    settings = FireDM.pars_args(args)\n    urls = settings.pop('url')\n    controller = FireDM.Controller(view_class=FireDM.CmdView, custom_settings=settings)\n    controller.run()\n    controller.cmdline_download(urls, **settings)\n    print('FireDM download complete')",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:53-66"
+        "location": "/tests/pyidm_yd_dlp_download_manager_multithread/test.py:1-31"
     },
     "3857": {
-        "file_id": 486,
-        "content": "The code compares the length of a text string with a predefined length, and if the difference is within a certain threshold, it returns True. The code also calculates distances between points using coordinates, sorts a list based on these distances and centrality, and retrieves boundary coordinates for each text string.",
+        "file_id": 469,
+        "content": "Code checks the value of 'option' variable and performs different download tasks based on its value. If option is 1, it uses yt_dlp library to download a video file. If option is 2, it uses pySmartDL library to download a GIF file. If option is 3, it uses firedm library for the same purpose. After each download task, it prints the status and downloaded file path.",
         "type": "comment"
     },
     "3858": {
-        "file_id": 486,
-        "content": "        polyArray = np.array(coords).astype(np.int64) # fuck.\n        # print(polyArray)\n        # print(polyArray.shape)\n        # breakpoint()\n        # points = np.array([[160, 130], [350, 130], [250, 300]])\n        # print(points.dtype)\n        # points = np.array([[454.0, 22.0], [464.0, 26.0], [464.0, 85.0]]).astype(np.int64)\n        # this is rectangular. simple shit. not simple for other shits.\n        color= 255\n        coord0, coord1, coord2 = coords[0],coords[1],coords[2]\n        sid1, sid2 = get_distance(coord0,coord1), get_distance(coord1,coord2)\n        polyArea = sid1*sid2\n        mask3_area = np.sum(blank_image3)\n        if polyArea >= area_threshold or mask3_area >= mask3_threshold:\n            cv2.fillPoly(blank_image,[polyArray],color)\n            isClosed = True\n            thickness = 20 # oh shit.\n            thickness2 = 40 # oh shit.\n            cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image2, [polyArray], isClosed, color, thickness2) # much better.",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:67-86"
+        "file_id": 470,
+        "content": "/tests/qq_go_cqhttp/launch.sh",
+        "type": "filepath"
     },
     "3859": {
-        "file_id": 486,
-        "content": "Code creates a numpy array from given coordinates, checks if the area is above certain thresholds, and then uses cv2.fillPoly and cv2.polylines to draw on two images with different thicknesses.",
-        "type": "comment"
+        "file_id": 470,
+        "content": "The code changes the directory to \"go-cqhttp\" and executes the \"go-cqhttp\" script, which likely starts the CQHTTP bot.",
+        "type": "summary"
     },
     "3860": {
-        "file_id": 486,
-        "content": "        else:\n            cv2.fillPoly(blank_image3,[polyArray],color)\n            isClosed = True\n            thickness = 30 # oh shit.\n            thickness2 = 50 # oh shit.\n            # cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image3, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image2, [polyArray], isClosed, color, thickness2) # much better.\n    #     # cv2.fillPoly(blank_image,pts=[points],color=(255, 255,255))\n    # cv2.imshow(\"mask\",blank_image)\n    # cv2.waitKey(0)\n    # use wordninja.\n    # before translation we need to lowercase these shits.\n    # inpaint_alternative = cv2.INPAINT_NS\n    # dst = cv2.inpaint(image,blank_image,3,inpaint_alternative)\n    def partial_blur(image0,mask,kernel=(200,200)):\n        # need improvement. malnly the boundary.\n        mask_total = mask\n        inv_mask_total = 255-mask_total\n        # mask0 = mask\n        # mask0 = mask/255\n        # inv_mask0 = inv_mask/255",
+        "file_id": 470,
+        "content": "cd go-cqhttp\n./go-cqhttp",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:87-108"
+        "location": "/tests/qq_go_cqhttp/launch.sh:1-2"
     },
     "3861": {
-        "file_id": 486,
-        "content": "This code uses OpenCV for image processing tasks. It fills polygons and draws lines on an image, then applies inpainting to replace the filled area with surrounding pixels. The function `partial_blur` is defined to blur a specific region of an image using a mask.",
+        "file_id": 470,
+        "content": "The code changes the directory to \"go-cqhttp\" and executes the \"go-cqhttp\" script, which likely starts the CQHTTP bot.",
         "type": "comment"
     },
     "3862": {
-        "file_id": 486,
-        "content": "        non_blur_image = cv2.bitwise_and(image0, image0, mask=inv_mask_total)\n        blur_image0 = cv2.blur(image0,kernel) # half quicklier.\n        blur_image0 = cv2.bitwise_and(blur_image0, blur_image0, mask=mask_total)\n        dst0 = blur_image0 + non_blur_image\n        return dst0\n    def partial_blur_deprecated(image0,mask,mask2):\n        # need improvement. malnly the boundary.\n        mask_total = mask + mask2 # not good.\n        dtype = mask.dtype\n        mask_total = mask_total>0\n        mask_total=mask_total.astype(dtype)\n        mask_total = mask_total*255\n        inv_mask_total = 255-mask_total\n        mask0 = mask_total - mask2\n        # mask0 = mask\n        # mask0 = mask/255\n        # inv_mask0 = inv_mask/255\n        non_blur_image = cv2.bitwise_and(image0, image0, mask=inv_mask_total)\n        blur_image0 = cv2.blur(image0,(50,50)) # half quicklier.\n        blur_image2 = cv2.blur(image0,(30,30)) # half quicklier.\n        # not enough baby\n        blur_image0 = cv2.bitwise_and(blur_image0, blur_image0, mask=mask0)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:109-130"
+        "file_id": 471,
+        "content": "/tests/qq_go_cqhttp/build.sh",
+        "type": "filepath"
     },
     "3863": {
-        "file_id": 486,
-        "content": "This code performs partial image blurring using OpenCV functions. It creates a total mask by adding two input masks, applies bitwise operations to separate areas of the image for non-blurred and blurred processing, and combines the results for output. The \"partial_blur_deprecated\" function needs improvement as it currently has hardcoded blur values and may not handle boundary areas well.",
-        "type": "comment"
+        "file_id": 471,
+        "content": "This code navigates to the \"go-cqhttp\" directory and compiles it using the Go language's 'build' command.",
+        "type": "summary"
     },
     "3864": {
-        "file_id": 486,
-        "content": "        blur_image2 = cv2.bitwise_and(blur_image2, blur_image2, mask=mask2)\n        dst0 = blur_image0 +blur_image2 + non_blur_image\n        return dst0\n    dst = partial_blur(image,blank_image)\n    dst = cv2.inpaint(dst,blank_image3,3,cv2.INPAINT_TELEA) # this shit. only do for small areas\n    dst = partial_blur(dst,blank_image2,kernel=(30,30))\n    # to compensate all sharp boundaries.\n    # from PIL import Image\n    def np2pillow(opencv_image):\n        color_coverted = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)\n        pil_image = Image.fromarray(color_coverted)\n        return pil_image\n        # pil_image.show()\n    def pillow2np(pil_image):\n        # pil_image=Image.open(\"demo2.jpg\") # open image using PIL\n        # use numpy to convert the pil_image into a numpy array\n        numpy_image=np.array(pil_image)  \n        # convert to a openCV2 image, notice the COLOR_RGB2BGR which means that \n        # the color is converted from RGB to BGR format\n        opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR) ",
+        "file_id": 471,
+        "content": "cd go-cqhttp\ngo build",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:131-153"
+        "location": "/tests/qq_go_cqhttp/build.sh:1-2"
     },
     "3865": {
-        "file_id": 486,
-        "content": "Performs bitwise AND operation on blur_image2 using mask2, combines images, applies inpainting with CV2, compensates sharp boundaries, converts OpenCV image to PIL and back.",
+        "file_id": 471,
+        "content": "This code navigates to the \"go-cqhttp\" directory and compiles it using the Go language's 'build' command.",
         "type": "comment"
     },
     "3866": {
-        "file_id": 486,
-        "content": "        return opencv_image\n    # draw text now!\n    mpil_image = np2pillow(dst)\n    draw = ImageDraw.Draw(mpil_image)\n    font_location = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\" # not usual english shit.\n    def draw_rotated_text(image, text, position, angle, font, fill=(255,255,255),stroke_width=1,stroke_fill=(0,0,0),align=\"left\"):\n    # Get rendered font width and height.\n        draw = ImageDraw.Draw(image)\n        width, height = draw.textsize(text, font=font,stroke_width=stroke_width)\n        # Create a new image with transparent background to store the text.\n        textimage = Image.new('RGBA', (width, height), (0,0,0,0))\n        # Render the text.\n        textdraw = ImageDraw.Draw(textimage)\n        textdraw.text((0,0), text, font=font, fill=fill,stroke_width=stroke_width,stroke_fill=stroke_fill,align=align)\n        # Rotate the text image.\n        rotated = textimage.rotate(angle, expand=1) # do you rotate shit?\n        # Paste the text into the image, using it as a mask for transparency.",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:154-170"
+        "file_id": 472,
+        "content": "/tests/qq_go_cqhttp/tests/download_group_files.py",
+        "type": "filepath"
     },
     "3867": {
-        "file_id": 486,
-        "content": "This code snippet is responsible for drawing rotated text on an OpenCV image using Pillow library. It first converts the OpenCV image to a Pillow image, then defines a function `draw_rotated_text()` to handle the text drawing process. The function calculates the text dimensions and creates a new image with a transparent background. It then renders the text onto this new image while accounting for stroke width and alignment. Finally, it rotates the text image by a specified angle and pastes it onto the original image using transparency.",
-        "type": "comment"
+        "file_id": 472,
+        "content": "The code connects to a local server, retrieves status, and handles errors. It provides functions for downloading QQ group files and directories using different APIs, handling subfolders recursively, and checking for existing files. The `group_file_wholesale_downloader` function is used to download group files to a specific path, running in a loop for each group ID with optional retry and sleep mechanisms.",
+        "type": "summary"
     },
     "3868": {
-        "file_id": 486,
-        "content": "        image.paste(rotated, position, rotated)\n        return image\n    def average(mlist):return sum(mlist) / len(mlist)\n    def get_coord_orientation_font_size_and_center(coords):\n        xlist, ylist = [x[0] for x in coords], [x[1] for x in coords]\n        min_x, max_x = min(xlist), max(xlist)\n        min_y, max_y = min(ylist), max(ylist)\n        width,height = max_x-min_x, max_y-min_y\n        position = (min_x,min_y)\n        c0,c1,c2,c3 = coords\n        real_width = average([get_distance(c0,c1) ,get_distance(c2,c3)])\n        real_height = average([get_distance(c1,c2) ,get_distance(c3,c0)])\n        # c0-------------c1\n        # |              |\n        # c3-------------c2\n        rotate_vectors = (c1[0]-c0[0],c1[1]-c0[1]),(c2[0]-c3[0],c2[1]-c3[1])\n        rotate_vector = (average([rotate_vectors[0][0],rotate_vectors[1][0]]),average([rotate_vectors[0][1],rotate_vectors[1][1]]))\n        rotate_angle = math.atan2(rotate_vector[1],rotate_vector[0]) # problem with angle.\n        # print(\"ROTATE_VECTORS:\",rotate_vectors)",
+        "file_id": 472,
+        "content": "import pathlib\nimport os\nimport requests\n# again 0.0.0.0 not avaliable. must be localhost.\nbaseurl = \"http://localhost:5700/\"\n# go-cqhttp client does not support adding friends, searching groups or something! test if we can login opqbot and this shit at the same time!\n# it is working but unable to know if it is going to kill me.\nimport time\ndef check_connection():\n    while True:\n        try:\n            response = requests.get(baseurl+\"get_status\", timeout=5)\n            response_json = response.json()\n            print(\"GO_CQHTTP STATUS:\", response_json)\n            data_json = response_json[\"data\"]\n            assert data_json[\"online\"] == True\n            print(\"connection ok\")\n            break\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"Connection error.\")\n            time.sleep(3)\ndef get_url(api):\n    assert not api.startswith(\"/\")\n    return baseurl+api\ndef ensure_dir(download_path):\n    if not os.path.exists(download_path):\n        os.mkdir(download_path)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:171-193"
+        "location": "/tests/qq_go_cqhttp/tests/download_group_files.py:1-34"
     },
     "3869": {
-        "file_id": 486,
-        "content": "This code defines a function `get_coord_orientation_font_size_and_center` that takes in coordinates and returns the orientation, font size, and center based on the given points. It calculates the dimensions of the bounding rectangle, determines the real width and height by averaging the distances between corresponding points, and estimates the rotation angle using `math.atan2`. The function may be useful for image processing tasks involving text or shapes with specific orientations.",
+        "file_id": 472,
+        "content": "This code checks the connection to a local server, retrieves and prints the status, handles errors by retrying, and provides a function for generating full URLs. It seems related to testing or managing a program that interacts with CQHTTP, a third-party service.",
         "type": "comment"
     },
     "3870": {
-        "file_id": 486,
-        "content": "        # print(\"ROTATE VECTOR:\",rotate_vector)\n        # print(\"ROTATE ANGLE:\", rotate_angle)\n        center = (int((max_x+min_x)/2),int((max_y+min_y)/2))\n        # what about rotation? forget about it...\n        if (width / height) < 0.8:\n            orientation = \"vertical\"\n            font_size = int(real_width) # shit.\n        else:\n            orientation = \"horizontal\"\n            font_size = int(real_height)\n        return orientation, font_size, center,(real_width,real_height),rotate_angle,position \n    readjust_size=False # just center.\n    for coords, (text,prob) in resultChineseInternal:\n        probThreshold = 0.8\n        if compareStringSimilarity(text) or prob < probThreshold: # this is somehow not right. i don't know.\n            # mask all with low probabilities?\n            continue # skip all shits.\n        # specified font size \n        # text = translator(text) # now translate.\n        # too freaking slow. i need to freaking change this shit.\n        orientation, font_size, center ,(width,height) ,rotate_angle,position = get_coord_orientation_font_size_and_center(coords)",
+        "file_id": 472,
+        "content": "# api = \"get_group_file_system_info\"\ndef get_group_file(group_id, file_id, busid):\n    api = \"get_group_file_url\"\n    url = get_url(api)\n    params = {\"group_id\": group_id, \"file_id\": file_id, \"busid\": busid}\n    r = requests.get(url, params=params)\n    # print(r.content)\n    content = r.json()\n    data = content[\"data\"]\n    if data!=None:\n        download_url = data[\"url\"]\n        print(\"DOWNLOAD URL:\", download_url)\n        return download_url\ndef try_pass(function):\n    try:\n        function()\n    except:\n        pass\ndef downloader(url, filepath, skip_exist=True):\n    lock = filepath+\".lock\"\n    # check lock related operations.\n    if os.path.exists(lock):\n        try_pass(lambda: os.remove(lock))\n        try_pass(lambda: os.remove(filepath))\n    # do skip if flag \"skip_exists\" is set.\n    if skip_exist:\n        if os.path.exists(filepath):\n            return  # no overwritting existing files.\n    # download command\n    cmd = 'curl -L -o \"{}\" \"{}\"'.format(filepath, url)\n    # download main logic\n    # touch lock first.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:194-217"
+        "location": "/tests/qq_go_cqhttp/tests/download_group_files.py:36-77"
     },
     "3871": {
-        "file_id": 486,
-        "content": "This code is determining the orientation, font size, and center coordinates for a Chinese text. It checks if the aspect ratio of the image is vertical or horizontal and adjusts the font size accordingly. The function get_coord_orientation_font_size_and_center is called to get these values. If the probability threshold is met or the text is not similar enough, it will skip that particular text. It also considers rotation angle and position in its calculations.",
+        "file_id": 472,
+        "content": "This code defines a function for getting group file URLs, downloading files using curl, and includes optional checks for existing files and locking mechanisms.",
         "type": "comment"
     },
     "3872": {
-        "file_id": 486,
-        "content": "        if orientation == \"horizontal\":\n            font = ImageFont.truetype(font_location, font_size)\n            # text = original_text\n            # drawing text size \n            stroke_width = max((1,int(0.1*font_size)))\n            (string_width,string_height) = draw.textsize(text,font=font,stroke_width=stroke_width)\n            # print(string_width)\n            # breakpoint()\n            if readjust_size:\n                change_ratio = width/string_width\n                new_fontsize = font_size*change_ratio\n                font = ImageFont.truetype(font_location, new_fontsize)\n                (string_width,string_height) = draw.textsize(text,font=font,stroke_width=stroke_width)\n            #     start_x = int(center[0]-width2/2)\n            #     start_y = int(center[1]-height2/2)\n            # else:\n            theta  =rotate_angle\n            rot = np.array([[math.cos(theta), -math.sin(theta)], [math.sin(theta), math.cos(theta)]])\n            v1 = np.array([string_width,string_height])\n            v2 = np.array([string_width,-string_height])",
+        "file_id": 472,
+        "content": "    pathlib.Path(lock).touch()\n    os.system(cmd)\n    try_pass(lambda: os.remove(lock))\ndef recursive_get_qq_group_files(api, group_id, basepath=None, folder_id=None, download_path=\"qq_group_file_download\"):\n    ensure_dir(download_path)\n    if basepath is None:\n        basepath = os.path.join(download_path, str(group_id))\n    ensure_dir(basepath)\n    if api == \"get_group_root_files\":\n        params = {\"group_id\": group_id}  # integer for group id\n    elif api == \"get_group_files_by_folder\":\n        # integer for group id\n        params = {\"group_id\": group_id, \"folder_id\": folder_id}\n    else:\n        raise Exception(\"Unknown recursive_get_qq_group_files api\", api)\n    url = get_url(api)\n    r = requests.get(url, params=params)\n# r = requests.get(url)\n    content = r.json()\n    # print(content)\n    # breakpoint()\n    data = content[\"data\"]\n    base_files = data[\"files\"]\n    base_folders = data[\"folders\"]  # may walk recursively.\n    base_files = [] if base_files == None else base_files\n    base_folders = [] if base_folders == None else base_folders",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:218-239"
+        "location": "/tests/qq_go_cqhttp/tests/download_group_files.py:78-109"
     },
     "3873": {
-        "file_id": 486,
-        "content": "This code is calculating the size of a text string and adjusting its font size to fit within a specified width. If `readjust_size` is True, it recalculates the font size based on the new width. The text's rotation angle is calculated using trigonometry functions.",
+        "file_id": 472,
+        "content": "Creates a directory for group files based on the group ID, downloads QQ group files recursively and handles different APIs.",
         "type": "comment"
     },
     "3874": {
-        "file_id": 486,
-        "content": "            v3 = np.array([-string_width,-string_height])\n            v4 = np.array([-string_width,string_height])\n            # w = np.array([3, 4])\n            vc1 = np.dot(rot, v1)\n            vc2 = np.dot(rot, v2)\n            vc3 = np.dot(rot, v3)\n            vc4 = np.dot(rot, v4)\n            # sw2 = abs(float(vc2[0])) # no abs.\n            # sh2 = abs(float(vc2[1]))\n            start_x_arr = [int(center[0]-sw/2) for sw in [(float(x[0])) for x in [vc1,vc2,vc3,vc4]]]\n            start_y_arr = [int(center[1]-sh/2) for sh in [(float(x[1])) for x in [vc1,vc2,vc3,vc4]]]\n            # start_y = int(center[1]-string_height2/2)\n            start_x = int(min(start_x_arr))\n            start_y = int(min(start_y_arr))\n            # draw.text((start_x, start_y), text, font = font, fill=(255,255,255),stroke_fill=(0,0,0),stroke_width = stroke_width,align =\"left\") # what is the freaking align?\n            position2 = (start_x, start_y)\n            rotate_angle2 = -np.rad2deg(rotate_angle) # strange.\n            # debug_text = \"angle: {}\".format(rotate_angle2)",
+        "file_id": 472,
+        "content": "    # print(base_files)\n    for bfile in base_files:\n        file_id = bfile[\"file_id\"]  # prefixed with /, no need to check?\n        # any expired files present? may cause download errors?\n        file_name = bfile[\"file_name\"]\n        busid = bfile[\"busid\"]\n        download_url = get_group_file(group_id, file_id, busid)\n        if download_url == None: continue\n        filepath = os.path.join(basepath, file_name)\n        print(\"FILEPATH:\", filepath)\n        yield download_url, filepath\n        # download those base files!\n    for bfolder in base_folders:\n        # we have group_id though.\n        folder_id = bfolder[\"folder_id\"]\n        folder_name = bfolder[\"folder_name\"]\n        new_basepath = os.path.join(basepath, folder_name)\n        for download_url, filepath in recursive_get_qq_group_files(\"get_group_files_by_folder\", group_id, basepath=new_basepath, folder_id=folder_id):\n            yield download_url, filepath\n        # all the same logic.\n        # now do recursive folder search.\n    # how to download these shits? curl?",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:240-258"
+        "location": "/tests/qq_go_cqhttp/tests/download_group_files.py:111-134"
     },
     "3875": {
-        "file_id": 486,
-        "content": "This code performs rotations on given points using a rotation matrix, then calculates the starting coordinates for drawing text based on the minimum x and y values among these transformed points. It also adjusts the angle to its equivalent in degrees before potentially performing further operations with it.",
+        "file_id": 472,
+        "content": "This code downloads group files and folders from QQ group. It first retrieves base files by iterating through the base_files list, using get_group_file to obtain the download URL for each file and storing it in the filepath. Then, it recursively downloads files within specified folders using recursive_get_qq_group_files function. This code uses os.path.join to construct file paths and continues if a download URL is None.",
         "type": "comment"
     },
     "3876": {
-        "file_id": 486,
-        "content": "            mpil_image = draw_rotated_text(mpil_image,text,position2,rotate_angle2,font,stroke_width=stroke_width)\n    # mpil_image.show()\n    # mpil_image.save(\"redraw_eng_to_chinese.png\")\n    output_final_image = pillow2np(mpil_image)\n    return output_final_image",
+        "file_id": 472,
+        "content": "def group_file_wholesale_downloader(group_id, download_path=\"qq_group_file_download\", skip_exist=True):\n    for download_url, filepath in recursive_get_qq_group_files(\"get_group_root_files\", group_id, download_path=download_path):\n        downloader(download_url, filepath, skip_exist=skip_exist)\n# group_id = 927825838 # more files but no base_files.\n# group_id = 537384511 # less files but have base_files\n# make it dynamic!\ndownload_path = \"/root/Desktop/works/pyjom/tests/wechat_bots/msimg32.dll_wechat_hook_webapi/official_qq_group_files\"\ngroup_ids = [927825838, 537384511] # i know i am in these groups.\n#  import time\ncheck_connection() # failsafe or not?\nfor group_id in group_ids:\n    #  while True:\n        #  try:\n    group_file_wholesale_downloader(group_id, download_path=download_path, skip_exist=True)\n    #  break\n        #  except: time.sleep(10) # auto retry.\n        # there is no need for any failsafes. maybe we are outside the groups.\n# already downloaded. waiting for updates?",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:259-264"
+        "location": "/tests/qq_go_cqhttp/tests/download_group_files.py:137-159"
     },
     "3877": {
-        "file_id": 486,
-        "content": "This code snippet draws rotated text on an image, saves it as a PNG file, and then converts the image to a numpy array before returning it.",
+        "file_id": 472,
+        "content": "The code defines a function `group_file_wholesale_downloader` that downloads QQ group files for specified group IDs to a specific path. It uses recursive calls to `recursive_get_qq_group_files` and `downloader` functions. The provided example group IDs (927825838, 537384511) are used with the download path \"/root/Desktop/works/pyjom/tests/wechat_bots/msimg32.dll_wechat_hook_webapi/official_qq_group_files\". The code runs this function in a loop for each group ID, potentially with retry and sleep mechanisms if needed.",
         "type": "comment"
     },
     "3878": {
-        "file_id": 487,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py",
+        "file_id": 473,
+        "content": "/tests/readbility_webpage_to_markdown_simplification/test_readability.py",
         "type": "filepath"
     },
     "3879": {
-        "file_id": 487,
-        "content": "The code uses PaddleOCR for OCR, focusing on English text detection and supporting multiple languages. It downloads the language model once at runtime and utilizes the `redraw_english_to_chinese` function to translate and display results over images. The developer's custom CUDA libraries may cause potential CUDA errors with OpenCV.",
+        "file_id": 473,
+        "content": "Code imports necessary libraries, sets URL for webpage, retrieves response from the page using GET request, initializes a Readability Document object with the page's text, prints document summary and title.",
         "type": "summary"
     },
     "3880": {
-        "file_id": 487,
-        "content": "from paddleocr import PaddleOCR\nimport wordninja\n# from m2m100_1b_translator import zh_to_en_translator as translator\n# cannot translate everything... not frame by frame...\n# can summarize things. can block texts on location.\n# Paddleocr supports Chinese, English, French, German, Korean and Japanese.\n# You can set the parameter `lang` as `ch`, `en`, `french`, `german`, `korean`, `japan`\n# to switch the language model in order.\n# img_path = 'target.png' # only detect english. or not?\nocr = PaddleOCR(use_angle_cls=True, lang='en') # need to run only once to download and load model into memory\n# image = cv2.imread(img_path)\n# we will give it to you...\n# internalFrameCounter = 0\n# resultChineseInternal = []\ndef redraw_english_to_chinese(image): # whatever. it is dumb anyway. we need to be prudent. really?\n    # global resultChineseInternal, internalFrameCounter # we need to look ahead.\n    resultChineseInternal2 = ocr.ocr(image, cls=True) # you will be fucked if skip frames.\n    prob_thresh = 0.6 # found watermark somewhere. scorpa",
+        "file_id": 473,
+        "content": "import requests\nfrom readability import Document\nurl='https://zhuanlan.zhihu.com/p/384614837'\nresponse = requests.get(url)\ndoc = Document(response.text)\nprint(doc.summary())\nprint()\nprint(doc.title())\n# print()\n# print(dir(doc))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:1-19"
+        "location": "/tests/readbility_webpage_to_markdown_simplification/test_readability.py:1-10"
     },
     "3881": {
-        "file_id": 487,
-        "content": "This code uses PaddleOCR to perform optical character recognition (OCR) on an image, specifically detecting and translating English text within it. It downloads and loads the language model only once during runtime. The code is designed to handle Chinese and other languages as well, but currently focuses on English detection. The function `redraw_english_to_chinese` takes an image as input, uses OCR to identify text, and returns the translated text results.",
+        "file_id": 473,
+        "content": "Code imports necessary libraries, sets URL for webpage, retrieves response from the page using GET request, initializes a Readability Document object with the page's text, prints document summary and title.",
         "type": "comment"
     },
     "3882": {
-        "file_id": 487,
-        "content": "    resultChineseInternal = []\n    for index, line in enumerate(resultChineseInternal2):\n        # print(line)\n        # breakpoint()\n        coords, (text, prob) = line\n        prob = float(prob)\n        if prob > prob_thresh:\n            rectified_text = \" \".join(wordninja.split(text))\n            line[1] = (rectified_text, prob)\n            print(line)\n            resultChineseInternal.append(line)\n    return resultChineseInternal\n# cv2.imshow('dst',dst2)\n# cv2.waitKey(0)\n# cv2.destroyAllWindows()\n# expand the area somehow.\n# draw resultChineseInternal\n# simhei_path = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\"\n# from PIL import Image\n# image = Image.open(img_path).convert('RGB')\n# boxes = [line[0] for line in resultChineseInternal]\n# txts = [line[1][0] for line in resultChineseInternal]\n# scores = [line[1][1] for line in resultChineseInternal]\n# im_show = draw_ocr(image, boxes, txts, scores, font_path=simhei_path)\n# im_show = Image.fromarray(im_show)\n# im_show.save('resultChineseInternal.jpg')\n# we will be testing one image only. not the whole goddamn video.",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:20-50"
+        "file_id": 474,
+        "content": "/tests/readbility_webpage_to_markdown_simplification/test_node_readbility.js",
+        "type": "filepath"
     },
     "3883": {
-        "file_id": 487,
-        "content": "Iterates over resultChineseInternal2, rectifies text using wordninja if prob > prob_thresh. Stores modified lines in resultChineseInternal. Displays image with OCR results using draw_ocr function and saves it as \"resultChineseInternal.jpg\".",
-        "type": "comment"
+        "file_id": 474,
+        "content": "The code requires the 'node-readability' module and uses it to fetch an article from a specified URL. It then logs the article content, title, HTML source code, DOM, response object from the request library, and closes the article to prevent leaks.",
+        "type": "summary"
     },
     "3884": {
-        "file_id": 487,
-        "content": "# may have cuda error when using my cv2 cuda libs.",
+        "file_id": 474,
+        "content": "var read = require('node-readability');\nurl = \"https://zhuanlan.zhihu.com/p/384614837\"\n    // 'http://howtonode.org/really-simple-file-uploads'\nread(url, function(err, article, meta) {\n    // Main Article\n    console.log(article.content); // still html\n    // Title\n    console.log(article.title);\n    // HTML Source Code\n    // console.log(article.html);\n    // // DOM\n    // console.log(article.document);\n    // Response Object from Request Lib\n    // console.log(meta);\n    // Close article to clean up jsdom and prevent leaks\n    article.close();\n});",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:51-51"
+        "location": "/tests/readbility_webpage_to_markdown_simplification/test_node_readbility.js:1-19"
     },
     "3885": {
-        "file_id": 487,
-        "content": "This code seems to be a comment expressing a potential issue when using the developer's custom CUDA libraries with OpenCV. It mentions that it might throw a CUDA error in those specific cases, possibly requiring attention or alternative solutions.",
+        "file_id": 474,
+        "content": "The code requires the 'node-readability' module and uses it to fetch an article from a specified URL. It then logs the article content, title, HTML source code, DOM, response object from the request library, and closes the article to prevent leaks.",
         "type": "comment"
     },
     "3886": {
-        "file_id": 488,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py",
+        "file_id": 475,
+        "content": "/tests/readbility_webpage_to_markdown_simplification/test_mozilla.js",
         "type": "filepath"
     },
     "3887": {
-        "file_id": 488,
-        "content": "This code utilizes Deepspeed ZeRO for model inference, translation using M2M100, and offers GPU/CPU options. It sets up a distributed environment with DeepSpeed for training, initializes the model, provides mixed precision training options on Ampere or higher GPUs, prepares a machine translation environment using Deepspeed ZeRO, partitions the model, creates an engine object for parallel processing, and measures time cost per iteration in translating Chinese to English using experimentation with varying parameters.",
+        "file_id": 475,
+        "content": "Code loads a web page containing an image of a cat, uses jsdom to parse the HTML, and then uses the Readability library from @mozilla/readability to extract the article content. The extracted article is logged to the console.",
         "type": "summary"
     },
     "3888": {
-        "file_id": 488,
-        "content": "# loadable or not?\n# OOM ready?\n# maybe you want to load this shit over kaggle.\n# 3521MB on inference. does that mean you can do the big fucker now?\n# 1.9G model size.\nimport os\n# mt = dlt.TranslationModel(modelpath, model_family=\"m2m100\",device=\"gpu\") # OOM?\nfrom transformers import M2M100Tokenizer, M2M100ForConditionalGeneration\n# model = M2M100ForConditionalGeneration.from_pretrained(modelpath)\n# model_inputs = tokenizer(text_to_translate, return_tensors=\"pt\")\n# translate to French\n# gen_tokens = model.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"en\"))\n# print(tokenizer.batch_decode(gen_tokens, skip_special_tokens=True))\n# either load model with trainer or just use some other stuffs.\n#!/usr/bin/env python\n# This script demonstrates how to use Deepspeed ZeRO in an inference mode when one can't fit a model\n# into a single GPU\n#\n# 1. Use 1 GPU with CPU offload\n# 2. Or use multiple GPUs instead\n#\n# First you need to install deepspeed: pip install deepspeed\n#\n# Here we use a 3B \"bigscience/T0_3B\" model which needs about 15GB GPU RAM - so 1 largish or 2",
+        "file_id": 475,
+        "content": "const jsdom = require(\"jsdom\");\nconst { JSDOM } = jsdom;\ndoc = new jsdom.JSDOM(\"<body>Look at this cat: <img src='./cat.jpg'></body>\"); // load this shit from the web or something...\n// make it into a server.\nconst { Readability } = require('@mozilla/readability');\nlet reader = new Readability(doc.window.document);\narticle = reader.parse();\nconsole.log(article);",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:1-33"
+        "location": "/tests/readbility_webpage_to_markdown_simplification/test_mozilla.js:1-8"
     },
     "3889": {
-        "file_id": 488,
-        "content": "This code demonstrates how to use Deepspeed ZeRO for inference when the model size exceeds available GPU RAM. It loads a 1.9GB model and translates text from English to French using the M2M100 tokenizer and model. The code provides two options: using one GPU with CPU offload or multiple GPUs, and requires installing Deepspeed before running.",
+        "file_id": 475,
+        "content": "Code loads a web page containing an image of a cat, uses jsdom to parse the HTML, and then uses the Readability library from @mozilla/readability to extract the article content. The extracted article is logged to the console.",
         "type": "comment"
     },
     "3890": {
-        "file_id": 488,
-        "content": "# small GPUs can handle it. or 1 small GPU and a lot of CPU memory.\n#\n# To use a larger model like \"bigscience/T0\" which needs about 50GB, unless you have an 80GB GPU -\n# you will need 2-4 gpus. And then you can adapt the script to handle more gpus if you want to\n# process multiple inputs at once.\n#\n# The provided deepspeed config also activates CPU memory offloading, so chances are that if you\n# have a lot of available CPU memory and you don't mind a slowdown you should be able to load a\n# model that doesn't normally fit into a single GPU. If you have enough GPU memory the program will\n# run faster if you don't want offload to CPU - so disable that section then.\n#\n# To deploy on 1 gpu:\n#\n# deepspeed --num_gpus 1 t0.py\n# or:\n# python -m torch.distributed.run --nproc_per_node=1 t0.py\n#\n# To deploy on 2 gpus:\n#\n# deepspeed --num_gpus 2 t0.py\n# or:\n# python -m torch.distributed.run --nproc_per_node=2 t0.py\nfrom transformers import AutoConfig\nfrom transformers.deepspeed import HfDeepSpeedConfig\nimport deepspeed\nimport os",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:34-61"
+        "file_id": 476,
+        "content": "/tests/readbility_webpage_to_markdown_simplification/README.md",
+        "type": "filepath"
     },
     "3891": {
-        "file_id": 488,
-        "content": "The code snippet describes how to deploy a larger transformer model like \"bigscience/T0\" on a GPU or multiple GPUs using the DeepSpeed library. The code provides instructions for running the program on 1 or 2 GPUs, and mentions the benefits of CPU memory offloading if sufficient CPU memory is available. The code also imports necessary libraries and configurations.",
-        "type": "comment"
+        "file_id": 476,
+        "content": "These are test links for the readability_webpage_to_markdown_simplification functionality.",
+        "type": "summary"
     },
     "3892": {
-        "file_id": 488,
-        "content": "import torch\nos.environ[\"TOKENIZERS_PARALLELISM\"] = \"false\"  # To avoid warnings about parallelism in tokenizers\n# distributed setup\nlocal_rank = int(os.getenv(\"LOCAL_RANK\", \"0\"))\nworld_size = int(os.getenv(\"WORLD_SIZE\", \"1\"))\ntorch.cuda.set_device(local_rank)\ndeepspeed.init_distributed()\n# model_name = \"bigscience/T0_3B\"\nmodelpath = \"/media/root/Jumpcut/person_segmentation/paraphraser/m2m100_1.2B\"\nconfig = AutoConfig.from_pretrained(modelpath)\nmodel_hidden_size = config.d_model\n# batch size has to be divisible by world_size, but can be bigger than world_size\ntrain_batch_size = 1 * world_size\n# ds_config notes\n#\n# - enable bf16 if you use Ampere or higher GPU - this will run in mixed precision and will be\n# faster.\n#\n# - for older GPUs you can enable fp16, but it'll only work for non-bf16 pretrained models - e.g.\n# all official t5 models are bf16-pretrained\n#\n# - set offload_param.device to \"none\" or completely remove the `offload_param` section if you don't\n# - want CPU offload\n#\n# - if using `offload_param` you can manually finetune stage3_param_persistence_threshold to control",
+        "file_id": 476,
+        "content": "test links:\nhttps://www.macbookproslow.com/is-macbook-air-good-for-programming/\nhttps://zhuanlan.zhihu.com/p/384614837\nhttps://mp.weixin.qq.com/s?src=11&timestamp=1663090785&ver=4042&signature=8bWivjRcA5sicP22nFtzBBEP8LeQJa9rHgTA7wd7QTteh8Rcj0uc2QS1VeZjaI*PPjt90MNn9vigukae1keLI7GYXzbLXl93djqb5K7iPuOdbz2NBgvbxq6wImUD05XX&new=1",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:62-92"
+        "location": "/tests/readbility_webpage_to_markdown_simplification/README.md:1-4"
     },
     "3893": {
-        "file_id": 488,
-        "content": "This code sets up a distributed environment with DeepSpeed, initializes the model using the specified path, defines the batch size divisible by world_size, and provides configuration options for mixed precision training on Ampere or higher GPUs.",
+        "file_id": 476,
+        "content": "These are test links for the readability_webpage_to_markdown_simplification functionality.",
         "type": "comment"
     },
     "3894": {
-        "file_id": 488,
-        "content": "# - which params should remain on gpus - the larger the value the smaller the offload size\n#\n# For indepth info on Deepspeed config see\n# https://huggingface.co/docs/transformers/main/main_classes/deepspeed\n# keeping the same format as json for consistency, except it uses lower case for true/false\n# fmt: off\nds_config = {\n    \"fp16\": {\n        \"enabled\": True # to half the model precision.\n    },\n    \"zero_optimization\": {\n        \"stage\": 3,\n        \"offload_param\": {\n            \"device\": \"cpu\",\n            \"pin_memory\": True\n        },\n        \"overlap_comm\": True,\n        \"contiguous_gradients\": True,\n        \"reduce_bucket_size\": model_hidden_size * model_hidden_size,\n        \"stage3_prefetch_bucket_size\": 0.9 * model_hidden_size * model_hidden_size,\n        \"stage3_param_persistence_threshold\": 10 * model_hidden_size\n    },\n    \"steps_per_print\": 2000,\n    \"train_batch_size\": train_batch_size,\n    \"train_micro_batch_size_per_gpu\": 1,\n    \"wall_clock_breakdown\": False\n}\n# fmt: on\n# next line instructs transformers to partition the model directly over multiple gpus using",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:93-123"
+        "file_id": 477,
+        "content": "/tests/random_giphy_gifs/test_sdk.js",
+        "type": "filepath"
     },
     "3895": {
-        "file_id": 488,
-        "content": "This code snippet is initializing a Deepspeed configuration for model training with specific settings. The configuration includes enabling FP16 (half precision) for the model, setting zero optimization stage to 3, and configuring offload parameters such as device and pin memory. Additionally, it specifies steps per print, train batch size, train micro-batch size per GPU, and whether to display wall clock breakdown. This configuration aims to optimize model training on multiple GPUs efficiently.",
-        "type": "comment"
+        "file_id": 477,
+        "content": "The code imports libraries, initializes the GiphyFetch API, defines a function to write JSON data, and tests various API functions such as trending gifs, searching for dog-related gifs, retrieving related gifs, listing categories, and searching with keywords. The results are saved in separate JSON files.",
+        "type": "summary"
     },
     "3896": {
-        "file_id": 488,
-        "content": "# deepspeed.zero.Init when model's `from_pretrained` method is called.\n#\n# **it has to be run before loading the model AutoModelForSeq2SeqLM.from_pretrained(model_name)**\n#\n# otherwise the model will first be loaded normally and only partitioned at forward time which is\n# less efficient and when there is little CPU RAM may fail\ndschf = HfDeepSpeedConfig(ds_config)  # keep this object alive\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# now a model can be loaded.\n# model = AutoModelForSeq2SeqLM.from_pretrained(model_name)\nmodel = M2M100ForConditionalGeneration.from_pretrained(modelpath)\n# this will not fuck shit up.\n# initialise Deepspeed ZeRO and store only the engine object\nds_engine = deepspeed.initialize(model=model, config_params=ds_config)[0]\nds_engine.module.eval()  # inference\n# Deepspeed ZeRO can process unrelated inputs on each GPU. So for 2 gpus you process 2 inputs at once.\n# If you use more GPUs adjust for more.\n# And of course if you have just one input to process you then need to pass the same string to both gpus",
+        "file_id": 477,
+        "content": "// Require with custom API key\n// const myBetaApiKey = 'IoJVsWoxDPKBr6gOcCgOPWAB25773hqP';\nconst myBetaApiKey = \"Gc7131jiJuvI7IdN0HZ1D7nh0ow5BU6g\"; // some common web browser based things.\n// maybe they just don't distinguish api and sdk keys. fuck.\n// sXpGFDGZs0Dv1mmNFvYaGUvYwKX0PWIh\n// is this key limited? or is it production ready?\nconst fetch = require('node-fetch');\nconst fs = require(\"fs\");\nconst JsonFormat = require(\"json-format\")\nconst { GiphyFetch } = require('@giphy/js-fetch-api')\nconst gf = new GiphyFetch(myBetaApiKey)\n// fetch 10 gifs\nfunction writeJsonToFile(json, filename) {\n    // let data = JSON.stringify(json);\n    let data = JsonFormat(json)\n    fs.writeFile(filename, data, function(err) {\n        if (err) {\n            console.error(err);\n        } else {\n            console.log(filename + \" has been saved with the json data\");\n        }\n    });\n}\n// console.log(data)\n// https://bobbyhadz.com/blog/javascript-error-err-require-esm-of-es-module-node-fetch\n// fucking hell?\n// data.then((result) =>{console.log('TRENDING OUTPUT');",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:124-146"
+        "location": "/tests/random_giphy_gifs/test_sdk.js:1-35"
     },
     "3897": {
-        "file_id": 488,
-        "content": "The code initializes Deepspeed ZeRO before loading the model and sets the engine object for parallel processing. This ensures efficient usage of resources by partitioning the model at initialization rather than during forward pass, and allows handling multiple inputs on each GPU if available.",
+        "file_id": 477,
+        "content": "Code imports necessary libraries and initializes the GiphyFetch API with a custom key. It defines a function to write JSON data to a file, and then fetches 10 trending gifs using the API.",
         "type": "comment"
     },
     "3898": {
-        "file_id": 488,
-        "content": "# # If you use only one GPU, then you will have only rank 0.\n# rank = torch.distributed.get_rank()\n# if rank == 0:\n#     text_in = \"Is this review positive or negative? Review: this is the best cast iron skillet you will ever buy\"\n# elif rank == 1:\n#     text_in = \"Is this review positive or negative? Review: this is the worst restaurant ever\"\n# tokenizer = AutoTokenizer.from_pretrained(model_name)\n# sentence = \"你吃饭了没有\" # You have eaten. from m2m100 418M\ntokenizer = M2M100Tokenizer.from_pretrained(modelpath,src_lang=\"en\",tgt_lang=\"zh\")\n# source = tokenizer.get_lang_id(\"zh\")\n# tokenizer.src_lang = source\nmdevice = torch.device(\"cuda\")\n# tokenizer.to(mdevice)\n# inputs = tokenizer.encode(text_in, return_tensors=\"pt\").to(device=local_rank)\ndef get_response(sentence):\n    text_to_translate =sentence\n    model_inputs = tokenizer(text_to_translate, return_tensors=\"pt\")\n    # inputs = model.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"en\"))\n    model_inputs = {k:model_inputs[k].to(mdevice) for k in model_inputs.keys()}",
+        "file_id": 477,
+        "content": "// writeJsonToFile(result, 'trending.json')\n// })\nasync function test(){\n// var data = await gf.trending({ limit: 10 }) // a promise\n// search for related things dog related things.\n// await writeJsonToFile(data,'trending.json')\n// var data = await gf.search('dog cute', { sort: 'relevant', rating: 'g'});\n// await writeJsonToFile(data,'cute_dog.json')\n// var relatedId = \"QvBoMEcQ7DQXK\"\n// var data = await gf.related(relatedId, { limit: 50 })\n// await writeJsonToFile(data,'related.json')\n// const data = await gf.categories() // category are actually keywords here.\n// // data.forEach((category) => {\n// //     console.log(category) // ICategory\n// // })\n// await writeJsonToFile(data,'categories.json')\n// var data = await gf.gifs('animals','bulldog') // not freaking found!\nvar data = await gf.gifs('animals','samoyed') // freaking works! guess it is just keyword based search\nawait writeJsonToFile(data, 'samoyed_subcategory2.json')\n}\ntest()",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:147-174"
+        "location": "/tests/random_giphy_gifs/test_sdk.js:36-61"
     },
     "3899": {
-        "file_id": 488,
-        "content": "This code is setting up the environment for a machine translation task using the M2M100 model. It assigns GPU ranks to different tasks, initializes the tokenizer, and defines a function called \"get_response\" that takes a sentence as input, tokenizes it, prepares inputs for the model, and performs translation. The code is specifically tailored for a CUDA device, meaning it will utilize GPUs for processing.",
+        "file_id": 477,
+        "content": "This code tests various Giphy API functions. It fetches trending gifs, searches for dog-related gifs, retrieves related gifs, lists available categories, and searches for gifs using different keywords. The test results are saved in separate JSON files.",
         "type": "comment"
     }
 }

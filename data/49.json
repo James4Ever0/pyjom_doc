@@ -1,536 +1,539 @@
 {
     "4900": {
-        "file_id": 636,
-        "content": "rnn_output_3, rnn_hidd_3 = rnn_layer_1(rnn_output_1,rnn_hidd_1)\nprint(\"RNN 3:\",rnn_output_3.shape,rnn_hidd_3.shape)\n# final_data = \nfinal_layer = torch.nn.Linear(41*41,2) # the final swap.\nfinal_data = final_layer(rnn_output_1)\nprint(final_data.shape)\n# find the max one.\nfinal_data = final_data.transpose(2,1)\nprint(final_data.shape)\n# output_final_layer = torch.nn.MaxPool1d(41) \n# final_data2 = output_final_layer(final_data)\n# print(final_data2.shape) # 40000,1 this is a single character. is it?",
+        "file_id": 640,
+        "content": "        energy_stats = os.path.join(am_res_path, pretrained_models[model_tag]['energy_stats'])\n        #VOC\n        voc_res_path = self._get_pretrained_path(voc_tag)\n        voc_config = os.path.join(voc_res_path,pretrained_models[voc_tag]['config'])\n        voc_ckpt = os.path.join(voc_res_path,pretrained_models[voc_tag]['ckpt'])\n        voc_stat = os.path.join(voc_res_path, pretrained_models[voc_tag]['speech_stats'])\n        # Init body.\n        with open(am_config) as f:\n            self.am_config = CfgNode(yaml.safe_load(f))\n        with open(voc_config) as f:\n            voc_config = CfgNode(yaml.safe_load(f))\n        with open(config) as f:\n            self.style_config = CfgNode(yaml.safe_load(f))\n        with open(phones_dict, \"r\") as f:\n            phn_id = [line.strip().split() for line in f.readlines()]\n        vocab_size = len(phn_id)\n        #print(\"vocab_size:\", vocab_size)\n        # acoustic model\n        odim = self.am_config.n_mels\n        # wtf?\n        main_name0 = model_tag.split(\"_\")[0]",
         "type": "code",
-        "location": "/tests/video_script_generation_reconstruction/raw_data_cut.py:69-81"
+        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:92-118"
     },
     "4901": {
-        "file_id": 636,
-        "content": "This code applies an RNN layer, prints the shapes of output and hidden states, defines a final linear layer with 41x41 input size and 2 output sizes, passes RNN output through it, transposes the data, and suggests using MaxPool1d for possible character extraction.",
+        "file_id": 640,
+        "content": "This code is loading pre-trained models and configuration files for an automatic speech recognition (ASR) system. It joins different file paths, opens the configuration files to parse them into CfgNodes, and determines the vocabulary size based on a phone ID list. The code seems to be part of a larger ASR system implementation, initializing variables before using the models for prediction or inference tasks.",
         "type": "comment"
     },
     "4902": {
-        "file_id": 637,
-        "content": "/tests/video_script_generation_reconstruction/lstm_trial.py",
-        "type": "filepath"
+        "file_id": 640,
+        "content": "        am_class = dynamic_import(main_name0, model_alias)\n        am_inference_class = dynamic_import('{}_inference'.format(main_name0), model_alias)\n        am = am_class(idim=vocab_size, odim=odim, spk_num=1, **self.am_config[\"model\"])\n        am.set_state_dict(paddle.load(am_ckpt)[\"main_params\"])\n        am.eval()\n        am_mu, am_std = np.load(am_stat)\n        am_mu = paddle.to_tensor(am_mu)\n        am_std = paddle.to_tensor(am_std)\n        am_normalizer = ZScore(am_mu, am_std)\n        if lang == \"en\":\n            self.am_inference = am_inference_class(am_normalizer, am) # you can also try tensorflowTTS, hifigan with high clarity.\n        else:\n            self.am_inference = am_inference_class(am_normalizer, am, pitch_stats, energy_stats)\n        self.am_inference.eval()\n        # vocoder\n        main_name1 = voc_tag.split(\"_\")[0]\n        voc_class = dynamic_import(main_name1, model_alias)\n        voc_inference_class = dynamic_import('{}_inference'.format(main_name1), model_alias)\n        voc = voc_class(**voc_config[\"generator_params\"])",
+        "type": "code",
+        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:119-141"
     },
     "4903": {
-        "file_id": 637,
-        "content": "This code initializes a LSTM layer, passes a 3D input tensor through it, and prints the shapes of the input, output, and hidden states.",
-        "type": "summary"
+        "file_id": 640,
+        "content": "The code dynamically imports classes based on model aliases and tags, instantiates models for speech synthesis and vocoder, loads model parameters and normalization stats, and sets up the inference environment for both English and Chinese languages.",
+        "type": "comment"
     },
     "4904": {
-        "file_id": 637,
-        "content": "from torch.nn import LSTM\nimport numpy as np\ndata = [[[1,2,3],[2,3,4],[3,5,6]]]\nfrom torch import Tensor\ndata = Tensor(data)\nlayer_lstm = LSTM(3,1)\noutput_1, (hid_1_a,hid_1_b) = layer_lstm(data)\n# print(len(hidden_1))\nprint(data.shape)\nprint(output_1.shape) # [1,3,10]\nprint(hid_1_a.shape,hid_1_b.shape)",
+        "file_id": 640,
+        "content": "        voc.set_state_dict(paddle.load(voc_ckpt)[\"generator_params\"])\n        voc.remove_weight_norm()\n        voc.eval()\n        voc_mu, voc_std = np.load(voc_stat)\n        voc_mu = paddle.to_tensor(voc_mu)\n        voc_std = paddle.to_tensor(voc_std)\n        voc_normalizer = ZScore(voc_mu, voc_std)\n        self.voc_inference = voc_inference_class(voc_normalizer, voc)\n        self.voc_inference.eval()\n        if lang == \"zh\":\n            self.frontend = Frontend(phone_vocab_path=phones_dict, tone_vocab_path=None)\n        elif lang == \"en\":\n            self.phones_dict = os.path.join(\n                am_res_path, pretrained_models[model_tag]['phones_dict'])\n            self.frontend = English(phone_vocab_path=self.phones_dict)\n        else: raise Exception(\"Unknown language ID: {}\".format(lang))\n    def _get_pretrained_path(self, tag):\n        \"\"\"\n        Download and returns pretrained resources path of current task.\n        \"\"\"\n        assert tag in pretrained_models, 'Can not find pretrained resources of {}.'.format(tag)",
         "type": "code",
-        "location": "/tests/video_script_generation_reconstruction/lstm_trial.py:1-17"
+        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:142-164"
     },
     "4905": {
-        "file_id": 637,
-        "content": "This code initializes a LSTM layer, passes a 3D input tensor through it, and prints the shapes of the input, output, and hidden states.",
+        "file_id": 640,
+        "content": "This code sets up a model for text-to-speech (TTS) synthesis. It loads pretrained models and parameters, initializes the model architecture, applies normalization to input features, selects the appropriate frontend for the language (English or Chinese), and provides a method to download pretrained resources.",
         "type": "comment"
     },
     "4906": {
-        "file_id": 638,
-        "content": "/tests/vapoursynth_linux_test/view_test.py",
-        "type": "filepath"
+        "file_id": 640,
+        "content": "        res_path = os.path.join(MODEL_HOME, tag)\n        decompressed_path = download_and_decompress(pretrained_models[tag],\n                                                    res_path)\n        decompressed_path = os.path.abspath(decompressed_path)\n        return decompressed_path\n    def run(self, text, output):\n        #文本输入\n        sentences = [str(text)]\n        # 长句处理\n        for sentence in sentences:\n            if self.lang == \"zh\":\n                input_ids = self.frontend.get_input_ids(sentence, merge_sentences=False, get_tone_ids=False) # what the heck? no freaking tone?\n            else:\n                input_ids = self.frontend.get_input_ids(sentence, merge_sentences=False) # what the heck? no freaking tone?\n            phone_ids = input_ids[\"phone_ids\"]\n            flags = 0\n            for part_phone_ids in phone_ids:\n                with paddle.no_grad():\n                    if self.lang == \"en\":\n                        mel = self.am_inference(\n                                        part_phone_ids)",
+        "type": "code",
+        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:165-187"
     },
     "4907": {
-        "file_id": 638,
-        "content": "The code imports VapourSynth library functions, creates a Video object with FFMS2 source and option to transpose, but generating previews isn't working as vspipe uses existing APIs and can only generate raw frame data. OpenCV might help; example at https://github.com/UniversalAl/view.",
-        "type": "summary"
+        "file_id": 640,
+        "content": "This code is related to a text-to-speech (TTS) system. It first downloads and decompresses the necessary pretrained model files, then processes the input text into phone_ids, which are used to generate speech using the am_inference function. The code handles both English and Chinese languages but seems to be missing tone information for Chinese.",
+        "type": "comment"
     },
     "4908": {
-        "file_id": 638,
-        "content": "videoPath = \"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\"\n# videoPath = \"/Users/jamesbrown/desktop/works/pyjom_remote/samples/video/dog_with_text.mp4\"\n# reference: http://www.vapoursynth.com/doc/pythonreference.html\n# The VideoFrame and AudioFrame classes contains one picture/audio chunk and all the metadata associated with it. It is possible to access the raw data using either get_read_ptr(plane) or get_write_ptr(plane) and get_stride(plane) with ctypes.\n# A more Python friendly wrapping is also available where each plane/channel can be accessed as a Python array using frame[plane/channel].\n# To get a frame simply call get_frame(n) on a clip. Should you desire to get all frames in a clip, use this code:\n# for frame in clip.frames():\n#     # Do stuff with your frame\n#     pass\nfrom vapoursynth import core\nvideo = core.ffms2.Source(source=videoPath)\n# video = core.std.Transpose(video)\n# video.set_output()\n# from viewKali import Preview\n# clip = vs.core.lsmas.LibavSMASHSource('source.mp4')",
+        "file_id": 640,
+        "content": "                                        # must get the scale using ffmpeg.\n                    elif self.lang == \"zh\":\n                        mel = self.am_inference(\n                                        part_phone_ids,\n                                        durations=None,\n                                        durations_scale = 1 / float(self.style_config['TTS']['SPEED']),\n                                        durations_bias = None,\n                                        pitch = None,\n                                        pitch_scale = float(self.style_config['TTS']['PITCH']),\n                                        pitch_bias = None,\n                                        energy = float(self.style_config['TTS']['ENERGY']),\n                                        energy_scale = None,\n                                        energy_bias = None,\n                                        )\n                    wav = self.voc_inference(mel)\n                if flags == 0:\n                    wav_all = wav",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/view_test.py:1-23"
+        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:188-204"
     },
     "4909": {
-        "file_id": 638,
-        "content": "The code imports the necessary functions from the VapourSynth library and defines a video path. It then creates a Video object using the FFMS2 source and provides an option to transpose the video if needed, but it's currently commented out. Additionally, there is a reference to another file called \"viewKali\" where a Preview function may be used, but it's not implemented yet.",
+        "file_id": 640,
+        "content": "This code chunk performs text-to-speech (TTS) conversion for Chinese language by first obtaining the Mel Spectrogram using `am_inference` function. The Mel Spectrogram is then converted to a WAV audio file using the `voc_inference` function. If flags equals 0, it assigns the result directly to `wav_all`.",
         "type": "comment"
     },
     "4910": {
-        "file_id": 638,
-        "content": "# seems not working\n# Preview(video)\n# vspipe is a wrapper around existing apis. vapoursynth can only generate raw frame data so we cannot encode video here alone. maybe we need opencv for this?\n# opencv preview https://github.com/UniversalAl/view",
+        "file_id": 640,
+        "content": "                    flags = 1\n                else:\n                    wav_all = paddle.concat([wav_all, wav])\n            sf.write(\n                output,\n                wav_all.numpy(),\n                samplerate=self.am_config.fs)\n        return output\n    # def __del__(self):\n    #     del self.voc_inference\n    #     del self.am_inference\n    #     del self.am_config\n    #     del self.style_config\n    #     del self.frontend\n    #     del self",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/view_test.py:24-28"
+        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:205-219"
     },
     "4911": {
-        "file_id": 638,
-        "content": "This code appears to attempt creating a preview using VapourSynth, but the functionality isn't working. It suggests that vspipe is a wrapper around existing APIs and VapourSynth can only generate raw frame data, so encoding a video alone might not be possible. OpenCV might help in generating previews, and there's an example at this GitHub link: https://github.com/UniversalAl/view.",
+        "file_id": 640,
+        "content": "This code is concatenating audio files and saving them as a single output file. If the flag is set to 1, it stops concatenation and writes the existing audio file. The __del__ method deletes various objects when the instance is deallocated.",
         "type": "comment"
     },
     "4912": {
-        "file_id": 639,
-        "content": "/tests/vapoursynth_linux_test/test_ffmpeg_docker.sh",
+        "file_id": 641,
+        "content": "/tests/english_chinese_mixing_spliter/english_grepper.py",
         "type": "filepath"
     },
     "4913": {
-        "file_id": 639,
-        "content": "Code snippet attempts to download a video file 'flower_cif.y4m' using wget, and then applies various filters with ffmpeg-tensorflow Docker container to upscale the video resolution by 2x and save it as 'flower_cif_2x.mp4'. The code also provides an alias for easier execution of ffmpeg-tensorflow command and specifies video filter complexities within the ffmpeg command.",
+        "file_id": 641,
+        "content": "This code searches, formats number lists, and tokenizes mixed English-Chinese text using regex. It iterates over results, updates language and UUID, sorts finalResult, creates dictionaries of index-text pairs for English and Chinese lists, then returns the result.",
         "type": "summary"
     },
     "4914": {
-        "file_id": 639,
-        "content": "wget https://media.xiph.org/video/derf/y4m/flower_cif.y4m\n# no good for using docker gpu containers.\n# alias ffmpeg-tensorflow='docker run --rm --gpus all -u $(id -u):$(id -g) -v \"$PWD\":/data -w /data -i miratmu/ffmpeg-tensorflow'\n# ffmpeg-tensorflow -i flower_cif.y4m -filter_complex '[0:v] format=pix_fmts=yuv420p, extractplanes=y+u+v [y][u][v]; [y] sr=dnn_backend=tensorflow:scale_factor=2:model=/models/espcn.pb [y_scaled]; [u] scale=iw*2:ih*2 [u_scaled]; [v] scale=iw*2:ih*2 [v_scaled]; [y_scaled][u_scaled][v_scaled] mergeplanes=0x001020:yuv420p [merged]' -map [merged] -sws_flags lanczos -c:v libx264 -crf 17 -c:a copy -y flower_cif_2x.mp4",
+        "file_id": 641,
+        "content": "# target = \"sample_strings.txt\"\n# data = open(target,\"r\",encoding=\"utf-8\").read()\n# data = data.split(\"\\n\")\nfrom zhon.hanzi import characters, radicals, punctuation\nimport re\ndef recursiveCompiledSearch(compiledRegex, pattern,initPos=0,resultTotal = []):\n    result = compiledRegex.search(pattern)\n    if result !=None:\n        match = result[0]\n        span = result.span()\n        realSpan = (span[0]+initPos, span[1]+initPos)\n        # initialSpan = span[0]\n        endSpan = span[1]\n        initPos += endSpan\n        mresult = {\"match\":match, \"span\":realSpan}\n        resultTotal.append(mresult)\n        newPattern = pattern[endSpan:]\n        return recursiveCompiledSearch(compiledRegex,newPattern,initPos,resultTotal)\n    else: return resultTotal\nfrom itertools import groupby, count\ndef set_to_range(numberlist):\n    numberlist = list(sorted(numberlist)) # double safety?\n    gpb = groupby(numberlist, lambda n, c=count(): n-next(c))\n    # Then to finish it off, generate the string from the groups.\n    def as_range(iterable): # not sure how to do this part elegantly",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/test_ffmpeg_docker.sh:1-6"
+        "location": "/tests/english_chinese_mixing_spliter/english_grepper.py:1-32"
     },
     "4915": {
-        "file_id": 639,
-        "content": "Code snippet attempts to download a video file 'flower_cif.y4m' using wget, and then applies various filters with ffmpeg-tensorflow Docker container to upscale the video resolution by 2x and save it as 'flower_cif_2x.mp4'. The code also provides an alias for easier execution of ffmpeg-tensorflow command and specifies video filter complexities within the ffmpeg command.",
+        "file_id": 641,
+        "content": "This code defines two functions for searching and formatting number lists. The first function, `recursiveCompiledSearch`, uses regex to search for patterns in a string, recursively appending matches to the result list. The second function, `set_to_range`, sorts a number list and then groups consecutive numbers together into ranges.",
         "type": "comment"
     },
     "4916": {
-        "file_id": 640,
-        "content": "/tests/vapoursynth_linux_test/test.sh",
-        "type": "filepath"
+        "file_id": 641,
+        "content": "        l = list(iterable)\n        if len(l) > 1:\n            return (l[0], l[-1]+1)\n        else:\n            return (l[0], l[0]+1)\n    result = [as_range(g) for _, g in gpb]\n    # result = [as_range(g) for _, g in groupby(numberlist, key=lambda n, c=count(): n-next(c))]\n    return result\n    # '1-3,6-7,10'\nimport uuid\ndef get_myuuid(): return str(uuid.uuid4())\ndef get_chinese_result(line,chineseSet):\n    chineseRanges = set_to_range(chineseSet)\n    result = []\n    for r in chineseRanges:\n        text = line[r[0]:r[1]]\n        data = {\"match\":text,\"span\":r,\"lang\":\"zh\",\"uuid\":get_myuuid()}\n        result.append(data)\n    return result\nall_chinese = characters+radicals+punctuation\nenglish = re.compile(r\"([a-zA-Z]+([ \\-,\\.:;?!]+)?)+\")\n# for line in data:\ndef analyze_mixed_text(line):\n    line = line.replace(\"\\n\",\"\")\n    # if len(line) <=3: continue\n    # shall we analyze this shit line by line?\n    # just a fucking try...\n    print(\"LINE DATA: \" + line)\n    eng_result = recursiveCompiledSearch(english,line,initPos=0,resultTotal = []) # recursive curse.",
+        "type": "code",
+        "location": "/tests/english_chinese_mixing_spliter/english_grepper.py:33-68"
     },
     "4917": {
-        "file_id": 640,
-        "content": "This code is running vspipe, a command-line tool for processing video files with VapourSynth script. It takes a .vpy script file as input and uses the -c flag for y4m format output.",
-        "type": "summary"
+        "file_id": 641,
+        "content": "This function takes a line of mixed English and Chinese text, tokenizes it into ranges of each language, and returns these ranges in a list. It first converts the Chinese characters to their corresponding ranges and then finds English words using a compiled regular expression. The function ignores lines with less than 3 characters and calls another function recursively for further processing.",
+        "type": "comment"
     },
     "4918": {
-        "file_id": 640,
-        "content": "vspipe -c y4m script.vpy -",
+        "file_id": 641,
+        "content": "    engSet = []\n    engResult = []\n    for eng in eng_result:\n        print(\"FOUND ENGLISH: \", eng)\n        span = eng[\"span\"]\n        mword = line[span[0]:span[1]]\n        mrange = list(range(span[0],span[1]))\n        engSet += mrange\n        eng2 = eng\n        eng2.update({\"lang\":\"en\",\"uuid\":get_myuuid()})\n        engResult.append(eng2)\n        print(\"VERIFICATION:\",mword)\n    chineseSet = [x for x in range(len(line)) if x not in engSet]\n    chineseResult = get_chinese_result(line,chineseSet)\n    finalResult = chineseResult+engResult\n    finalResult = sorted(finalResult,key=lambda x:x[\"span\"][0])\n    result = {\"en\":[],\"zh\":[]}\n    for index, data in enumerate(finalResult):\n        lang = data[\"lang\"]\n        text = data[\"match\"]\n        result[lang].append({\"index\":index,\"text\":text})\n    return result",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/test.sh:1-1"
+        "location": "/tests/english_chinese_mixing_spliter/english_grepper.py:69-90"
     },
     "4919": {
-        "file_id": 640,
-        "content": "This code is running vspipe, a command-line tool for processing video files with VapourSynth script. It takes a .vpy script file as input and uses the -c flag for y4m format output.",
+        "file_id": 641,
+        "content": "The code iterates over the English results, appends the range of each word to engSet, updates the language and UUID of each result, and then builds a finalResult list. It sorts the finalResult by span[0] (start index) and creates a dictionary with English (en) and Chinese (zh) lists containing index-text pairs. Finally, it returns the result dictionary.",
         "type": "comment"
     },
     "4920": {
-        "file_id": 641,
-        "content": "/tests/vapoursynth_linux_test/scene_change_detection.sh",
+        "file_id": 642,
+        "content": "/tests/english_chinese_mixing_spliter/default.yaml",
         "type": "filepath"
     },
     "4921": {
-        "file_id": 641,
-        "content": "This code is using FFmpeg to process a video file, extracting scenes by selecting frames where the scene change is greater than 0.1 and displaying information about each scene change. The output is redirected to null.",
+        "file_id": 642,
+        "content": "This YAML configuration file sets the input and output paths for a GAN-based driving application. It includes options for image and video files, TTS settings, and save directories.",
         "type": "summary"
     },
     "4922": {
-        "file_id": 641,
-        "content": "ffmpeg -hide_banner -i \"/root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4\" -an \\\n-filter:v \"select='gt(scene,0.1)',showinfo\" \\\n-f null \\\n- 2>&1",
+        "file_id": 642,
+        "content": "GANDRIVING:\n  FOM_INPUT_IMAGE: './file/input/test.png'\n  FOM_DRIVING_VIDEO: './file/input/zimeng.mp4'\n  FOM_OUTPUT_VIDEO: './file/input/test.mp4'\nTTS:\n  SPEED: 1.0\n  PITCH: 1.0\n  ENERGY: 1.0\nSAVEPATH:\n  VIDEO_SAVE_PATH: './file/output/video/'\n  AUDIO_SAVE_PATH: './file/output/audio/'",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/scene_change_detection.sh:3-6"
+        "location": "/tests/english_chinese_mixing_spliter/default.yaml:1-13"
     },
     "4923": {
-        "file_id": 641,
-        "content": "This code is using FFmpeg to process a video file, extracting scenes by selecting frames where the scene change is greater than 0.1 and displaying information about each scene change. The output is redirected to null.",
+        "file_id": 642,
+        "content": "This YAML configuration file sets the input and output paths for a GAN-based driving application. It includes options for image and video files, TTS settings, and save directories.",
         "type": "comment"
     },
     "4924": {
-        "file_id": 642,
-        "content": "/tests/vapoursynth_linux_test/pure_ffmpeg_interpolate_resolution_denoise.sh",
+        "file_id": 643,
+        "content": "/tests/video_script_generation_reconstruction/spp_module.py",
         "type": "filepath"
     },
     "4925": {
-        "file_id": 642,
-        "content": "This script uses FFmpeg and TensorFlow to process video files, applying Super Resolution and Edge Preserving Blur filters for improved quality. It utilizes Anaconda libraries for CUDA toolkit and CuDNN in a non-real-time processing manner.",
+        "file_id": 643,
+        "content": "The `spatial_pyramid_pool` function performs spatial pyramid pooling on convolutional output using max pooling, and the code includes a main section for testing. The code also performs 1D convolutions followed by LSTM layers to process sequential data.",
         "type": "summary"
     },
     "4926": {
-        "file_id": 642,
-        "content": "# ffmpeg -y -i \"/root/Desktop/works/pyjom/tests/random_giphy_gifs/samoyed.gif\" -vf \"minterpolate,scale=w=iw*2:h=ih*2:flags=lanczos,hqdn3d\" -r 60 ffmpeg_samoyed.mp4\n# SRCNN=espcn.pb\n# 5fps or something\n# env LD_LIBRARY_PATH=/root/anaconda3/pkgs/cudatoolkit-10.0.130-0/lib/:/root/anaconda3/pkgs/cudnn-7.6.5-cuda10.0_0/lib/:$LD_LIBRARY_PATH ffmpeg -i \"/root/Desktop/works/pyjom/tests/random_giphy_gifs/samoyed.gif\" -y -vf \"sr=dnn_backend=tensorflow:model=./sr_models/dnn_models/espcn.pb\"  ffmpeg_samoyed_espcn.mp4\n# 9fps or something\n# ffmpeg -i \"/root/Desktop/works/pyjom/tests/random_giphy_gifs/samoyed.gif\" -y -vf \"yaepblur\"  ffmpeg_samoyed_srcnn.mp4\n# strange shit.\n# env LD_LIBRARY_PATH=/root/anaconda3/pkgs/cudatoolkit-10.0.130-0/lib/:/root/anaconda3/pkgs/cudnn-7.6.5-cuda10.0_0/lib/:$LD_LIBRARY_PATH ffmpeg -i \"/root/Desktop/works/pyjom/tests/random_giphy_gifs/samoyed.gif\" -y -vf \"sr=dnn_backend=tensorflow:model=./sr/espcn.pb,yaepblur,hqdn3d\"  ffmpeg_samoyed_srcnn.mp4\n# env LD_LIBRARY_PATH=/root/anaco",
+        "file_id": 643,
+        "content": "import math\nfrom torch import nn\nimport torch\ndef spatial_pyramid_pool(previous_conv, num_sample, previous_conv_size, out_pool_size):\n    '''\n    previous_conv: a tensor vector of previous convolution layer\n    num_sample: an int number of image in the batch\n    previous_conv_size: an int vector [height, width] of the matrix features size of previous convolution layer\n    out_pool_size: a int vector of expected output size of max pooling layer\n    returns: a tensor vector with shape [1 x n] is the concentration of multi-level pooling\n    '''    \n    # print(previous_conv.size())\n    for i in range(len(out_pool_size)):\n        # print(previous_conv_size)\n        h_wid = int(math.ceil(previous_conv_size[0] / out_pool_size[i]))\n        w_wid = int(math.ceil(previous_conv_size[1] / out_pool_size[i]))\n        h_pad = (h_wid*out_pool_size[i] - previous_conv_size[0] + 1)/2 # float man.\n        h_pad = math.ceil(h_pad)\n        w_pad = (w_wid*out_pool_size[i] - previous_conv_size[1] + 1)/2\n        w_pad = math.ceil(w_pad)",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pure_ffmpeg_interpolate_resolution_denoise.sh:1-13"
+        "location": "/tests/video_script_generation_reconstruction/spp_module.py:1-22"
     },
     "4927": {
-        "file_id": 642,
-        "content": "The script contains FFmpeg commands to resize, denoise and apply different filters on a GIF file. It uses the TensorFlow model \"espcn.pb\" for super-resolution and the \"yaepblur\" filter. The environment variable LD_LIBRARY_PATH is used to specify paths for CUDA toolkit and CUDNN libraries. The final output is saved as \".mp4\" files with different names.",
+        "file_id": 643,
+        "content": "This function, `spatial_pyramid_pool`, takes in a tensor vector from the previous convolution layer, the number of samples in the batch, the size of the matrix features in the previous layer, and the expected output size for max pooling. It returns a tensor vector with shape [1 x n], which represents the concentration of multi-level pooling. The function calculates the height and width padding required for each level of the max pooling based on the input sizes and desired output sizes.",
         "type": "comment"
     },
     "4928": {
-        "file_id": 642,
-        "content": "nda3/pkgs/cudatoolkit-10.0.130-0/lib/:/root/anaconda3/pkgs/cudnn-7.6.5-cuda10.0_0/lib/:$LD_LIBRARY_PATH ffmpeg -i \"/root/Desktop/works/pyjom/tests/random_giphy_gifs/samoyed.gif\" -y -vf \"sr=dnn_backend=tensorflow:model=./sr/espcn.pb,yaepblur\"  ffmpeg_samoyed_dctdnoiz.mp4\nenv LD_LIBRARY_PATH=/root/anaconda3/pkgs/cudatoolkit-10.0.130-0/lib/:/root/anaconda3/pkgs/cudnn-7.6.5-cuda10.0_0/lib/:$LD_LIBRARY_PATH ffmpeg -i \"/root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4\" -y -vf \"sr=dnn_backend=tensorflow:model=./sr/espcn.pb,yaepblur\"  supertest.mp4\n# dctdnoiz is not for real time processing. it is slow.\n# but somehow it makes the picture great. is it?\n#  TSC hqdn3d            V->V       Apply a High Quality 3D Denoiser.\n# check out all filters by `ffmpeg -filters`\n# yaepblur\n# yet another edge preserving blur filter\n# ffmpeg -y -i \"/root/Desktop/works/pyjom/tests/random_giphy_gifs/samoyed.gif\" -filter \"minterpolate=mi_mode=2\" -r 60 ffmpeg_samoyed.mp4\n# use deep learning models:\n# https://video.stackexchange.com/questions/29337/how-do-the-super-resolution-filters-in-ffmpeg-work",
+        "file_id": 643,
+        "content": "        maxpool = nn.MaxPool2d((h_wid, w_wid), stride=(h_wid, w_wid), padding=(h_pad, w_pad)) # this has no trainable parameter.\n        x = maxpool(previous_conv)\n        # print(x.size())\n        torch.Size([20, 16, 20, 20])\n        # this is it.\n        if(i == 0):\n            spp = x.view(num_sample,-1)\n            # print(\"spp size:\", spp.size())\n        else:\n            # print(\"size:\",spp.size())\n            spp = torch.cat((spp,x.view(num_sample,-1)), 1)\n    return spp\nif __name__ == \"__main__\":\n    # to test the freaking video.\n    for i in [200,1000]:\n        w0 = h0 = i\n        x = torch.rand(20,3,w0,h0) # 20 frames, 20 width, 20 height8\n        # three channels? where is the optical flow layer?\n        c2layer_1 = nn.Conv2d(3,4,4)\n        c2_output_1 = c2layer_1(x)\n        print(c2_output_1.shape)\n        c2layer_2 = nn.Conv2d(4,16,20)\n        c2_output_2 = c2layer_2(c2_output_1)\n        print(c2_output_2.shape)\n        output_num = [20]\n        spp = spatial_pyramid_pool(c2_output_2,20,[int(c2_output_2.size(2)),int(c2_output_2.size(3))],output_num) # great now you have the batch size.",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pure_ffmpeg_interpolate_resolution_denoise.sh:13-27"
+        "location": "/tests/video_script_generation_reconstruction/spp_module.py:23-49"
     },
     "4929": {
-        "file_id": 642,
-        "content": "This code uses FFmpeg to process video files, applying filters like Super Resolution (SR) using deep learning models and Edge Preserving Blur. It utilizes TensorFlow as the dnn_backend for SR filter and Anaconda libraries for CUDA toolkit and CuDNN. The processing is not real-time but improves picture quality.",
+        "file_id": 643,
+        "content": "This code defines a function that performs spatial pyramid pooling on convolutional output. It uses max pooling with fixed window sizes and combines the results into a single tensor. The code also includes a main section for testing purposes, where it applies convolutions to random input data and then calls the spatial_pyramid_pool function.",
         "type": "comment"
     },
     "4930": {
         "file_id": 643,
-        "content": "/tests/vapoursynth_linux_test/previewTestVideo.sh",
-        "type": "filepath"
+        "content": "        print(x.shape,spp.shape) # 1,5120\n        spp_lstm = spp[None,:]\n        print(spp_lstm.shape) # 1,1,5120\n        cnn_1 = nn.Conv1d(20,20,16,stride=2)\n        cout_1 = cnn_1(spp_lstm)\n        print(cout_1.shape)\n        cnn_2 = nn.Conv1d(20,20,16,stride=2)\n        cout_2 = cnn_2(cout_1)\n        print(cout_2.shape)\n        lstm_1 = nn.LSTM(1589,400)\n        out_1,hid_1 = lstm_1(cout_2)\n        print(out_1.shape)\n        lstm_2 = nn.LSTM(400,20)\n        out_2,hid_2 = lstm_2(out_1)\n        print(out_2.shape)\n        lstm_3 = nn.LSTM(20,2)\n        out_3,hid_3 = lstm_3(out_2)\n        print(out_3.shape)",
+        "type": "code",
+        "location": "/tests/video_script_generation_reconstruction/spp_module.py:50-67"
     },
     "4931": {
         "file_id": 643,
-        "content": "Executing VapourSynth script on Linux, piping the output to FFplay for visualization. No frame-by-frame shift slider available.",
-        "type": "summary"
+        "content": "The code performs 1D convolutions followed by LSTM layers to process a sequence of data. It reshapes the input and applies two Conv1d operations, reducing the dimensionality of the data. Then, it applies three LSTM layers with decreasing hidden dimensions for further processing. The output shapes are printed at each step.",
+        "type": "comment"
     },
     "4932": {
-        "file_id": 643,
-        "content": "vspipe -c y4m basic_test.py - | ffplay -i pipe: \n# working! but no frame by frame shift slider avaliable",
-        "type": "code",
-        "location": "/tests/vapoursynth_linux_test/previewTestVideo.sh:1-2"
+        "file_id": 644,
+        "content": "/tests/video_script_generation_reconstruction/spp_any_video.py",
+        "type": "filepath"
     },
     "4933": {
-        "file_id": 643,
-        "content": "Executing VapourSynth script on Linux, piping the output to FFplay for visualization. No frame-by-frame shift slider available.",
-        "type": "comment"
+        "file_id": 644,
+        "content": "The code initializes video and audio data arrays, defines a VideoCutNet model with CNN layers, performs spatial pyramid pooling on video frames, uses LSTM for audio processing, iterates over training loop for gradient descent, and lacks batch size specification.",
+        "type": "summary"
     },
     "4934": {
         "file_id": 644,
-        "content": "/tests/vapoursynth_linux_test/pip_examine.sh",
-        "type": "filepath"
+        "content": "# 2d understanding or 3d?\n# what about the freaking audio?\nimport numpy as np\nimport torch\nimport torch.nn.functional as F\nimport torch.nn as nn\nvideo_shape = (20,3,100,100) # thirty frames extracted.\naudio_shape = (1,40000)\nvideo2_shape = (70,3,200,200) # thirty frames extracted. # change it!\naudio2_shape = (2,120000) # no freaking padding game.\ntarget_sentence_shape = (20,2) # full charset. you may choose not to speak. when should you freaking speak?\ntarget_sentence2_shape = (70,2) # full charset. you may choose not to speak. when should you freaking speak?\n# one hot encoding.\nimport random\ntarget_sentence = np.array([random.randint(0,1) for _ in range(20)]) # do one-hot encoding please.\ntarget_sentence2 = np.array([random.randint(0,1) for _ in range(70)])\ntarget_sentence = np.eye(2)[target_sentence]\ntarget_sentence2 = np.eye(2)[target_sentence2]\npad_video_shape_2 = np.zeros((20,3,200,200))\npad_sentence_2 = np.zeros((20,2))\ntarget_sentence2 = np.concatenate([target_sentence2,pad_sentence_2])\n# print(target_sentence2.shape,pad_sentence_2.shape)",
+        "type": "code",
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:1-30"
     },
     "4935": {
         "file_id": 644,
-        "content": "The code captures, crops, and saves FFmpeg-generated screenshots from a video at specific timestamps in the \"pip_examine\" directory.",
-        "type": "summary"
+        "content": "This code defines video and audio shapes for various inputs, creates random target sentences, and pads the data with zeros to maintain consistent shape. It uses numpy array manipulation and one-hot encoding to represent categorical data.",
+        "type": "comment"
     },
     "4936": {
         "file_id": 644,
-        "content": "ffmpeg -y -ss 0.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:186 -vframes 1 pip_examine/screenshot_0.jpg\nffmpeg -y -ss 0.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:186 -vframes 1 pip_examine/screenshot_1.jpg\nffmpeg -y -ss 0.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:186 -vframes 1 pip_examine/screenshot_2.jpg\nffmpeg -y -ss 1.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:186 -vframes 1 pip_examine/screenshot_3.jpg\nffmpeg -y -ss 1.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:186 -vframes 1 pip_examine/screenshot_4.jpg\nffmpeg -y -ss 1.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:186 -vframes 1 pip_examine/screenshot_5.jpg\nffmpeg -y -ss 1.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:186 -vframes 1 pip_examine/screenshot_6.jpg",
+        "content": "# breakpoint()\n# i really don't care how. freaking do it!\nvideo_data = np.random.random(video_shape)\naudio_data = np.random.random(audio_shape)\nvideo2_data = np.random.random(video2_shape)\naudio2_data = np.random.random(audio2_shape)\n# print(data)\nvideo2_data = np.concatenate([video2_data,pad_video_shape_2])\n# I really not caring the freaking data range.\nprint(video_data.shape)\nprint(audio_data.shape)\nfrom spp_module import spatial_pyramid_pool\nclass VideoCutNet(torch.nn.Module):\n    def __init__(self,debug=True):\n        super().__init__()\n        self.debug = debug\n        self.hidden_states=[None]\n        self.audio_hidden_states = [None]\n        self.va_hidden_states = [None,None]\n        self.c2layer_1 = nn.Conv2d(3,4,4)\n        self.c2layer_2 = nn.Conv2d(4,16,20)\n        self.output_num = [20]\n        # print(x.shape,spp.shape) # 1,5120\n        self.cnn_1 = nn.Conv1d(2,20,16,stride=2,padding=8) # you could use this on the audio.\n        self.cnn_2 = nn.Conv1d(20,16,16,stride=2,padding=8)\n        self.cnn_3 = nn.Conv1d(16,30,16,stride=4,padding=8)",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pip_examine.sh:1-7"
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:31-63"
     },
     "4937": {
         "file_id": 644,
-        "content": "This code uses FFmpeg to capture screenshots at specific time intervals from a video file. It crops the screenshots with specific dimensions and saves them in the \"pip_examine\" folder.",
+        "content": "This code snippet initializes random video and audio data arrays with specified shapes, concatenates the second video data array with padding, defines a class for the VideoCutNet model, and sets up various layers such as convolutional layers (CNNs) for processing audio and videos. The debug parameter allows controlling whether or not to print the shapes of the initialized arrays.",
         "type": "comment"
     },
     "4938": {
         "file_id": 644,
-        "content": "ffmpeg -y -ss 1.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:186 -vframes 1 pip_examine/screenshot_7.jpg\nffmpeg -y -ss 2.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:186 -vframes 1 pip_examine/screenshot_8.jpg\nffmpeg -y -ss 2.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:200 -vframes 1 pip_examine/screenshot_9.jpg\nffmpeg -y -ss 2.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:200 -vframes 1 pip_examine/screenshot_10.jpg\nffmpeg -y -ss 2.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:200 -vframes 1 pip_examine/screenshot_11.jpg\nffmpeg -y -ss 2.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:624:68:200 -vframes 1 pip_examine/screenshot_12.jpg\nffmpeg -y -ss 3.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:608:68:212 -vframes 1 pip_examine/screenshot_13.jpg",
+        "content": "        self.lstm_1 = nn.LSTM(6400,1200,batch_first=True) # huge?\n        # self.lstm_2 = nn.LSTM(400,20)\n        # self.lstm_3 = nn.LSTM(20,2)\n        self.audio_lstm_1 = nn.LSTM(2501,500,batch_first=True)\n        self.video_audio_merger = nn.Linear(1700,300)\n        # self.audio_lstm_2 = nn.LSTM()\n        # self.audio_lstm_3 = nn.LSTM()\n        self.va_lstm_2 = nn.LSTM(300,50,batch_first=True)\n        self.va_lstm_3 = nn.LSTM(50,20,batch_first=True)\n        self.va_linear = nn.Linear(20,2)\n    def clear_hidden_state(self):\n        self.hidden_states=[None] # no tuple.\n        self.audio_hidden_states=[None] # no tuple.\n        self.va_hidden_states=[None,None] # no tuple.\n    def forward(self,x,audio_x):\n        # with torch.autograd.set_detect_anomaly(False):\n        c2_output_1 = self.c2layer_1(x)\n        if self.debug:\n            print(c2_output_1.shape)\n        c2_output_1 = F.relu(c2_output_1)\n        c2_output_2 = self.c2layer_2(c2_output_1)\n        if self.debug:\n            print(c2_output_2.shape)",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pip_examine.sh:8-14"
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:65-91"
     },
     "4939": {
         "file_id": 644,
-        "content": "These ffmpeg commands capture screenshots at specific timestamps from a video file and save them with corresponding filenames in the pip_examine directory. The `-ss`, `-i`, `-vf`, and `-vframes` options specify the start time, input file, video filter, and number of frames to capture for each screenshot respectively.",
+        "content": "This code defines a neural network model with LSTM layers for processing video and audio data. The forward function takes input x (video) and audio_x, and passes them through convolutional layers followed by LSTM layers to extract features. The clear\\_hidden\\_state method initializes hidden states for each LSTM layer.",
         "type": "comment"
     },
     "4940": {
         "file_id": 644,
-        "content": "ffmpeg -y -ss 3.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:608:68:212 -vframes 1 pip_examine/screenshot_14.jpg\nffmpeg -y -ss 3.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:608:68:212 -vframes 1 pip_examine/screenshot_15.jpg\nffmpeg -y -ss 3.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:608:68:216 -vframes 1 pip_examine/screenshot_16.jpg\nffmpeg -y -ss 3.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:608:68:216 -vframes 1 pip_examine/screenshot_17.jpg\nffmpeg -y -ss 4.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:608:68:218 -vframes 1 pip_examine/screenshot_18.jpg\nffmpeg -y -ss 4.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:608:68:218 -vframes 1 pip_examine/screenshot_19.jpg\nffmpeg -y -ss 4.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:608:68:218 -vframes 1 pip_examine/screenshot_20.jpg",
+        "content": "        c2_output_2 = F.relu(c2_output_2)\n        msize = int(c2_output_2.size(0))\n        # print(msize)\n        # breakpoint()\n        spp = spatial_pyramid_pool(c2_output_2,msize,[int(c2_output_2.size(2)),int(c2_output_2.size(3))],self.output_num) # great now you have the batch size.\n        spp_lstm = spp[None,:]\n        spp_lstm = F.relu(spp_lstm)\n        if self.debug:\n            print(spp_lstm.shape) # 1,1,5120\n###AUDIO\n        cout_1 = self.cnn_1(audio_x)\n        if self.debug:\n            print(\"AUDIO\",cout_1.shape)\n        cout_1 = F.relu(cout_1)\n        cout_2 = self.cnn_2(cout_1)\n        if self.debug:\n            print(\"AUDIO\",cout_2.shape)\n        cout_2 = F.relu(cout_2)\n        cout_3 = self.cnn_3(cout_2)\n        if self.debug:\n            print(\"AUDIO\",cout_3.shape)\n        cout_3 = F.relu(cout_3)\n        aout_1, ahid_1 = self.audio_lstm_1(cout_3,self.audio_hidden_states[0])\n        self.audio_hidden_states[0] =(ahid_1[0].detach(),ahid_1[1].detach())\n        if self.debug:\n            print(\"AUDIO LSTM\",aout_1.shape)",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pip_examine.sh:15-21"
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:92-123"
     },
     "4941": {
         "file_id": 644,
-        "content": "This code uses FFmpeg to capture screenshots at specific timestamps from a video file. It crops the images to a particular size and saves them with sequential filenames in the \"pip_examine\" directory.",
+        "content": "This code snippet performs feature extraction and pooling on video frames using CNNs and a spatial pyramid pooling layer, followed by LSTM processing for audio. It then prints the shapes of intermediate tensors for debugging purposes.",
         "type": "comment"
     },
     "4942": {
         "file_id": 644,
-        "content": "ffmpeg -y -ss 4.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:624:68:218 -vframes 1 pip_examine/screenshot_21.jpg\nffmpeg -y -ss 4.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:624:68:212 -vframes 1 pip_examine/screenshot_22.jpg\nffmpeg -y -ss 5.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:200 -vframes 1 pip_examine/screenshot_23.jpg\nffmpeg -y -ss 5.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:200 -vframes 1 pip_examine/screenshot_24.jpg\nffmpeg -y -ss 5.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:640:68:200 -vframes 1 pip_examine/screenshot_25.jpg\nffmpeg -y -ss 5.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:656:68:186 -vframes 1 pip_examine/screenshot_26.jpg\nffmpeg -y -ss 5.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:656:68:186 -vframes 1 pip_examine/screenshot_27.jpg",
+        "content": "        aout_1 = F.relu(aout_1) # for audio only this time we apply this.\n###AUDIO\n        out_1, hid_1 = self.lstm_1(spp_lstm,self.hidden_states[0]) # passing no hidden state at all.\n        self.hidden_states[0] =(hid_1[0].detach(),hid_1[1].detach())\n        if self.debug:\n            print(out_1.shape)\n        out_1 = F.relu(out_1)\n        # breakpoint()\n##VIDEO AUDIO MERGE\n        merged = torch.cat([aout_1,out_1],dim=2)\n        if self.debug:\n            print(merged.shape)\n        mout_1 = self.video_audio_merger(merged)\n        if self.debug:\n            print(mout_1.shape)\n        # breakpoint()\n        mout_2,mhid_2 = self.va_lstm_2(mout_1,self.va_hidden_states[0])\n        self.va_hidden_states[0] =(mhid_2[0].detach(),mhid_2[1].detach())\n        if self.debug:\n            print(mout_2.shape)\n        mout_3,mhid_3 = self.va_lstm_3(mout_2,self.va_hidden_states[1])\n        self.va_hidden_states[1] =(mhid_3[0].detach(),mhid_3[1].detach())\n        if self.debug:\n            print(mout_3.shape)\n        # breakpoint()",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pip_examine.sh:22-28"
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:124-153"
     },
     "4943": {
         "file_id": 644,
-        "content": "This code uses FFmpeg to capture a series of screenshots from a video at specific timestamps, cropping the images with specific dimensions and saving them in the \"pip_examine\" folder.",
+        "content": "Applying ReLU activation to audio output, passing no hidden state to LSTM, merging audio and video outputs through concatenation, feeding merged output to two additional LSTMs for further processing.",
         "type": "comment"
     },
     "4944": {
         "file_id": 644,
-        "content": "ffmpeg -y -ss 6.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:656:68:186 -vframes 1 pip_examine/screenshot_28.jpg\nffmpeg -y -ss 6.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:656:68:186 -vframes 1 pip_examine/screenshot_29.jpg\nffmpeg -y -ss 6.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_30.jpg\nffmpeg -y -ss 6.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_31.jpg\nffmpeg -y -ss 6.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_32.jpg\nffmpeg -y -ss 7.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_33.jpg\nffmpeg -y -ss 7.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_34.jpg",
+        "content": "        mout_4 = self.va_linear(mout_3)\n        if self.debug:\n            print(mout_4.shape)\n        return mout_4\nvideo_cut_net = VideoCutNet(debug=True).cuda()\nvideo_data = torch.Tensor(video_data).cuda()\nvideo_data2 = torch.Tensor(video2_data).cuda()\naudio_data2 = torch.Tensor(audio2_data).cuda()\naudio_data2 = audio_data2[None,:]\n# must equal to 20 frames.\ntarget_sentence = torch.Tensor(target_sentence).cuda()\ntarget_sentence2 = torch.Tensor(target_sentence2).cuda()\ncriterion= nn.CrossEntropyLoss()\noptim = torch.optim.Adam(video_cut_net.parameters(),lr=0.0001)\ntarget = target_sentence\ntarget = target_sentence[None,:]\ntarget2 = target_sentence2\ntarget2 = target_sentence2[None,:]\n# for _ in range(240):# we pass 5 identical segments to our network, require to produce different labels.\nvideo_cut_net.clear_hidden_state() # to make sure we can train this shit.\ndivisor = 30\naudio_divisor = 40000\nprint(video_data2.shape) # ([60, 3, 100, 100])\n# breakpoint()\nframes2 = video_data2.shape[0]\nimport math\nbest_index = math.ceil(frames2/divisor)",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pip_examine.sh:29-35"
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:154-186"
     },
     "4945": {
         "file_id": 644,
-        "content": "This code is using FFmpeg to capture screenshots from a video at specific time intervals. It crops the images and saves them with corresponding filenames in the \"pip_examine\" directory.",
+        "content": "This code initializes a VideoCutNet model, prepares input data, defines a loss function and optimizer, and sets up the training loop to pass 5 identical segments of video data for the network to produce different labels. The model's hidden state is cleared before each iteration. The code also calculates the number of frames in the second video segment and finds the best index for dividing it into sections.",
         "type": "comment"
     },
     "4946": {
         "file_id": 644,
-        "content": "ffmpeg -y -ss 7.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_35.jpg\nffmpeg -y -ss 7.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_36.jpg\nffmpeg -y -ss 7.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_37.jpg\nffmpeg -y -ss 8.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_38.jpg\nffmpeg -y -ss 8.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_39.jpg\nffmpeg -y -ss 8.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_40.jpg\nffmpeg -y -ss 8.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_41.jpg",
+        "content": "for index in range(best_index):\n    optim.zero_grad()\n    video_data_slice = video_data2[index*divisor:(index+1)*divisor,:]\n    audio_data_slice = audio_data2[:,:,index*audio_divisor:(index+1)*audio_divisor]\n    print(\"AUDIO_DATA_SLICE\",audio_data_slice.shape)\n    # breakpoint()\n    # use some padding for our video and label processes. make sure it is divisible by 20\n    # data_input = video_data_slice\n    target_slice = target2[:,index*divisor:(index+1)*divisor,:] # must be the right freaking target.\n    print(video_data_slice.shape,target_slice.shape)\n    # breakpoint()\n    with torch.nn.utils.parametrize.cached():\n        output = video_cut_net(video_data_slice,audio_data_slice)\n        # print(output.shape,target_slice.shape) # 1,20,2\n        # breakpoint()\n        loss = criterion(output, target_slice)\n        # print(loss)\n        val_loss = loss.detach().cpu().numpy()\n        print('CURRENT LOSS:',val_loss) # taking longer for long videos. may kill your freaking ram.\n        loss.backward()\n    optim.step()",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pip_examine.sh:36-42"
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:188-209"
     },
     "4947": {
         "file_id": 644,
-        "content": "The code is using FFmpeg to capture screenshots at specific timestamps of a video file, crop the images, and save them with corresponding filenames. It runs for 10 different timestamps.",
+        "content": "This code is iterating over a range of indices, performing gradient descent on a loss function using audio and video data slices. The slicing ensures the right target is used for each iteration. It also prints the shape of the audio data slice, video data slice, and checks the shapes before calculating the loss. The current loss is printed at each iteration to monitor progress.",
         "type": "comment"
     },
     "4948": {
         "file_id": 644,
-        "content": "ffmpeg -y -ss 8.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_42.jpg\nffmpeg -y -ss 9.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_43.jpg\nffmpeg -y -ss 9.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_44.jpg\nffmpeg -y -ss 9.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_45.jpg\nffmpeg -y -ss 9.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_46.jpg\nffmpeg -y -ss 9.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_47.jpg\nffmpeg -y -ss 10.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:672:68:186 -vframes 1 pip_examine/screenshot_48.jpg",
+        "content": "    # where is the batch size? reduce it?\n    # there is no batch size. this is recurrent network. must process sequentially.",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pip_examine.sh:43-49"
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:210-211"
     },
     "4949": {
         "file_id": 644,
-        "content": "This code is using ffmpeg to capture screenshots at specific time intervals from a video file, saving each as an individual .jpg image in the pip_examine directory. The crop filters are applied to ensure the correct portion of the frame is captured for each shot.",
+        "content": "These lines indicate that there is no batch size specified in the code and it's a recurrent network which needs to be processed sequentially.",
         "type": "comment"
     },
     "4950": {
-        "file_id": 644,
-        "content": "ffmpeg -y -ss 10.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:656:68:200 -vframes 1 pip_examine/screenshot_49.jpg\nffmpeg -y -ss 10.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:656:68:202 -vframes 1 pip_examine/screenshot_50.jpg\nffmpeg -y -ss 10.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:480:68:378 -vframes 1 pip_examine/screenshot_51.jpg\nffmpeg -y -ss 10.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:480:68:378 -vframes 1 pip_examine/screenshot_52.jpg\nffmpeg -y -ss 11.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:480:68:378 -vframes 1 pip_examine/screenshot_53.jpg\nffmpeg -y -ss 11.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:480:68:378 -vframes 1 pip_examine/screenshot_54.jpg\nffmpeg -y -ss 11.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:448:68:378 -vframes 1 pip_examine/screenshot_55.jpg",
-        "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pip_examine.sh:50-56"
+        "file_id": 645,
+        "content": "/tests/video_script_generation_reconstruction/README.md",
+        "type": "filepath"
     },
     "4951": {
-        "file_id": 644,
-        "content": "These lines are using FFmpeg to capture screenshots at specific timestamps from a video file, with varying crop dimensions and saving them as JPEGs in the pip_examine directory.",
-        "type": "comment"
+        "file_id": 645,
+        "content": "This code refers to a project containing various AI models for feature extraction, video summarization, audio classification, image labeling, text extraction, and keyword suggestion. The user needs to write a script before using these tools from PaddleVideo.",
+        "type": "summary"
     },
     "4952": {
-        "file_id": 644,
-        "content": "ffmpeg -y -ss 11.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_56.jpg\nffmpeg -y -ss 11.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_57.jpg\nffmpeg -y -ss 12.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_58.jpg\nffmpeg -y -ss 12.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_59.jpg\nffmpeg -y -ss 12.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_60.jpg\nffmpeg -y -ss 12.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_61.jpg\nffmpeg -y -ss 12.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_62.jpg",
+        "file_id": 645,
+        "content": "contains multiple feature extractor, video summarizer, audio classifier, image labeler, text extractor, keyword suggestor. but you need to write one freaking script first. that is your freaking style. you can write that shit in markdown anyway, in reference of existing excellent(?) videos.\nfrom https://github.com/PaddlePaddle/PaddleVideo.\nvideo understanding.",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pip_examine.sh:57-63"
+        "location": "/tests/video_script_generation_reconstruction/README.md:1-5"
     },
     "4953": {
-        "file_id": 644,
-        "content": "This code is using FFmpeg to capture screenshots at specific timestamps from a video file. The `-ss` flag specifies the start time, `-vf crop` defines the cropping area, and `-vframes 1` captures one frame. Each resulting image is saved in the 'pip_examine' directory with the corresponding filename.",
+        "file_id": 645,
+        "content": "This code refers to a project containing various AI models for feature extraction, video summarization, audio classification, image labeling, text extraction, and keyword suggestion. The user needs to write a script before using these tools from PaddleVideo.",
         "type": "comment"
     },
     "4954": {
-        "file_id": 644,
-        "content": "ffmpeg -y -ss 13.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_63.jpg\nffmpeg -y -ss 13.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_64.jpg\nffmpeg -y -ss 13.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:448:68:378 -vframes 1 pip_examine/screenshot_65.jpg\nffmpeg -y -ss 13.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:448:68:378 -vframes 1 pip_examine/screenshot_66.jpg\nffmpeg -y -ss 13.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_67.jpg\nffmpeg -y -ss 14.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_68.jpg\nffmpeg -y -ss 14.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_69.jpg",
-        "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pip_examine.sh:64-70"
+        "file_id": 646,
+        "content": "/tests/video_script_generation_reconstruction/raw_data_understanding.py",
+        "type": "filepath"
     },
     "4955": {
-        "file_id": 644,
-        "content": "This code is using FFmpeg to generate a series of screenshots at specific time intervals from a video file. The `-ss` flag sets the start time for each screenshot, and the `-vf crop` option specifies the cropping parameters for each image. Each screenshot is saved in the \"pip_examine\" directory with a corresponding filename.",
-        "type": "comment"
+        "file_id": 646,
+        "content": "The code defines the shapes of video and audio data, generates random one-hot encoded target sentences, and creates random data for both videos. It then prints the shapes of the generated video and audio data.",
+        "type": "summary"
     },
     "4956": {
-        "file_id": 644,
-        "content": "ffmpeg -y -ss 14.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_70.jpg\nffmpeg -y -ss 14.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_71.jpg\nffmpeg -y -ss 14.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_72.jpg\nffmpeg -y -ss 15.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_73.jpg\nffmpeg -y -ss 15.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_74.jpg\nffmpeg -y -ss 15.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_75.jpg\nffmpeg -y -ss 15.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_76.jpg",
+        "file_id": 646,
+        "content": "# 2d understanding or 3d?\n# what about the freaking audio?\nimport numpy as np\nimport torch\nvideo_shape = (30,100,100) # thirty frames extracted.\naudio_shape = (1,40000)\nvideo2_shape = (60,200,200) # thirty frames extracted.\naudio2_shape = (1,80000)\ntarget_sentence_shape = (10,40000) # full charset. you may choose not to speak. when should you freaking speak?\ntarget_sentence2_shape = (15,40000) # full charset. you may choose not to speak. when should you freaking speak?\n# one hot encoding.\nimport random\ntarget_sentence = np.array([random.randint(0,39999) for _ in range(10)])\ntarget_sentence2 = np.array([random.randint(0,39999) for _ in range(15)])\n# i really don't care how. freaking do it!\nvideo_data = np.random.random(video_shape)\naudio_data = np.random.random(audio_shape)\nvideo2_data = np.random.random(video2_shape)\naudio2_data = np.random.random(audio2_shape)\n# print(data)\n# I really not caring the freaking data range.\nprint(video_data.shape)\nprint(audio_data.shape)",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pip_examine.sh:71-77"
+        "location": "/tests/video_script_generation_reconstruction/raw_data_understanding.py:1-31"
     },
     "4957": {
-        "file_id": 644,
-        "content": "This code uses FFmpeg to capture screenshots from a video file at specific time intervals. It crops the images to a specific size and saves them as separate files in the \"pip_examine\" directory. Each line represents one screenshot command executed consecutively, starting at 14.4 seconds and incrementing by 0.2 seconds until reaching 15.6 seconds.",
+        "file_id": 646,
+        "content": "The code defines the shapes of video and audio data, generates random one-hot encoded target sentences, and creates random data for both videos. It then prints the shapes of the generated video and audio data.",
         "type": "comment"
     },
     "4958": {
-        "file_id": 644,
-        "content": "ffmpeg -y -ss 15.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_77.jpg\nffmpeg -y -ss 16.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_78.jpg\nffmpeg -y -ss 16.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_79.jpg\nffmpeg -y -ss 16.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_80.jpg\nffmpeg -y -ss 16.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_81.jpg\nffmpeg -y -ss 16.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_82.jpg\nffmpeg -y -ss 17.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_83.jpg",
-        "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pip_examine.sh:78-84"
+        "file_id": 647,
+        "content": "/tests/video_script_generation_reconstruction/raw_data_cut.py",
+        "type": "filepath"
     },
     "4959": {
-        "file_id": 644,
-        "content": "This code is creating screenshots at specific timestamps of a video file. It uses FFmpeg to extract frames from the video and save them as JPEG images in a directory named \"pip_examine\". The crop filter is applied to each frame, cropping it to a size of 464x320 with an offset of 68 pixels from the left and 382 pixels from the top.",
-        "type": "comment"
+        "file_id": 647,
+        "content": "This code initializes shapes, generates cut targets, and ensures correct tensor dimensions. It applies convolution, pooling, activation functions, performs two RNN operations, prints output/hidden state shapes, defines a final linear layer, transposes data, and suggests MaxPool1d for character extraction.",
+        "type": "summary"
     },
     "4960": {
-        "file_id": 644,
-        "content": "ffmpeg -y -ss 17.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_84.jpg\nffmpeg -y -ss 17.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_85.jpg\nffmpeg -y -ss 17.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_86.jpg\nffmpeg -y -ss 17.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_87.jpg\nffmpeg -y -ss 18.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_88.jpg\nffmpeg -y -ss 18.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_89.jpg\nffmpeg -y -ss 18.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_90.jpg",
+        "file_id": 647,
+        "content": "# 2d understanding or 3d?\n# what about the freaking audio?\nimport numpy as np\nimport torch\nvideo_shape = (30,100,100) # thirty frames extracted.\naudio_shape = (1,40000) # so batch size is included.\nvideo2_shape = (60,200,200) # thirty frames extracted.\naudio2_shape = (1,80000)\ntarget_cut_shape = (30,2) # choose either beginning or to cut?\ntarget_cut2_shape = (60,2) # choose either beginning or to cut?\nimport random\ntarget_cut = np.array([random.randint(0,1) for _ in range(30)])\ntarget_cut2 = np.array([random.randint(0,1) for _ in range(60)])\nvideo_data = np.array(np.random.random(video_shape))\naudio_data = np.array(np.random.random(audio_shape))\nvideo2_data = np.array(np.random.random(video2_shape))\naudio2_data = np.array(np.random.random(audio2_shape))\n# print(data)\n# I really not caring the freaking data range.\nprint(video_data.shape)\nprint(audio_data.shape)\nprint(target_cut2.shape)\ndevice = torch.device(\"cuda\")\nvideo_data = torch.Tensor([video_data]) # to make sure the first dimension is batchsize\ntarget_cut = torch.Tensor([target_cut])",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pip_examine.sh:85-91"
+        "location": "/tests/video_script_generation_reconstruction/raw_data_cut.py:1-33"
     },
     "4961": {
-        "file_id": 644,
-        "content": "This code uses FFmpeg to capture screenshots at specific timestamps of a video file. It applies a crop filter to the images and saves them in the \"pip_examine\" directory. The process is repeated for different timestamps, resulting in multiple screenshots.",
+        "file_id": 647,
+        "content": "Code initializes various shapes for video and audio data, randomly generates cut targets, and ensures tensor dimensions are correct for GPU usage.",
         "type": "comment"
     },
     "4962": {
-        "file_id": 644,
-        "content": "ffmpeg -y -ss 18.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_91.jpg\nffmpeg -y -ss 18.800000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:382 -vframes 1 pip_examine/screenshot_92.jpg\nffmpeg -y -ss 19.000000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:384 -vframes 1 pip_examine/screenshot_93.jpg\nffmpeg -y -ss 19.200000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:384 -vframes 1 pip_examine/screenshot_94.jpg\nffmpeg -y -ss 19.400000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:384 -vframes 1 pip_examine/screenshot_95.jpg\nffmpeg -y -ss 19.600000 -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf crop=464:320:68:384 -vframes 1 pip_examine/screenshot_96.jpg",
+        "file_id": 647,
+        "content": "audio_data = torch.Tensor(audio_data)\nlayer_1 = torch.nn.Conv2d(30,3,10) # original shape: (30,100,100)\noutput_1 = layer_1(video_data)\nprint(output_1.shape) #(1,3,91,91)\nlayer_2 = torch.nn.Conv2d(3,1,10)\noutput_2 = layer_2(output_1)\nprint(output_2.shape) #([1, 2, 82, 82])\nlayer_3 = torch.nn.MaxPool1d(4)\noutput_3 = layer_3(audio_data)\nprint(output_3.shape) # torch.Size([1, 10000]) # what is this fuck?\nlayer_4 = torch.nn.MaxPool2d(2)\noutput_4 = layer_4(output_2)\nprint(output_4.shape) # 1,2,41,41 freaking bad.\nlayer_5 = torch.nn.Sigmoid()\noutput_5 = layer_5(output_4)\nprint(output_5.shape) # 1,2,41,41\noutput_5 = output_5.reshape(1,41,41)\n# get this reshaped.\noutput_5 = output_5.reshape(1,1,41*41)\nrnn_layer_1 = torch.nn.RNN(41*41,41*41,3) # must have three dimensions.\nrnn_output_1, rnn_hidd_1 = rnn_layer_1(output_5)\nprint(rnn_output_1.shape,rnn_hidd_1.shape) #tuple torch.Size([1, 41, 20]) torch.Size([3, 41, 20])\nrnn_output_2, rnn_hidd_2 = rnn_layer_1(output_5,rnn_hidd_1)\nprint(\"RNN 2:\",rnn_output_2.shape,rnn_hidd_2.shape)",
         "type": "code",
-        "location": "/tests/vapoursynth_linux_test/pip_examine.sh:92-97"
+        "location": "/tests/video_script_generation_reconstruction/raw_data_cut.py:34-67"
     },
     "4963": {
-        "file_id": 644,
-        "content": "This code uses ffmpeg to capture screenshots from a video at specific timestamps. It crops the images and saves them with corresponding filenames in the pip_examine directory.",
+        "file_id": 647,
+        "content": "This code applies convolution, pooling, and activation functions to the input data. It reshapes the output for RNN processing with a specific structure, and performs two RNN operations.",
         "type": "comment"
     },
     "4964": {
-        "file_id": 645,
-        "content": "/tests/vapoursynth_linux_test/motion_estimation.sh",
-        "type": "filepath"
+        "file_id": 647,
+        "content": "rnn_output_3, rnn_hidd_3 = rnn_layer_1(rnn_output_1,rnn_hidd_1)\nprint(\"RNN 3:\",rnn_output_3.shape,rnn_hidd_3.shape)\n# final_data = \nfinal_layer = torch.nn.Linear(41*41,2) # the final swap.\nfinal_data = final_layer(rnn_output_1)\nprint(final_data.shape)\n# find the max one.\nfinal_data = final_data.transpose(2,1)\nprint(final_data.shape)\n# output_final_layer = torch.nn.MaxPool1d(41) \n# final_data2 = output_final_layer(final_data)\n# print(final_data2.shape) # 40000,1 this is a single character. is it?",
+        "type": "code",
+        "location": "/tests/video_script_generation_reconstruction/raw_data_cut.py:69-81"
     },
     "4965": {
-        "file_id": 645,
-        "content": "This code snippet demonstrates the use of FFmpeg to process video files using motion estimation, crop detection, and other filters. It shows how to output motion vectors, find picture-in-picture (PIP) scenarios, and obtain help on filter usage. The code snippets are for testing purposes and can be used to analyze video processing tasks in the pyjom project.",
-        "type": "summary"
+        "file_id": 647,
+        "content": "This code applies an RNN layer, prints the shapes of output and hidden states, defines a final linear layer with 41x41 input size and 2 output sizes, passes RNN output through it, transposes the data, and suggests using MaxPool1d for possible character extraction.",
+        "type": "comment"
     },
     "4966": {
-        "file_id": 645,
-        "content": "# output motion vectors.\n# ffmpeg -i \"/root/Desktop/works/pyjom/tests/random_giphy_gifs/samoyed.gif\" -vf \"mestimate=epzs:mb_size=16:search_param=7, codecview=mv=pf+bf+bb\"  mestimate_output.mp4 -y\n# not just toy, but can find PIP\n# picture in picture, crop detect?\nffmpeg -i \"/root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4\" -flags2 +export_mvs -vf \"fps=5,mestimate=epzs:mb_size=16:search_param=7,cropdetect=mode=mvedges,metadata=mode=print\" -f null - # no printing?\n# ffmpeg -i \"/root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4\" -vf \"mestimate,cropdetect=mode=mvedges,metadata=mode=print\" -f null -\n# get help on filter:\n# ffmpeg -h filter=showspectrumpic",
-        "type": "code",
-        "location": "/tests/vapoursynth_linux_test/motion_estimation.sh:2-13"
+        "file_id": 648,
+        "content": "/tests/video_script_generation_reconstruction/lstm_trial.py",
+        "type": "filepath"
     },
     "4967": {
-        "file_id": 645,
-        "content": "This code snippet demonstrates the use of FFmpeg to process video files using motion estimation, crop detection, and other filters. It shows how to output motion vectors, find picture-in-picture (PIP) scenarios, and obtain help on filter usage. The code snippets are for testing purposes and can be used to analyze video processing tasks in the pyjom project.",
-        "type": "comment"
+        "file_id": 648,
+        "content": "This code initializes a LSTM layer, passes a 3D input tensor through it, and prints the shapes of the input, output, and hidden states.",
+        "type": "summary"
     },
     "4968": {
-        "file_id": 646,
-        "content": "/tests/vapoursynth_linux_test/make_vapoursynth_autoload.sh",
-        "type": "filepath"
+        "file_id": 648,
+        "content": "from torch.nn import LSTM\nimport numpy as np\ndata = [[[1,2,3],[2,3,4],[3,5,6]]]\nfrom torch import Tensor\ndata = Tensor(data)\nlayer_lstm = LSTM(3,1)\noutput_1, (hid_1_a,hid_1_b) = layer_lstm(data)\n# print(len(hidden_1))\nprint(data.shape)\nprint(output_1.shape) # [1,3,10]\nprint(hid_1_a.shape,hid_1_b.shape)",
+        "type": "code",
+        "location": "/tests/video_script_generation_reconstruction/lstm_trial.py:1-17"
     },
     "4969": {
-        "file_id": 646,
-        "content": "This script creates necessary directories for VapourSynth and configures the vapoursynth.conf file with paths to user and system plugin folders. It ensures that the correct directories are in place for VapourSynth to function properly.",
-        "type": "summary"
+        "file_id": 648,
+        "content": "This code initializes a LSTM layer, passes a 3D input tensor through it, and prints the shapes of the input, output, and hidden states.",
+        "type": "comment"
     },
     "4970": {
-        "file_id": 646,
-        "content": "# refer to http://www.vapoursynth.com/doc/installation.html\nmkdir -p \"$HOME/Library/Application Support/VapourSynth/\"\ntouch \"$HOME/Library/Application Support/VapourSynth/vapoursynth.conf\"\nsudo mkdir -p /Library/vapoursynth/plugins\nmkdir -p /Users/jamesbrown/vapoursynth/plugins\necho \"UserPluginDir=/Users/jamesbrown/vapoursynth/plugins\" > \"$HOME/Library/Application Support/VapourSynth/vapoursynth.conf\"\necho \"SystemPluginDir=/Library/vapoursynth/plugins\" >> \"$HOME/Library/Application Support/VapourSynth/vapoursynth.conf\"\necho \"CONTENT BELOW:\"\ncat \"$HOME/Library/Application Support/VapourSynth/vapoursynth.conf\"",
-        "type": "code",
-        "location": "/tests/vapoursynth_linux_test/make_vapoursynth_autoload.sh:1-9"
+        "file_id": 649,
+        "content": "/tests/viral_video_experiments/init.sh",
+        "type": "filepath"
     },
     "4971": {
-        "file_id": 646,
-        "content": "This script creates necessary directories for VapourSynth and configures the vapoursynth.conf file with paths to user and system plugin folders. It ensures that the correct directories are in place for VapourSynth to function properly.",
-        "type": "comment"
+        "file_id": 649,
+        "content": "This code initiates the setup for viral video data analysis and prediction. It clones two repositories, ViralCaster for analysis and prediction tasks, and 360ImageSearch and BaiduSerchImgApi for image recognition purposes.",
+        "type": "summary"
     },
     "4972": {
-        "file_id": 647,
-        "content": "/tests/vapoursynth_linux_test/improve_video_quality.sh",
-        "type": "filepath"
+        "file_id": 649,
+        "content": "# viral video data analysis, prediction\n# git clone https://github.com/jjbreen/ViralCaster\n# image recognition\ngit clone https://github.com/chenguanyou/BaiduSerchImgApi\ngit clone https://github.com/chenguanyou/360ImageSearch",
+        "type": "code",
+        "location": "/tests/viral_video_experiments/init.sh:1-6"
     },
     "4973": {
-        "file_id": 647,
-        "content": "This code uses vspipe and ffmpeg to denoise, upscale, and improve the video quality of \"denoise_and_upscale_samoyed.py\". It scales the video width by 2 times and height by 2 times using Lanczos algorithm, and saves it as \"improved.mp4\" (or \"output.bmp\"). This is referenced from a guide on upscaling and downscaling videos with ffmpeg.",
-        "type": "summary"
+        "file_id": 649,
+        "content": "This code initiates the setup for viral video data analysis and prediction. It clones two repositories, ViralCaster for analysis and prediction tasks, and 360ImageSearch and BaiduSerchImgApi for image recognition purposes.",
+        "type": "comment"
     },
     "4974": {
-        "file_id": 647,
-        "content": "vspipe -c y4m denoise_and_upscale_samoyed.py - | ffmpeg -y -i pipe: -vf scale=w=in_w*2:h=in_h*2:flags=lanczos improved.mp4\n# vspipe -c y4m denoise_and_upscale_samoyed.py - | ffmpeg -y -i pipe: output.bmp\n# https://write.corbpie.com/upscaling-and-downscaling-video-with-ffmpeg/",
-        "type": "code",
-        "location": "/tests/vapoursynth_linux_test/improve_video_quality.sh:1-3"
+        "file_id": 650,
+        "content": "/tests/redis_music_info_persistance/test_cache.py",
+        "type": "filepath"
     },
     "4975": {
-        "file_id": 647,
-        "content": "This code uses vspipe and ffmpeg to denoise, upscale, and improve the video quality of \"denoise_and_upscale_samoyed.py\". It scales the video width by 2 times and height by 2 times using Lanczos algorithm, and saves it as \"improved.mp4\" (or \"output.bmp\"). This is referenced from a guide on upscaling and downscaling videos with ffmpeg.",
-        "type": "comment"
+        "file_id": 650,
+        "content": "This code imports Redis cache functions and defines a function `redisLRUCache` which creates a Redis LRU cache with specified parameters. The function `test_function` is decorated with `@redisLRUCache()` to utilize the cache. Finally, it prints \"hello world\" twice and returns 'abcdefg' for the given parameter. The code tests the function using 'toy_data' as the parameter.",
+        "type": "summary"
     },
     "4976": {
-        "file_id": 648,
-        "content": "/tests/vapoursynth_linux_test/ffmpeg_pip_examine.sh",
-        "type": "filepath"
+        "file_id": 650,
+        "content": "# from redis_cache.redis_cache import RedisCache\n# from redis_cache.rediscache import cache_it\nimport redis\nfrom redis_lru import RedisLRU\nfrom functools import lru_cache\noneDay = 60*60*24 # one day?\nredisExpire =oneDay*7 # god damn it!\n@lru_cache(maxsize=1)\ndef redisLRUCache(ttl=redisExpire,redisAddress = \"127.0.0.1\",redisPort = 9291,max_size=20):\n    client = redis.StrictRedis(host=redisAddress, port=redisPort)\n    cache = RedisLRU(client,max_size=max_size)\n    return cache(ttl=redisExpire)\n# we've fixed this shit.\n@redisLRUCache()\ndef test_function(parameter):\n    print('hello world')\n    print('parameter:',parameter)\n    return 'abcdefg'\nprint(\"RESULT:\",test_function('toy_data'))\nprint(\"RESULT:\",test_function('toy_data'))",
+        "type": "code",
+        "location": "/tests/redis_music_info_persistance/test_cache.py:1-24"
     },
     "4977": {
-        "file_id": 648,
-        "content": "This script creates a directory, extracts timestamps from a log file using awk, and generates ffmpeg commands to capture screenshots at specified timestamps. The output is saved as individual JPEG files in the 'pip_examine' folder.",
-        "type": "summary"
+        "file_id": 650,
+        "content": "This code imports Redis cache functions and defines a function `redisLRUCache` which creates a Redis LRU cache with specified parameters. The function `test_function` is decorated with `@redisLRUCache()` to utilize the cache. Finally, it prints \"hello world\" twice and returns 'abcdefg' for the given parameter. The code tests the function using 'toy_data' as the parameter.",
+        "type": "comment"
     },
     "4978": {
-        "file_id": 648,
-        "content": "mkdir pip_examine\ncat pip_motion_cropdetect.log | awk -F 't:' '{print $2}' | awk '{print \"ffmpeg -y -ss \" $1 \" -i /root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4 -vf \" $2 \" -vframes 1 pip_examine/screenshot_\" i++ \".jpg\" }' > pip_examine.sh\nbash pip_examine.sh",
-        "type": "code",
-        "location": "/tests/vapoursynth_linux_test/ffmpeg_pip_examine.sh:1-3"
+        "file_id": 651,
+        "content": "/tests/redis_music_info_persistance/launch_redis.sh",
+        "type": "filepath"
     },
     "4979": {
-        "file_id": 648,
-        "content": "This script creates a directory, extracts timestamps from a log file using awk, and generates ffmpeg commands to capture screenshots at specified timestamps. The output is saved as individual JPEG files in the 'pip_examine' folder.",
-        "type": "comment"
+        "file_id": 651,
+        "content": "This script checks if a Redis server process is running on port 9291, then stops it using the PID found in the output. It ensures that only one instance of the server is running before executing the test suite.",
+        "type": "summary"
     },
     "4980": {
-        "file_id": 649,
-        "content": "/tests/vapoursynth_linux_test/denoise_and_upscale_samoyed.py",
-        "type": "filepath"
+        "file_id": 651,
+        "content": "ps aux | grep \"redis-server\"| grep 9291 | grep -v grep | awk '{print $2}' | xargs -iabc kill -s KILL abc\nredis-server --port 9291",
+        "type": "code",
+        "location": "/tests/redis_music_info_persistance/launch_redis.sh:1-2"
     },
     "4981": {
-        "file_id": 649,
-        "content": "The code improves GIF quality using a denoising filter, OpenCV library version check, VapourSynth with BM3D algorithm, frame interpolation, and super-resolution via RIFE. It adjusts image processing parameters to avoid slow operations while experimenting with RealCUGAN, BasicVSRPP, Lanczos resizing, and Bicubic resizing for dog videos.",
-        "type": "summary"
+        "file_id": 651,
+        "content": "This script checks if a Redis server process is running on port 9291, then stops it using the PID found in the output. It ensures that only one instance of the server is running before executing the test suite.",
+        "type": "comment"
     },
     "4982": {
-        "file_id": 649,
-        "content": "# try to improve gif quality in some way.\n# is this necessary?\n# apply some filter on video size and duration first, please?\nimport pathlib\nimport sys\nsite_path = pathlib.Path(\"/usr/local/lib/python3.9/site-packages\")\ncv2_libs_dir = (\n    site_path / \"cv2\" / f\"python-{sys.version_info.major}.{sys.version_info.minor}\"\n)\nprint(cv2_libs_dir)\ncv2_libs = sorted(cv2_libs_dir.glob(\"*.so\"))\nif len(cv2_libs) == 1:\n    print(\"INSERTING:\", cv2_libs[0].parent)\n    sys.path.insert(1, str(cv2_libs[0].parent))\nvideoPath = \"/root/Desktop/works/pyjom/tests/random_giphy_gifs/samoyed.gif\"\n# videoPath = \"/root/Desktop/works/pyjom/tests/random_giphy_gifs/pikachu.gif\"\nimport vapoursynth\n# install this:\n# https://github.com/HomeOfVapourSynthEvolution/mvsfunc\nimport vapoursynth as vs\nfrom vapoursynth import core\nvideo = core.ffms2.Source(source=videoPath)\n# visit here for more usage details:\n# https://github.com/HomeOfVapourSynthEvolution/VapourSynth-BM3D\nimport mvsfunc as mvf # denoising\nvideo = mvf.BM3D(video, sigma=3.0, radius1=1, profile1=\"fast\")",
-        "type": "code",
-        "location": "/tests/vapoursynth_linux_test/denoise_and_upscale_samoyed.py:1-36"
-    },
-    "4983": {
-        "file_id": 649,
-        "content": "This code aims to improve GIF quality by applying a denoising filter. It checks the OpenCV library version and inserts it into the system path if necessary. The code uses VapourSynth for video processing, specifically the BM3D algorithm from the mvsfunc module, with custom parameters.",
-        "type": "comment"
-    },
-    "4984": {
-        "file_id": 649,
-        "content": "from vsrife import RIFE # frame interpolate\nvideo = core.resize.Bicubic(video, format=vs.RGBS)\nvideo = RIFE(video)\n# super resolution\n# copy compiled .so file to here:\n# /root/vapoursynth/plugins/lib/\n# ln -s /root/Desktop/works/pyjom/tests/vapoursynth_linux_test/models /root/vapoursynth/plugins/lib/models\ngpu_id = 0\n# noise = 2\nscale = 2\n# slow.\n# video = core.srmdnv.SRMD(video,scale=scale, noise=noise, \n#                   gpu_id=gpu_id)\n# video = core.resize.Bicubic(video, format=vs.YUV420P8, matrix_s=\"709\")\n# video = core.resize.Lanczos(clip=video, format=vs.RGBS, \n#                         matrix_in_s=\"2020ncl\",\n#                         transfer_in_s=\"std-b67\", transfer_s=\"linear\",\n#                         nominal_luminance=1000)\n# video = core.tonemap.Mobius(clip=video, exposure=4)\n# video = core.resize.Lanczos(clip=video, format=vs.YUV420P10, matrix_s=\"709\",\n#                         primaries_in_s=\"2020\",  primaries_s=\"709\",\n#                         transfer_in_s=\"linear\", transfer_s=\"709\")\n# slow as hell man.",
-        "type": "code",
-        "location": "/tests/vapoursynth_linux_test/denoise_and_upscale_samoyed.py:38-68"
-    },
-    "4985": {
-        "file_id": 649,
-        "content": "Code imports RIFE for frame interpolation and performs super-resolution on the video. It also links a compiled .so file to its location and adjusts various parameters such as gpu_id, scale, noise, matrix_s, transfer_in_s, primaries_in_s, and more for image processing. The code mentions that certain operations are slow.",
-        "type": "comment"
-    },
-    "4986": {
-        "file_id": 649,
-        "content": "# a very bad filter for dogs\n# video = core.rcnv.RealCUGAN(video , scale=scale, \n                #   gpu_id=gpu_id, model=1)\nfrom vsbasicvsrpp import BasicVSRPP\nvideo = BasicVSRPP(video)\n# solution from tonemap?\n# https://github.com/ifb/vapoursynth-tonemap/issues/2\n# video = core.resize.Lanczos(clip=video, format=vs.YUV420P10, matrix_s=\"709\",\n#                         primaries_in_s=\"2020\",  primaries_s=\"709\",\n#                         transfer_in_s=\"linear\", transfer_s=\"709\")\nvideo = core.resize.Bicubic(clip =video, format = vs.YUV420P10, matrix_s='709')\n# much better, no over exposure.\nvideo.set_output()\n# maybe this shit is very freaking slow.\n# why not use gaussian blur?",
-        "type": "code",
-        "location": "/tests/vapoursynth_linux_test/denoise_and_upscale_samoyed.py:69-87"
-    },
-    "4987": {
-        "file_id": 649,
-        "content": "The code attempts to apply a filter for denoising and upscaling videos of dogs, possibly experimenting with different methods such as RealCUGAN, BasicVSRPP, Lanczos resizing, and Bicubic resizing. The goal is to improve video quality without overexposure or slow performance.",
-        "type": "comment"
-    },
-    "4988": {
-        "file_id": 650,
-        "content": "/tests/vapoursynth_linux_test/cloneBasicRepo.sh",
-        "type": "filepath"
-    },
-    "4989": {
-        "file_id": 650,
-        "content": "This code is cloning four repositories: ffms2, vsrepo (not useful for non-Windows OSes), Bl4Cc4t's homebrew-vsplugins, and UniversalAl's view. The purpose is to fetch necessary software components for Linux and macOS platforms.",
-        "type": "summary"
-    },
-    "4990": {
-        "file_id": 650,
-        "content": "git clone https://github.com/FFMS/ffms2\n# git clone https://github.com/vapoursynth/vsrepo not useful for OSes other than Windows\ngit clone https://github.com/Bl4Cc4t/homebrew-vsplugins # checking how to build these things properly on linux/macos\ngit clone https://github.com/UniversalAl/view",
-        "type": "code",
-        "location": "/tests/vapoursynth_linux_test/cloneBasicRepo.sh:1-4"
-    },
-    "4991": {
-        "file_id": 650,
-        "content": "This code is cloning four repositories: ffms2, vsrepo (not useful for non-Windows OSes), Bl4Cc4t's homebrew-vsplugins, and UniversalAl's view. The purpose is to fetch necessary software components for Linux and macOS platforms.",
-        "type": "comment"
-    },
-    "4992": {
-        "file_id": 651,
-        "content": "/tests/vapoursynth_linux_test/basic_test.py",
-        "type": "filepath"
-    },
-    "4993": {
-        "file_id": 651,
-        "content": "Code imports vapoursynth module and sets video path. It loads the video using ffms2 source, transposes it, then outputs the result without encoding. Opencv may be needed for previewing.",
-        "type": "summary"
-    },
-    "4994": {
-        "file_id": 651,
-        "content": "videoPath = \"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\"\n# videoPath = \"/Users/jamesbrown/desktop/works/pyjom_remote/samples/video/dog_with_text.mp4\"\nfrom vapoursynth import core\nvideo = core.ffms2.Source(source=videoPath)\nvideo = core.std.Transpose(video)\nvideo.set_output()\n# vspipe is a wrapper around existing apis. vapoursynth can only generate raw frame data so we cannot encode video here alone. maybe we need opencv for this?\n# opencv preview https://github.com/UniversalAl/view",
-        "type": "code",
-        "location": "/tests/vapoursynth_linux_test/basic_test.py:1-10"
-    },
-    "4995": {
-        "file_id": 651,
-        "content": "Code imports vapoursynth module and sets video path. It loads the video using ffms2 source, transposes it, then outputs the result without encoding. Opencv may be needed for previewing.",
-        "type": "comment"
-    },
-    "4996": {
         "file_id": 652,
         "content": "/tests/video_detector_tests/yolo_norfair.py",
         "type": "filepath"
     },
-    "4997": {
+    "4983": {
         "file_id": 652,
         "content": "This code initializes Detectron2 for instance segmentation on COCO dataset, sets up a YOLO object detector for video frames, and tracks their positions across frames. It processes detection information, updates tracked objects using a tracker, draws circles with names based on estimated positions. The code displays a video frame, waits for 'q' key press to break loop, destroys windows, and writes the frame to file if display is not enabled.",
         "type": "summary"
     },
-    "4998": {
+    "4984": {
         "file_id": 652,
         "content": "import cv2\nimport numpy as np\nfrom detectron2.config import get_cfg\nfrom detectron2.engine import DefaultPredictor\nfrom cocoNames import cocoName\nfrom norfair import Detection, Tracker, Video, draw_tracked_objects\ndef euclidean_distance(detection, tracked_object):\n    return np.linalg.norm(detection.points - tracked_object.estimate)\n# Set up Detectron2 object detector\ncfg = get_cfg()\ncfg.merge_from_file(\"norfair/demos/faster_rcnn_R_50_FPN_3x.yaml\")\ncfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5 # looks like it does not recognize dog.\n# cfg.MODEL.WEIGHTS = \"detectron2://COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl\"\ncfg.MODEL.WEIGHTS = \"/root/Desktop/works/pyjom/tests/video_detector_tests/detectron2_models/model_final_f10217.pkl\"\n# it is stored in s3\n# https://dl.fbaipublicfiles.com/detectron2/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl\n# download cache: /root/.torch/iopath_cache/detectron2/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl",
         "type": "code",
         "location": "/tests/video_detector_tests/yolo_norfair.py:1-22"
     },
-    "4999": {
+    "4985": {
         "file_id": 652,
         "content": "The code imports necessary libraries and sets up the Detectron2 object detector using a pre-trained model for instance segmentation on COCO dataset. The model weight file is located at \"/root/Desktop/works/pyjom/tests/video_detector_tests/detectron2\\_models/model\\_final\\_f10217.pkl\".",
+        "type": "comment"
+    },
+    "4986": {
+        "file_id": 652,
+        "content": "detector = DefaultPredictor(cfg)\n# what are the classes output by the model?\n# Norfair\n# video_path = \"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\"\nvideo_path = \"/root/Desktop/works/pyjom/samples/video/LlfeL29BP.mp4\"\nvideo = Video(input_path=video_path)\ntracker = Tracker(distance_function=euclidean_distance, distance_threshold=200,hit_inertia_min=2,hit_inertia_max=20,initialization_delay=1) # what the heck?\n# you should implement standalone tracker function, optical.\n# maybe you can track the object via framedifference?\ntracked_objects = None\ndisplay=True\nfor index, frame in enumerate(video): # we need to speed up.\n    if index%10 == 0:\n        detections = detector(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))\n        print(\"original detections:\",detections)\n        instances = detections[\"instances\"]\n        print(\"instances:\",instances)\n        # breakpoint()\n        pred_classes = instances.pred_classes\n        if len(pred_classes) == 0:\n            continue\n        detections2=[]\n        for index,class_ in enumerate(pred_classes):",
+        "type": "code",
+        "location": "/tests/video_detector_tests/yolo_norfair.py:24-48"
+    },
+    "4987": {
+        "file_id": 652,
+        "content": "This code is initializing a YOLO object detector, reading a video file, setting up a tracker, and then iterating through each frame of the video. The detector predicts objects in each frame, and if any are detected, it saves the detections and continues to the next frame. If no objects are detected, it skips that frame. The tracker helps keep track of object positions across frames, but the implementation details are unclear.",
+        "type": "comment"
+    },
+    "4988": {
+        "file_id": 652,
+        "content": "            print(\"index:\",index)\n            class_ = int(class_.cpu().numpy().tolist())\n            print(\"class:\",class_)\n            box = instances.pred_boxes.tensor[index].cpu().numpy().tolist()\n            box = [int(x) for x in box]\n            score = float(instances.scores[index].cpu().numpy().tolist())\n            print('box:',box)\n            print('score:',score)\n            det = Detection(instances.pred_boxes.get_centers()[index].cpu().numpy(),scores=np.array([score]),data={\"box\":box,\"class\":{\"id\":class_,\"name\":cocoRealName[class_]}})\n            detections2.append(det)\n            # breakpoint()\n        # detections = [Detection(p) for p in instances.pred_boxes.get_centers().cpu().numpy()] # what is this instance anyway?\n        # you would lost data you dick!\n        print(\"detections2\",detections2)\n        tracked_objects = tracker.update(detections=detections2)\n        # print(detections)\n        print(\"tracked objects:\",tracked_objects) # you don't track shit?\n    if tracked_objects is not None:",
+        "type": "code",
+        "location": "/tests/video_detector_tests/yolo_norfair.py:49-66"
+    },
+    "4989": {
+        "file_id": 652,
+        "content": "The code is processing and printing detection information, appending detections to a list (detections2), and updating tracked objects using a tracker. The comment criticizes a previous line of code for potentially losing data. The final if statement checks if any tracked_objects were found.",
+        "type": "comment"
+    },
+    "4990": {
+        "file_id": 652,
+        "content": "        if tracked_objects!=[]:\n            # there is no bounding box avaliable?\n            for obj in tracked_objects:\n                point = obj.estimate[0]\n                position = tuple(point.astype(int))\n                color = (255,0,0)\n                # breakpoint()\n                name = obj.last_detection.data[\"class\"][\"name\"]\n                cv2.circle(\n                        frame,\n                        position,\n                        radius=100,\n                        color=color,\n                        thickness=2,\n                    )\n                cv2.putText(\n                    frame,\n                    \"[{}][{}]\".format(str(obj.id),name),\n                    (position[0]-100,position[1]),\n                    cv2.FONT_HERSHEY_SIMPLEX,\n                    2,\n                    (0,255,0),\n                    3,\n                    cv2.LINE_AA,\n                )\n            # breakpoint()\n        # i want to draw you in a different way.\n        # draw_tracked_objects(frame, tracked_objects,color=(255,0,0))",
+        "type": "code",
+        "location": "/tests/video_detector_tests/yolo_norfair.py:67-94"
+    },
+    "4991": {
+        "file_id": 652,
+        "content": "The code checks if there are any tracked objects. If there are, it estimates the object's position and draws a circle at that point on the frame. The object's name is also displayed near the circle. Finally, the code calls a function to draw the objects differently using a specific color.",
+        "type": "comment"
+    },
+    "4992": {
+        "file_id": 652,
+        "content": "    if display:\n        cv2.imshow(\"window\",frame)\n        key  =  cv2.waitKey(1) & 0xff\n        if key == ord('q'):\n            break\n        # maybe we shall print this shit somehow.\n    # video.write(frame) # you write what?\nif display:\n    cv2.destroyAllWindows()",
+        "type": "code",
+        "location": "/tests/video_detector_tests/yolo_norfair.py:95-103"
+    },
+    "4993": {
+        "file_id": 652,
+        "content": "This code snippet displays a video frame on the screen, waits for a key press (specifically 'q'), and breaks the loop if 'q' is pressed. It then destroys all windows created. The frame is written to the video file if display is not enabled.",
+        "type": "comment"
+    },
+    "4994": {
+        "file_id": 653,
+        "content": "/tests/video_detector_tests/yolo.py",
+        "type": "filepath"
+    },
+    "4995": {
+        "file_id": 653,
+        "content": "The code reads video frames, uses YOLOv5 model for object detection and text extraction, sets model directories and environment variables, performs inference, and stores results in a DataFrame. It detects objects (likely a dog) and displays image with details before exiting upon key press.",
+        "type": "summary"
+    },
+    "4996": {
+        "file_id": 653,
+        "content": "image_path = \"../../samples/video/dog_with_text.mp4\"\nimport cv2\nvideo = cv2.VideoCapture(image_path)\nfor _ in range(100):\n    ret, frame = video.read() # first frame is blackout!\nimport torch\n# don't really know how paddleocr recognize chars.\nlocalModelDir = '/root/Desktop/works/pyjom/pyjom/models/yolov5/ultralytics_yolov5_master/'\nimport os\nos.environ[\"YOLOV5_MODEL_DIR\"] = '/root/Desktop/works/pyjom/pyjom/models/yolov5/'\nmodel = torch.hub.load(localModelDir, 'yolov5s',source=\"local\") # the yolov5s.pt file is required when loading the model.\n# Image\n# img = 'https://ultralytics.com/images/zidane.jpg'\nimg = frame[:,:,::-1].transpose((2,0,1))\n# Inference\n# reshape this shit.\n# img = np.reshape()\nresults = model(img) # pass the image through our model\ndf = results.pandas().xyxy[0]\nprint(df)\ndata = []\nfor index,line in df.iterrows():\n    # print(line)\n    left = (line[\"xmin\"],line[\"ymin\"])\n    right = (line[\"xmax\"],line[\"ymax\"])\n    confidence = line[\"confidence\"]\n    class_ = line[\"class\"]\n    name = line[\"name\"]\n  ",
+        "type": "code",
+        "location": "/tests/video_detector_tests/yolo.py:1-37"
+    },
+    "4997": {
+        "file_id": 653,
+        "content": "The code reads a video frame by frame, applies object detection using YOLOv5 model, and extracts text from the detected objects. It sets the local model directory and environment variable for YOLOv5 model loading, loads the model, resizes and preprocesses the frame, performs inference, and stores the resultant bounding boxes with associated data (class, confidence, name) into a DataFrame.",
+        "type": "comment"
+    },
+    "4998": {
+        "file_id": 653,
+        "content": "  data.append({\"location\":[left,right],\"confidence\":confidence,\"identity\":{\"class\":class_,\"name\":name}})\nprint(data)\ncv2.imshow(\"name\",frame)\ncv2.waitKey(0)\n# found the freaking dog!",
+        "type": "code",
+        "location": "/tests/video_detector_tests/yolo.py:37-41"
+    },
+    "4999": {
+        "file_id": 653,
+        "content": "This code detects an object (likely a dog) using YOLO and appends its location, confidence level, and identity details to the \"data\" list. The image is displayed with the name \"name\" and waits for a key press to exit. The comment celebrates finding the desired object.",
         "type": "comment"
     }
 }

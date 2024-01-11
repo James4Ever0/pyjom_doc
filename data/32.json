@@ -1,536 +1,543 @@
 {
     "3200": {
-        "file_id": 375,
-        "content": "def baiduTranslator(text, sleep=1):  # target language must be chinese.\n    useProxy(False)\n    import filelock\n    lock = filelock.FileLock(\n        \"/root/Desktop/works/pyjom/tests/karaoke_effects/baidu_translator.lock\"\n    )\n    with lock:\n        import time\n        time.sleep(sleep)\n        try:\n            language_code = language_recognition_model.recognize(text)\n            if language_code != \"zh\":\n                text_prompts = language_translation_model.translate(\n                    text, language_code, \"zh\"\n                )\n                translatedText = text_prompts\n            else:\n                translatedText = text\n            return translatedText\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"ERROR ON BAIDU TRANSLATOR\")\n            return None\nfrom lazero.network.proxy.clash import (\n    getTestedProxyList,\n    setProxyWithSelector,\n    clashProxyStateManager,\n)\nproxyList = []\nrefreshProxyCounter = 0\ndef deeplTranslator(text, sleep=2, timeout=5, mod=40):",
+        "file_id": 373,
+        "content": "            #     # assert src_x % 16 == 8\n            #     # assert src_y % 16 == 8\n            #     assert checkMacroBlock(dst_x) is not None\n            #     assert checkMacroBlock(dst_y) is not None\n            #     # assert dst_x<=res_x # dst_x can go beyond the res_x\n            #     # assert dst_y<=res_y\n            #     # so all rules applied.\n            # except:\n            #     # print('source',src_x, src_y)\n            #     print(\"res\", res_x, res_y)\n            #     print('destionation',dst_x, dst_y)\n            #     print('motion',motion_x, motion_y)\n            #     print(\"scale\",motion_scale)\n        motion_vectors_dict_averaged = {\n            key: averageMotionVectors(motion_vectors_dict[key])\n            for key in motion_vectors_dict.keys()\n        }\n        # assuming no duplicates?\n        weighted_motion_vectors = []\n        weights = []\n        rectangles = []\n        motion_vectors_filtered = []  # for getting data later?\n        for (\n            blockCenterCoordinates,\n            average_motion_vector,",
         "type": "code",
-        "location": "/tests/karaoke_effects/fastapi_translator.py:44-83"
+        "location": "/tests/motion_vector_estimation/test.py:233-257"
     },
     "3201": {
-        "file_id": 375,
-        "content": "This code defines two translation functions, `baiduTranslator` and `deeplTranslator`, which use the Baidu and DeepL APIs respectively. The `baiduTranslator` function requires the target language to be in Chinese. It uses a file lock for synchronization, performs language recognition and translation, and handles any exceptions that may occur during translation. The `deeplTranslator` function also performs translation using the DeepL API but with additional options for sleep time, timeout, and modification mode. Both functions return translated text or None if an error occurs.",
+        "file_id": 373,
+        "content": "Testing macro block placement, asserting non-null checkMacroBlock results for dst_x and dst_y, asserting within res limits (dst_x <= res_x), and handling exceptions with error printing. Averages motion vectors using averageMotionVectors function. Creates weightedMotionVectors list and weights list. Initializing rectangles and motionVectorsFiltered for later use.",
         "type": "comment"
     },
     "3202": {
-        "file_id": 375,
-        "content": "    global proxyList, refreshProxyCounter\n    useProxy(False)\n    import random\n    if (\n        refreshProxyCounter % mod == 0\n    ):  # make sure it will be launched at the first request.\n        proxyList = getTestedProxyList()\n        refreshProxyCounter %= mod\n    refreshProxyCounter += 1\n    proxyName = random.choice([proxy[\"name\"] for proxy in proxyList] + [\"DIRECT\"])\n    setProxyWithSelector(proxyName)\n    # better use proxy instead. you need to config it here, and make sure the deepl adaptor uses the proxy.\n    import requests\n    import time\n    import filelock\n    lock = filelock.FileLock(\n        \"/root/Desktop/works/pyjom/tests/karaoke_effects/deepl_translator.lock\"\n    )\n    with clashProxyStateManager(\"Global\", \"Rule\"):\n        with lock:\n            time.sleep(sleep)\n            port = 8281\n            # env ROCKET_PORT=8281 ./executable_deepl\n            url = \"http://127.0.0.1:{}/translate\".format(port)\n            data = {\"text\": text, \"source_lang\": \"auto\", \"target_lang\": \"ZH\"}\n            r = requests.post(url, json=data, timeout=timeout)",
+        "file_id": 373,
+        "content": "        ) in motion_vectors_dict_averaged.items():\n            if average_motion_vector == (0, 0):\n                continue\n                # wtf is this? why fucking zero?\n                # print('skipping zero average motion vector')\n                # print(\"destination coords\", key)\n                # print('average motion vector', average_motion_vector)\n            else:\n                m_x, m_y = average_motion_vector\n                motion_vectors_filtered.append(average_motion_vector)\n                rectangle_XYWH = getRectangleXYWHFromBlockCenterCoordinates(\n                    blockCenterCoordinates\n                )\n                rectangles.append(rectangle_XYWH)\n                blockWeight = getBlockWeightFromBlockCenterCoordinates(\n                    blockCenterCoordinates\n                )\n                weights.append(blockWeight)\n                weighted_motion_vectors.append(\n                    (\n                        m_x * blockWeight / frame_common_divisor,\n                        m_y * blockWeight / frame_common_divisor,",
         "type": "code",
-        "location": "/tests/karaoke_effects/fastapi_translator.py:84-111"
+        "location": "/tests/motion_vector_estimation/test.py:258-279"
     },
     "3203": {
-        "file_id": 375,
-        "content": "Sets a random proxy from the list or skips proxy usage. Updates the proxy list and counter modulo. Uses a file lock for access control. Makes a POST request to a local DeepL translator service using the selected proxy, if any.",
+        "file_id": 373,
+        "content": "This code block is filtering and processing motion vectors from a dictionary. It skips any average motion vector that is (0, 0) and then proceeds to calculate the weighted motion vectors by multiplying the motion vector with block weight and dividing it by a frame common divisor. The resulting coordinates are stored in 'weighted_motion_vectors'.",
         "type": "comment"
     },
     "3204": {
-        "file_id": 375,
-        "content": "            response = r.json()\n            code = response[\"code\"]\n            if code == 200:\n                translatedText = response[\"data\"]\n                return translatedText\n            else:\n                print(\"DEEPL RESPONSE ERROR. PLEASE CHECK\")\n                print(response)\n                proxyList = getTestedProxyList()\n                refreshProxyCounter = 1\n                # breakpoint()\n                return None\n# use suggest mechanism\nworkingProxies = set()\ndef checkWorkingProxies():\n    global workingProxies\n    useProxy(False)\n    url = \"http://127.0.0.1:8677/checkProxy\"\n    import requests\n    for proxy in list(workingProxies):\n        # proxy could be None.\n        # print([proxy])\n        # breakpoint()\n        r = requests.get(url, params={\"proxy\": proxy})\n        response = r.json()\n        if not response[\"exists\"]:\n            print(\"REMOVING PROXY %s NOW\" % useProxy)\n            workingProxies.remove(proxy)\ndef changeProxy(useDirect=False, suggestSingleElemProbability=0.1):\n    useProxy(False)",
+        "file_id": 373,
+        "content": "                    )\n                )\n        weighted_motion_vectors = np.array(weighted_motion_vectors)\n        sum_weighted_motion_vector = np.sum(weighted_motion_vectors, axis=0)\n        average_global_weighted_motion_vector = (\n            sum_weighted_motion_vector / total_block_weights\n        )\n        sum_weights = sum(weights)\n        average_weighted_motion_vector = sum_weighted_motion_vector / sum_weights\n        motion_area_ratio = sum_weights / total_block_weights\n        # print(motion_vectors.shape)\n        motion_vectors_filtered_cartesian_distance = [\n            cartesianDistance(vector) for vector in motion_vectors_filtered\n        ] + [\n            0\n        ]  # to avoid errors.\n        motion_vectors_filtered_cartesian_distance = np.array(\n            motion_vectors_filtered_cartesian_distance\n        )\n        cartesianWeights = weights + [0]\n        cartesianWeights = np.array(cartesianWeights)\n        cartesianWeightsSum = np.sum(cartesianWeights)\n        weighted_motion_vectors_filtered_cartesian_distance = (",
         "type": "code",
-        "location": "/tests/karaoke_effects/fastapi_translator.py:112-148"
+        "location": "/tests/motion_vector_estimation/test.py:280-304"
     },
     "3205": {
-        "file_id": 375,
-        "content": "The code snippet is responsible for making requests to a Deepl API and handling the response. If the response has a 200 status code, the translated text is returned; otherwise, it prints an error message and checks the working proxies. The workingProxies set stores valid proxies for making requests, and functions checkWorkingProxies() and changeProxy() manage proxy usage.",
+        "file_id": 373,
+        "content": "This code calculates the weighted average motion vector and the average weighted motion vector for motion vectors in a block. It also determines the motion area ratio, applies cartesian distance to filtered motion vectors, and stores them with corresponding weights.",
         "type": "comment"
     },
     "3206": {
-        "file_id": 375,
-        "content": "    global workingProxies\n    checkWorkingProxies()\n    import requests\n    if useDirect:\n        path = \"useDirect\"\n    else:\n        path = \"refreshProxy\"\n    print(\"PATH\", path)\n    if path == \"refreshProxy\":\n        import random\n        prob = random.random() < len(workingProxies) * suggestSingleElemProbability\n        if prob:\n            suggestedProxy = random.choice(list(workingProxies))\n            params = {\"suggest\": suggestedProxy}\n            print(\"SUGGESGING PROXY:\", suggestedProxy)\n        else:\n            params = {}\n            # params = {\"suggest\": None}\n        r = requests.get(\"http://127.0.0.1:8677/{}\".format(path), params=params)\n    else:\n        r = requests.get(\"http://127.0.0.1:8677/{}\".format(path))\n    print(\"RESPONSE:\", r.text)\n    import parse\n    proxyName = parse.parse(\"refresh proxy to {text}\", r.text)\n    if proxyName == None:\n        # using suggested proxy here.\n        print(\"USING SUGGESTED PROXY\")\n    else:\n        proxyName = proxyName[\"text\"]\n    print(\"PROXY REFRESHED\")",
+        "file_id": 373,
+        "content": "            motion_vectors_filtered_cartesian_distance * cartesianWeights\n        )\n        sum_weighted_motion_vectors_filtered_cartesian_distance = np.sum(\n            weighted_motion_vectors_filtered_cartesian_distance\n        )\n        # print(\"SUM\", sum_weighted_motion_vectors_filtered_cartesian_distance)\n        # breakpoint()\n        average_weighted_motion_vectors_filtered_cartesian_distance = (\n            sum_weighted_motion_vectors_filtered_cartesian_distance / cartesianWeightsSum\n        )\n        average_global_weighted_motion_vectors_filtered_cartesian_distance = (\n            sum_weighted_motion_vectors_filtered_cartesian_distance\n            / total_block_weights # this is a number, not array!\n        )\n        min_cartesian = min(motion_vectors_filtered_cartesian_distance)\n        max_cartesian = max(motion_vectors_filtered_cartesian_distance)\n        motion_area_ratio_array.append(motion_area_ratio)\n        # print()\n        # print(average_weighted_motion_vector)\n        # print(average_global_weighted_motion_vector)",
         "type": "code",
-        "location": "/tests/karaoke_effects/fastapi_translator.py:149-181"
+        "location": "/tests/motion_vector_estimation/test.py:305-329"
     },
     "3207": {
-        "file_id": 375,
-        "content": "This code checks if a working proxy is available, then randomly selects one to use or suggests a new one. It makes a request to the server to update the proxy and handles the response. If no proxy name is found in the response, it uses the previously suggested proxy. Finally, it updates the proxy and prints a success message.",
+        "file_id": 373,
+        "content": "This code calculates the average and global-weighted motion vectors for a set of motion vectors, considering their weights and distances. It also finds the minimum and maximum cartesian distance in the list and appends the motion area ratio to an array.",
         "type": "comment"
     },
     "3208": {
-        "file_id": 375,
-        "content": "    return proxyName\ndef metaTranslator(text, backend=\"baidu\", max_tries: int = 3):\n    global workingProxies\n    backendList = [\"baidu\", \"deepl\"]\n    assert backend in backendList\n    # translator = None\n    import random\n    getUseDirect = lambda: False\n    backends = {\n        \"baidu\": (baiduTranslator, lambda: True),\n        # \"deepl\": (deeplTranslator, lambda: False), # use direct? no proxy?\n        \"deepl\": (\n            deeplTranslator,\n            lambda: True,\n        ),  # the proxy is used by deepl client, not here!\n    }\n    translator, getUseDirect = backends[backend]\n    proxyName = None\n    firstTime = True\n    for _ in range(max_tries):\n        try:\n            if not firstTime:  # after first 'failed' trial we will change the strategy.\n                key = random.choice(backendList)\n                translator, getUseDirect = backends[key]\n                proxyName = changeProxy(useDirect=getUseDirect())\n            else:\n                firstTime = False\n            result = translator(text)\n            if result:",
+        "file_id": 373,
+        "content": "        # breakpoint()\n        average_weighted_motion_vector_cartesian=cartesianDistance(average_weighted_motion_vector)\n        average_weighted_motion_vector_cartesian_array.append(average_weighted_motion_vector_cartesian)\n        average_global_weighted_motion_vector_cartesian = cartesianDistance(average_global_weighted_motion_vector)\n        average_global_weighted_motion_vector_cartesian_array.append(\n        average_global_weighted_motion_vector_cartesian\n        )\n        average_weighted_motion_vectors_filtered_cartesian_distance_array.append(\n            average_weighted_motion_vectors_filtered_cartesian_distance\n        )\n        average_global_weighted_motion_vectors_filtered_cartesian_distance_array.append(\n            average_global_weighted_motion_vectors_filtered_cartesian_distance\n        )\n        if motion_vectors_dict_averaged != {}:\n            # breakpoint()\n            if visualize:\n                print(\"motion_area_ratio\", motion_area_ratio)\n                print(\"average_weighted_motion_vector_cartesian\", average_weighted_motion_vector_cartesian)",
         "type": "code",
-        "location": "/tests/karaoke_effects/fastapi_translator.py:182-213"
+        "location": "/tests/motion_vector_estimation/test.py:330-348"
     },
     "3209": {
-        "file_id": 375,
-        "content": "This code is a function that translates text using different backends (Baidu and DeepL) with the option to use a proxy. It uses a max number of tries for translation attempts, randomly selects a backend if previous attempts failed, and handles direct connections or proxies based on backend settings.",
+        "file_id": 373,
+        "content": "Calculates the average weighted motion vector cartesian distance, appends it to the array and does the same for global vectors. If motion_vectors_dict_averaged is not empty, prints motion_area_ratio and average_weighted_motion_vector_cartesian if visualize is True.",
         "type": "comment"
     },
     "3210": {
-        "file_id": 375,
-        "content": "                if proxyName:\n                    workingProxies.add(proxyName)\n                return result\n            else:\n                if proxyName in workingProxies:\n                    workingProxies.remove(proxyName)\n                print(\"SOME ERROR DURING FETCHING TRANSLATION\")\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"ERROR FETCHING TRANSLATION\")\n# def waitForServerUp(port, message, timeout=1):\n#     import requests\n#     while True:\n#         try:\n#             url = \"http://localhost:{}\".format(port)\n#             r = requests.get(url, timeout=timeout)\n#             text = r.text.strip('\"').strip(\"'\")\n#             print(\"SERVER AT PORT %d RESPONDS:\" % port, [text])\n#             assert text == message\n#             print(\"SERVER AT PORT %d IS UP\" % port)\n#             break\n#         except:\n#             import traceback\n#             traceback.print_exc()\n#             print(\"SERVER AT PORT %d MIGHT NOT BE UP\")\n#             print(\"EXPECTED MESSAGE:\", [message])",
+        "file_id": 373,
+        "content": "                print(\n                    \"average_global_weighted_motion_vecto_cartesianr\",\n                    average_global_weighted_motion_vector_cartesian,\n                )\n                print(\n                    \"average_weighted_motion_vectors_filtered_cartesian_distance\",\n                    average_weighted_motion_vectors_filtered_cartesian_distance,\n                )\n                print(\n                    \"average_global_weighted_motion_vectors_filtered_cartesian_distance\",\n                    average_global_weighted_motion_vectors_filtered_cartesian_distance,\n                )\n                motion_mask = np.zeros(\n                    (motion_render_frame[1], motion_render_frame[0], 1)\n                )\n                for index, (x, y, w, h) in enumerate(rectangles):\n                    pt1, pt2 = XYWHToDiagonal(x, y, w, h)\n                    # print(pt1, pt2)\n                    current_cartesian = motion_vectors_filtered_cartesian_distance[\n                        index\n                    ]",
         "type": "code",
-        "location": "/tests/karaoke_effects/fastapi_translator.py:214-245"
+        "location": "/tests/motion_vector_estimation/test.py:349-369"
     },
     "3211": {
-        "file_id": 375,
-        "content": "This code checks if a given proxy name is present in the working proxies list and performs actions accordingly. If there's an error during fetching translation, it prints an error message. The \"waitForServerUp\" function tests if a server at a specific port is up by sending requests and checking its response.",
+        "file_id": 373,
+        "content": "Calculates and prints average motion vector metrics. Creates a zeroed motion mask. Iterates through rectangles to calculate the current cartesian distance.",
         "type": "comment"
     },
     "3212": {
-        "file_id": 375,
-        "content": "#             import time\n#             time.sleep(1)\n@app.get(\"/\")\ndef read_root():\n    # waitForServerUp(8677, \"clash update controller\")  # probe the clash updator\n    return \"unified translator hooked on some clash server\"\ntranslatedDict = {}\ntranslatedDictCacheLimit = 100\n@app.get(\"/translate\")\ndef read_item(backend: str, text: str):\n    global translatedDict\n    if len(list(translatedDict.keys())) > translatedDictCacheLimit:\n        mkeys = list(translatedDict.keys())\n        import random\n        random.shuffle(mkeys)\n        for key in mkeys[:translatedDictCacheLimit]:\n            del translatedDict[key]\n    code = 200\n    if not backend in [\"deepl\", \"baidu\"]:\n        code = 400\n        result = \"INVALID BACKEND\"\n    else:\n        if len(text) < 30 and text in translatedDict.keys():\n            result = translatedDict[text]\n        else:\n            result = metaTranslator(text, backend=backend)\n            if type(result) == str:\n                if len(result) < 30 and len(text) < 30:\n                    translatedDict.update({text: result})",
+        "file_id": 373,
+        "content": "                    # print(type(pt1), type(pt1[0]))\n                    relative_motion_cartesian = (current_cartesian - min_cartesian) / (\n                        max_cartesian - min_cartesian\n                    )  # must from 0 to 1 so we can plot this,\n                    # relative_motion_cartesian = 255*((current_cartesian-min_cartesian)/(max_cartesian-min_cartesian))\n                    # relative_motion_cartesian = int(relative_motion_cartesian)\n                    # relative_motion_cartesian = min(255,max(0, relative_motion_cartesian))\n                    # breakpoint()\n                    cv2.rectangle(\n                        motion_mask,\n                        pt1,\n                        pt2,\n                        color=(relative_motion_cartesian,),\n                        thickness=-1,\n                    )\n                # should we gaussian blur, threshold this, do convolution and then apply bounding box on it?\n                # # visualize this.\n                if show_picture:\n                    cv2.imshow(\"motion_mask\", motion_mask)",
         "type": "code",
-        "location": "/tests/karaoke_effects/fastapi_translator.py:246-283"
+        "location": "/tests/motion_vector_estimation/test.py:370-388"
     },
     "3213": {
-        "file_id": 375,
-        "content": "The code defines two API endpoints: a root endpoint returning \"unified translator hooked on some clash server\" and a \"/translate\" endpoint accepting a \"backend\" parameter (\"deepl\" or \"baidu\") and text to be translated. It caches up to 100 translations in a global dictionary, deleting the least recently used if exceeding cache limit. If the backend is invalid, it returns status code 400 with message \"INVALID BACKEND\". If the input text length is less than 30 and already translated, it returns that translation from cache; otherwise, it uses `metaTranslator` function to translate the text, storing the result in cache if valid.",
+        "file_id": 373,
+        "content": "This code calculates the relative motion vectors for a set of points and plots them on an image using OpenCV. It converts the motion vectors to a range of 0-255, representing the pixel intensity values used in the image plotting. The resulting image is then displayed if the \"show_picture\" flag is set.",
         "type": "comment"
     },
     "3214": {
-        "file_id": 375,
-        "content": "    return {\n        \"code\": (code if result not in [None, False, True, \"\"] else 400),\n        \"result\": (result if type(result) == str and result != \"\" else None),\n    }",
+        "file_id": 373,
+        "content": "                    cv2.waitKey(100)\n            # may you create bounding box for this? for tracking motion? or not?\n        # breakpoint()\n    else:\n        break\n# print('max_dst_x', max_dst_x)\n# print('max_dst_y', max_dst_y)\nimport matplotlib.pyplot as plt\n# plt.style.use('dark_background')\na, b = 5,1\nfigure, axis = plt.subplots(a, b)\ndata = [\n    motion_area_ratio_array,\n    # average_weighted_motion_vector_array,\n    # average_global_weighted_motion_vector_array,\n    average_weighted_motion_vector_cartesian_array,\n    average_global_weighted_motion_vector_cartesian_array,\n    average_weighted_motion_vectors_filtered_cartesian_distance_array,\n    average_global_weighted_motion_vectors_filtered_cartesian_distance_array,\n]\ntitles = [\n    \"motion_area_ratio\",\n    # \"average_weighted_motion_vector\",\n    # \"average_global_weighted_motion_vector\",\n    \"average_weighted_motion_vector_cartesian\",\n    \"average_global_weighted_motion_vector_cartesian\",\n    \"average_weighted_motion_vectors_filtered_cartesian_distance\",",
         "type": "code",
-        "location": "/tests/karaoke_effects/fastapi_translator.py:284-287"
+        "location": "/tests/motion_vector_estimation/test.py:389-419"
     },
     "3215": {
-        "file_id": 375,
-        "content": "This code snippet returns a dictionary containing the \"code\" and \"result\" keys. If the \"result\" is not None, False, True, or an empty string, it will be included in the result dictionary; otherwise, the code will be 400.",
+        "file_id": 373,
+        "content": "The code imports matplotlib and creates a figure with subplots. It stores various motion vector related arrays in the \"data\" list, presumably for plotting. These arrays are likely different representations of motion vectors at each point. The code then defines titles corresponding to each array's content.",
         "type": "comment"
     },
     "3216": {
-        "file_id": 376,
-        "content": "/tests/karaoke_effects/clash_auto_update.py",
-        "type": "filepath"
+        "file_id": 373,
+        "content": "    \"average_global_weighted_motion_vectors_filtered_cartesian_distance\",\n]\n# breakpoint()\nassert len(titles) == len(data)\nassert a*b >= len(titles)\nfor _a in range(a):\n    for _b in range(b):\n        index = _a * b + _b\n        if index > len(data) - 1:\n            break\n        if a == 1:\n            if b == 1:\n                axis[0].plot(data[index])\n                axis[0].set_title(titles[index])\n            else:\n                axis[_b].plot(data[index])\n                axis[_b].set_title(titles[index])\n        elif b == 1:\n            axis[_a].plot(data[index])\n            axis[_a].set_title(titles[index])\n        else:\n            axis[_a, _b].plot(data[index])\n            axis[_a, _b].set_title(titles[index])\nplt.show()",
+        "type": "code",
+        "location": "/tests/motion_vector_estimation/test.py:420-444"
     },
     "3217": {
-        "file_id": 376,
-        "content": "This Flask application serves as a Clash proxy list server, updating every 30 minutes with two APIs. It includes three routes to manage proxies and runs on port 8677.",
-        "type": "summary"
-    },
-    "3218": {
-        "file_id": 376,
-        "content": "import yaml\n# you know this source is gone for good.\n# target = \"https://openit.ml/Clash.yaml\"\n# import yaml\n# import requests\nimport os\n# yes visit this site without any proxy.\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# CLASH_CONFIG_DOWNLOAD_URL=\"https://raw.kgithub.com/yu-steven/openit/main/Clash.yaml\" # it is down!\n# ALL_PROXIES_LOCATION=[\"proxies\", \"✋ 手动选择\", \"all\"]\n# PROXY_GROUP_EXCEPTIONS = [\"👉 例外网站\"]\n# PROXY_GROUP_SPECIALS =[\"☁️ 全球直连\", \"🌐 节点选择\"]\n# CLASH_CONFIG_DOWNLOAD_URL = \"https://subconverter.speedupvpn.com/sub?target=clash&url=https%3A%2F%2Fjsd.cdn.zzko.cn%2Fgh%2FPawdroid%2FFree-servers%40main%2Fsub&insert=false&emoji=true&list=false&tfo=false&scv=false&fdn=false&sort=false&new_name=true\" # change this to the direct link you sucker.\nimport urllib.parse\n# DIRECT_LINK = \"https://github.com/Pawdroid/Free-servers\"\nDIRECT_LINK = \"https://github.com/Pawdroid/Free-servers/raw/main/sub\"\n## looking for a clash file merger.\n## merge multiple clash files into one.\n## evil!\nCLASH_CONFIG",
-        "type": "code",
-        "location": "/tests/karaoke_effects/clash_auto_update.py:1-30"
-    },
-    "3219": {
-        "file_id": 376,
-        "content": "This code is importing necessary libraries and environment variables to download a Clash configuration file from the internet. It updates the URL to a new direct link, removes proxy restrictions, and aims to merge multiple Clash files into one configuration.",
+        "file_id": 373,
+        "content": "This code plots the data using matplotlib and sets titles for each plot based on the corresponding title from the provided list. It checks for potential errors like unequal lengths of 'titles' and 'data', and also handles cases when 'a' or 'b' is 1, adjusting the number of axes accordingly.",
         "type": "comment"
     },
+    "3218": {
+        "file_id": 374,
+        "content": "/tests/motion_vector_estimation/run.sh",
+        "type": "filepath"
+    },
+    "3219": {
+        "file_id": 374,
+        "content": "This code runs a Docker container using lubo1994/mv-extractor image, mounting the current directory to /home/video_cap within the container and allowing X11 forwarding for graphical user interface support.",
+        "type": "summary"
+    },
     "3220": {
-        "file_id": 376,
-        "content": "_DOWNLOAD_URL = f\"https://subconverter.speedupvpn.com/sub?target=clash&url={urllib.parse.quote_plus(DIRECT_LINK)}&insert=false&emoji=true&list=false&tfo=false&scv=false&fdn=false&sort=false&new_name=true\" # use quote_plus since the slash is not welcomed.\nALL_PROXIES_LOCATION = [\"proxies\", \"🔰 节点选择\", \"all\"]\nPROXY_GROUP_EXCEPTIONS = [\"🐟 漏网之鱼\"]\nPROXY_GROUP_SPECIALS = [\"🎯 全球直连\", \"🔰 节点选择\", \"♻️ 自动选择\"]\n# r = requests.get(target)\n# text = r.text\n# json_obj = yaml.safe_load(text)\n# port: 7890\n# socks5 port: 7891\n# controller: http://localhost:9090\n# PUT http://localhost:9090/providers/proxies/default\n# all_proxies_url = \"http://localhost:9090/proxies/\"\n# one_proxy_url = \"http://localhost:9090/proxies/{}\".format(proxy_name)\n# delay test url: http://localhost:9090/proxies/%F0%9F%87%A8%F0%9F%87%B3%20CN%2014%EF%BD%9Copenit.ml/delay?timeout=2000&url=https://www.baidu.com\nfrom loadSomeCustomClashYaml import goYamlToPyYaml, pyYamlToGoYaml\ndef jsonLocate(jsonObj, location=[]):\n    try:\n        if location != []:\n            return jsonLocate(jsonObj[location[0]], location[1:])",
+        "file_id": 374,
+        "content": "#!/bin/bash\nxhost +\ndocker run \\\n    -it \\\n    --ipc=host \\\n    --env=\"DISPLAY\" \\\n    -v $(pwd):/home/video_cap \\\n    -v /tmp/.X11-unix:/tmp/.X11-unix:rw \\\n    lubo1994/mv-extractor:latest \\\n    \"$@\"",
         "type": "code",
-        "location": "/tests/karaoke_effects/clash_auto_update.py:30-56"
+        "location": "/tests/motion_vector_estimation/run.sh:1-12"
     },
     "3221": {
-        "file_id": 376,
-        "content": "Code fetches clash configuration data from a URL, extracts necessary information like controller URL and proxy port numbers, and handles exceptions for non-matching group names. The code also defines URLs for accessing the proxy list or specific proxies, and includes a delay test URL to check connection speed. A function `jsonLocate` is used for locating values within a JSON object using a given location path.",
+        "file_id": 374,
+        "content": "This code runs a Docker container using lubo1994/mv-extractor image, mounting the current directory to /home/video_cap within the container and allowing X11 forwarding for graphical user interface support.",
         "type": "comment"
     },
     "3222": {
-        "file_id": 376,
-        "content": "        return jsonObj\n    except:\n        print(\"KEY %s DOES NOT EXIST!\", \".\".join(location))\n        return None\ndef find_proxy_names(\n    test_url=\"http://localhost:9911/proxies/\", location=ALL_PROXIES_LOCATION\n):\n    import requests\n    r = requests.get(test_url)\n    import json\n    data = json.loads(r.text)\n    proxy_names = jsonLocate(data, location=location)\n    if proxy_names == None:\n        print(\"SOMEHOW WE FAILED TO FETCH THE PROXY LIST\")\n        return []\n    else:\n        return proxy_names\n## FIND DELAY ##\ndef find_tested_proxy_names(\n    timeout=3000,\n    urltest=\"https://m.tujia.com\",\n    test_url=\"http://localhost:9911/proxies/\",\n    location=ALL_PROXIES_LOCATION,\n    forbidden_names=[\"DIRECT\", \"REJECT\", \"GLOBAL\"],\n):\n    import requests\n    import json\n    proxy_names = find_proxy_names(test_url, location)\n    if proxy_names == []:\n        return []\n    def get_delay(name):\n        url = \"{}{}/delay?timeout={}&url={}\".format(test_url, name, timeout, urltest)\n        r = requests.get(url)\n        response_json = r.text",
-        "type": "code",
-        "location": "/tests/karaoke_effects/clash_auto_update.py:57-98"
+        "file_id": 375,
+        "content": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py",
+        "type": "filepath"
     },
     "3223": {
-        "file_id": 376,
-        "content": "The code defines a function to find tested proxy names, utilizes the requests library for API calls, and uses JSON to locate data. The find_proxy_names function retrieves a list of proxy names from a specific URL and location. If unsuccessful, it returns an empty list. The find_tested_proxy_names function finds tested proxy names by calling find_proxy_names and then checks delays for each proxy name using the 'get_delay' function.",
-        "type": "comment"
+        "file_id": 375,
+        "content": "The code initializes motion vector estimation, filters horizontal movement, improves accuracy using various techniques, processes motion vectors from coordinates, visualizes motion with OpenCV, creates bounding boxes, and handles further options. The code plots multiple sets of data onto a graph, iterating through lists using nested for loops, creating separate plots if desired, and then displays the graph.",
+        "type": "summary"
     },
     "3224": {
-        "file_id": 376,
-        "content": "        response_json = json.loads(response_json)\n        if \"delay\" in response_json.keys():\n            delay = response_json[\"delay\"]\n        else:\n            delay = None\n        return delay\n    direct_delay = get_delay(\"DIRECT\")\n    if direct_delay is None:\n        direct_delay = 300  # approximate delay 300ms\n    candidates = []\n    import progressbar  # 3 minutes.\n    for name in progressbar.progressbar(\n        [x for x in proxy_names if x not in forbidden_names]\n    ):\n        # if name in forbidden_names: continue\n        # delay = get_delay(name)\n        # if delay is not None:\n        candidates.append((name, 3))\n    print(\"PROXY CANDIDATES: %d\" % len(candidates))\n    for elem in candidates:\n        print(elem)\n    return candidates\ndef setClashProxy(proxy_name, control_port=9911):\n    import requests\n    import json\n    selector = \"GLOBAL\"\n    try:\n        r = requests.put(\n            \"http://localhost:{}/proxies/{}\".format(control_port, selector),\n            data=json.dumps({\"name\": proxy_name}, ensure_ascii=False).encode(),",
+        "file_id": 375,
+        "content": "###################################################\n# aim to create optical flow here, with directions and convolution\n###################################################\n# it contains subpixel motion vectors. fucking hell\n# source = \"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\"\n# change source?\n# gif containers does not have motion vectors.\n# source = \"/root/Desktop/works/pyjom/samples/video/cat_invalid_eye_rolling.gif\"\n# source = \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.gif\"\n# without mestimate\n# source = \"/root/Desktop/works/pyjom/samples/video/cat_invalid_eye_rolling_without_mestimate.mp4\"\n# source = \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps_without_mestimate.mp4\"\n# with mestimate\n# source = \"/root/Desktop/works/pyjom/samples/video/cat_invalid_eye_rolling_with_mestimate.mp4\"\n# source = \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps_with_mestimate.mp4\"\n# source = \"/root/Desktop/works/pyjom/samples/video/nearly_duplicate_frames_detection_30fps.mp4\"",
         "type": "code",
-        "location": "/tests/karaoke_effects/clash_auto_update.py:99-133"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:1-22"
     },
     "3225": {
-        "file_id": 376,
-        "content": "Function to get proxy delay and return a list of candidates for setting the Clash proxy. First, it retrieves the delay for each proxy name from direct or API response, then creates a list of candidate proxies with a default delay of 300ms if not available. Finally, prints the number of candidate proxies and their names, returning the list.",
+        "file_id": 375,
+        "content": "This code aims to create optical flow with motion vectors and convolution, using video files as input. The source file changes depending on the specific test case (with or without mestimate, different videos).",
         "type": "comment"
     },
     "3226": {
-        "file_id": 376,
-        "content": "        )\n        assert r.status_code == 204\n        # assert r.status_code =\n    except:\n        import traceback\n        traceback.print_exc()\n        breakpoint()\n# with open(\"ClashBaseOpenIt.yaml\", 'r') as f:\n#     cachedDNSConfig = yaml.load(f,yaml.FullLoader)\ndef refineClashYaml(clashYamlPath=\"Clash3.yaml\", advanced=True):\n    with open(clashYamlPath, \"r\") as f:\n        data = f.read()\n    from loadSomeCustomClashYaml import goYamlToPyYaml, pyYamlToGoYaml\n    import yaml\n    data = goYamlToPyYaml(data)\n    data = yaml.safe_load(data)\n    data[\"port\"] = 8381\n    base_url = \"127.0.0.1:9911\"\n    data[\"external-controller\"] = base_url\n    if \"socks-port\" in data.keys():\n        del data[\"socks-port\"]\n    # breakpoint()\n    if advanced:\n        # print(data['proxies'])\n        key = \"proxy-groups\"\n        updatedProxy = []\n        updateIndex = 0\n        for index, proxy in enumerate(data[key]):\n            # breakpoint()\n            if proxy[\"name\"] in PROXY_GROUP_EXCEPTIONS:\n                # print(proxy)\n                # breakpoint()",
+        "file_id": 375,
+        "content": "source = \"/root/Desktop/works/pyjom/samples/video/cute_cat_gif.mp4\"\nfrom lazero.utils.importers import cv2_custom_build_init\n# from sniffio import current_async_library\ncv2_custom_build_init()\nfrom mvextractor.videocap import VideoCap\nfrom caer.video.frames_and_fps import count_frames, get_res\nimport cv2\nframesCount = count_frames(source)\nres = get_res(source)  # (width, height)\nprint(\"RES: %s\" % str(res))\nres_x, res_y = res\nframe_common_divisor = min(res_x, res_y)\nimport math\ndef cartesianDistance(d2vector):\n    try:\n        x, y = d2vector\n        return math.sqrt(x**2 + y**2)\n    except:\n        print('item unpackable.', d2vector)\n        return 0\ndef XYWHToDiagonal(x, y, w, h):\n    return (x, y), (x + w, y + h)\n# 如果整除16那么就在这个范围里面 如果不整除范围就要扩大 扩大到相应的16的倍数\ndef get16Value(res_x):\n    rem_x = res_x % 16\n    val = res_x // 16\n    if rem_x != 0:\n        val += 1\n    return val\nx_16val = get16Value(res_x)\ny_16val = get16Value(res_y)\nmotion_render_frame = (x_16val * 16, y_16val * 16)\ntotal_block_weights = x_16val * y_16val * 2 * 2",
         "type": "code",
-        "location": "/tests/karaoke_effects/clash_auto_update.py:134-173"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:24-70"
     },
     "3227": {
-        "file_id": 376,
-        "content": "This code defines a function `refineClashYaml` that takes a path to a Clash YAML configuration file and an optional \"advanced\" parameter. It opens the file, converts its contents from Go-style YAML to Python-friendly YAML, loads it using the `yaml.safe_load()` function, then modifies some fields (e.g., sets a new port and specifies a base URL). If \"advanced\" is True, it iterates through the \"proxy-groups\" section, removing certain proxies if they match a list of exceptions.",
+        "file_id": 375,
+        "content": "This code initializes necessary libraries and imports, gets the resolution of a video source, calculates the frame count, and sets up variables for motion vector estimation. The functions cartesianDistance and XYWHToDiagonal are defined for spatial calculations, and get16Value is used to ensure the resolution is a multiple of 16 for the motion vector estimation process. The total number of block weights is calculated based on the video's resolution.",
         "type": "comment"
     },
     "3228": {
-        "file_id": 376,
-        "content": "                updateIndex = index\n                updatedProxy = proxy.copy()\n                updatedProxy[\"proxies\"] = [\n                    elem\n                    for elem in proxy[\"proxies\"]\n                    if elem not in PROXY_GROUP_SPECIALS\n                ]\n                updatedProxy[\"url\"] = \"https://media4.giphy.com\"\n                updatedProxy[\"interval\"] = 300\n                updatedProxy[\"tolerance\"] = 50\n                break\n        data[key][updateIndex] = updatedProxy\n        # for item in data['proxies']:\n        #     print(item)\n        # del data[\"rules\"]\n        # data[\"mode\"] = \"global\"\n    # data[\"dns\"] = cachedDNSConfig\n    data[\"dns\"] = {\n        \"enable\": True,\n        \"enhanced-mode\": \"redir-host\",\n        \"fake-ip-filter\": [\"*.lan\", \"localhost.ptlogin2.qq.com\"],\n        \"fake-ip-range\": \"198.18.0.1/16\",\n        \"fallback\": [\n            \"8.8.8.8\",\n            \"1.1.1.1\",\n            \"tls://dns.rubyfish.cn:853\",\n            \"tls://1.0.0.1:853\",\n            \"tls://dns.google:853\",",
+        "file_id": 375,
+        "content": "cap = VideoCap()\ncap.open(source)  # wtf is going on here?\n# if there is nothing we will breakup\n# visualize, show_picture = True, True\nvisualize, show_picture = False, False\n# so there can only be one such macroblock\ndef checkMacroBlock(value):\n    for mod in [16, 8]:\n        modValue = value % mod\n        if modValue == mod / 2:\n            return mod\n    # if not satisfied, we are shit.\nfrom functools import lru_cache\n@lru_cache(maxsize=4)\ndef getModXModYFromBlockCenterCoordinates(blockCenterCoordinates):\n    block_x, block_y = blockCenterCoordinates\n    mod_x, mod_y = checkMacroBlock(block_x), checkMacroBlock(block_y)\n    if mod_x is not None and mod_y is not None:\n        return mod_x, mod_y\n    else:\n        print(\"block center coordinates\", blockCenterCoordinates)\n        print(\"WTF IS GOING ON WITH THE BLOCK CENTER\")\n        breakpoint()\n        return 0, 0\ndef getRectangleXYWHFromBlockCenterCoordinates(blockCenterCoordinates):\n    block_x, block_y = blockCenterCoordinates\n    mod_x, mod_y = getModXModYFromBlockCenterCoordinates(blockCenterCoordinates)",
         "type": "code",
-        "location": "/tests/karaoke_effects/clash_auto_update.py:174-202"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:72-106"
     },
     "3229": {
-        "file_id": 376,
-        "content": "This code updates the proxy settings and DNS configuration for a program. It removes special proxies, sets new URL, interval, and tolerance values, and enables DNS with specific configurations like enhanced mode and fake IP range.",
+        "file_id": 375,
+        "content": "The code initializes a VideoCap object and opens a specified source. It then defines two functions: `checkMacroBlock` to determine the macroblock size based on given values, and `getModXModYFromBlockCenterCoordinates` to get the modX and modY from block center coordinates using `checkMacroBlock`. The code also includes error handling in case of unexpected block center coordinates.",
         "type": "comment"
     },
     "3230": {
-        "file_id": 376,
-        "content": "            \"https://dns.rubyfish.cn/dns-query\",\n            \"https://cloudflare-dns.com/dns-query\",\n            \"https://dns.google/dns-query\",\n        ],\n        \"fallback-filter\": {\"geoip\": True, \"ipcidr\": [\"240.0.0.0/4\"]},\n        \"ipv6\": False,\n        \"listen\": \"0.0.0.0:61\",  # key?\n        \"nameserver\": [\n            \"223.5.5.5\",\n            \"180.76.76.76\",\n            \"119.29.29.29\",\n            \"117.50.10.10\",\n            \"114.114.114.114\",\n        ],\n    }\n    # data = pyYamlToGoYaml(data)\n    data_dump = yaml.safe_dump(data, allow_unicode=True)\n    data_dump = pyYamlToGoYaml(data_dump)\n    with open(clashYamlPath, \"w\") as f:\n        f.write(data_dump)\n    \"\"\"\n    import requests\n    import json\n    base_url =  \"http://127.0.0.1:9022\"\n    url = \"/proxies/\"\n    r = requests.put(base_url+url+\"GLOBAL\",data=json.dumps({\"name\":name},ensure_ascii=False).encode())\n    assert r.status_code == 204\n    \"\"\"\ndef getClashYaml(clashYamlPath=\"Clash3.yaml\", url: str = CLASH_CONFIG_DOWNLOAD_URL):\n    import requests\n    #",
+        "file_id": 375,
+        "content": "    mod_x_half, mod_y_half = mod_x / 2, mod_y / 2\n    x, y, w, h = block_x - mod_x_half, block_y - mod_y_half, mod_x, mod_y\n    return tuple([int(elem) for elem in [x, y, w, h]])\ndef getBlockWeightFromBlockCenterCoordinates(blockCenterCoordinates):\n    mod_x, mod_y = getModXModYFromBlockCenterCoordinates(blockCenterCoordinates)\n    weights = mod_x * mod_y / 8 / 8\n    return weights\nimport progressbar\nimport numpy as np\n# max_dst_x, max_dst_y = 0,0\ndef averageMotionVectors(motion_vector_list):\n    if len(motion_vector_list) == 0:\n        average_tuple = (0, 0)\n    if len(motion_vector_list) > 1:\n        marray = np.array(motion_vector_list)\n        # print(\"MAKING AVERAGE:\")\n        # print(marray)\n        average = np.average(marray, axis=0)\n        # breakpoint()\n        average_tuple = tuple(average)\n    else:\n        average_tuple = tuple(motion_vector_list[0])\n    return average_tuple\nmotion_area_ratio_array = []\n# average_weighted_motion_vector_array = []\n# average_global_weighted_motion_vector_array = []\naverage_weighted_motion_vector_cartesian_array = []",
         "type": "code",
-        "location": "/tests/karaoke_effects/clash_auto_update.py:203-240"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:107-142"
     },
     "3231": {
-        "file_id": 376,
-        "content": "This code sets up a DNS server for Clash, a proxy tool. It provides a list of DNS servers and fallback filters to be used by the program. The data is converted to YAML format and written into a file named \"Clash3.yaml\". Then, it sends an HTTP PUT request to the Clash API endpoint to update the configuration.",
+        "file_id": 375,
+        "content": "Function `getBlockWeightFromBlockCenterCoordinates` calculates the weight of a block based on its center coordinates.\nThe `averageMotionVectors` function calculates the average motion vector from a list of motion vectors.\n`motion_area_ratio_array` is used to store area ratios for blocks, which will be used in calculations later.",
         "type": "comment"
     },
     "3232": {
-        "file_id": 376,
-        "content": " url = \"https://raw.githubusercontents.com/yu-steven/openit/main/Clash.yaml\" # some subtle difference!\n    # url = 'https://cdn.staticaly.com/gh/yu-steven/openit/main/Clash.yaml'\n    # url = \"https://raw.kgithub.com/yu-steven/openit/main/Clash.yaml\"\n    r = requests.get(url)\n    with open(clashYamlPath, \"w+\") as f:\n        f.write(r.text)\n    print(\"FETCHING CLASH YAML DONE.\")\n    print(\"SAVED AT %s\" % clashYamlPath)\nfrom lazero.program import asyncThread\n@asyncThread\ndef updateClashYaml(clashYamlPath=\"Clash3.yaml\", control_port=9911, advanced=True):\n    getClashYaml(clashYamlPath=clashYamlPath)\n    # if refine:\n    refineClashYaml(clashYamlPath=clashYamlPath, advanced=advanced)\n    import requests\n    import json\n    full_config_path = os.path.abspath(clashYamlPath)\n    try:\n        r = requests.put(\n            \"http://localhost:{}/configs\".format(control_port),\n            data=json.dumps({\"path\": full_config_path}, ensure_ascii=False).encode(),\n        )\n        # print('REPLY CONTENT:',r.content)\n        # breakpoint()",
+        "file_id": 375,
+        "content": "average_global_weighted_motion_vector_cartesian_array = []\naverage_weighted_motion_vectors_filtered_cartesian_distance_array = []\naverage_global_weighted_motion_vectors_filtered_cartesian_distance_array = []\nfor _ in progressbar.progressbar(range(framesCount)):\n    success, frame, motion_vectors, frame_type, timestamp = cap.read()\n    height, width, channels = frame.shape\n    # breakpoint()\n    if success:\n        # what is the content of this motion vector?\n        # print(motion_vectors)\n        # import pandas as pd\n        # df = pd.DataFrame(motion_vectors)\n        # df = pd.DataFrame(motion_vectors,index=['source_index','unk0','unk1','src_x','src_y','dst_x','dst_y','motion_x','motion_y','motion_scale'])\n        # breakpoint()\n        # print()\n        # print(\"_____________________________\")\n        condition = motion_vectors[:, 0] < 0\n        # print(condition)\n        # print(condition.shape)\n        # breakpoint()\n        motion_vectors_simplified = motion_vectors[condition, :][:, [0, 5, 6, 7, 8, 9]]",
         "type": "code",
-        "location": "/tests/karaoke_effects/clash_auto_update.py:240-269"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:143-164"
     },
     "3233": {
-        "file_id": 376,
-        "content": "This code fetches the latest Clash YAML configuration file from a specified URL and saves it to a local file. It then updates the Clash configuration by sending the updated file path to the Clash control port. The function can be called asynchronously with optional arguments for the Clash YAML file name, control port, and advanced settings refinement.",
+        "file_id": 375,
+        "content": "This code calculates the motion vectors from video frames and filters them based on a condition. The condition checks if the x-component of the motion vector is less than 0, which may indicate horizontal movement. The code then selects specific columns (x, y coordinates, and scale) from the motion vectors that meet this condition for further processing.",
         "type": "comment"
     },
     "3234": {
-        "file_id": 376,
-        "content": "        assert r.status_code == 204\n        # might be the problem.\n        # TODO: check why the fuck clash server cannot decode the config in utf-8 'unexpected end of data'\n        print(\"SUCCESSFULLY UPDATED THIS PROXY LIST\")\n        return True\n    except:\n        import traceback\n        traceback.print_exc()\n        # breakpoint()\n        print(\"SOME ERROR WHILE FETCHING CLASH OPENIT SCRIPT\")\n        return False\n# this can act as a server as well?\n# simplicity in mind.\nimport schedule\nschedule.every(30).minutes.do(updateClashYaml)\nupdateClashYaml()\nfrom flask import Flask, request\nport = 8677\napp = Flask(__name__)\ndef checkProxyExists(proxy):\n    return proxy in find_proxy_names()\n# from typing import Union\n@app.route(\"/\", methods=[\"GET\"])\ndef serverHello():\n    try:\n        schedule.run_pending()\n    except:\n        pass\n    return \"clash update controller\"\n@app.route(\"/checkProxy\", methods=[\"GET\"])\ndef checkProxyAPI():\n    proxy = request.args[\"proxy\"]\n    print(\"CHECKING PROXY:\", proxy)\n    exists = checkProxyExists(proxy)",
+        "file_id": 375,
+        "content": "        motion_vectors_scale = motion_vectors_simplified[:, [5]]\n        motion_vectors_scale_inversed = 1 / motion_vectors_scale\n        motion_vectors_with_scale = motion_vectors_simplified[:, [3, 4]]\n        motion_vectors_scale_inversed_stacked = np.hstack(\n            [motion_vectors_scale_inversed] * 2\n        )\n        motion_vectors_restored = (\n            motion_vectors_scale_inversed_stacked * motion_vectors_with_scale\n        )  # just element wise?\n        # print('STACKED:', motion_vectors_scale_inversed_stacked.shape)\n        # print(\"WITH SCALE:\", motion_vectors_with_scale.shape)\n        # print(\"RESTORED:\",motion_vectors_restored.shape)\n        # print(motion_vectors_simplified.shape)\n        # print(motion_vectors_scale.shape)\n        # breakpoint()\n        motion_vectors_dest_coords_restored = np.hstack(\n            [motion_vectors_simplified[:, [1, 2]], motion_vectors_restored]\n        )\n        # motion_vectors_simplified = motion_vectors[:,[0,5,6,7,8]]\n        # motion_vectors_simplified_unique = np.unique(motion_vectors_simplified, axis=0)",
         "type": "code",
-        "location": "/tests/karaoke_effects/clash_auto_update.py:270-318"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:165-184"
     },
     "3235": {
-        "file_id": 376,
-        "content": "The code is a Flask application that acts as a server, updates the Clash proxy list every 30 minutes, and provides two APIs: one to check if a proxy exists in the list and another for fetching the Clash OpenIT script. An error message is displayed when there's an issue while fetching the script, and it prints the exception stack trace using traceback. The application runs on port 8677.",
+        "file_id": 375,
+        "content": "This code segment is involved in optical flow calculation. It performs scaling, inverse scaling, and stacking of motion vectors to restore the original motion vector array. The code then concatenates the destination coordinates with restored motion vectors. This process helps in improving the accuracy of motion vector estimation.",
         "type": "comment"
     },
     "3236": {
-        "file_id": 376,
-        "content": "    return {\"exists\": exists}\n@app.route(\"/useDirect\", methods=[\"GET\"])\ndef useDirectAPI():\n    proxy_name = \"DIRECT\"\n    schedule.run_pending()\n    setClashProxy(proxy_name)\n    return \"refresh proxy to %s\" % proxy_name\n@app.route(\"/refreshProxy\", methods=[\"GET\"])\ndef refreshProxyAPI():\n    suggest = None\n    if \"suggest\" in request.args.keys():\n        suggest = request.args[\"suggest\"]\n        print(\"SUGGESTED PROXY:\", suggest)\n    schedule.run_pending()\n    if suggest:\n        if checkProxyExists(suggest):\n            setClashProxy(suggest)\n            return \"refresh suggested proxy to %s\" % suggest\n    proxy_names = find_proxy_names()\n    if proxy_names == []:\n        return \"failed to find a proxy\"\n    import random\n    proxy_name = random.choice(proxy_names)\n    setClashProxy(proxy_name)\n    return \"refresh proxy to %s\" % proxy_name\nif __name__ == \"__main__\":\n    app.run(port=port, threaded=True, use_reloader=False)",
+        "file_id": 375,
+        "content": "        # print(motion_vectors_simplified_unique.shape, motion_vectors.shape)\n        # breakpoint()\n        motion_vectors_dict = {}\n        for mv in motion_vectors_dest_coords_restored:\n            # drop duplicates first!\n            (\n                dst_x,  # corresponding macro block.\n                dst_y,  # for destination only\n                motion_x,\n                motion_y,\n                # motion_scale,  # don't know what the fuck is wrong with the motion scale\n            ) = mv.tolist()\n            # say we just want source_index <0, aka mv compared to previous frame\n            # try:\n            #     assert motion_x / motion_scale == src_x - dst_x\n            #     assert motion_y / motion_scale == src_y - dst_y\n            # except:\n            #     print(src_x, dst_x, motion_x, motion_scale)\n            #     print(src_y, dst_y, motion_y, motion_scale)\n            #     print(\"*\" * 20)\n            # it will be inaccurate if we abandon this subpixel precision.\n            # if source_index >= 0:",
         "type": "code",
-        "location": "/tests/karaoke_effects/clash_auto_update.py:319-353"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:185-206"
     },
     "3237": {
-        "file_id": 376,
-        "content": "The code defines three routes (\"/useDirect\", \"/refreshProxy\") and a function to set the Clash proxy. The \"/useDirect\" route sets the proxy directly to DIRECT. The \"/refreshProxy\" route, if a suggested proxy is provided in the request, sets it as the current proxy. If not, it randomly selects one from available proxies. The code also runs pending tasks and checks if a proxy exists before setting it.",
+        "file_id": 375,
+        "content": "This code segment is extracting and processing motion vectors from a set of coordinates. It is checking for duplicates, performing calculations with source and destination coordinates, and possibly handling inaccuracies caused by subpixel precision. The code seems to be part of a larger process, as it includes debugging statements and references to variables that are not explicitly defined within the provided segment.",
         "type": "comment"
     },
     "3238": {
-        "file_id": 377,
-        "content": "/tests/karaoke_effects/pyonfx_test/view_best_example.sh",
-        "type": "filepath"
+        "file_id": 375,
+        "content": "            #     continue\n            # if dst_x>max_dst_x:\n            #     max_dst_x = dst_x\n            # if dst_y>max_dst_y:\n            #     max_dst_y = dst_y\n            destCoord = (dst_x, dst_y)\n            motion_vector = (motion_x, motion_y)\n            # print(destCoord)\n            # breakpoint()\n            if motion_vector == (0, 0):\n                # print(\"zero motion vector detected. skipping\")\n                # breakpoint()\n                continue\n            # print('destination coords:',destCoord)\n            # print('motion vector:',motion_vector)\n            motion_vectors_dict.update(\n                {destCoord: motion_vectors_dict.get(destCoord, []) + [motion_vector]}\n            )\n            # you know, different frame sources may lead to different results.\n            # these vectors could overlap. which one you want to keep? the smaller ones or the bigger ones?\n            # if destCoord in destCoords:\n            #     print(\"SKIPPING DUPLICATE DESTCOORD:\", destCoord)\n            #     print(\"PREVIOUS MV\",prevMV)",
+        "type": "code",
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:207-230"
     },
     "3239": {
-        "file_id": 377,
-        "content": "This command starts mpv player to display a karaoke video with subtitles. The \"Output.ass\" file contains the lyrics and timing information, and the \"karaoke_effects_source.mp4\" is the video being displayed.",
-        "type": "summary"
+        "file_id": 375,
+        "content": "This code iterates over motion vectors and updates a dictionary with the destination coordinates and corresponding motion vectors. It skips zero vectors and handles duplicate destinations, but doesn't specify which motion vector to keep in case of overlapping coordinates.",
+        "type": "comment"
     },
     "3240": {
-        "file_id": 377,
-        "content": "mpv --fs --no-audio --sub-file=\"/root/Desktop/works/pyjom/tests/karaoke_effects/pyonfx_test/examples/2 - Beginner/Output.ass\" \"/root/Desktop/works/pyjom/samples/video/karaoke_effects_source.mp4\"",
+        "file_id": 375,
+        "content": "            #     print(\"CURRENT MV\", mv)\n            #     continue\n            # else:\n            #     destCoords.add(destCoord)\n            # prevMV = mv\n            # try:\n            #     # src_x, src_y may not apply the same rule.\n            #     # assert src_x % 16 == 8\n            #     # assert src_y % 16 == 8\n            #     assert checkMacroBlock(dst_x) is not None\n            #     assert checkMacroBlock(dst_y) is not None\n            #     # assert dst_x<=res_x # dst_x can go beyond the res_x\n            #     # assert dst_y<=res_y\n            #     # so all rules applied.\n            # except:\n            #     # print('source',src_x, src_y)\n            #     print(\"res\", res_x, res_y)\n            #     print('destionation',dst_x, dst_y)\n            #     print('motion',motion_x, motion_y)\n            #     print(\"scale\",motion_scale)\n        motion_vectors_dict_averaged = {\n            key: averageMotionVectors(motion_vectors_dict[key])\n            for key in motion_vectors_dict.keys()\n        }",
         "type": "code",
-        "location": "/tests/karaoke_effects/pyonfx_test/view_best_example.sh:1-1"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:231-254"
     },
     "3241": {
-        "file_id": 377,
-        "content": "This command starts mpv player to display a karaoke video with subtitles. The \"Output.ass\" file contains the lyrics and timing information, and the \"karaoke_effects_source.mp4\" is the video being displayed.",
+        "file_id": 375,
+        "content": "This code is filtering and averaging motion vectors for macroblocks within a certain range. It checks if the source coordinates follow a specific rule, asserts that valid macroblock check functions are not None, and ensures the destination coordinates do not exceed the resolution limits. If any of these conditions fail, it prints debug information and continues execution. Finally, it calculates the averaged motion vectors for each macroblock in the dictionary.",
         "type": "comment"
     },
     "3242": {
-        "file_id": 378,
-        "content": "/tests/karaoke_effects/pyonfx_test/test.py",
-        "type": "filepath"
+        "file_id": 375,
+        "content": "        # assuming no duplicates?\n        weighted_motion_vectors = []\n        weights = []\n        rectangles = []\n        motion_vectors_filtered = []  # for getting data later?\n        for (\n            blockCenterCoordinates,\n            average_motion_vector,\n        ) in motion_vectors_dict_averaged.items():\n            if average_motion_vector == (0, 0):\n                continue\n                # wtf is this? why fucking zero?\n                # print('skipping zero average motion vector')\n                # print(\"destination coords\", key)\n                # print('average motion vector', average_motion_vector)\n            else:\n                m_x, m_y = average_motion_vector\n                motion_vectors_filtered.append(average_motion_vector)\n                rectangle_XYWH = getRectangleXYWHFromBlockCenterCoordinates(\n                    blockCenterCoordinates\n                )\n                rectangles.append(rectangle_XYWH)\n                blockWeight = getBlockWeightFromBlockCenterCoordinates(\n                    blockCenterCoordinates",
+        "type": "code",
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:255-278"
     },
     "3243": {
-        "file_id": 378,
-        "content": "The code initializes a variable 'lyricPath' with the path to the LRC file and imports modules 'pyonfx' and 'pylrc'.",
-        "type": "summary"
+        "file_id": 375,
+        "content": "This code filters out motion vectors with an average of (0, 0) and stores the remaining vectors in a list. It also extracts relevant information from the blockCenterCoordinates and calculates the weight for each block. Rectangles are created using the getRectangleXYWHFromBlockCenterCoordinates function, and weights are obtained through getBlockWeightFromBlockCenterCoordinates. The motion_vectors_filtered list keeps track of filtered motion vectors for later use.",
+        "type": "comment"
     },
     "3244": {
-        "file_id": 378,
-        "content": "lyricPath = \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.lrc\"\nimport pyonfx\nimport pylrc",
+        "file_id": 375,
+        "content": "                )\n                weights.append(blockWeight)\n                weighted_motion_vectors.append(\n                    (\n                        m_x * blockWeight / frame_common_divisor,\n                        m_y * blockWeight / frame_common_divisor,\n                    )\n                )\n        weighted_motion_vectors = np.array(weighted_motion_vectors)\n        sum_weighted_motion_vector = np.sum(weighted_motion_vectors, axis=0)\n        average_global_weighted_motion_vector = (\n            sum_weighted_motion_vector / total_block_weights\n        )\n        sum_weights = sum(weights)\n        average_weighted_motion_vector = sum_weighted_motion_vector / sum_weights\n        motion_area_ratio = sum_weights / total_block_weights\n        # print(motion_vectors.shape)\n        motion_vectors_filtered_cartesian_distance = [\n            cartesianDistance(vector) for vector in motion_vectors_filtered\n        ] + [\n            0\n        ]  # to avoid errors.\n        motion_vectors_filtered_cartesian_distance = np.array(",
         "type": "code",
-        "location": "/tests/karaoke_effects/pyonfx_test/test.py:1-3"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:279-301"
     },
     "3245": {
-        "file_id": 378,
-        "content": "The code initializes a variable 'lyricPath' with the path to the LRC file and imports modules 'pyonfx' and 'pylrc'.",
+        "file_id": 375,
+        "content": "This code calculates the average global weighted motion vector and average weighted motion vector, as well as the motion area ratio. It also filters and stores cartesian distances for each motion vector.",
         "type": "comment"
     },
     "3246": {
-        "file_id": 379,
-        "content": "/tests/karaoke_effects/pyonfx_test/render_ass_video.sh",
-        "type": "filepath"
+        "file_id": 375,
+        "content": "            motion_vectors_filtered_cartesian_distance\n        )\n        cartesianWeights = weights + [0]\n        cartesianWeights = np.array(cartesianWeights)\n        cartesianWeightsSum = np.sum(cartesianWeights)\n        weighted_motion_vectors_filtered_cartesian_distance = (\n            motion_vectors_filtered_cartesian_distance * cartesianWeights\n        )\n        sum_weighted_motion_vectors_filtered_cartesian_distance = np.sum(\n            weighted_motion_vectors_filtered_cartesian_distance\n        )\n        # print(\"SUM\", sum_weighted_motion_vectors_filtered_cartesian_distance)\n        # breakpoint()\n        average_weighted_motion_vectors_filtered_cartesian_distance = (\n            sum_weighted_motion_vectors_filtered_cartesian_distance / cartesianWeightsSum\n        )\n        average_global_weighted_motion_vectors_filtered_cartesian_distance = (\n            sum_weighted_motion_vectors_filtered_cartesian_distance\n            / total_block_weights # this is a number, not array!\n        )\n        min_cartesian = min(motion_vectors_filtered_cartesian_distance)",
+        "type": "code",
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:302-328"
     },
     "3247": {
-        "file_id": 379,
-        "content": "This command uses FFmpeg to extract a 60-second segment from the input video \"karaoke_effects_source.mp4\", applying the embedded ASS subtitles from \"Output.ass\" as effects, and saves the result as \"out.mp4\".",
-        "type": "summary"
+        "file_id": 375,
+        "content": "This code calculates weighted average motion vectors by multiplying the distance of each vector with its corresponding weight, summing them, and dividing by the total weight. The minimum cartesian distance is also found.",
+        "type": "comment"
     },
     "3248": {
-        "file_id": 379,
-        "content": "ffmpeg -y -i \"/root/Desktop/works/pyjom/samples/video/karaoke_effects_source.mp4\" -ss 0 -to 60 -vf \"ass='/root/Desktop/works/pyjom/tests/karaoke_effects/pyonfx_test/examples/2 - Beginner/Output.ass'\" out.mp4",
+        "file_id": 375,
+        "content": "        max_cartesian = max(motion_vectors_filtered_cartesian_distance)\n        motion_area_ratio_array.append(motion_area_ratio)\n        # print()\n        # print(average_weighted_motion_vector)\n        # print(average_global_weighted_motion_vector)\n        # breakpoint()\n        average_weighted_motion_vector_cartesian=cartesianDistance(average_weighted_motion_vector)\n        average_weighted_motion_vector_cartesian_array.append(average_weighted_motion_vector_cartesian)\n        average_global_weighted_motion_vector_cartesian = cartesianDistance(average_global_weighted_motion_vector)\n        average_global_weighted_motion_vector_cartesian_array.append(\n        average_global_weighted_motion_vector_cartesian\n        )\n        average_weighted_motion_vectors_filtered_cartesian_distance_array.append(\n            average_weighted_motion_vectors_filtered_cartesian_distance\n        )\n        average_global_weighted_motion_vectors_filtered_cartesian_distance_array.append(\n            average_global_weighted_motion_vectors_filtered_cartesian_distance",
         "type": "code",
-        "location": "/tests/karaoke_effects/pyonfx_test/render_ass_video.sh:1-1"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:329-346"
     },
     "3249": {
-        "file_id": 379,
-        "content": "This command uses FFmpeg to extract a 60-second segment from the input video \"karaoke_effects_source.mp4\", applying the embedded ASS subtitles from \"Output.ass\" as effects, and saves the result as \"out.mp4\".",
+        "file_id": 375,
+        "content": "Calculates the average weighted motion vector and global weighted motion vector in Cartesian distance, then appends them to corresponding arrays. It also computes and appends filtered Cartesian distances of both types of vectors to their respective arrays. No print statements or breakpoints are executed.",
         "type": "comment"
     },
     "3250": {
-        "file_id": 380,
-        "content": "/tests/karaoke_effects/pyonfx_test/macos_view_best_example.sh",
-        "type": "filepath"
+        "file_id": 375,
+        "content": "        )\n        if motion_vectors_dict_averaged != {}:\n            # breakpoint()\n            if visualize:\n                print(\"motion_area_ratio\", motion_area_ratio)\n                print(\"average_weighted_motion_vector_cartesian\", average_weighted_motion_vector_cartesian)\n                print(\n                    \"average_global_weighted_motion_vecto_cartesianr\",\n                    average_global_weighted_motion_vector_cartesian,\n                )\n                print(\n                    \"average_weighted_motion_vectors_filtered_cartesian_distance\",\n                    average_weighted_motion_vectors_filtered_cartesian_distance,\n                )\n                print(\n                    \"average_global_weighted_motion_vectors_filtered_cartesian_distance\",\n                    average_global_weighted_motion_vectors_filtered_cartesian_distance,\n                )\n                motion_mask = np.zeros(\n                    (motion_render_frame[1], motion_render_frame[0], 1)\n                )\n                for index, (x, y, w, h) in enumerate(rectangles):",
+        "type": "code",
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:347-369"
     },
     "3251": {
-        "file_id": 380,
-        "content": "This script opens a video file with an ASS subtitle file, using mpv player in full screen and without audio. The ASS file contains karaoke effects for the associated video, sourced from pyjom_remote/tests/karaoke_effects/pyonfx_test/examples/2 - Beginner folder.",
-        "type": "summary"
+        "file_id": 375,
+        "content": "The code checks if there are any motion vectors in the dictionary and prints various motion-related information and creates a motion mask with zeros.",
+        "type": "comment"
     },
     "3252": {
-        "file_id": 380,
-        "content": "rootpath=/Users/jamesbrown/desktop/works/pyjom_remote/\nmpv --fs --no-audio --sub-file=\"$rootpath/tests/karaoke_effects/pyonfx_test/examples/2 - Beginner/Output.ass\" \"$rootpath/samples/video/karaoke_effects_source.mp4\"",
+        "file_id": 375,
+        "content": "                    pt1, pt2 = XYWHToDiagonal(x, y, w, h)\n                    # print(pt1, pt2)\n                    current_cartesian = motion_vectors_filtered_cartesian_distance[\n                        index\n                    ]\n                    # print(type(pt1), type(pt1[0]))\n                    relative_motion_cartesian = (current_cartesian - min_cartesian) / (\n                        max_cartesian - min_cartesian\n                    )  # must from 0 to 1 so we can plot this,\n                    # relative_motion_cartesian = 255*((current_cartesian-min_cartesian)/(max_cartesian-min_cartesian))\n                    # relative_motion_cartesian = int(relative_motion_cartesian)\n                    # relative_motion_cartesian = min(255,max(0, relative_motion_cartesian))\n                    # breakpoint()\n                    cv2.rectangle(\n                        motion_mask,\n                        pt1,\n                        pt2,\n                        color=(relative_motion_cartesian,),\n                        thickness=-1,",
         "type": "code",
-        "location": "/tests/karaoke_effects/pyonfx_test/macos_view_best_example.sh:1-2"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:370-388"
     },
     "3253": {
-        "file_id": 380,
-        "content": "This script opens a video file with an ASS subtitle file, using mpv player in full screen and without audio. The ASS file contains karaoke effects for the associated video, sourced from pyjom_remote/tests/karaoke_effects/pyonfx_test/examples/2 - Beginner folder.",
+        "file_id": 375,
+        "content": "This code calculates the relative motion vector cartesian distance and draws a rectangle on an image using OpenCV's `cv2.rectangle` function. The rectangle dimensions are based on the input x, y, w, and h parameters, and its color is determined by the relative motion vector cartesian distance, converted to a range of 0-255 for image intensity values.",
         "type": "comment"
     },
     "3254": {
-        "file_id": 381,
-        "content": "/tests/karaoke_effects/pyonfx_test/first_try.py",
-        "type": "filepath"
+        "file_id": 375,
+        "content": "                    )\n                # should we gaussian blur, threshold this, do convolution and then apply bounding box on it?\n                # # visualize this.\n                if show_picture:\n                    cv2.imshow(\"motion_mask\", motion_mask)\n                    cv2.waitKey(100)\n            # may you create bounding box for this? for tracking motion? or not?\n        # breakpoint()\n    else:\n        break\n# print('max_dst_x', max_dst_x)\n# print('max_dst_y', max_dst_y)\nimport matplotlib.pyplot as plt\n# plt.style.use('dark_background')\na, b = 5, 1\nfigure, axis = plt.subplots(a, b)\ndata = [\n    motion_area_ratio_array,\n    # average_weighted_motion_vector_array,\n    # average_global_weighted_motion_vector_array,\n    average_weighted_motion_vector_cartesian_array,\n    average_global_weighted_motion_vector_cartesian_array,\n    average_weighted_motion_vectors_filtered_cartesian_distance_array,\n    average_global_weighted_motion_vectors_filtered_cartesian_distance_array,\n]\ntitles = [\n    \"motion_area_ratio\",",
+        "type": "code",
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:389-419"
     },
     "3255": {
-        "file_id": 381,
-        "content": "This code imports the \"pyonfx\" library and uses it to open an ASS file. It then retrieves the file's metadata, styles, and lines of text. The first line's text is modified, and the modified line is written back into the file. The code also attempts to open Aegisub but fails as there isn't one available.",
-        "type": "summary"
+        "file_id": 375,
+        "content": "The code is visualizing and analyzing motion data using image processing techniques. It displays a motion mask, creates a bounding box for motion tracking, and plots various motion-related data on subplots. The code also includes options to blur, threshold, apply convolution, and display the results.",
+        "type": "comment"
     },
     "3256": {
-        "file_id": 381,
-        "content": "from pyonfx import *\nio = Ass(\"in.ass\")\nmeta, styles, lines = io.get_data()\nlines[0].text = \"I am a new line!\"\nio.write_line(lines[0])\nio.save()\n# io.open_aegisub()\n# there's no aegisub.",
+        "file_id": 375,
+        "content": "    # \"average_weighted_motion_vector\",\n    # \"average_global_weighted_motion_vector\",\n    \"average_weighted_motion_vector_cartesian\",\n    \"average_global_weighted_motion_vector_cartesian\",\n    \"average_weighted_motion_vectors_filtered_cartesian_distance\",\n    \"average_global_weighted_motion_vectors_filtered_cartesian_distance\",\n]\n# breakpoint()\nassert len(titles) == len(data)\nassert a*b >= len(titles)\nfor _a in range(a):\n    for _b in range(b):\n        index = _a * b + _b\n        if index > len(data) - 1:\n            break\n        if a == 1:\n            if b == 1:\n                axis[0].plot(data[index])\n                axis[0].set_title(titles[index])\n            else:\n                axis[_b].plot(data[index])\n                axis[_b].set_title(titles[index])\n        elif b == 1:\n            axis[_a].plot(data[index])\n            axis[_a].set_title(titles[index])\n        else:\n            axis[_a, _b].plot(data[index])\n            axis[_a, _b].set_title(titles[index])\nplt.show()",
         "type": "code",
-        "location": "/tests/karaoke_effects/pyonfx_test/first_try.py:1-11"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:420-449"
     },
     "3257": {
-        "file_id": 381,
-        "content": "This code imports the \"pyonfx\" library and uses it to open an ASS file. It then retrieves the file's metadata, styles, and lines of text. The first line's text is modified, and the modified line is written back into the file. The code also attempts to open Aegisub but fails as there isn't one available.",
+        "file_id": 375,
+        "content": "This code is plotting multiple sets of data onto a graph, with each set corresponding to an item in two lists of titles and data. The code asserts that the lengths of both lists are equal, and then iterates through each element of the lists using nested for loops. If a single plot is desired, it plots and labels one line of data at a time. If multiple plots are desired, it creates and labels a separate plot for each line of data. Finally, it displays the graph.",
         "type": "comment"
     },
     "3258": {
-        "file_id": 382,
-        "content": "/tests/karaoke_effects/lrc2ass_py3/test.sh",
+        "file_id": 376,
+        "content": "/tests/motion_vector_estimation/mpegflow/test.sh",
         "type": "filepath"
     },
     "3259": {
-        "file_id": 382,
-        "content": "The code is running an MPV player with no audio, using a subtitle file and video source. It seems that the video's effect is bad, and the time synchronization is incorrect, causing dissatisfaction with the result.",
+        "file_id": 376,
+        "content": "The code sets the VIDEO variable to a specific video file path, runs the mpegflow command on that file and redirects output to output.txt, but the .so file is fake so it doesn't work well. The code also provides an alternative method using Docker or downloading a real .so file from the web, creating an examples/vis_dump directory, and piping the mpegflow command's output into ./vis with the video file path.",
         "type": "summary"
     },
     "3260": {
-        "file_id": 382,
-        "content": "rootpath=/Users/jamesbrown/desktop/works/pyjom_remote/\nmpv --fs --no-audio --sub-file=\"$rootpath/tests/karaoke_effects/lrc2ass_py3/output.s2.ass\" \"$rootpath/samples/video/karaoke_effects_source.mp4\"\n## NOT OK! THIS DUMB SHIT LIBRARY FUCKED MY MIND ##\n## the effect is bad. the time is not right. everything fucked. ##",
+        "file_id": 376,
+        "content": "VIDEO=\"/root/Desktop/works/pyjom/samples/video/cute_cat_gif.mp4\"\n# ./mpegflow $VIDEO > output.txt\n# it does not help because the .so file is fake. you need a real one.\n# you may download it from web, or just use docker\n# mkdir -p examples/vis_dump && ./mpegflow $VIDEO | ./vis $VIDEO examples/vis_dump\n# maybe this shit is not good at all...",
         "type": "code",
-        "location": "/tests/karaoke_effects/lrc2ass_py3/test.sh:1-5"
+        "location": "/tests/motion_vector_estimation/mpegflow/test.sh:1-10"
     },
     "3261": {
-        "file_id": 382,
-        "content": "The code is running an MPV player with no audio, using a subtitle file and video source. It seems that the video's effect is bad, and the time synchronization is incorrect, causing dissatisfaction with the result.",
+        "file_id": 376,
+        "content": "The code sets the VIDEO variable to a specific video file path, runs the mpegflow command on that file and redirects output to output.txt, but the .so file is fake so it doesn't work well. The code also provides an alternative method using Docker or downloading a real .so file from the web, creating an examples/vis_dump directory, and piping the mpegflow command's output into ./vis with the video file path.",
         "type": "comment"
     },
     "3262": {
-        "file_id": 383,
-        "content": "/tests/karaoke_effects/lrc2ass_py3/README.md",
+        "file_id": 377,
+        "content": "/tests/motion_vector_estimation/mpegflow/init.sh",
         "type": "filepath"
     },
     "3263": {
-        "file_id": 383,
-        "content": "This Python 3 script converts LRC files to ASS format with karaoke effects, supports multiple timing tags, and auto-chooses end timings. It is primarily for Chinese but may encounter errors in non-Chinese languages or wrong text codings. Future improvements include English support, annotations, file list input, reusability, and debugging.",
+        "file_id": 377,
+        "content": "Downloading 'mpegflow' and 'vis' from the 1.0 release of vadimkantorov/mpegflow repository.",
         "type": "summary"
     },
     "3264": {
-        "file_id": 383,
-        "content": "# lrc2ass_py3\nA simple Python 3.x script is used for changing your LRC file into ASS subtitle with karaoke effect tags\n一个用于将LRC歌词文件转换为ASS字幕文件的简单Python脚本。\nThe first full python script written by myself.\n我自己编写的第一个完整的Python脚本\nCopyright(c) 2020 yyfll (MIT)\n# WON'T UPDATE IN THE FUTURE\n# Dependent\n* chardet (lrc2ass_py3 >= 1.0.0c)\n# Update\n## 1.0.0c\n* Support chardet character encoding detector.\n* A few improvements\n## 1.0.0b\n* Support LRC offset tag.\n* Default LRC offset can be set.\n* Simplify program.\n# English Readme\nPoor English.\n## What can lrc2ass_py3 do?\n* Change your LRC script to ASS script.\n* Very easy to use.\n* Support Multi timing tags in a single line.\n* Support auto choose end timing if can't find timing in the end of the line.\n* Support LRC offset tag.\n## What will cause error?\n* A lrc file in wrong text coding (such as use utf-8 read gbk file.)\n* A lrc line without the timing tag in the line ahead. (haven't tested)\n## WARNING\n* Only CHINESE are supported.\n> All the information show in console and the annotations in python script are written in CHINESE,",
+        "file_id": 377,
+        "content": "curl -L -O https://github.com/vadimkantorov/mpegflow/releases/download/1.0/mpegflow\ncurl -L -O https://github.com/vadimkantorov/mpegflow/releases/download/1.0/vis",
         "type": "code",
-        "location": "/tests/karaoke_effects/lrc2ass_py3/README.md:1-41"
+        "location": "/tests/motion_vector_estimation/mpegflow/init.sh:1-2"
     },
     "3265": {
-        "file_id": 383,
-        "content": "This is a simple Python 3 script for converting LRC files to ASS with karaoke effects. It requires the chardet library, supports multiple timing tags, and auto-chooses end timings if not specified. However, it's only for Chinese and may encounter errors if the LRC file is in the wrong text coding or lacks a timing tag on certain lines.",
+        "file_id": 377,
+        "content": "Downloading 'mpegflow' and 'vis' from the 1.0 release of vadimkantorov/mpegflow repository.",
         "type": "comment"
     },
     "3266": {
-        "file_id": 383,
-        "content": ">\n> It doesn't mean lrc2ass_py3 can't work on your LRC in English.\n>\n> So it doesn't have any influence on output a correct ASS script if you use English or any other language.\n# 简体中文 Readme\n## lrc2ass_py3可以做什么？\n* 将你的LRC歌词文件转换为ASS字幕文件\n* 使用起来非常简单\n* 支持一个歌词行多个时间标签（即卡拉OK效果）\n* 支持在找不到歌词行的结束时间时，自动选择结束时间\n* 支持时间偏移标签（offset）\n## 有什么可能会导致错误的？\n* 读取了非指定文本编码的LRC歌词文件（比如像用utf-8编码读取gbk编码的文件）\n* 歌词行开头没有指定起始时间的时间标签（这还没有经过测试）\n## 警告\n* 只支持中文\n> 所有的控制台输出及文件内注释都是用中文写的\n>\n> 这并不意味着lrc2ass_py3不能处理非中文的LRC文件\n>\n> 所以这并不会对输出一个正确ASS字幕文件产生任何影响\n# To do\n* Full English supported\n* Full Chinese annotation\n* File list input\n* Reusable\n* Endless debugging",
-        "type": "code",
-        "location": "/tests/karaoke_effects/lrc2ass_py3/README.md:42-72"
-    },
-    "3267": {
-        "file_id": 383,
-        "content": "This code is a README file for the lrc2ass_py3 tool, which converts LRC karaoke files to ASS format. It supports English and other languages, but has warnings and limitations related to non-Chinese languages and specific encoding formats. The code also includes a To Do list with additional features such as full English support, improved annotations, file list input, reusability, and debugging.",
-        "type": "comment"
-    },
-    "3268": {
-        "file_id": 384,
-        "content": "/tests/karaoke_effects/lrc2ass_py3/localTest.sh",
+        "file_id": 378,
+        "content": "/tests/kaggle_yt_dls/transcode_nvenc.sh",
         "type": "filepath"
     },
-    "3269": {
-        "file_id": 384,
-        "content": "Code is running mpv player with no audio and loading an .ass subtitle file to display over a video. The user is experiencing issues with the output.",
+    "3267": {
+        "file_id": 378,
+        "content": "The code uses FFmpeg to transcode a video file, applying a hue filter and testing hardware acceleration options like CUDA, VDPAU, and Vulkan, while mentioning NVENC is not for everyone. It also includes trigonometric function comments for potential Hue effects.",
         "type": "summary"
     },
-    "3270": {
-        "file_id": 384,
-        "content": "rootpath=/root/Desktop/works/pyjom\nmpv --fs --no-audio --sub-file=\"$rootpath/tests/karaoke_effects/lrc2ass_py3/output.s2.ass\" \"$rootpath/samples/video/karaoke_effects_source.mp4\"\n## NOT OK! THIS DUMB SHIT LIBRARY FUCKED MY MIND ##\n## the effect is bad. the time is not right. everything fucked. ##",
+    "3268": {
+        "file_id": 378,
+        "content": "# ffmpeg -hwaccels\n# vdpau\n# cuda\n# vaapi\n# vulkan\n# no blood.\nffmpeg -y -vsync 0 -hwaccel_output_format cuda -i \"Wolfenstein 2 The New Colossus - Courthouse Battle ( I am death incarnate & no HUD ) 4k_60Fps [FuV63EEhS8c].webm\" -vf \"hue=h=45:s=0.7\" Wolfenstein_courthouse_battle.mp4\n# ffmpeg -y -vsync 0 -hwaccel_output_format cuda -i \"Wolfenstein 2 The New Colossus - Courthouse Battle ( I am death incarnate & no HUD ) 4k_60Fps [FuV63EEhS8c].webm\"  Wolfenstein_courthouse_battle.mp4\n# ffmpeg -y -vsync 0 -hwaccel vdpau -hwaccel_output_format vulkan -i \"Wolfenstein 2 The New Colossus - Courthouse Battle ( I am death incarnate & no HUD ) 4k_60Fps [FuV63EEhS8c].webm\"  Wolfenstein_courthouse_battle.mp4\n# ffmpeg -y -vsync 0 -hwaccel vulkan -hwaccel_output_format vulkan -i \"Wolfenstein 2 The New Colossus - Courthouse Battle ( I am death incarnate & no HUD ) 4k_60Fps [FuV63EEhS8c].webm\"  Wolfenstein_courthouse_battle.mp4\n# ffmpeg -y -vsync 0 -hwaccel cuda -hwaccel_output_format cuda -i \"Wolfenstein 2 The N",
         "type": "code",
-        "location": "/tests/karaoke_effects/lrc2ass_py3/localTest.sh:1-5"
+        "location": "/tests/kaggle_yt_dls/transcode_nvenc.sh:1-11"
+    },
+    "3269": {
+        "file_id": 378,
+        "content": "This code uses FFmpeg to transcode a video file, applying a hue filter and saving the output as \"Wolfenstein_courthouse_battle.mp4\". It tests different hardware acceleration options (cuda, vdpau, vulkan) for video processing while specifying vsync 0 for disabling tearing. The code attempts to transcode the video using each of these hardware accelerations and saves the output file with the same name, overwriting previous outputs.",
+        "type": "comment"
+    },
+    "3270": {
+        "file_id": 378,
+        "content": "ew Colossus - Courthouse Battle ( I am death incarnate & no HUD ) 4k_60Fps [FuV63EEhS8c].webm\"  Wolfenstein_courthouse_battle.mp4  # this is not avaliable. nvenc is not for everyone.\n# use vulkan or cuda. but vulkan is universal.\n# \"hue=H=30+10*cos(2*PI*t):s=0.2*cos(2*PI*t)+0.6\"",
+        "type": "code",
+        "location": "/tests/kaggle_yt_dls/transcode_nvenc.sh:11-14"
     },
     "3271": {
-        "file_id": 384,
-        "content": "Code is running mpv player with no audio and loading an .ass subtitle file to display over a video. The user is experiencing issues with the output.",
+        "file_id": 378,
+        "content": "This code specifies a video file name and mentions that NVENC is not for everyone, suggesting to use Vulkan or CUDA instead. It also includes a comment with potential Hue effects using trigonometric functions.",
         "type": "comment"
     },
     "3272": {
-        "file_id": 385,
-        "content": "/tests/youtube_shorts_heuristic_search/README.md",
+        "file_id": 379,
+        "content": "/tests/kaggle_yt_dls/test_init.sh",
         "type": "filepath"
     },
     "3273": {
-        "file_id": 385,
-        "content": "Code contains information about search and downloadability of YouTube Shorts, as well as mentioning the limitations of current video feed acquisition from various platforms. It also provides a link to a Python library for YouTube search and details on a simple bilibili search API.",
+        "file_id": 379,
+        "content": "The code initializes a Kaggle kernel, pushes code to it, checks its status, and then retrieves output after completion. Proxies are skipped, and the download speed is measured.",
         "type": "summary"
     },
     "3274": {
-        "file_id": 385,
-        "content": "turned out youtube shorts are searchable, downloadable.\nbut the video feed is not yet acquired, just like all other video feeds from youtube, twitch, reddit, qq小世界, bilibili, 抖音, tiktok and the trending ones.\nthe youtube advanced filter is embedded in the search results. you can only jump to one embedded link at a time\nto get the next page on youtube:\nthe key seems to be the unified unlimited api key for youtube.\nPOST https://www.youtube.com/youtubei/v1/search?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8&prettyPrint=false with a lot of headaching parameters.\nyou can bypass them. here are some basic parameters without lots of combinations. if you want to combine them, better figure it out yourself.\nsome of them might already fail to work.\nhttps://github.com/alexmercerind/youtube-search-python/blob/fc12c05747f1f7bd89d71699403762b86b523da5/youtubesearchpython/core/constants.py#L45\nbilibili search api is currently simple:\nhttps://search.bilibili.com/video?keyword=%E6%B1%AA%E6%B1%AA&from_source=webtop_search&spm_id_from=333.1007&search_source=3&tids=219&order=dm&duration=2",
+        "file_id": 379,
+        "content": "# kaggle kernels init\n# code/jessysisca/some-yt-stuff \n# kaggle kernels push\n# kaggle kernels status jessysisca/some-yt-stuff\n# jessysisca/some-yt-stuff has status \"complete\"\n# root@alpharetta ~/android_connect_scrcpy_patch# \n# kaggle kernels status jessysisca/test-of-yt-dlp\n# jessysisca/test-of-yt-dlp has status \"running\"\n# after it is done, we pull back all shit.\n# skip all proxies.\nexport http_proxy=\"\"\nexport https_proxy=\"\"\nkaggle kernels output jessysisca/test-of-yt-dlp # what is the freaking speed?\n# not too slow.",
         "type": "code",
-        "location": "/tests/youtube_shorts_heuristic_search/README.md:1-21"
+        "location": "/tests/kaggle_yt_dls/test_init.sh:1-14"
     },
     "3275": {
-        "file_id": 385,
-        "content": "Code contains information about search and downloadability of YouTube Shorts, as well as mentioning the limitations of current video feed acquisition from various platforms. It also provides a link to a Python library for YouTube search and details on a simple bilibili search API.",
+        "file_id": 379,
+        "content": "The code initializes a Kaggle kernel, pushes code to it, checks its status, and then retrieves output after completion. Proxies are skipped, and the download speed is measured.",
         "type": "comment"
     },
     "3276": {
-        "file_id": 386,
-        "content": "/tests/youtube_shorts_heuristic_search/heuristic_model.py",
+        "file_id": 380,
+        "content": "/tests/kaggle_yt_dls/test.py",
         "type": "filepath"
     },
     "3277": {
-        "file_id": 386,
-        "content": "The code defines a function called \"getSearchQueryFromHeuristicSpace\" which takes a seed as input and returns a search query. This model aims to reduce repetition and increase the likelihood of finding relevant videos by utilizing heuristics. The application is intended to be server-based.",
+        "file_id": 380,
+        "content": "The code imports the os module and defines a list of commands. It then iterates through each command, executes it using the os.system() function, installing yt-dlp and downloading a YouTube video with its unique link.",
         "type": "summary"
     },
     "3278": {
-        "file_id": 386,
-        "content": "seed = 'dog cute'\ndef getSearchQueryFromHeuristicSpace(seed):\n    # less likely to repeat, and more possibility to get needed videos.\n    return searchQuery\n# this heuristic search model shall be a server based application.",
+        "file_id": 380,
+        "content": "import os\ncommands = [\"pip3 install yt-dlp\",'yt-dlp \"https://m.youtube.com/watch?v=FuV63EEhS8c\"']\nfor c in commands:\n    os.system(c)",
         "type": "code",
-        "location": "/tests/youtube_shorts_heuristic_search/heuristic_model.py:2-8"
+        "location": "/tests/kaggle_yt_dls/test.py:1-5"
     },
     "3279": {
-        "file_id": 386,
-        "content": "The code defines a function called \"getSearchQueryFromHeuristicSpace\" which takes a seed as input and returns a search query. This model aims to reduce repetition and increase the likelihood of finding relevant videos by utilizing heuristics. The application is intended to be server-based.",
+        "file_id": 380,
+        "content": "The code imports the os module and defines a list of commands. It then iterates through each command, executes it using the os.system() function, installing yt-dlp and downloading a YouTube video with its unique link.",
         "type": "comment"
     },
     "3280": {
-        "file_id": 387,
-        "content": "/tests/jina_deploy_free_gpu_cpu/README.md",
+        "file_id": 381,
+        "content": "/tests/optical_flow/sparse_cpu.py",
         "type": "filepath"
     },
     "3281": {
-        "file_id": 387,
-        "content": "This code is a README for a test case, which aims to verify if Jina's computational resources can be used for free. It suggests creating a simple test case and potentially using this service indefinitely.",
+        "file_id": 381,
+        "content": "The code initializes an App object, tracks key points using PyrLK algorithm, calculates optical flow between frames, maintains maximum length of tracks and displays results. It uses OpenCV, numpy and Flownet2-pytorch model for processing and detecting key points.",
         "type": "summary"
     },
     "3282": {
-        "file_id": 387,
-        "content": "different from another 'jina' named test case, we are here to run things **for free**\nit is said that jina currently offer computational resources for free so why not just create a simple test case to verify that? maybe i can own this free service forever?",
+        "file_id": 381,
+        "content": "#coding=utf-8\nimport numpy as np\nimport cv2\n# from common import anorm2, draw_str\n# from time import clock\nimport cmath\nlk_params = dict(winSize=(15, 15),\n                 maxLevel=2,\n                 criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))\n# maxCorners : 设置最多返回的关键点数量。\n# qualityLevel : 反应一个像素点强度有多强才能成为关键点。\n# minDistance : 关键点之间的最少像素点。\n# blockSize : 计算一个像素点是否为关键点时所取的区域大小。\n# useHarrisDetector :使用原声的 Harris 角侦测器或最小特征值标准。\n# k : 一个用在Harris侦测器中的自由变量。\nfeature_params = dict(maxCorners=5000000,\n                      qualityLevel=0.1,\n                      minDistance=7,\n                      blockSize=7)\nclass App:\n    def __init__(self, video_src):  # 构造方法，初始化一些参数和视频路径\n        self.track_len = 10\n        self.detect_interval = 1\n        self.tracks = []\n        self.cam = cv2.VideoCapture(video_src)\n        self.frame_idx = 0\n        self.num = 0\n        self.i = 0\n        self.all_distance = 0\n        self.count = 0\n    def run(self):  # 光流运行方法\n        while True:\n            ret, frame = self.cam.read()  # 读取视频帧",
         "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/README.md:1-3"
+        "location": "/tests/optical_flow/sparse_cpu.py:1-37"
     },
     "3283": {
-        "file_id": 387,
-        "content": "This code is a README for a test case, which aims to verify if Jina's computational resources can be used for free. It suggests creating a simple test case and potentially using this service indefinitely.",
+        "file_id": 381,
+        "content": "App class initialization and video reading\n\nCode for creating and initializing the App object, capturing video frames from a specified source.",
         "type": "comment"
     },
     "3284": {
-        "file_id": 388,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test_client.py",
-        "type": "filepath"
+        "file_id": 381,
+        "content": "            if ret == True:\n                frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)  # 转化为灰度虚图像\n                # vis = frame.copy()\n                h, w = frame.shape[:2]\n                vis = np.ones((h, w), )\n                f = open('./shuibo_8_LK(x1,y1,x2,y2).txt','w+')\n                if len(self.tracks) > 0:  # 检测到角点后进行光流跟踪\n                    img0, img1 = self.prev_gray, frame_gray\n                    p0 = np.float32([tr[-1] for tr in self.tracks]).reshape(-1, 1, 2)\n                    \"\"\"\n                    nextPts, status, err = calcOpticalFlowPyrLK(prevImg, nextImg, prevPts[, nextPts[, status[, \n                    err[, winSize[, maxLevel[, criteria[, flags[, minEigThreshold]]]]]]]])\n                    参数说明：\n                      prevImage 前一帧8-bit图像\n                      nextImage 当前帧8-bit图像\n                      prevPts 待跟踪的特征点向量\n                      nextPts 输出跟踪特征点向量\n                      status 特征点是否找到，找到的状态为1，未找到的状态为0\n                      err 输出错误向量，（不太理解用途...）\n                      winSize 搜索窗口的大小",
+        "type": "code",
+        "location": "/tests/optical_flow/sparse_cpu.py:38-58"
     },
     "3285": {
-        "file_id": 388,
-        "content": "The code initializes a Jina Client, sends a document array with 'hello world' text to the client's endpoint, and retrieves the response. It then checks if the response status is 'success', prints the embedding data if it is, or otherwise prints the response message along with an error marker.",
-        "type": "summary"
+        "file_id": 381,
+        "content": "This code is performing optical flow tracking using the Pyramid Lucas-Kanade algorithm (PyrLK) on a video frame. It reads the previous and current frames, detects key points in the previous frame, calculates the new positions of these key points in the current frame, and updates the tracks list if any key point is found. The status array indicates whether each tracked point was found or not, and err presumably contains error information related to tracking. The code writes the x and y coordinates of each tracked point to a text file.",
+        "type": "comment"
     },
     "3286": {
-        "file_id": 388,
-        "content": "from jina import Client, DocumentArray, Document\nc = Client(port=12345)\ndocArray = DocumentArray.empty(1)\ndocArray[0].text = 'hello world'\nr = c.post('/', docArray)\nr_0 = r[0]\n# print(dir(r_0))\n# print(r_0.tags)\n# breakpoint()\ntext = r[0].text\nif text == 'success':\n    data = r[0].embedding\n    print(data)\n    print(data.dtype, shape(data))\nelse:\n    print(text)\n    print(\"____________ERROR____________\")",
+        "file_id": 381,
+        "content": "                      maxLevel 最大的金字塔层数\n                      flags 可选标识：OPTFLOW_USE_INITIAL_FLOW   OPTFLOW_LK_GET_MIN_EIGENVALS\n                    \"\"\"\n                    p1, st, err = cv2.calcOpticalFlowPyrLK(img0, img1, p0, None,\n                                                           **lk_params)  # 前一帧的角点和当前帧的图像作为输入来得到角点在当前帧的位置\n                    p0r, st, err = cv2.calcOpticalFlowPyrLK(img1, img0, p1, None,\n                                                            **lk_params)  # 当前帧跟踪到的角点及图像和前一帧的图像作为输入来找到前一帧的角点位置\n                    d = abs(p0 - p0r).reshape(-1, 2).max(-1)  # 得到角点回溯与前一帧实际角点的位置变化关系\n                    # good = d < 1  # 判断d内的值是否小于1，大于1跟踪被认为是错误的跟踪点\n                    good=d\n                    new_tracks = []\n                    for tr, (x, y), good_flag in zip(self.tracks, p1.reshape(-1, 2), good):  # 将跟踪正确的点列入成功跟踪点\n                        if not good_flag:\n                            continue\n                        tr.append((x, y))#tr是前一帧的角点，与当前帧的角点(x,y)合并。标志为good_flag",
         "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test_client.py:1-18"
+        "location": "/tests/optical_flow/sparse_cpu.py:59-74"
     },
     "3287": {
-        "file_id": 388,
-        "content": "The code initializes a Jina Client, sends a document array with 'hello world' text to the client's endpoint, and retrieves the response. It then checks if the response status is 'success', prints the embedding data if it is, or otherwise prints the response message along with an error marker.",
+        "file_id": 381,
+        "content": "This code calculates optical flow between two images using cv2.calcOpticalFlowPyrLK, tracking points from one image to another. It then compares the tracked points with the actual points and measures the displacement. Points with displacement greater than 1 are considered as incorrect and removed. The remaining points form new_tracks, which is a list of successful tracks.",
         "type": "comment"
     },
     "3288": {
-        "file_id": 389,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.sh",
-        "type": "filepath"
+        "file_id": 381,
+        "content": "                        if len(tr) > self.track_len:\n                            del tr[0]\n                        new_tracks.append(tr)\n                        # print(x,y)\n                        # breakpoint()\n                        cv2.circle(vis, (int(x), int(y)), 2, (0, 255, 0), -1)#当前帧角点画圆\n                    self.tracks = new_tracks #self.tracks中的值的格式是：(前一帧角点)(当前帧角点)\n                    # print(self.tracks[0])\n                    # print(self.tracks[1])\n                    distance = 0\n                    for tr in self.tracks:\n                        # tr[0]=list(tr[0])\n                        # tr[1]=list(tr[1])\n                        x1=tr[0][0]\n                        y1=tr[0][1]\n                        x2 = tr[1][0]\n                        y2 = tr[1][1]\n                        f.writelines([ str(x1), ' ', str(y1), ' ', str(x2), ' ', str(y2),'\\n'])\n                        dis=cmath.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))\n                        #正确追踪的点的个数\n                        print(len(self.tracks))",
+        "type": "code",
+        "location": "/tests/optical_flow/sparse_cpu.py:75-98"
     },
     "3289": {
-        "file_id": 389,
-        "content": "This code sets the JINA_MP_START_METHOD environment variable to \"spawn\" before running a Python script. It mentions an ongoing issue with loading a model using txtai, but doesn't elaborate further on the problem or its potential solutions.",
-        "type": "summary"
+        "file_id": 381,
+        "content": "This code tracks optical flow points across multiple frames, storing the tracked points in 'tracks'. It appends new tracks and deletes old ones to maintain a maximum length. The x and y coordinates of current points are plotted on a visualization ('vis'). Finally, it calculates the Euclidean distance between consecutive points and writes them into file 'f', while printing the total number of correctly tracked points.",
+        "type": "comment"
     },
     "3290": {
-        "file_id": 389,
-        "content": "env JINA_MP_START_METHOD=spawn python3 test.py\n# still we are having issue with the txtai, which cannot load our model for whatever reason.",
+        "file_id": 381,
+        "content": "                        #每一个正确追踪的点的像素点的位移\n                        print(dis.real)\n                        distance=distance+dis\n                    len_tracks = len(self.tracks)\n                    if len_tracks == 0:continue\n                    distance=distance/len_tracks\n                    self.all_distance=self.all_distance+distance\n                    self.count=self.count+1\n                    print(\"每一帧像素点平均位移：\",distance,\"第几帧：\",self.count)\n                    print(\"所有帧平均位移：\",(self.all_distance/self.count).real)\n                f.close()\n                if self.frame_idx % self.detect_interval == 0:  #每1帧检测一次特征点\n                    mask = np.zeros_like(frame_gray)  # 初始化和视频大小相同的图像\n                    mask[:] = 255  # 将mask赋值255也就是算全部图像的角点\n                    for x, y in [np.int32(tr[-1]) for tr in self.tracks]:  #跟踪的角点画圆\n                        cv2.circle(mask, (x, y), 5, 0, -1)\n                    p = cv2.goodFeaturesToTrack(frame_gray, mask=mask, **feature_params)  # 像素级别角点检测\n                    if p is not None:",
         "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.sh:1-2"
+        "location": "/tests/optical_flow/sparse_cpu.py:99-117"
     },
     "3291": {
-        "file_id": 389,
-        "content": "This code sets the JINA_MP_START_METHOD environment variable to \"spawn\" before running a Python script. It mentions an ongoing issue with loading a model using txtai, but doesn't elaborate further on the problem or its potential solutions.",
+        "file_id": 381,
+        "content": "Code calculates average pixel point displacement between frames and prints the results. It keeps track of all pixel point movements in a frame and counts the number of frames. The code checks for features every 1 frame, initializes a mask image, detects corners using goodFeaturesToTrack function, and stores the result if it is not None.",
         "type": "comment"
     },
     "3292": {
-        "file_id": 390,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.py",
-        "type": "filepath"
+        "file_id": 381,
+        "content": "                        for x, y in np.float32(p).reshape(-1, 2):\n                            self.tracks.append([(x, y)])  # 将检测到的角点放在待跟踪序列中\n                self.frame_idx += 1\n                self.prev_gray = frame_gray\n                cv2.imshow('lk_track', vis)\n            # ch = 0xFF & \n            if cv2.waitKey(20) == \"q\":\n                # cv2.imwrite(\"./mashiti-result4.png\", vis)\n                break\n# # get flownet2-pytorch source\n# git clone https://github.com/NVIDIA/flownet2-pytorch.git\n# cd flownet2-pytorch\n# # install custom layers\n# bash install.sh\ndef main():\n    import sys\n    try:\n        video_src = sys.argv[1]\n    except:\n        # video_src = \"./F/8/shuibo_8.avi\"\n        video_src = \"/media/root/help/pyjom/samples/video/dog_with_text.mp4\"\n    # print\n    # __doc__\n    App(video_src).run()\n    cv2.destroyAllWindows()\nif __name__ == '__main__':\n    main()",
+        "type": "code",
+        "location": "/tests/optical_flow/sparse_cpu.py:118-151"
     },
     "3293": {
-        "file_id": 390,
-        "content": "Importing semantic search encoder multilingual executor, disabling proxies, creating a Flow with 1 prefetch and 12345 port, adding the semantic search encoder to it with 1 replica, then running the Flow in blocking mode.",
-        "type": "summary"
-    },
-    "3294": {
-        "file_id": 390,
-        "content": "from executor import semantic_search_encoder_multilingual\nfrom jina import Flow\nimport os\nif __name__ == \"__main__\":\n    os.environ[\"http_proxy\"] = \"\"\n    os.environ[\"https_proxy\"] = \"\"\n    f = Flow(prefetch=1,port=12345).add(uses=semantic_search_encoder_multilingual, replicas=1)\n    with f:\n        f.block()",
-        "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.py:1-11"
-    },
-    "3295": {
-        "file_id": 390,
-        "content": "Importing semantic search encoder multilingual executor, disabling proxies, creating a Flow with 1 prefetch and 12345 port, adding the semantic search encoder to it with 1 replica, then running the Flow in blocking mode.",
+        "file_id": 381,
+        "content": "This code is a part of a video processing program. It reads frames from a video source, detects key points in each frame using the LK tracker, tracks these key points across successive frames to estimate optical flow, and displays the results. The code uses OpenCV library for image processing, numpy for numerical computations, and cv2.waitKey() function for window handling. It also imports a Flownet2-pytorch model from a git repository and installs custom layers.",
         "type": "comment"
     },
-    "3296": {
-        "file_id": 391,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/requirements.txt",
+    "3294": {
+        "file_id": 382,
+        "content": "/tests/optical_flow/nvidia_of_test.py",
         "type": "filepath"
     },
-    "3297": {
-        "file_id": 391,
-        "content": "These lines specify the required Python packages for the project. \"txtai\" is a package for text analysis, \"transformers\" is used for natural language processing, and \"faiss\" is an efficient library for nearest neighbors search.",
+    "3295": {
+        "file_id": 382,
+        "content": "The code converts video frames to grayscale, creates an optical flow object, and uploads the first two frames to GPU for calculation. It downloads a GPU flow, visualizes it using flow_vis library, displays in a window, and quits on 'q'. No garbage collection is performed.",
         "type": "summary"
     },
-    "3298": {
-        "file_id": 391,
-        "content": "txtai\ntransformers\nfaiss",
+    "3296": {
+        "file_id": 382,
+        "content": "from nvidia_common import *\nimport numpy as np \nimport cv2\nimport flow_vis\nvideo_file = \"/media/root/help/pyjom/samples/video/dog_with_text.mp4\"\n# this is the fastest.\nvideo = cv2.VideoCapture(video_file)\nret, img = video.read()\nprevImg = img.copy()\nwhile True:\n    ret, img = video.read()\n    if img is None: break\n    else:\n        frame1 = prevImg\n        frame1 = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)\n        frame2 = img # why freaking grayscale?\n        frame2 =  cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)\n        prevImg = img.copy()\n        perfPreset = 5\n        gpuId=0\n        # nvof = cv2.cuda_NvidiaOpticalFlow_2_0.create((frame1.shape[1], frame1.shape[0]),5, False, False, False, 0)\n        gpu_flow =cv2.cuda_FarnebackOpticalFlow.create(5, 0.5, False,\n                                                        15, 3, 5, 1.2, 0)\n        gpu_frame_a = cv2.cuda_GpuMat()\n        gpu_frame_b = cv2.cuda_GpuMat()\n        gpu_frame_a.upload(frame1)\n        gpu_frame_b.upload(frame2)\n        # -- exec flow --\n        gpu_flow = cv2.cuda_FarnebackOpticalFlow.calc(gpu_flow, gpu_frame_a,",
         "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/requirements.txt:1-3"
+        "location": "/tests/optical_flow/nvidia_of_test.py:1-36"
+    },
+    "3297": {
+        "file_id": 382,
+        "content": "Reading video file, converting frames to grayscale, creating optical flow object with specified parameters, and uploading the first two frames to GPU for calculation.",
+        "type": "comment"
+    },
+    "3298": {
+        "file_id": 382,
+        "content": "                                                      gpu_frame_b, None)\n        gpu_flow = gpu_flow.download()\n        # gpu_flow = gpu_flow.transpose(2,0,1)\n        # print(gpu_flow.shape())\n        # breakpoint()\n        # gpu_flow = th.from_numpy(gpu_flow).half()\n        # cv2.writeOpticalFlow('OpticalFlow.flo', flowUpSampled)\n        visualize = flow_vis.flow_to_color(gpu_flow, convert_to_bgr=False)\n        cv2.imshow(\"OPTFLOW\",visualize)\n        if cv2.waitKey(20) == chr(\"q\"):\n            print(\"QUIT THIS SHIT\")\n            break\n        # nvof.collectGarbage()",
+        "type": "code",
+        "location": "/tests/optical_flow/nvidia_of_test.py:37-53"
     },
     "3299": {
-        "file_id": 391,
-        "content": "These lines specify the required Python packages for the project. \"txtai\" is a package for text analysis, \"transformers\" is used for natural language processing, and \"faiss\" is an efficient library for nearest neighbors search.",
+        "file_id": 382,
+        "content": "This code downloads a GPU flow, potentially transposes it and prints its shape, then visualizes the flow using flow_vis library. It displays the visualization in a window and quits when 'q' is pressed. No garbage collection is performed.",
         "type": "comment"
     }
 }

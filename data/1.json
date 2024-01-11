@@ -1,546 +1,546 @@
 {
     "100": {
-        "file_id": 20,
-        "content": "    # breakpoint()\ndef chatOwnThink(msg: str, group_id, retryFlag=False, timeout=5):\n    url = \"https://api.ownthink.com/bot?appid=xiaosi&userid=user&spoken=\"\n    msg = urllib.parse.quote(msg)\n    myUrl = url + msg\n    data = requests.get(myUrl, timeout=timeout)\n    data = data.json()\n    # output = subprocess.check_output([\"curl\", myUrl])\n    # data = json.loads(output.decode(\"utf-8\"))\n    if data[\"message\"] == \"success\":\n        if data[\"data\"][\"type\"] == 5000:\n            return data[\"data\"][\"info\"][\"text\"]\n    # print(data)\n    # breakpoint()\n    # result = data['result']\n    # assert result == 0  # 202 -> busy\n    # content = data['content']\n    # return content\ndef chatXiaoIce(msg, group_id, retryFlag=False, timeout=5):\n    import requests\n    topic = getGroupNameFromDict(group_id)\n    if topic is None:\n        topic = \"aaa\"  # default topic. nothing.\n    r = requests.get(\n        \"http://localhost:8735/chat\",\n        params={\"topic\": topic, \"message\": msg},\n        timeout=timeout,\n    )\n    if r.status_code == 200:",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chatApis.py:77-111"
-    },
-    "101": {
-        "file_id": 20,
-        "content": "chatOwnThink and chatXiaoIce are two functions used to communicate with the ownthink.com API and local XiaoIce API, respectively. They both take a message as input, along with a group ID and optional retry flag and timeout values. If the request is successful, the function returns the text response from the API. The code also contains comments for potential future implementation of error handling, assertion checks, and content retrieval.",
-        "type": "comment"
-    },
-    "102": {
-        "file_id": 20,
-        "content": "        try:\n            content = r.json()\n            assert content[\"msg\"] == \"success\"\n            reply = content[\"reply\"]\n            return reply\n        except:\n            from lazero.utils.logger import traceError\n            traceError(\"xiaoice client error\")\n    else:\n        print(\"xiaoice client got abnormal response code:\", r.status_code)\n# changed. non_standard.\ndef getChatApiReply(\n    msg: str, group_id, chatApiIndex=0, retryFlag=False, timeout=15\n):  # 15 seconds of grace time.\n    # chatApis = [chatQingKeYun, chatAtri]\n    # blacklist chatOwnThink.\n    chatApis = [chatAtri, chatGPT2Local, chatXiaoIce]  # no random shit!\n    # chatApi = random.choice(chatApis)\n    chatApi = chatApis[chatApiIndex]\n    try:\n        reply = chatApi(msg, group_id, retryFlag=retryFlag, timeout=timeout)\n        # will be None anyway.\n        return reply\n    except:\n        pass",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chatApis.py:112-139"
-    },
-    "103": {
-        "file_id": 20,
-        "content": "This code defines a function `getChatApiReply` that selects a chat API from a list and tries to retrieve a response for the input message. If an exception occurs, it logs an error or returns None if the retry flag is set. The code also includes a try-except block to handle potential exceptions during the API request.",
-        "type": "comment"
-    },
-    "104": {
-        "file_id": 21,
-        "content": "/tasks/qq/qq_red_packet_collect/chat_local.py",
-        "type": "filepath"
-    },
-    "105": {
-        "file_id": 21,
-        "content": "The code uses the Jiagu library for sentiment analysis, stack management, and string comparison to handle duplicates in chat stacks, calculating differences between strings, and ranking messages based on Levenshtein distance and sentiment before either releasing or removing the selected message.",
-        "type": "summary"
-    },
-    "106": {
-        "file_id": 21,
-        "content": "# local chatbot implemetation.\n# first, we need experimental data.\n# a unified stack for every group.\n# import this shit ahead of everything.\nimport Levenshtein\nimport jiagu\nimport random\nfrom base_opq import stderrPrint\ndef update_stack(stack, elem, stackSize=300, no_duplicate=True):\n    if no_duplicate:\n        # check for duplicates.\n        if stack == []:\n            duplicate = False\n        else:\n            duplicate = stack[-1] == elem\n        if duplicate:\n            return stack\n    stack += [elem]\n    length = len(stack)\n    return stack[max(0, length - stackSize) :]\ndef getSentiment(sentence):\n    flag, probability = jiagu.sentiment(sentence)\n    # the probability that flag is true.\n    return flag, probability\ndef getAbsSentiment(sentence):  # ignore positive or negative.\n    flag, probability = getSentiment(sentence)\n    return probability\ndef getLinearSentiment(sentence):\n    flag, probability = getSentiment(sentence)\n    if flag == \"negative\":\n        probability = -probability\n    return probability",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:1-41"
-    },
-    "107": {
-        "file_id": 21,
-        "content": "This code contains various functions for sentiment analysis and managing a stack. It imports necessary libraries, updates a stack without duplicates (if specified), determines the sentiment of a sentence using Jiagu, and calculates linear sentiment by reversing negative sentiment probability.",
-        "type": "comment"
-    },
-    "108": {
-        "file_id": 21,
-        "content": "def compareDifference(sent_0, sent_1):\n    distance = Levenshtein.distance(sent_0, sent_1)\n    return distance\ndef getRatioDifference(sent_0, sent_1, reverse=False):\n    if reverse:\n        base_length = len(sent_1)\n    else:\n        base_length = len(sent_0)\n    distance = compareDifference(sent_0, sent_1)\n    return min(1, distance / base_length)\ndef getMinDifference(sent_0, sent_1):\n    reverse = False\n    if len(sent_0) < len(sent_1):\n        reverse = True\n    return getRatioDifference(sent_0, sent_1, reverse=reverse)\nchat_stack = {}\nhistoricalReplies = []  # should also be a stack.\nchat_stack_lock = False\ndef updateChatStack(group_id, message, stackSize=300, no_duplicate=True):\n    chat_stack[group_id] = update_stack(\n        chat_stack.get(group_id, []),\n        message,\n        stackSize=stackSize,\n        no_duplicate=no_duplicate,\n    )\ndef sampleChatStack(\n    originGroup: int, msg: str, min_corpus_size=100, sample_size=2000, originGroupCut=50\n):  # must exclude sent messages.\n    # assert min_corpus_size >= sample_size",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:44-84"
-    },
-    "109": {
-        "file_id": 21,
-        "content": "This code contains three functions: `compareDifference`, `getRatioDifference`, and `getMinDifference`. These functions calculate the difference between two strings by comparing their characters. The `updateChatStack` function updates a chat stack, ensuring no duplicate messages are included. The `sampleChatStack` function samples messages from the chat stack, excluding sent messages, for text generation.",
-        "type": "comment"
-    },
-    "110": {
-        "file_id": 21,
-        "content": "    # do not do this\n    population = [\n        (group_id, max(0, len(chat_stack[group_id]) - 1))\n        for group_id in chat_stack.keys()\n        if group_id != originGroup\n    ]\n    # population_size = sum([x[1] for x in population]) # wrong.\n    population = [  # no need to check against the original group here.\n        # if (chat_stack[group_id][index] != msg or group_id != originGroup)\n        [\n            (group_id, index)\n            for index in range(group_msg_size)\n            if chat_stack[group_id][index + 1] not in historicalReplies\n        ]\n        for group_id, group_msg_size in population\n    ]  # allow other group with same message or same group with other message\n    originGroupLength = len(chat_stack[originGroup]) - 1\n    if originGroupLength > originGroupCut:\n        # THIS WAS BLOODY WRONG\n        # WAS MISPLACED.\n        population.append(\n            [\n                (originGroup, index)\n                for index in range(0, originGroupLength - originGroupCut)\n                if chat_stack[originGroup][index] != msg",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:85-110"
-    },
-    "111": {
-        "file_id": 21,
-        "content": "Creates a list of group IDs and corresponding message indexes excluding the original group and message. Excludes groups with same messages or other messages from the same group. Retrieves number of messages in the original group and if more than the cutoff, adds original group's messages except the current one to the population list.",
-        "type": "comment"
-    },
-    "112": {
-        "file_id": 21,
-        "content": "            ]\n        )\n    population = [x for y in population for x in y]\n    population_size = len(population)\n    if population_size < min_corpus_size:\n        return []\n    sample_size = min(population_size, sample_size)\n    # it must equal.\n    sample = random.sample(population, sample_size)\n    return sample\ndef sentimentFilter(sentiment, threshold=0.85):\n    assert threshold > 0 and threshold < 1\n    # for too negative ones, we value it as 0.\n    if sentiment < -threshold or sentiment > threshold:\n        return 0\n    return abs(sentiment)\ndef getChatLocalResponse(\n    originGroup: int,\n    msg: str,\n    min_corpus_size=100,\n    sample_size=2000,\n    k_top=30,\n    originGroupCut=50,\n):\n    global chat_stack_lock\n    # assert min_corpus_size >= sample_size\n    if chat_stack_lock:\n        return  # do nothing. maybe another thread is holding the lock.\n    # must set a global lock.\n    chat_stack_lock = True\n    sample = sampleChatStack(\n        originGroup,\n        msg,\n        min_corpus_size=min_corpus_size,\n        sample_size=sample_size,",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:111-150"
-    },
-    "113": {
-        "file_id": 21,
-        "content": "This function, getChatLocalResponse, samples recent chat messages from a local stack for the given originGroup and message. It takes in parameters like min_corpus_size, sample_size, k_top, and originGroupCut. The function first checks if the global lock is set before proceeding to sample recent chat messages. If the lock is held by another thread, it returns without doing anything. Otherwise, it sets the global lock and calls the sampleChatStack function to get a list of recent chat messages that can be used for further analysis or processing.",
-        "type": "comment"
-    },
-    "114": {
-        "file_id": 21,
-        "content": "        originGroupCut=originGroupCut,\n    )\n    if len(sample) == 0 or len(sample) != sample_size:  # no sample received.\n        chat_stack_lock = False  # release lock\n        return\n    # this sample must not be empty.\n    # rank by Levenshtein distance.\n    ranks = [\n        (getMinDifference(msg, chat_stack[group_id][gm_index]), index)\n        for index, (group_id, gm_index) in enumerate(sample)\n    ]\n    ranks.sort(key=lambda x: x[0])\n    selected_ranks = ranks[:k_top]\n    selected_ranks = [sample[index] for difference_score, index in selected_ranks]\n    # do we have to match the mood? like positive/negative -> positive/negative?\n    # increase the negativity?\n    # sentiment shall be next sentence.\n    selected_emotional_ranks = [\n        (getLinearSentiment(chat_stack[group_id][gm_index + 1]), index)\n        for index, (group_id, gm_index) in enumerate(selected_ranks)\n    ]\n    selected_emotional_ranks.sort(\n        key=lambda x: -sentimentFilter(x[0])\n    )  # select the extremes. do not select too extreme ones.",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:151-176"
-    },
-    "115": {
-        "file_id": 21,
-        "content": "This code is sampling messages from a chat stack, ranking them by Levenshtein distance, and then selecting the top k ranks based on that distance. It also considers the sentiment of the next message in the selection process. If there's no valid sample or if the sample size doesn't match the expected value, it releases the lock and returns without any action.",
-        "type": "comment"
-    },
-    "116": {
-        "file_id": 21,
-        "content": "    mReplySentiment, mReplyIndex = selected_emotional_ranks[0]\n    mReply_group_id, mReply_gm_index = selected_ranks[mReplyIndex]\n    mReply = chat_stack[mReply_group_id][mReply_gm_index + 1]  # must plus one.\n    # before release lock we need to remove things from chat_stack and append things into historicalReplies(stack)\n    update_stack(historicalReplies, mReply)\n    # for _ in range(2):\n    #     del chat_stack[mReply_group_id][mReply_gm_index] # may cause problems. we might not delete this.\n    # discontinuality of message replies.\n    # you can somehow make the selected list immutable, into tuple.\n    chat_stack_lock = False\n    return mReply\n# must detect emotion level.\n# maybe do sampling on those stacks will help?\n# sample size must smaller tha population.",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:177-194"
-    },
-    "117": {
-        "file_id": 21,
-        "content": "This code snippet selects a reply message from a chat_stack list, deletes the selected message from the stack, and updates a historicalReplies stack. The code intends to ensure message replies are immutable by removing them from the original list after selection, but this approach may cause issues.",
-        "type": "comment"
-    },
-    "118": {
-        "file_id": 22,
-        "content": "/tasks/qq/qq_red_packet_collect/censorApis.py",
-        "type": "filepath"
-    },
-    "119": {
-        "file_id": 22,
-        "content": "The code defines three functions for censoring replies based on sentiment analysis, including \"censorReply\", which sends a request to a censor API; \"censorReplyAbsSentiment\", which censors if the absolute sentiment score exceeds a certain threshold; and \"censorReplyLinearSentiment\", which censors if the linear sentiment score is below a certain level. However, there is an issue with the positive/negative flag for some sentences. The function also returns the original reply if the sentiment change after censoring is less than 0.5; otherwise, it returns the censored reply.",
-        "type": "summary"
-    },
-    "120": {
-        "file_id": 22,
-        "content": "import requests\nfrom chat_local import getLinearSentiment, getAbsSentiment\ndef censorReply(reply, moderate=True):\n    url = \"http://127.0.0.1:8932/filter\"\n    response = requests.get(url, params={\"text\": reply, \"moderate\": moderate})\n    response = response.json()\n    reply = response[\"response\"]\n    return reply\ndef censorReplyAbsSentiment(\n    reply, moderate=True, sentiment_abs_level=0.6, censored_sentiment_threshold=0.8\n):\n    sentiment = getAbsSentiment(reply)\n    if sentiment > sentiment_abs_level:\n        reply = censorReply(reply)\n        censored_sentiment = getAbsSentiment(reply)\n        if censored_sentiment > censored_sentiment_threshold:\n            return None\n    return reply\n# however these sentiment based function will not work very well since the positive/negative flag is not working properly for sentence like \"操你妈\" -> (\"positive\", 0.8)\ndef censorReplyLinearSentiment(reply, moderate=True, sentiment_level=-0.9):\n    sentiment = getLinearSentiment(reply)\n    if sentiment < sentiment_level:\n        reply = censorReply(reply)",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/censorApis.py:1-33"
-    },
-    "121": {
-        "file_id": 22,
-        "content": "This code defines three functions for censoring replies based on sentiment analysis. The \"censorReply\" function sends a request to a censor API, the \"censorReplyAbsSentiment\" function censors a reply if its absolute sentiment score is above a certain threshold, and the \"censorReplyLinearSentiment\" function censors a reply if its linear sentiment score is below a certain level. However, the positive/negative flag does not work properly for some sentences.",
-        "type": "comment"
-    },
-    "122": {
-        "file_id": 22,
-        "content": "    return reply\ndef censorReplySentimentDelta(reply, moderate=True, sentiment_delta_level=0.5):\n    reply2 = censorReply(reply)\n    sentiment = getLinearSentiment(reply)\n    sentiment2 = getLinearSentiment(reply2)\n    sentiment_delta = sentiment2 - sentiment\n    if sentiment_delta < sentiment_delta_level:  # is that good?\n        return reply\n    else:\n        return reply2",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/censorApis.py:34-47"
-    },
-    "123": {
-        "file_id": 22,
-        "content": "This function censors a reply and returns the original reply if the sentiment change after censoring is less than 0.5; otherwise, it returns the censored reply.",
-        "type": "comment"
-    },
-    "124": {
-        "file_id": 23,
-        "content": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py",
-        "type": "filepath"
-    },
-    "125": {
-        "file_id": 23,
-        "content": "The code manages functions like ad sending, chat APIs, and sentiment analysis in opqbot. It ensures proper messaging practices by checking for banned words and repetition, schedules periodic message sending, sets up a weighted random reply yielder, monitors group chats, categorizes messages about cats and dogs, updates the database, manages ad counters and penalties, processes media messages, handles Chinese conversion, logs for GPT training, filters message types, writes chat cursor data, and manages red packets asynchronously.",
-        "type": "summary"
-    },
-    "126": {
-        "file_id": 23,
-        "content": "# for arm64 version of opqbot\n# disable that 复读机 plugin.\nimport os\nos.environ['HTTP_PROXY'] = \"\"\nos.environ['HTTPS_PROXY'] = \"\"\n# shall you analyze the logs/redPacketLog_*.log to get topics from groups and individuals.\nfrom chat_local import *\nfrom adtools import sendCatOrDogAdToQQGroup, checkCatOrDog, makeCatOrDogConnections\nfrom chatApis import getChatApiReply\nfrom base_opq import *\nimport schedule\nfrom chat_local import getAbsSentiment\nfrom censorApis import censorReplyAbsSentiment\nfrom commons import (\n    weightedRandomYielder,\n    generatedSentenceFixer,\n    keywordDecorator,\n    removeDuplicateWords,\n    replaceDuplicateChar,\n)\nAD_INIT_COUNTER = 1\ngroupChatCursor = None\ngroupMsgSendStatus = {}\ngroupChatReplyHistory = []\ngroupNoReplyStack = {}  # 防止连续对一个群持续输出\n# qq群最多可以添加500个群 1500个好友 其中群可加的数量 = max(0,500 - 已加入群数量 - 好友数量)\n# 可以退出一些安静的群 不发红包的群 删除好友\n# action.getClusterInfo\n# \"\"\"获取当前集群信息\"\"\"\n# this is to get the current server running status. i suspect.\ndef groupMsgRepeater(msg: str, sentiment_threshold=0.7):\n    sentiment = getAbsSentiment(msg)",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:1-45"
-    },
-    "127": {
-        "file_id": 23,
-        "content": "This code is for the arm64 version of opqbot, disabling the 复读机 plugin, and managing various functions like ad sending, chat APIs, base opq operations, sentiment analysis, censor replies, and more. It handles group messages, repeating them if necessary, while considering sentiment scores and maintaining a log for red packet collection.",
-        "type": "comment"
-    },
-    "128": {
-        "file_id": 23,
-        "content": "    if sentiment > sentiment_threshold:\n        return msg\ndef checkGroupMsgSendStatus(group_id, decrease=True):\n    if group_id in groupMsgSendStatus.keys():\n        if decrease:\n            groupMsgSendStatus[group_id] -= 1  # the feedback shall be elsewhere.\n        if groupMsgSendStatus[group_id] <= 0:\n            del groupMsgSendStatus[group_id]\n            return True\n        else:\n            return False\n    return True\n# now async.\n@asyncThread\ndef sendBotGroupTextMsg(\n    replyGetterYielder,\n    groupBannedErrorBuffer=100,  # 被禁言之后的buffer\n    retry=3,\n    min_reply_length=3,  # some impirical value.\n    delay_time_range=(5, 15),\n    context_size_range=(1, 3),  # maybe we do not need no context. or not?\n    maxRepeatRange=(2, 5),\n    noReplyThreshold=3,\n    noReplyBuffer=75,\n):  # the context parameter may lead to OOM.\n    global groupChatCursor\n    # will clear cursor after sending\n    if groupChatCursor is not None:\n        # do work here.\n        group_id = groupChatCursor[\"group_id\"]\n        # groupChatCursor = None",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:46-80"
-    },
-    "129": {
-        "file_id": 23,
-        "content": "This function, when called with a replyGetterYielder object and other parameters such as groupBannedErrorBuffer, retry, delay_time_range, context_size_range, maxRepeatRange, noReplyThreshold, and noReplyBuffer, sends a message to a QQ group chat using an async thread. It also manages the groupMsgSendStatus dictionary to keep track of the number of messages sent to each group. The function checks if the group is currently banned or not, retries sending the message a certain number of times if necessary, and adjusts the send status accordingly.",
-        "type": "comment"
-    },
-    "130": {
-        "file_id": 23,
-        "content": "        # return\n        result = checkGroupMsgSendStatus(group_id, decrease=False)  # failsafe.\n        if not result:\n            return\n        # modify this textMessage somehow? with context.\n        context = random.randint(*context_size_range)\n        textMessage = groupChatCursor[\"msg\"]\n        groupChatCursorWithContext = groupChatCursor.copy()\n        messageContext = chat_stack[group_id][-context:-1] + [\n            textMessage\n        ]  # include the last message.\n        messageContext = \" \".join(messageContext)  # just use space.\n        groupChatCursorWithContext[\"msg\"] = messageContext\n        for (\n            replyGetter,\n            argumentList,\n            flag,\n            needContext,\n            enableRetryFlag,\n        ) in replyGetterYielder:  # use all methods.\n            if exit_event.is_set():\n                break\n            retried = False\n            for _ in range(retry):  # retry for three times.\n                if exit_event.is_set():\n                    break\n                extraFlags = {}",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:81-109"
-    },
-    "131": {
-        "file_id": 23,
-        "content": "The code checks if the group message sending status is successful, then sets a context size range and uses it to construct a new text message. It joins all messages together with spaces and assigns the new message to the group chat cursor. Finally, it loops through multiple reply getters, trying them in order, with a maximum of three retries if the event is not set.",
-        "type": "comment"
-    },
-    "132": {
-        "file_id": 23,
-        "content": "                if enableRetryFlag:\n                    extraFlags.update({\"retryFlag\": retried})\n                # stderrPrint(extraFlags,replyGetter)\n                if needContext:\n                    reply = replyGetter(\n                        *[groupChatCursorWithContext[key] for key in argumentList],\n                        **extraFlags\n                    )\n                else:\n                    reply = replyGetter(\n                        *[groupChatCursor[key] for key in argumentList], **extraFlags\n                    )\n                if reply is not None:\n                    retried = True  # only plus one on retryIndex when there is no error during generation.\n                    maxRepeat = random.randint(*maxRepeatRange)\n                    reply = generatedSentenceFixer(\n                        reply, maxRepeat=maxRepeat\n                    )  # fix this reply first.\n                    # add a new filter here.\n                    reply = removeDuplicateWords(reply)\n                    if reply in groupChatReplyHistory or len(reply) < min_reply_length:",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:110-132"
-    },
-    "133": {
-        "file_id": 23,
-        "content": "This code block retrieves a reply from a replyGetter function, depending on whether context is needed or not. If the reply is not None, it updates retryFlag and generates a new random maxRepeat value for generatedSentenceFixer to fix the reply. The reply is then passed through removeDuplicateWords filter before checking if it's already in groupChatReplyHistory or shorter than min_reply_length.",
-        "type": "comment"
-    },
-    "134": {
-        "file_id": 23,
-        "content": "                        continue  # do not send repeated messages or unusually short messages.\n                    else:\n                        update_stack(groupChatReplyHistory, reply)\n                    # 句子里面不能有违禁词语 不然就不能输出\n                    reply = censorReplyAbsSentiment(reply)\n                    if reply is None:\n                        continue  # skip too vulgar sentences.\n                    if reply.count(\"*\") > 3:  # too much censor will make it unreadable.\n                        continue  # retry to get a better thing.\n                    # do reply.\n                    # stderrPrint(\"PROCESSING GROUP MESSAGE CURSOR:\", groupChatCursor)\n                    stderrPrint(flag, reply)\n                    # must control this shit. 如果被禁言了该如何处理 一般需要缓冲30次\n                    groupChatCursor = None  # remove it only one reply was to be made.\n                    delay = random.randint(*delay_time_range)\n                    time.sleep(delay)  # to make it more humane.\n                    sendMessageStatus = action.sendGroupText(",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:133-152"
-    },
-    "135": {
-        "file_id": 23,
-        "content": "Code checks if the message contains banned words, censors them if necessary, and ensures messages are not too short or repeated. If a suitable reply is found, it sends the message after a random delay to avoid flooding and make it appear more human-like.",
-        "type": "comment"
-    },
-    "136": {
-        "file_id": 23,
-        "content": "                        group=group_id, content=reply\n                    )\n                    # stderrPrint(\"SENT MESSAGE STATUS:\",sendMessageStatus)\n                    if not (\n                        sendMessageStatus[\"ErrMsg\"] == \"\"\n                        and sendMessageStatus[\"Ret\"] == 0\n                    ):\n                        # some shit had happened. cannot send message without error.\n                        groupMsgSendStatus.update({group_id: groupBannedErrorBuffer})\n                    else:\n                        # no shit happened.\n                        groupNoReplyStack.update(\n                            {group_id: 1 + groupNoReplyStack.get(group_id, 0)}\n                        )\n                        # stderrPrint(\"UPDATE NOREPLYSTACK\", groupNoReplyStack)\n                        noReply = groupNoReplyStack.get(group_id, 0)\n                        if (\n                            noReply >= noReplyThreshold\n                        ):  # only this noReply greater than 0 we can write it to cursor. LOGIC ELSEWHERE",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:153-172"
-    },
-    "137": {
-        "file_id": 23,
-        "content": "Code snippet handles sending messages to a group using the 'sendMessageStatus' response. If an error occurs (non-empty 'ErrMsg' or non-zero 'Ret'), the group is marked as banned. If no errors, the count of unsent messages is incremented for that group. If the count exceeds a threshold, it can be written to the cursor.",
-        "type": "comment"
-    },
-    "138": {
-        "file_id": 23,
-        "content": "                            groupNoReplyStack.update({group_id: -noReplyBuffer})\n                    # stderrPrint(\"sendMessageStatus:\", sendMessageStatus)\n                    return True\ndef sendRandomGroupMessage():\n    sendAtriGroupChatMessage = (\n        keywordDecorator(getChatApiReply, chatApiIndex=0),\n        [\"msg\", \"group_id\"],\n        \"SENDING ATRI API REPLY:\",\n        True,\n        True,\n    )  # last is enableRetryFlag\n    sendGPT2GroupChatMessage = (\n        keywordDecorator(getChatApiReply, chatApiIndex=1),\n        [\"msg\", \"group_id\"],\n        \"SENDING GPT2 API REPLY:\",\n        True,\n        True,\n    )  # last is enableRetryFlag\n    sendXiaoIceGroupChatMessage = (\n        keywordDecorator(getChatApiReply, chatApiIndex=2),\n        [\"msg\", \"group_id\"],\n        \"SENDING XIAOICE API REPLY:\",\n        True,\n        True,\n    )\n    sendChatLocalResponse = (\n        getChatLocalResponse,\n        [\"group_id\", \"msg\"],\n        \"SENDING CHATLOCAL REPLY:\",\n        False,\n        False,\n    )\n    sendRepeaterResponse = (",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:173-209"
-    },
-    "139": {
-        "file_id": 23,
-        "content": "This code defines four different functions for sending messages to a group chat: `sendAtriGroupChatMessage`, `sendGPT2GroupChatMessage`, `sendXiaoIceGroupChatMessage`, and `sendChatLocalResponse`. Each function takes a \"group_id\" and a \"msg\", and has a specific label indicating the source of the message. The last parameter in each tuple indicates whether to retry sending if an error occurs.",
-        "type": "comment"
-    },
-    "140": {
-        "file_id": 23,
-        "content": "        groupMsgRepeater,\n        [\"msg\"],\n        \"SENDING REPEATER REPLY:\",\n        False,\n        False,\n    )\n    replyGetterList = [\n        sendAtriGroupChatMessage,\n        sendGPT2GroupChatMessage,\n        sendChatLocalResponse,\n        sendRepeaterResponse,\n        sendXiaoIceGroupChatMessage,\n    ]\n    weightList = [2, 5, 1, 1, 5]\n    # weightList = [1, 3, 2, 2, 5] # said that is girish, because of xiaoice.\n    replyGetterYielder = weightedRandomYielder(replyGetterList, weightList)\n    sendBotGroupTextMsg(replyGetterYielder)\n# schedule.every(1).minute.do(sendApiGroupChatMessage)\n# schedule.every(30).seconds.do(sendChatLocalResponse) # will this shit work?\nschedule.every(1).minute.do(sendRandomGroupMessage)  # will this shit work?\ndef printGroupTextChatJson(group_id, sender_id, content):\n    message = {\"group_id\": group_id, \"sender_id\": sender_id, \"content\": content}\n    message = json.dumps(message, ensure_ascii=False)\n    stderrPrint(\n        \"[GROUP_TEXT_MESSAGE]\", message\n    )  # strange. who the fuck added this shit?",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:210-240"
-    },
-    "141": {
-        "file_id": 23,
-        "content": "This code is setting up a weighted random reply yielder for a group chat bot, with multiple reply options and weights. It also schedules a function to send a random group message periodically and prints group text chat messages in JSON format. The schedule functionality seems to have some uncertainty about its effectiveness.",
-        "type": "comment"
-    },
-    "142": {
-        "file_id": 23,
-        "content": "# convert to simplified chinese.\nimport opencc\nchinese_t2s = opencc.OpenCC()\nadBuffer = {}\n# hook up this thing, send cat video only if we receive that topic.\nfrom adtools import checkIsCatOrDogImage\n@asyncThread\ndef catOrDogAsyncThread(group_id:str, sender_id:str,Content:str,is_image:bool=False, is_user:bool=False):\n    if is_image:\n        try:\n            cat_or_dog = checkIsCatOrDogImage(Content)\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"Exception when detecting image if it is cat or dog\")\n            return\n    else:\n        cat_or_dog = checkCatOrDog(Content)\n    # we need to update neo4j database, using group_id, sender_id, cat_or_dog.\n    if cat_or_dog:\n        makeCatOrDogConnections(\n            str(group_id), str(sender_id), cat_or_dog\n        )\n        # act accordingly. decide to send ad or not.\n        if adBuffer.get(str(group_id), 0) <= 0:\n            penalty = 10\n            # send the ad.\n            success = sendCatOrDogAdToQQGroup(str(group_id), cat_or_dog, action)",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:243-274"
-    },
-    "143": {
-        "file_id": 23,
-        "content": "This code defines a function that checks whether the content sent in a QQ group is an image of a cat or dog. If it is, the function updates a Neo4j database and decides whether to send an ad based on a counter for each group. The code uses OpenCC library for text simplification and imports traceback module for error handling.",
-        "type": "comment"
-    },
-    "144": {
-        "file_id": 23,
-        "content": "            if success:\n                penalty += 40 # every 50 messages we have one ad.\n            adBuffer[str(group_id)] = penalty\n        # decrease that counter by standard group messages.\nfrom botoy.collection import MsgTypes\n@bot.on_group_msg\ndef group(ctx: GroupMsg, groupInitReplyDelayRange=(4, 15)):\n    # too broad for groupInitReplyDelayRange to be (2, 20)\n    # global groupChatCursor\n    #    stderrPrint('收到群消息，群号为', ctx.FromGroupId)\n    # recommed you to check the curret group only.\n    #    stderrPrint(\"checkGroupNoReply:\",groupNoReplyStack.get(ctx.FromGroupId,None))\n    data_dict = ctx.data  # recommend to use this json object. or not?\n    groupName = data_dict.get(\"FromGroupName\", None)\n    group_id = data_dict[\"FromGroupId\"]\n    # decrease that ad counter.\n    adCounter = adBuffer.get(str(group_id), AD_INIT_COUNTER)\n    if adCounter > 0:\n        adCounter -= 1\n    adBuffer[str(group_id)] = adCounter\n    if groupName is not None:\n        updateGroupNameDict(groupName, group_id)\n    sender_id = data_dict[\"FromUserId\"]",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:275-301"
-    },
-    "145": {
-        "file_id": 23,
-        "content": "This code fragment monitors a group chat and manages ad counters based on the number of messages sent. For each message, it checks if a penalty should be added and updates an ad counter for the specific group ID. The ad counter is decreased with every standard group message received. It also updates the group name dictionary and handles user input data from messages sent to the group chat.",
-        "type": "comment"
-    },
-    "146": {
-        "file_id": 23,
-        "content": "    RedBaginfoDict = data_dict[\"RedBaginfo\"]\n    RedBaginfo = ctx.RedBaginfo\n    MsgType = ctx.MsgType\n    # how to download these shits?\n    try:\n        from botoy.parser.group import Pic\n        if MsgType == MsgTypes.PicMsg:\n            pic_obj = Pic(**json.loads(ctx.Content))\n            pics = pic_obj.GroupPic\n            for pic in pics:\n                pic_url = pic.Url\n                catOrDogAsyncThread(str(group_id), str(sender_id),pic_url,is_image=True)\n        elif MsgType == MsgTypes.VideoMsg:\n            ...\n        elif MsgType == MsgTypes.VoiceMsg:\n            ...\n        elif MsgType == MsgTypes.JsonMsg:\n            ... # hope you can receive that? nope? you can only receive that by go-cqhttp.\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"ERROR WHEN PROCESSING MEDIA MESSAGES.\")\n        print(\"MSGTYPE:\",MsgType)\n    # first initialize random delay for every group in groupNoReplyStack\n    if group_id not in groupNoReplyStack.keys():\n        groupNoReplyStack.update({group_id: -random.randint(*groupInitReplyDelayRange)})",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:302-329"
-    },
-    "147": {
-        "file_id": 23,
-        "content": "This code is handling media messages (images, videos, voice) in a chat group. It tries to download images and may process videos or voice messages. If the message type is not recognized, it logs an error. The code also initializes random delay for a group's no-reply stack if the group ID isn't present.",
-        "type": "comment"
-    },
-    "148": {
-        "file_id": 23,
-        "content": "    def writeGroupChatCursor(Content, enable_t2s=True):\n        if enable_t2s:\n            Content = chinese_t2s.convert(Content)\n        # content need to converted into simplified chinese.\n        global groupChatCursor, chat_stack_lock\n        # maybe we should create the mapping table here.\n        content_length = len(Content)\n        content_min_length = 4\n        # maybe we should split sentence into shorter ones, or via summarization/title generation apis.\n        content_max_length = 15\n        recv_content_min_length, recv_content_max_length = 4, 20\n        if not (Content.startswith(\"[\") or Content.endswith(\"]\")):\n            if (\n                content_length <= recv_content_max_length\n                and content_length >= recv_content_min_length\n            ):\n                printGroupTextChatJson(\n                    group_id, sender_id, Content\n                )  # why the fuck you are not printing?\n            if (\n                content_length <= content_max_length\n                and content_length >= content_min_length",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:331-352"
-    },
-    "149": {
-        "file_id": 23,
-        "content": "Function writes group chat cursor data to a file, with support for Chinese simplified to traditional conversion. The content length is checked against minimum and maximum thresholds before printing or potentially splitting into shorter segments.",
-        "type": "comment"
-    },
-    "150": {
-        "file_id": 23,
-        "content": "            ):  # 新版qq之类的信息\n                # we log group chat text for gpt training here. shall we?\n                result = checkGroupMsgSendStatus(group_id)\n                if (\n                    result\n                ):  # will not write banned group to cursor since we will not reply it.\n                    noReply = groupNoReplyStack.get(group_id, 0)\n                    # stderrPrint(\"NOREPLYSTACK:\",groupNoReplyStack)\n                    if noReply >= 0:\n                        groupChatCursor = {\"group_id\": group_id, \"msg\": Content}\n                    else:\n                        groupNoReplyStack.update({group_id: noReply + 1})\n                # chat_stack update logic within the content length filter\n                if chat_stack_lock:\n                    # do not do anything about the chat_stack while locked.\n                    return\n                else:\n                    # check if we are hit by something interesting?\n                    catOrDogAsyncThread(group_id, sender_id, Content)",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:353-373"
-    },
-    "151": {
-        "file_id": 23,
-        "content": "This code block handles QQ group chat messages and logs them for GPT training. It also manages a \"noReply\" counter for groups where the bot should not reply, and updates a chat_stack based on certain conditions. The chat_stack lock is checked to ensure no simultaneous updates are made. If interesting content is detected, it triggers a catOrDogAsyncThread function.",
-        "type": "comment"
-    },
-    "152": {
-        "file_id": 23,
+        "file_id": 11,
         "content": "                    updateChatStack(group_id, Content)\n                    # or we could simply add the filter on the reply side.\n    if sender_id != my_qq:  # skip text content sent by itself.\n        # how to act like the TextMsg? it could include video/image contents.\n        if MsgType == \"AtMsg\":\n            Content = ctx.Content  # this is string.\n            Content_json = json.loads(Content)\n            content_text = Content_json[\"Content\"].strip()\n            # print(Content_json)\n            # breakpoint()\n            # 'SrcContent', 'UserID'(list)\n            content_at_target = (\"@\" + content_text.split(\"@\")[1]).strip()\n            content_text = content_text.replace(content_at_target, \"\")\n            content_text = replaceDuplicateChar(content_text, \" \", maxRepeat=1)\n            # UserExt = Content_json[\"UserExt\"]\n            # # shit revised. no more 'UserExt'\n            # for elem in UserExt:\n            #     QQNick = elem[\"QQNick\"]\n            #     at_QQNick = \"@{}\".format(QQNick)\n            #     content_text = content_text.replace(at_QQNick + \" \" + at_QQNick, \"\")",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:374-394"
     },
-    "153": {
-        "file_id": 23,
+    "101": {
+        "file_id": 11,
         "content": "This code checks if the message type is an \"AtMsg\" and extracts the content, removes the mentioned user, replaces duplicate characters with a maximum repeat of 1, and updates the chat stack. If the sender is not the bot itself, it performs these actions on the message content.",
         "type": "comment"
     },
-    "154": {
-        "file_id": 23,
+    "102": {
+        "file_id": 11,
         "content": "            #     content_text = content_text.replace(at_QQNick, \"\")\n            # now the content is ready.\n            writeGroupChatCursor(content_text)\n        if MsgType == \"TextMsg\":\n            # is that group allowing sending messages?\n            content_text = ctx.Content  # must not be empty.\n            writeGroupChatCursor(content_text)\n    if RedBaginfoDict is not None:\n        prefix = \"[MREDBAG_LOG]\"\n        print(prefix, \"RECEIVED RED PACKET\", file=sys.stderr)\n        print(\n            prefix, \"_____________RedPacket Message Dump_____________\", file=sys.stderr\n        )\n        print(prefix, ctx, file=sys.stderr)\n        print(\n            prefix, \"_____________RedPacket Message Dump_____________\", file=sys.stderr\n        )\n        startThread(openRedBag, (RedBaginfoDict, group_id, RedBaginfo))\n    schedule.run_pending()  # this is async.\n    # breakpoint()\nif __name__ == \"__main__\":\n    bot.run()\n# do not send porn shits or you need to relogin.",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:395-421"
     },
-    "155": {
-        "file_id": 23,
+    "103": {
+        "file_id": 11,
         "content": "Code chunk handles messages and red packets in a QQ group chat. It filters the message type, prepares content for writing, writes to the group chat cursor, handles received red packets by starting a thread, and runs pending tasks asynchronously.",
         "type": "comment"
     },
-    "156": {
-        "file_id": 24,
+    "104": {
+        "file_id": 12,
         "content": "/tasks/qq/qq_red_packet_collect/base_opq.py",
         "type": "filepath"
     },
-    "157": {
-        "file_id": 24,
+    "105": {
+        "file_id": 12,
         "content": "The code handles group management in a messaging platform using modules and botoy instance for QQ API communication, includes error printing helper functions, and performs searches with API requests. It also has an 'openRedBag' function that retries three times with sleep time backoff strategy and parameter checks, delay ranges, and forbidden keyword filtering. The asyncThread decorator starts new threads to execute original func functions.",
         "type": "summary"
     },
-    "158": {
-        "file_id": 24,
+    "106": {
+        "file_id": 12,
         "content": "from botoy import Action\nfrom botoy import Botoy, GroupMsg\nimport threading\nimport json\nimport time\nimport random\nimport sys\nimport traceback\nfrom threading import Event\nexit_event = Event()\nexit_event.clear()\ndef programExit():\n    exit_event.set()\n# my_qq = 1281727431 # freaking int! Yukio.\nimport argparse\nparser = argparse.ArgumentParser()\nparser.add_argument(\n    \"--qq\", type=int, default=1281727431, required=False\n)  # must not required since we have default value here.\nparser.add_argument(\"--port\", type=int, default=8780, required=False)\nparser.add_argument(\"--log\", action=\"store_true\")\nparser.add_argument(\"--log_file\", action=\"store_true\")\n# 忽略信息的blacklist 还有user_blacklist\ngroup_blacklist = [927825838]  # 微信的hook发布群\nfriend_blacklist = [364831018]  # 发给我微信hook的人\nparsed_args = parser.parse_args()\nmy_qq = parsed_args.qq\nserver_port = parsed_args.port\nlog = parsed_args.log\nlog_file = parsed_args.log_file\n# you can pass the qq via enviorment variable.\n# it is already inside. so the call fails.\n# you might check all friends list and grou list.",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:1-46"
     },
-    "159": {
-        "file_id": 24,
+    "107": {
+        "file_id": 12,
         "content": "The code imports necessary modules and defines functions for handling program exit, parsing command-line arguments, and managing blacklists. The script takes a QQ number as an input and determines which friends and groups to interact with based on the provided arguments. It also allows for logging and handling environment variables.",
         "type": "comment"
     },
-    "160": {
-        "file_id": 24,
+    "108": {
+        "file_id": 12,
         "content": "lua_v1_api_path = \"/v1/LuaApiCaller\"\nopq_server = {\"host\": \"localhost\", \"port\": server_port}  # this is for arm\n# opq_server = {\"host\":\"localhost\",\"port\":8781} # this is for amd64\n# not 0.0.0.0 but freaking localhost.\naction = Action(qq=my_qq, port=opq_server[\"port\"], host=opq_server[\"host\"])\nbot = Botoy(\n    qq=my_qq,\n    port=opq_server[\"port\"],\n    host=opq_server[\"host\"],\n    log=log,\n    log_file=log_file,\n    group_blacklist=group_blacklist,\n    friend_blacklist=friend_blacklist,\n)  # have info. have custom log file.\n## this is the damn bot. how to get group name?\nmyGroupDict = {}\ntry:\n    myGroupList = action.getGroupList()\n    myGroupDict = {elem[\"GroupId\"]: elem[\"GroupName\"] for elem in myGroupList}\nexcept:\n    pass\n# [{'GroupId': 118794, 'GroupMemberCount': 2818, 'GroupName': '攻防世界交流群', 'GroupNotice': '第四届“第五空间”网络安全大赛\\n1、报名网站：\\x01https://ctf.360.net/5space\\x02\\n2、 报名时间：8月30日--9月9日（沿用DSCTF）\\n', 'GroupOwner': 41495, 'GroupTotalCount': 3000},...]\n# from lazero.utils.logger import sprint\n# sprint(myGroupList)",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:47-73"
     },
-    "161": {
-        "file_id": 24,
+    "109": {
+        "file_id": 12,
         "content": "This code sets up a botoy instance for communication with the QQ API, retrieves a list of groups, and stores them in a dictionary. The group information is obtained using the `getGroupList()` method from the action class, and the dictionary maps each group ID to its corresponding name. If an error occurs during this process, it is caught and ignored.",
         "type": "comment"
     },
-    "162": {
-        "file_id": 24,
+    "110": {
+        "file_id": 12,
         "content": "# breakpoint()\ndef updateGroupNameDict(groupName, group_id):\n    global myGroupDict\n    group_id = int(group_id)\n    if group_id not in myGroupDict.keys():\n        print(\"UPDATING GROUP_ID -> GROUP_NAME DICT\")\n        print(\"OROUP ID:\", group_id)\n        print(\"GROUP NAME:\", groupName)\n        myGroupDict.update({group_id: groupName})\ndef getGroupNameFromDict(group_id):\n    global myGroupList, action, myGroupDict\n    if myGroupList in [None, []]:  # if not empty please update this dict elsewhere?\n        try:\n            myGroupList = action.getGroupList()\n            myGroupDict.update(\n                {elem[\"GroupId\"]: elem[\"GroupName\"] for elem in myGroupList}\n            )\n        except:\n            print(\"NO GROUP LIST AVALIABLE.\")\n            return\n    group_id = int(group_id)\n    groupName = myGroupDict.get(group_id, None)\n    if groupName is None:\n        print(\"NO GROUP NAME AVALIABLE.\")\n    return groupName\n#  \t搜索群组 添加好友\n# openRedBag \t打开红包\n# joinGroup \t加入群聊\n# dealFriend \t处理好友请求\ndef stderrPrint(*args, **kwargs):",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:74-109"
     },
-    "163": {
-        "file_id": 24,
+    "111": {
+        "file_id": 12,
         "content": "The code contains a function to update the group_id to group name dictionary, a function to get the group name from the dictionary based on the given group_id, and three uncommented function calls. The code seems to be related to handling groups and red packets in a messaging platform. It also includes a helper function for error printing.",
         "type": "comment"
     },
-    "164": {
-        "file_id": 24,
+    "112": {
+        "file_id": 12,
         "content": "    kwargs.update({\"file\": sys.stderr})\n    print(*args, **kwargs)\ndef searchGroup(keyword, pageNum=0):\n    payload = {\"Content\": keyword, \"Page\": pageNum}\n    result = action.post(\n        funcname=\"SearchGroup\", payload=payload, path=lua_v1_api_path\n    )  # do not pass params since it will auto complete.\n    print(\"SEARCH GROUP RESULT: \", result)\n    return result\ndef addFriend(friend_id, reason=\"\", sourceString=\"search\", group_id=0):\n    # some conversions\n    if friend_id != int:\n        friend_id = int(friend_id)\n    if group_id != int:\n        group_id = int(group_id)  # source group id.\n    add_friend_sources = {\n        \"qzone\": 2011,\n        \"search\": 2020,\n        \"group\": 2004,\n        \"discussion\": 2005,\n    }\n    source = add_friend_sources[sourceString]\n    source_dict = {\n        2011: \"空间\",\n        2020: \"QQ搜索\",\n        2004: \"群组\",\n        2005: \"讨论组\",\n    }  # you can make it into another dict.\n    assert source in source_dict.keys()\n    if source != 2004:\n        group_id = 0  # prevent issues.\n    payload = {",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:110-146"
     },
-    "165": {
-        "file_id": 24,
+    "113": {
+        "file_id": 12,
         "content": "The code contains two functions: `searchGroup` and `addFriend`. The `searchGroup` function performs a search for a keyword in QQ groups and returns the result. It sends a POST request to a specified API endpoint with the keyword and page number as parameters. The `addFriend` function adds a friend using a given friend ID, reason (optional), source string (e.g., 'search'), and group ID. It first checks if the input is of correct type and then maps the source string to a specific QQ friend adding method. If the source is a group, it also checks if the group ID is provided.",
         "type": "comment"
     },
-    "166": {
-        "file_id": 24,
+    "114": {
+        "file_id": 12,
         "content": "        \"Content\": reason,\n        \"AddFromSource\": source,\n        \"FromGroupID\": group_id,\n        \"AddUserUid\": friend_id,\n    }\n    result = action.post(\n        funcname=\"AddQQUser\", payload=payload, path=lua_v1_api_path\n    )  # do not pass params since it will auto complete.\n    print(\"ADD FRIEND RESULT: \", result)\n    return result\ndef openRedBag(\n    RedBaginfoDict,\n    group_id,\n    RedBaginfo,\n    delay=(5, 10),\n    prefix=\"[MREDBAG_LOG]\",\n    forbiddenKeywords=[\"test\", \"测试\", \"别抢\", \"不要\"],\n):\n    bag_type = RedBaginfoDict[\"RedType\"]\n    print(prefix, \"THREAD LAUCHED\", file=sys.stderr)\n    if bag_type in [4, 6, 12]:\n        print(prefix, \"COLLECTING RED BAG\", file=sys.stderr)\n        sleep_time = random.randint(*delay)\n        print(prefix, \"SLEEP TIME:\", sleep_time, file=sys.stderr)\n        time.sleep(sleep_time)\n        title = RedBaginfoDict[\"Tittle\"]\n        # filter this title shit.\n        if any(\n            [keyword in title.lower().replace(\" \", \"\") for keyword in forbiddenKeywords]\n        ):\n            stderrPrint(\"title containing forbidden keywords\")",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:147-179"
     },
-    "167": {
-        "file_id": 24,
+    "115": {
+        "file_id": 12,
         "content": "The code defines a function 'openRedBag' that takes parameters such as RedBaginfoDict, group_id, RedBaginfo, delay, prefix and forbiddenKeywords. It determines the bag type based on RedBaginfoDict[\"RedType\"] and checks if the bag type is either 4, 6 or 12. If so, it randomly selects a sleep time from the given delay range, sleeps for that amount of time, and then prints the message with prefix and sleep time to stderr. It also filters the title by checking if any keyword from forbiddenKeywords is present in the title (ignoring spaces).",
         "type": "comment"
     },
-    "168": {
-        "file_id": 24,
+    "116": {
+        "file_id": 12,
         "content": "            stderrPrint(\"refuse to open red bag:\", title.__repr__())\n            return\n        if bag_type == 12:\n            action.sendGroupText(group=group_id, content=title)\n        for trial in range(3):  # try three times till we get there.\n            if exit_event.is_set():\n                break\n            try:\n                answer = action.openRedBag(RedBaginfo)\n                print(prefix, \"RESULT:\", answer, file=sys.stderr)\n                print(prefix, \"TRIAL %d: COLLECTED RED BAG\" % trial, file=sys.stderr)\n                assert answer[\"Ret\"] == 0  # assert no problem here.\n                break\n            except:\n                print(\"_____________RedPacket Exception____________\")\n                traceback.print_exc()\n                print(\"_____________RedPacket Exception____________\")\n                sleep_time = random.randint(*delay)\n                time.sleep(sleep_time)\ndef startThread(target, args=(), kwargs={}):\n    thread = threading.Thread(target=target, args=args, kwargs=kwargs, daemon=False)",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:180-202"
     },
-    "169": {
-        "file_id": 24,
+    "117": {
+        "file_id": 12,
         "content": "This code is trying to open a red bag and collect items. If the operation fails, it will attempt three times before giving up. The function uses a try-except block for error handling and includes logging and sleep time for backoff strategy. A startThread function is also defined which can be used to create new threads in the codebase.",
         "type": "comment"
     },
-    "170": {
-        "file_id": 24,
+    "118": {
+        "file_id": 12,
         "content": "    thread.start()\ndef asyncThread(func):\n    def new_func(*args, **kwargs):\n        startThread(func, args=args, kwargs=kwargs)\n    return new_func",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:203-210"
     },
-    "171": {
-        "file_id": 24,
+    "119": {
+        "file_id": 12,
         "content": "This code defines an asyncThread decorator function that starts a new thread when called, using the startThread function to execute the original func function in a separate thread.",
         "type": "comment"
     },
-    "172": {
-        "file_id": 25,
+    "120": {
+        "file_id": 13,
+        "content": "/tasks/qq/qq_red_packet_collect/test_qrcode_insert_replace.py",
+        "type": "filepath"
+    },
+    "121": {
+        "file_id": 13,
+        "content": "This code imports a function to remove and insert QR codes, then tests it with two image inputs and a specific qrcode_path. It displays the output images in a window before exiting.",
+        "type": "summary"
+    },
+    "122": {
+        "file_id": 13,
+        "content": "from ad_template_2_functional import removeAndInsertQRCode\nimport cv2\ndef test_main():\n    images = [\n        \"/root/Desktop/works/pyjom/samples/image/qrcode_test/no_qrcode.jpg\",\n        \"/root/Desktop/works/pyjom/samples/image/qrcode_test/with_qrcode.jpg\",\n    ]  # convert to compatible formats first.\n    qrcode_path = \"/root/Desktop/works/pyjom/tests/bilibili_video_recommendation_server/ebegging_template.png\"\n    for img in images:\n        output = removeAndInsertQRCode(img, qrcode_path, None)\n        cv2.imshow(\"IMG\", output)\n        cv2.waitKey(0)\nif __name__ == \"__main__\":\n    test_main()",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/test_qrcode_insert_replace.py:1-20"
+    },
+    "123": {
+        "file_id": 13,
+        "content": "This code imports a function to remove and insert QR codes, then tests it with two image inputs and a specific qrcode_path. It displays the output images in a window before exiting.",
+        "type": "comment"
+    },
+    "124": {
+        "file_id": 14,
         "content": "/tasks/qq/qq_red_packet_collect/adtools.py",
         "type": "filepath"
     },
-    "173": {
-        "file_id": 25,
+    "125": {
+        "file_id": 14,
         "content": "The code uses image classification, conversation recording, and Neo4j driver for detecting cat and dog lovers, and generates ads from video dictionaries with cover images. It has various features like rate limiting, debug mode, and handles unimplemented styles randomly.",
         "type": "summary"
     },
-    "174": {
-        "file_id": 25,
+    "126": {
+        "file_id": 14,
         "content": "import rich\ncatSignals = [\"喵喵\", \"猫\", \"猫咪\", \"喵\"]\ndogSignals = [\n    \"狗狗\",\n    \"狗\",\n    \"汪汪\",\n    \"修勾\",\n    \"汪\",\n    \"狗子\",\n]\n# def getQueryWordFromSignals(signals:list):\n#     msignals = signals.copy()\n#     msignals.sort(key=lambda x: len(x))\n#     response = []\n#     for s in msignals:\n#         if s not in \" \".join(response):\n#             response.append(s)\n#     return \" \".join(response)\ncatDogElemDict = {\"cat\": catSignals, \"dog\": dogSignals}\n# catQueryWord = getQueryWordFromSignals(catSignals)\n# dogQueryWord = getQueryWordFromSignals(dogSignals)\n# # print(\"DOG QUERY WORD?\",dogQueryWord)\n# catDogQueryWords = {\"cat\": catQueryWord,\"dog\":dogQueryWord}\n# TODO: detect if some \"dog\" or \"cat\" lover is talking\ndef checkIsCatOrDogLover(qq_user_id):\n    # if both, return either one.\n    # TODO: for more topics, sort topics by popularity and views\n    ...\n# TODO: record those who talks to other.\n# TODO: decay this relationship counter by 0.8 everyday\ndef recordQQUserTalkingToAnotherUser(\n    former_speaker: dict, later_speaker: dict, threshold: int = 60",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/adtools.py:1-39"
     },
-    "175": {
-        "file_id": 25,
+    "127": {
+        "file_id": 14,
         "content": "This code defines a function that detects if a QQ user is a cat or dog lover, and includes functions to generate query words from signals for cats and dogs, and record users talking to each other. The code also sorts topics by popularity and views, and decays relationship counters daily.",
         "type": "comment"
     },
-    "176": {
-        "file_id": 25,
+    "128": {
+        "file_id": 14,
         "content": "):\n    # only record those who answers within the time.\n    if former_speaker[\"UserID\"] != later_speaker[\"UserID\"]:\n        if abs(former_speaker[\"SpeakTime\"] - later_speaker[\"SpeakTime\"]) <= threshold:\n            # make the connection\n            ...\n# [DONE]: detect \"cat\" or \"dog\" image.\n# [DONE]: rate limit\n# from ratelimiter import RateLimiter\n# def rateLimitReached(until):\n#     raise Exception(f\"rate limit reached. wait {until} seconds\")\n# # this can slow me down.\n# @RateLimiter(max_calls=1, period=5,callback=rateLimitReached )\nimport time\nrateLimits = {}\nimport sys\ndef checkIsCatOrDogImage(\n    image_url,\n    download_timeout=2,\n    timeout=4,\n    port=4675,\n    endpoint=\"analyzeImage\",\n    rateLimitPeriod=5,\n    threshold=0.4,\n    debug=True\n):\n    lastRun = rateLimits.get(\"checkIsCatOrDogImage\", 0)\n    now = time.time()\n    if now - lastRun > rateLimitPeriod:\n        rateLimits[\"checkIsCatOrDogImage\"] = now\n    else:\n        raise Exception(\n            f\"Rate limit exceeded. One request per {rateLimitPeriod} seconds.\"",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/adtools.py:40-77"
     },
-    "177": {
-        "file_id": 25,
+    "129": {
+        "file_id": 14,
         "content": "This function checks if an image is of a cat or dog. It also includes rate limiting to prevent overloading the server by allowing only one request per 5 seconds. The threshold parameter determines how close in time two users must respond for their answers to be connected. Debug mode can be enabled to provide additional information during testing.",
         "type": "comment"
     },
-    "178": {
-        "file_id": 25,
+    "130": {
+        "file_id": 14,
         "content": "        )\n    try:\n        import requests\n        # img_bytes = requests.get(image_url, \n        # # timeout=download_timeout\n        # # also some damn timeout. fuck.\n        # ).content\n        # import cv2\n        # import numpy as np\n        # import numpy_serializer\n        # nparr = np.fromstring(img_bytes, np.uint8)\n        # img_np = cv2.imdecode(nparr, flags=1)  # cv2.IMREAD_COLOR in OpenCV 3.1\n        # np_array_bytes = numpy_serializer.to_bytes(img_np)\n        api_url = f\"http://localhost:{port}/{endpoint}\"\n        params = dict(isBytes=False)\n        # params = dict(isBytes=True)\n        before_request = time.time()\n        if debug:\n            print(\"DOG_CAT REQ SENT\",file=sys.stderr)\n        r = requests.post(\n            api_url, \n            data={\"image\":image_url}, \n            # data={\"image\": np_array_bytes}, \n            # timeout=timeout,\n            # oh shit.\n            params=params, proxies=None\n        )\n        result = r.json()\n        after_request = time.time()\n        if debug:\n            print(\"DOG_CAT REQ RECV\",file=sys.stderr)",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/adtools.py:78-110"
     },
-    "179": {
-        "file_id": 25,
+    "131": {
+        "file_id": 14,
         "content": "This code is making a request to an API endpoint using the requests library. It attempts to send the image data as bytes or content depending on the value of `isBytes` parameter. If debug is set, it prints messages for request sending and receiving. The time taken for the request is also recorded.",
         "type": "comment"
     },
-    "180": {
-        "file_id": 25,
+    "132": {
+        "file_id": 14,
         "content": "            print(\"RESULT?\", file=sys.stderr)\n            print(result, file=sys.stderr)\n        if debug:\n            print(f\"DOG/CAT SERVER REQUEST TAKING TIME: {(after_request-before_request):.3f}s\",file=sys.stderr)\n        for species in result:\n            name = species[\"identity\"]\n            if name in [\"cat\", \"dog\"]:\n                conf = species[\"confidence\"]\n                if conf > threshold:\n                    if debug:\n                        print(\"CAT/DOG RESULT:\", name, file=sys.stderr)\n                    return name\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"Error when downloading and detecting image content if is cat or dog\")\n    return None\ndef checkCatOrDog(Content: str):\n    # cat? dog? None?\n    for key, elems in catDogElemDict.items():\n        for elem in elems:\n            if elem in Content.lower():\n                return key\n    return None\n# pip3 install python_cypher\n# pip3 install neo4j\nfrom functools import lru_cache\nNEO4J_PORT = 7687\n@lru_cache(maxsize=1)",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/adtools.py:111-148"
     },
-    "181": {
-        "file_id": 25,
+    "133": {
+        "file_id": 14,
         "content": "Function `checkCatOrDog` checks if the given input string contains words related to cat or dog and returns \"cat\" or \"dog\" accordingly, otherwise it returns None. The function also utilizes `catDogElemDict`.\n\nThe code snippet uses an exception handling mechanism where if any error occurs during image downloading and content detection, it prints the error message and returns None. It imports traceback for printing the exception details. \n\nIt imports the necessary libraries for working with Neo4j: pip3 install python_cypher and pip3 install neo4j.\n\nThe `@lru_cache(maxsize=1)` decorator is used to cache the results of a function call, which can improve performance by avoiding redundant computations for the same inputs. In this case, it's applied to some function (not shown in the code snippet).",
         "type": "comment"
     },
-    "182": {
-        "file_id": 25,
+    "134": {
+        "file_id": 14,
         "content": "def getNeo4jDriver(\n    address=\"neo4j://localhost:{}\".format(NEO4J_PORT),\n    username=\"neo4j\",\n    password=\"kali\",\n    debug=False,\n):  # so we bruteforced it. thanks to chatgpt.\n    from neo4j import GraphDatabase\n    driver = GraphDatabase.driver(address, auth=(username, password))\n    if debug:\n        print(\"login successful: username:%s password:%s\" % (username, password))\n    return driver\nfrom pypher import Pypher\ndef makeCatOrDogConnections(\n    group_id: str,\n    sender_id: str,\n    cat_or_dog: str,\n    debug: bool = False,\n    delete: bool = False,\n):  # whatever.\n    # Create a new Pypher object\n    with getNeo4jDriver().session() as session:\n        p = Pypher()\n        if delete:\n            p.MATCH.node(\"n1\", labels=\"qq_group\", group_id=group_id)\n            p.MATCH.node(\"n2\", labels=\"qq_user\", user_id=sender_id)\n            p.MATCH.node(\"n3\", labels=\"ad_keyword\", keyword=cat_or_dog)  # fine.\n            p.DETACHDELETE.node(\"n1\").DETACHDELETE.node(\"n2\").DETACHDELETE.node(\"n3\")\n        # Use the MERGE clause to create the nodes if they do not already exist",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/adtools.py:149-182"
     },
-    "183": {
-        "file_id": 25,
+    "135": {
+        "file_id": 14,
         "content": "The function `getNeo4jDriver()` returns a Neo4j driver with the provided address, username, password, and debug option. The function `makeCatOrDogConnections()` uses Pypher to create or delete connections between nodes based on group_id, sender_id, cat_or_dog, debug, and delete options. It establishes a Neo4j session using the driver returned by `getNeo4jDriver()`.",
         "type": "comment"
     },
-    "184": {
-        "file_id": 25,
+    "136": {
+        "file_id": 14,
         "content": "        else:\n            p.MERGE.node(\"n1\", labels=\"qq_group\", group_id=group_id)\n            p.MERGE.node(\"n2\", labels=\"qq_user\", user_id=sender_id)\n            p.MERGE.node(\"n3\", labels=\"ad_keyword\", keyword=cat_or_dog)\n            # Use the MERGE clause to create the relationship between the nodes if it does not already exist\n            p.MERGE.node(\"n1\").rel_out(\"r\", labels=\"includes\").node(\"n2\")\n            p.MERGE.node(\"n2\").rel_out(\"r1\", labels=\"talks_of\").node(\"n3\")\n        # Generate the Cypher query string\n        query = str(p)\n        if debug:\n            print(\"QUERY?\", query)\n            print(\"QUERY TYPE?\", type(query))\n            # how to roll back?\n        # Execute the query using the Neo4j driver\n        result = session.run(query, parameters=p.bound_params)\n        if debug:\n            print(\"RESULT?\", result)\nfrom lazero.network.checker import waitForServerUp\nBILIBILI_RECOMMENDATION_SERVER_PORT = 7341\nwaitForServerUp(BILIBILI_RECOMMENDATION_SERVER_PORT, \"bilibili recommendation server\")",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/adtools.py:183-208"
     },
-    "185": {
-        "file_id": 25,
+    "137": {
+        "file_id": 14,
         "content": "The code checks if a user is in a group and creates necessary nodes and relationships using the MERGE clause. It generates a Cypher query, prints it for debugging purposes (if enabled), and executes it with the Neo4j driver. Additionally, it waits for the BILIBILI_RECOMMENDATION_SERVER to be up before running the code.",
         "type": "comment"
     },
-    "186": {
-        "file_id": 25,
+    "138": {
+        "file_id": 14,
         "content": "import requests\n# import random\nfrom bilibili_api.search import bilibiliSearchParams\n# you might just want some delay when searching online.\nfrom typing import Literal\ndef getCatOrDogAd(\n    cat_or_dog: str,\n    server: str = \"http://localhost:{}\".format(BILIBILI_RECOMMENDATION_SERVER_PORT),\n    debug: bool = False,\n    method: Literal[\"bm25\", \"online\"] = \"bm25\",\n):\n    # how do we get one? by label? by category? by name?\n    url = server + \"/searchUserVideos\"\n    # queryWord = catDogQueryWords.get(cat_or_dog,None)\n    queryWords = catDogElemDict.get(cat_or_dog, None)\n    try:\n        assert queryWords is not None\n    except Exception as e:\n        print(\"Could not find topic with keyword:\", cat_or_dog)\n        raise e\n    animalTid = bilibiliSearchParams.video.tids.动物圈.tid\n    # myTids = {\"cat\":bilibiliSearchParams.video.tids.动物圈.喵星人,\"dog\":bilibiliSearchParams.video.tids.动物圈.汪星人}\n    # myTid = myTids[cat_or_dog]\n    # queryWord = random.choice([\"\",random.choice(queryWords)]) # you can still have things without query",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/adtools.py:210-240"
     },
-    "187": {
-        "file_id": 25,
+    "139": {
+        "file_id": 14,
         "content": "This code defines a function called getCatOrDogAd that searches for user videos related to cats or dogs. It takes the type of animal as input, along with server details, search method, and debug flag as optional parameters. The function constructs the URL for the API call and retrieves the query words based on the animal type. It then performs an assertion to ensure that valid query words are provided. If not, it raises an exception with a relevant error message.",
         "type": "comment"
     },
-    "188": {
-        "file_id": 25,
+    "140": {
+        "file_id": 14,
         "content": "    # queryWord = \" \".join(queryWords)\n    # queryWord = {\"cat\":'猫',\"dog\":'狗'}[cat_or_dog] # Whatever. fuck it. replace it with semantic search later? or you use multiple searches.\n    # you cannot just ignore the queryWord in bm25\n    responses = []\n    for queryWord in queryWords:\n        # data = {\"query\":queryWord,\"tid\":random.choice([0]*20+[animalTid]*10+[myTid]*5)} # you can specify my user id. you may make that empty?\n        data = {\"query\": queryWord, \"tid\": animalTid, \"method\": method}\n        if debug:\n            print(\"POSTING DATA:\")\n            rich.print(data)\n        r = requests.post(url, json=data)\n        response = r.json()\n        for elem in response:\n            if elem not in responses:\n                responses.append(elem)\n    responses.sort(key=lambda elem: -elem.get(\"pubdate\", -1))\n    if debug:\n        print(\"RESPONSES?\")\n        rich.print(responses)\n    return responses  # select one such response.\nfrom ad_template_2_functional import (\n    TMP_DIR_PATH,\n    generateBilibiliVideoAd,",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/adtools.py:241-267"
     },
-    "189": {
-        "file_id": 25,
+    "141": {
+        "file_id": 14,
         "content": "The code fetches relevant data for multiple query words, posts the data to a URL, filters and sorts the responses based on the publication date, and returns the filtered responses. The debug option allows printing of the posted data and response for troubleshooting purposes.",
         "type": "comment"
     },
-    "190": {
-        "file_id": 25,
+    "142": {
+        "file_id": 14,
         "content": "    getAdLock,\n)  # use the lock during sending the ad.\ndef generateAdFromVideoInfo(videoInfo):  # which style you want the most?\n    # selected video info.\n    bvid, pic, title = videoInfo[\"bvid\"], videoInfo[\"pic\"], videoInfo[\"title\"]\n    import os\n    extension = pic.split(\"?\")[0].split(\".\")[-1]\n    cover_download_path = os.path.join(TMP_DIR_PATH, \"video_cover.{}\".format(extension))\n    (\n        output_path,\n        output_standalone,\n        output_masked_path,\n    ), link = generateBilibiliVideoAd(bvid, title, pic, cover_download_path)\n    return (\n        output_path,\n        output_standalone,\n        output_masked_path,\n    ), link  # which one you want?\nfrom botoy import Action\nfrom typing import Literal\nimport random\n# you can send it to qq user, qq group, channels, qzone, email\n# if send by json, qzone, channels, email that will be ajax. set up another server to handle ajax requests.\ndef getBase64StringFromFilePath(\n    filePath: str, binary: bool = False, encoding: str = \"utf-8\"\n):\n    import os\n    assert os.path.isfile(filePath)",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/adtools.py:268-305"
     },
-    "191": {
-        "file_id": 25,
+    "143": {
+        "file_id": 14,
         "content": "This function `generateAdFromVideoInfo` takes a `videoInfo` dictionary as input, extracts the required fields (bvid, pic, and title), downloads the cover image if necessary, and generates three ad paths (output_path, output_standalone, output_masked_path) along with an associated link. These ads can be sent to various platforms like QQ user, group, channels, Qzone, or email. If sending via JSON, Qzone, channels, or email, a separate server is required to handle AJAX requests. The function `getBase64StringFromFilePath` converts a file path into a Base64 string, which can be used for sending images.",
         "type": "comment"
     },
-    "192": {
-        "file_id": 25,
+    "144": {
+        "file_id": 14,
         "content": "    import base64\n    with open(filePath, \"rb\") as img_file:\n        b64_string = base64.b64encode(img_file.read())\n    if not binary:\n        b64_string = b64_string.decode(encoding)\n    return b64_string\ndef sendCatOrDogAdToQQGroup(\n    group_id: str,\n    cat_or_dog: str,\n    action: Action,\n    style: Literal[\n        \"single_qr\", \"text_link\", \"image_link\", \"json\", \"random\", \"random_not_json\"\n    ] = \"random\",\n    recentLimits: int = 20,\n):  # many things not implemented yet.\n    totalStyles = [\n        \"single_qr\",\n        \"text_link\",\n        \"image_link\",\n        \"json\",\n        \"random\",\n        \"random_not_json\",\n    ]\n    notImplementedStyles = [\n        \"image_link\",\n        \"json\",\n    ]  # if json, first we search for avaliable json messages, if missing, we search for android devices, unlock the device then send the message. if failed, use other non-json methods.\n    usableStyles = [s for s in totalStyles if s not in notImplementedStyles]\n    nonRandomStyles = [s for s in usableStyles if not s.startswith(\"random\")]",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/adtools.py:306-339"
     },
-    "193": {
-        "file_id": 25,
+    "145": {
+        "file_id": 14,
         "content": "Function takes a file path, encodes its content in base64, and returns the string. It does not specify encoding type if binary is False.\nFunction sends a cat or dog ad to a QQ group with multiple available styles, but some features are currently unimplemented.",
         "type": "comment"
     },
-    "194": {
-        "file_id": 25,
+    "146": {
+        "file_id": 14,
         "content": "    nonRandomNorJsonStyles = [s for s in nonRandomStyles if s is not \"json\"]\n    def noSuchStyle(style: str):\n        raise NotImplementedError(\"Not implemented style: '{}'\".format(style))\n    if style in notImplementedStyles:\n        noSuchStyle(style)\n    if style == \"random\":\n        style = random.choice(nonRandomStyles)\n    elif style == \"random_not_json\":\n        style = random.choice(nonRandomNorJsonStyles)\n    responses = getCatOrDogAd(cat_or_dog)\n    success = False\n    with getAdLock():\n        if responses != []:\n            videoInfo = random.choice(responses[:recentLimits])\n            title_text = videoInfo[\"title\"]\n            (\n                output_path,\n                output_standalone,\n                output_masked_path,  # what is this?\n            ), link = generateAdFromVideoInfo(videoInfo)\n            if style == \"single_qr\":\n                content = \"\"\n                picturePath = output_path\n            elif style == \"text_link\":\n                # you must censor that.\n                from censorApis import censorReply",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/adtools.py:340-370"
     },
-    "195": {
-        "file_id": 25,
+    "147": {
+        "file_id": 14,
         "content": "This code snippet checks the specified style for an ad and generates different types of ads based on the style. It handles unimplemented styles, selects random non-JSON styles, and generates outputs (paths, links) using a helper function generateAdFromVideoInfo(). It also mentions censoring a reply using another function censorReply() from censorApis module.",
         "type": "comment"
     },
-    "196": {
-        "file_id": 25,
+    "148": {
+        "file_id": 14,
         "content": "                title_text = censorReply(title_text)\n                content = \"观看视频:\\n{}\\n{}\".format(link, title_text)\n                picturePath = output_standalone\n            else:\n                noSuchStyle(style)\n            picBase64Buf = getBase64StringFromFilePath(picturePath)\n            sendMessageStatus = action.sendGroupPic(\n                group=int(group_id), content=content, picBase64Buf=picBase64Buf\n            )\n            # stderrPrint(\"SENT AD STATUS:\",sendMessageStatus)\n            success = (\n                sendMessageStatus.get(\"ErrMsg\", None) is \"\"\n                or sendMessageStatus.get(\"Msg\", None) is \"\"\n                or sendMessageStatus.get(\"Ret\", None) is 0\n            )\n    return success",
         "type": "code",
         "location": "/tasks/qq/qq_red_packet_collect/adtools.py:372-388"
     },
-    "197": {
-        "file_id": 25,
+    "149": {
+        "file_id": 14,
         "content": "The code censors reply text and creates a message with a video link and title. If no style is provided, it uses noSuchStyle function. It then sends a group picture message using the sendGroupPic action and returns whether the message was sent successfully based on the response's error message or return value.",
         "type": "comment"
     },
-    "198": {
-        "file_id": 26,
+    "150": {
+        "file_id": 15,
         "content": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py",
         "type": "filepath"
     },
-    "199": {
-        "file_id": 26,
+    "151": {
+        "file_id": 15,
         "content": "The code initializes libraries, creates temp dirs, and defines functions for Bilibili short links and ad locking. It generates a Bilibili video ad with provided parameters, creates an ad cover image, detects QR codes using Pyzbar and OpenCV, removes them if necessary, adjusts positions and colors, and returns the final image for viewing.",
+        "type": "summary"
+    },
+    "152": {
+        "file_id": 15,
+        "content": "import pixie\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\ndef getImageW2H(image_path):\n    image = cv2.imread(image_path)\n    height, width = image.shape[:2]\n    w2h = width / height\n    return w2h\nTMP_DIR_PATH = \"/dev/shm/qq_ad\"\nimport shutil\nimport os\nif os.path.exists(TMP_DIR_PATH):\n    shutil.rmtree(TMP_DIR_PATH)\nos.mkdir(TMP_DIR_PATH)\nimport random\ndef generateFakeVideoStats():\n    play_count = \"{:.1f}万\".format(\n        random.randint(100, 1000) * 0.1\n    )  # anyway both int and str are compatible\n    comment_count = random.randint(100, 1000)\n    danmaku_count = random.randint(500, 3000)\n    return play_count, comment_count, danmaku_count\nRESOURCE_PATH = \"/root/Desktop/works/pyjom/tests/bilibili_video_recommendation_server\"\nQRCODE_PATH = \"MyQRCode1.png\"\nFONT_PATH = \"wqy-microhei0.ttf\"\nFONT_BOLD_PATH = \"wqy-microhei1.ttf\"\nCOVER_PATH = \"sample_cover.jpg\"\nPLAY_BUTTON_PATH = \"play_white_b.png\"\nBILIBILI_LOGO_PATH = \"bili_white_b_cropped.png\"\nAD_LOCK = \"ad_lock.lock\"\nimport filelock",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:1-46"
+    },
+    "153": {
+        "file_id": 15,
+        "content": "The code initializes necessary libraries and functions, creates a temporary directory for storing images and files, generates random video stats, defines file paths, and locks the ad using FileLock.",
+        "type": "comment"
+    },
+    "154": {
+        "file_id": 15,
+        "content": "def getAdLock(lockPath: str = os.path.join(TMP_DIR_PATH, AD_LOCK)):\n    return filelock.FileLock(lockPath)\n# use this decorator outside. not here. not any function written in here.\ndef withAdLock(func):\n    def innerFunc(*args, **kwargs):\n        with getAdLock():\n            return func(*args, **kwargs)\n    return innerFunc\nRESOURCES_RELATIVE_PATH = [\n    FONT_PATH,\n    FONT_BOLD_PATH,\n    COVER_PATH,\n    PLAY_BUTTON_PATH,\n    BILIBILI_LOGO_PATH,\n]\nOUTPUT_STANDALONE = \"ad_2_standalone_cover.png\"\nOUTPUT_PATH = \"ad_2.png\"\nOUTPUT_MASKED_PATH = \"ad_2_mask.png\"\nimport progressbar\ndef prepareMaterials(tmpDirPath: str = TMP_DIR_PATH, resourcePath: str = RESOURCE_PATH):\n    print(\"Preparing materials...\")\n    for path in progressbar.progressbar(RESOURCES_RELATIVE_PATH):\n        shutil.copy(os.path.join(resourcePath, path), os.path.join(tmpDirPath, path))\nprepareMaterials()\ndef generateBilibiliShortLinkMethod2(videoLink: str):\n    apiUrl = (\n        \"https://service-ijd4slqi-1253419200.gz.apigw.tencentcs.com/release/short_url\"",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:49-89"
+    },
+    "155": {
+        "file_id": 15,
+        "content": "This code defines a function `getAdLock` for acquiring a file lock, a decorator `withAdLock` to use the lock around a function execution, and prepares materials by copying resources to a temporary directory. The code also includes a function `generateBilibiliShortLinkMethod2` that calls an API endpoint to generate a short link on Bilibili using a given video link.",
+        "type": "comment"
+    },
+    "156": {
+        "file_id": 15,
+        "content": "    )\n    # longUrl = \"https://www.bilibili.com/video/BV1Wv41157Wz\"\n    longUrl = videoLink\n    import urllib.parse as urlparse\n    # params = {\"url\": longUrl}\n    params = {\n        \"url\": urlparse.quote(longUrl).replace(\"/\", \"%2F\"),\n        \"href\": \"https://xiaojuzi.fun/bili-short-url/\",\n    }\n    # print(params)\n    # exit()\n    headers = {\n        \"accept\": \"*/*\",\n        \"accept-language\": \"en-US,en;q=0.9\",\n        \"if-none-match\": 'W/\"35-oPDNsqBGaZKqGe83GW6wem+lkww\"',\n        \"sec-ch-ua\": '\"Google Chrome\";v=\"105\", \"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"105\"',\n        \"sec-ch-ua-mobile\": \"?0\",\n        \"sec-ch-ua-platform\": '\"macOS\"',\n        \"sec-fetch-dest\": \"empty\",\n        \"sec-fetch-mode\": \"cors\",\n        \"sec-fetch-site\": \"cross-site\",\n        \"Referer\": \"https://xiaojuzi.fun/\",\n        \"Referrer-Policy\": \"strict-origin-when-cross-origin\",\n        \"user-agent\": \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36\",  # this is important.\n    }",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:90-116"
+    },
+    "157": {
+        "file_id": 15,
+        "content": "This code snippet is preparing a request to shorten a video link. It defines the long URL, uses URL parsing to format the parameters, and sets headers for the HTTP request. The goal is to obtain a shortened version of the provided video link using the \"https://xiaojuzi.fun/bili-short-url/\" API.",
+        "type": "comment"
+    },
+    "158": {
+        "file_id": 15,
+        "content": "    import requests\n    request_url = apiUrl + \"?url={url}&href={href}\".format(**params)\n    # request_url = 'https://service-ijd4slqi-1253419200.gz.apigw.tencentcs.com/release/short_url?url=https%3A%2F%2Fwww.bilibili.com%2Fvideo%2FBV1Wv41157Wz&href=https://xiaojuzi.fun/bili-short-url/'\n    # print(request_url)\n    r = requests.get(request_url, headers=headers)\n    if r.status_code == 200:\n        # print(r.json())\n        r_json = r.json()\n        success = r_json.get(\"success\", False)\n        if success:\n            short_url = r_json.get(\"short_url\", None)\n            print(short_url)\n            return short_url\n    # starts with 'https://b23.tv'\ndef generateBilibiliShortLinkMethod1(\n    videoLink: str,\n):  # get bilibili user email address by asking them from chat. if they give the email address, send setu as gift. for other users, you may improvise. send video link, recommendations\n    url = \"https://api.bilibili.com/x/share/click\"\n    # burl = \"https://www.bilibili.com/read/cv19232041\" # my article with e-begging",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:118-139"
+    },
+    "159": {
+        "file_id": 15,
+        "content": "Code imports requests library, constructs a request URL with provided parameters, sends a GET request to the Bilibili API, and checks if the status code is 200. If so, it retrieves the short link from the response JSON and returns or prints it.",
+        "type": "comment"
+    },
+    "160": {
+        "file_id": 15,
+        "content": "    burl = videoLink\n    data = {\n        \"build\": 6700300,\n        \"buvid\": 0,\n        \"oid\": burl,\n        \"platform\": \"android\",\n        \"share_channel\": \"COPY\",\n        \"share_id\": \"public.webview.0.0.pv\",\n        \"share_mode\": 3,\n    }\n    import requests\n    headers = {\n        \"user-agent\": \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36\"\n    }\n    r = requests.post(\n        url, data=data, headers=headers\n    )  # maybe you two share the same user agent!\n    # we have the link!\n    if r.status_code == 200:\n        # print(r.content)\n        r_json = r.json()\n        code = r_json[\"code\"]\n        if code == 0:\n            link = r_json[\"data\"][\"content\"]\n            print(link)\n            return link\n    # fail, obviously.\ndef generateBilibiliShortLink(videoLink: str):\n    link = None\n    try:\n        link = generateBilibiliShortLinkMethod1(videoLink)\n        assert link is not None\n    except:\n        import traceback\n        traceback.print_exc()",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:140-178"
+    },
+    "161": {
+        "file_id": 15,
+        "content": "This code is trying to generate a Bilibili short link for a given videoLink. It first defines the necessary data, sets headers using a user-agent, and then sends a POST request to get the short link. If successful (status_code 200), it extracts the link from the returned JSON, prints it, and returns it. In case of failure or exceptions, it prints the traceback.",
+        "type": "comment"
+    },
+    "162": {
+        "file_id": 15,
+        "content": "        link = generateBilibiliShortLinkMethod2(videoLink)\n        assert link is not None\n    return link\ndef makeQRCode(content: str, savePath: str):\n    # Importing library\n    import qrcode\n    # Encoding data using make() function\n    def makeAndSaveQrcode(data, save_path, debug=False):\n        img = qrcode.make(data)\n        if debug:\n            print(\"image type:\", type(img))\n        img.save(save_path)\n    data = content\n    save_path = savePath\n    makeAndSaveQrcode(data, save_path)\ndef generateQRCodeFromBVID(\n    bvid: str, qrCodeSavePath: str = os.path.join(TMP_DIR_PATH, QRCODE_PATH)\n):\n    videoLink = \"https://www.bilibili.com/video/{}\".format(bvid)\n    shortLink = generateBilibiliShortLink(videoLink)\n    makeQRCode(shortLink, qrCodeSavePath)\n    return shortLink\ndef generateBilibiliVideoAd(\n    bvid: str,\n    title_text: str,\n    image_link: str,\n    cover_path: str = os.path.join(TMP_DIR_PATH, COVER_PATH),\n):\n    import requests\n    r = requests.get(image_link)\n    with open(cover_path, \"wb\") as f:\n        c = r.content",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:179-219"
+    },
+    "163": {
+        "file_id": 15,
+        "content": "The code is used to generate a bilibili video ad. It imports the qrcode library, generates a QR code from the BVID, retrieves the short link of the video, and then saves it along with an image in the TMP_DIR_PATH directory. The image is downloaded using requests module and saved as a cover for the ad.",
+        "type": "comment"
+    },
+    "164": {
+        "file_id": 15,
+        "content": "        f.write(c)\n    link = generateQRCodeFromBVID(bvid)\n    return (generateVideoAdUniversal(\n        videoStats=generateFakeVideoStats(),\n        title_text=title_text,\n        cover_path=cover_path,\n    ), link)\n# you must have some lock outside while using this.\ndef generateVideoAdUniversal(\n    videoStats=None,  # will it work?\n    night_mode: bool = True,\n    title_text: str = \"\",\n    framework_only: bool = False,\n    ad_width: int = 1000,\n    ad_height: int = 1000,\n    font_path: str = os.path.join(TMP_DIR_PATH, FONT_PATH),\n    font_bold_path: str = os.path.join(TMP_DIR_PATH, FONT_BOLD_PATH),\n    cover_path: str = os.path.join(TMP_DIR_PATH, COVER_PATH),\n    qrcode_path: str = os.path.join(TMP_DIR_PATH, QRCODE_PATH),\n    play_button_path: str = os.path.join(TMP_DIR_PATH, PLAY_BUTTON_PATH),\n    output_path: str = os.path.join(TMP_DIR_PATH, OUTPUT_PATH),\n    output_standalone: str = os.path.join(TMP_DIR_PATH, OUTPUT_STANDALONE),\n    output_masked_path: str = os.path.join(TMP_DIR_PATH, OUTPUT_MASKED_PATH),",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:220-244"
+    },
+    "165": {
+        "file_id": 15,
+        "content": "This function generates a video ad using the provided parameters. It writes the code to a file, generates a QR code, and returns a tuple containing the generated video ad and the QR code link. The function uses temporary directory paths for various resources.",
+        "type": "comment"
+    },
+    "166": {
+        "file_id": 15,
+        "content": "    bilibili_logo_path: str = os.path.join(TMP_DIR_PATH, BILIBILI_LOGO_PATH),\n):\n    # fake these numbers.\n    # one extra space.\n    assert videoStats is not None\n    play_count, comment_count, danmaku_count = videoStats\n    assert title_text != \"\"\n    stats_text = \" {}播放 {}评论 {}弹幕\".format(play_count, comment_count, danmaku_count)\n    qrcode_scan_text = \"\\n\" + \"\\n\".join(list(\"扫码观看\"))\n    white = pixie.Color(1, 1, 1, 1)\n    black = pixie.Color(0, 0, 0, 1)\n    image = pixie.Image(ad_width, ad_height)\n    # we are creating this, not replacing qr code.\n    if not framework_only:\n        if night_mode:\n            image.fill(black)\n            # irreversible!\n        else:\n            image.fill(white)\n    else:\n        image2 = image.copy()  # as mask.\n    # place the cover.\n    cover_w2h = getImageW2H(cover_path)\n    cover_width = int(ad_width * 0.9)\n    cover_height = int(cover_width / cover_w2h)\n    cover_round_corner_radius = int(ad_width * 0.05)\n    cover = pixie.read_image(cover_path)\n    cover = cover.resize(cover_width, cover_height)",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:245-274"
+    },
+    "167": {
+        "file_id": 15,
+        "content": "This code is setting up an image with various elements such as play count, comment count, danmaku count, and a QR code. It creates a white or black background depending on the night mode option, copies the image to create a mask, reads a cover image, and resizes it. The code uses Pixie for image manipulation, os for file paths, and other libraries for formatting and image reading.",
+        "type": "comment"
+    },
+    "168": {
+        "file_id": 15,
+        "content": "    # cover gradient.\n    gradient_paint = pixie.Paint(pixie.LINEAR_GRADIENT_PAINT)\n    gradient_paint.gradient_handle_positions.append(\n        pixie.Vector2(100, int(cover_height) * 0.8)\n    )\n    gradient_paint.gradient_handle_positions.append(pixie.Vector2(100, cover_height))\n    gradient_paint.gradient_stops.append(pixie.ColorStop(pixie.Color(0, 0, 0, 0), 0))\n    gradient_paint.gradient_stops.append(pixie.ColorStop(pixie.Color(0, 0, 0, 0.3), 1))\n    cover_mask_path = pixie.Path()\n    cover_mask_path.rounded_rect(\n        0, 0, cover_width, cover_height, *([cover_round_corner_radius] * 4)\n    )\n    stroke_param = 100\n    stroke_width = int(ad_width / stroke_param)\n    stroke_width_half = int(ad_width / stroke_param / 2)\n    cover_mask_path2 = pixie.Path()\n    cover_round_corner_radius2 = int(cover_round_corner_radius * 0.85)\n    cover_mask_path2.rounded_rect(\n        stroke_width_half,\n        stroke_width_half,\n        cover_width - stroke_width,\n        cover_height - stroke_width,\n        *([cover_round_corner_radius2] * 4)",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:275-302"
+    },
+    "169": {
+        "file_id": 15,
+        "content": "Creating a gradient paint for the cover and defining its positions and color stops. Defining paths and rectangles with rounded corners for cover mask creation, adjusting stroke parameters based on ad width.",
+        "type": "comment"
+    },
+    "170": {
+        "file_id": 15,
+        "content": "    )\n    # path = cover_mask_path\n    # cover.fill_path(cover_mask_path, gradient_paint)\n    cover_mask = pixie.Mask(cover_width, cover_height)\n    cover_mask.fill_path(cover_mask_path)\n    cover.mask_draw(cover_mask)\n    cover_transform_width = cover_transform_height = int((ad_width - cover_width) / 2)\n    cover_transform = pixie.translate(cover_transform_width, cover_transform_height)\n    if framework_only:\n        # image2.fill(black)\n        image2_paint = pixie.Paint(pixie.SOLID_PAINT)\n        image2_paint.color = white\n        image2.fill_path(cover_mask_path, image2_paint, cover_transform)\n    cover_stroke_paint = pixie.Paint(pixie.SOLID_PAINT)\n    cover_stroke_paint.color = pixie.parse_color(\"#FC427B\")\n    image.stroke_path(\n        cover_mask_path,\n        cover_stroke_paint,\n        cover_transform,\n        stroke_width=stroke_width,\n    )\n    if not framework_only:\n        image.draw(cover, cover_transform)  # you can choose to discard the cover\n    image.fill_path(cover_mask_path2, gradient_paint, cover_transform)",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:303-334"
+    },
+    "171": {
+        "file_id": 15,
+        "content": "This code creates a mask, applies it to an image, and fills the resulting path with a gradient paint. It also has an optional step for white-filling another image, and discards the cover if not required.",
+        "type": "comment"
+    },
+    "172": {
+        "file_id": 15,
+        "content": "    # now place the bilibili logo.\n    bilibili_logo = pixie.read_image(bilibili_logo_path)\n    bilibili_logo_w2h = getImageW2H(bilibili_logo_path)\n    bilibili_logo_width = int(ad_width * 0.2)\n    bilibili_logo_height = int(bilibili_logo_width / bilibili_logo_w2h)\n    bilibili_logo = bilibili_logo.resize(bilibili_logo_width, bilibili_logo_height)\n    bilibili_logo_transform = pixie.translate(\n        cover_transform_width + int(bilibili_logo_height / 8),\n        int(cover_transform_width + (bilibili_logo_height / 4)),\n    )\n    # bilibili_logo_transform = pixie.translate(\n    #     cover_transform_width, 0\n    # )\n    image.draw(bilibili_logo, bilibili_logo_transform)\n    # now place the play button.\n    play_button = pixie.read_image(play_button_path)\n    play_button_w2h = getImageW2H(play_button_path)\n    play_button_width = play_button_height = int(ad_width * 0.2)\n    play_button = play_button.resize(play_button_width, play_button_height)\n    play_button_transform = pixie.translate(\n        int(cover_transform_width + (cover_width - play_button_width) / 2),",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:336-361"
+    },
+    "173": {
+        "file_id": 15,
+        "content": "This code resizes bilibili logo and play button images according to ad width, and positions them on the image using Pixie library.",
+        "type": "comment"
+    },
+    "174": {
+        "file_id": 15,
+        "content": "        int(cover_transform_width + (cover_height - play_button_height) / 2),\n    )\n    image.draw(play_button, play_button_transform)\n    # place some stats.\n    font = pixie.read_font(font_path)\n    font.size = int(ad_width * 0.04)\n    font.paint.color = pixie.Color(1, 1, 1, 1)\n    stats_transform = pixie.translate(\n        int(cover_transform_width * 1.3),\n        cover_transform_width + cover_height - int(font.size * 2),\n    )\n    image.fill_text(font, stats_text, transform=stats_transform)\n    # place the qrcode.\n    qrcode = pixie.read_image(qrcode_path)\n    qrcode_width = qrcode_height = int(0.3 * ad_width)\n    qrcode = qrcode.resize(qrcode_width, qrcode_height)\n    font = pixie.read_font(font_path)\n    font.size = int(ad_width * 0.04)\n    if night_mode:\n        font.paint.color = pixie.Color(1, 1, 1, 1)\n    else:\n        font.paint.color = pixie.Color(0, 0, 0, 1)\n    qrcode_scan_text_transform_x = int(ad_width - qrcode_width * 1.1 - font.size * 1)\n    qrcode_scan_text_transform = pixie.translate(\n        qrcode_scan_text_transform_x + qrcode_width,",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:362-390"
+    },
+    "175": {
+        "file_id": 15,
+        "content": "This code is placing a play button, statistics text, and QR code on an image. It adjusts the position of each element based on the image size and ad width. The font size and color are set according to night mode.",
+        "type": "comment"
+    },
+    "176": {
+        "file_id": 15,
+        "content": "        int(ad_height - qrcode_height * 1.1),\n    )\n    image.fill_text(font, qrcode_scan_text, transform=qrcode_scan_text_transform)\n    qrcode_transform = pixie.translate(\n        int(ad_width - qrcode_width * 1.1 - font.size * 1.2),\n        int(ad_height - qrcode_height * 1.1),\n    )\n    qrcode_rounded_corner = int(0.05 * ad_width)\n    qrcode_stroke_path = pixie.Path()\n    qrcode_stroke_path.rounded_rect(\n        0, 0, qrcode_width, qrcode_height, *([qrcode_rounded_corner] * 4)\n    )\n    image.stroke_path(\n        qrcode_stroke_path,\n        cover_stroke_paint,\n        qrcode_transform,\n        stroke_width=stroke_width,\n    )\n    qrcode_mask = pixie.Mask(qrcode_width, qrcode_width)\n    qrcode_mask.fill_path(qrcode_stroke_path)\n    qrcode.mask_draw(qrcode_mask)\n    image.draw(qrcode, qrcode_transform)\n    # now for the title\n    font = pixie.read_font(font_bold_path)\n    font.size = int(ad_width * 0.06)\n    if night_mode:\n        font.paint.color = pixie.parse_color(\"#B0B0B0\")\n    else:\n        font.paint.color = pixie.parse_color(\"#4F4F4F\")",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:391-425"
+    },
+    "177": {
+        "file_id": 15,
+        "content": "This code generates a QR code for an ad and applies a mask to it, adjusting its size, position, corner radius, stroke width, and color based on ad dimensions. The font and color of the text are also set according to night mode or daylight conditions.",
+        "type": "comment"
+    },
+    "178": {
+        "file_id": 15,
+        "content": "    # use some gray text.\n    # font.paint.color = pixie.parse_color(\"#4F42B5\")\n    # font.paint.color = pixie.parse_color(\"#FC427B\")\n    # font.paint.color = pixie.Color(0,0,0,1)\n    title_text_transform = pixie.translate(\n        int(font.size * 0.8), int(ad_height - qrcode_height * 1.1)\n    )\n    title_text_bounds = pixie.Vector2(\n        int(qrcode_scan_text_transform_x - font.size * 1.1), int(qrcode_height)\n    )\n    image.fill_text(\n        font, title_text, bounds=title_text_bounds, transform=title_text_transform\n    )\n    delta = int(cover_width * 0.02)\n    sub_image_params = (\n        cover_transform_width - delta,\n        cover_transform_height - delta,\n        cover_width + 2 * delta,\n        cover_height + 2 * delta,\n    )\n    standalone_cover_image = image.sub_image(*sub_image_params)\n    standalone_cover_image.write_file(output_standalone)\n    image.write_file(output_path)  # make sure you write to desired temp path.\n    if framework_only:\n        image2.sub_image(*sub_image_params).write_file(output_masked_path)",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:426-450"
+    },
+    "179": {
+        "file_id": 15,
+        "content": "This code generates an image with a QR code and text on top of it. It then creates two versions - one with the entire image, and another without any framework elements. The transformed QR code and text are placed on the image, and then saved in specified output files.",
+        "type": "comment"
+    },
+    "180": {
+        "file_id": 15,
+        "content": "    return (\n        output_path,\n        output_standalone,\n        output_masked_path,\n    )  # well, pick up if you want.\nIMAGE_WITH_QRCODE_PATH = \"image_with_qrcode.png\"\nOUTPUT_WITH_QRCODE_PATH = \"output_with_qrcode.png\"\ndef removeQRCodes(\n    image_with_qrcode_path: str = os.path.join(TMP_DIR_PATH, IMAGE_WITH_QRCODE_PATH)\n):\n    # use best method to remove qrcode.\n    # import cv2\n    # import imutils\n    from PIL import Image\n    from pyzbar.pyzbar import decode, ZBarSymbol\n    # @function 'detect_qr' detect and decode qrcode from frame using pyzbar lib\n    # @param 'inputFrame' type <class 'numpy.ndarray'>\n    # @return if detected type 'bool'\n    import numpy as np\n    def detect_qr(inputFrame):\n        img = Image.fromarray(inputFrame)  # fuck?\n        decodedImg = decode(img, symbols=[ZBarSymbol.QRCODE])\n        # it reads the content. but where is the code?\n        print(\"total %d qrcode detected\" % len(decodedImg))\n        # breakpoint()\n        # length: 2\n        if len(decodedImg) > 0:\n            polygons = []",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:451-485"
+    },
+    "181": {
+        "file_id": 15,
+        "content": "This code defines a function to remove QR codes from an image. It uses the Pyzbar library for QR code detection and removal. The function takes the path of the image with QR codes as input and returns the output path without QR codes, the standalone output path, and the masked output path. The code also includes a helper function called \"detect_qr\" which detects and decodes the QR codes from an input frame.",
+        "type": "comment"
+    },
+    "182": {
+        "file_id": 15,
+        "content": "            for code in decodedImg:\n                decodedBytes = code.data\n                # stringData = decodedBytes.decode(\"utf-8\")\n                # print(\"QRCode content:\")\n                # print(stringData)\n                polygon = code.polygon\n                # print('POLYGON CONTENT:')\n                # print(polygon)\n                mpolygon = []\n                for point in polygon:\n                    mpolygon.append([point.x, point.y])\n                #     print('POINT:',point.x,point.y)\n                polygons.append(np.array(mpolygon, dtype=np.int32))\n            return polygons\n        else:\n            return []\n    def getInputFrameFromImagePath(imagePath: str):\n        inputFrame = cv2.imread(imagePath)\n        return inputFrame\n    inputFrame = getInputFrameFromImagePath(image_with_qrcode_path)\n    QRCodeCoordinates = detect_qr(inputFrame)\n    img = cv2.imread(image_with_qrcode_path)\n    if QRCodeCoordinates != []:\n        mask_image = np.zeros((*img.shape[:2], 1), dtype=img.dtype)\n        for poly in QRCodeCoordinates:",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:486-513"
+    },
+    "183": {
+        "file_id": 15,
+        "content": "The code iterates over decoded QR codes and extracts their data, polygon coordinates, and converts them to a numpy array. The function returns the polygons if any QR code is detected; otherwise, it returns an empty list. There is also a separate function to read input frames from image paths and detect QRCodeCoordinates using the detect_qr function.",
+        "type": "comment"
+    },
+    "184": {
+        "file_id": 15,
+        "content": "            cv2.fillPoly(mask_image, [poly], 255)\n        inpainted_im = cv2.inpaint(img, mask_image, 3, cv2.INPAINT_TELEA)\n    else:\n        inpainted_im = img\n    return QRCodeCoordinates, inpainted_im\nfrom typing import Union\ndef removeAndInsertQRCode(\n    image_with_qrcode_path: str = os.path.join(TMP_DIR_PATH, IMAGE_WITH_QRCODE_PATH),\n    qrcode_path: str = os.path.join(TMP_DIR_PATH, QRCODE_PATH),\n    output_with_qrcode_path: Union[None, str] = os.path.join(\n        TMP_DIR_PATH, OUTPUT_WITH_QRCODE_PATH\n    ),\n):  # remove all detected QRCodes. add qrcode nevertheless.\n    # TODO: use more advanced models to detect QRCodes.\n    # TODO: increase the size of the original image if too small.\n    QRImage = cv2.imread(qrcode_path)\n    import math\n    def get_rotation_angle_and_center(p1, p2, p3, p4):\n        # Find the center of the rectangle\n        center_x = int((p1[0] + p3[0]) / 2 + (p2[0] + p4[0]) / 2) / 2\n        center_y = int((p1[1] + p3[1]) / 2 + (p2[1] + p4[1]) / 2) / 2\n        center = (center_x, center_y)",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:514-540"
+    },
+    "185": {
+        "file_id": 15,
+        "content": "The code reads an image with a QR code and removes all detected QR codes while adding the specified QR code to the output image. It also calculates the rotation angle and center of a rectangle formed by four points. The function takes paths for the input image, QR code image, and the desired output image path. It uses OpenCV for image processing operations like reading images, inpainting, and applying transformations.",
+        "type": "comment"
+    },
+    "186": {
+        "file_id": 15,
+        "content": "        width = math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)\n        height = math.sqrt((p2[0] - p3[0]) ** 2 + (p2[1] - p3[1]) ** 2)\n        # Calculate the slope of one of the edges\n        slope = (p2[1] - p1[1]) / (p2[0] - p1[0])\n        # Calculate the angle of the edge from the x-axis\n        angle = (math.pi / 2) - math.atan(\n            slope\n        )  # correct the angle. according to opencv.\n        while True:\n            if angle > math.pi / 2:\n                angle -= math.pi / 2\n            elif angle < 0:\n                angle += math.pi / 2\n            else:\n                break\n        return angle, center, width, height\n    QRCodeCoordinates, img = removeQRCodes(image_with_qrcode_path)\n    hasQRCode = len(QRCodeCoordinates) > 0\n    from shapely.geometry import Polygon\n    import numpy as np\n    if hasQRCode:  # put the biggest one there.\n        QRCodeCoordinates.sort(key=lambda x: -Polygon(x.tolist()).area)\n        biggest_polygon = QRCodeCoordinates[0]\n        cv2.fillPoly(img, [biggest_polygon], (0, 0, 0))",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:541-568"
+    },
+    "187": {
+        "file_id": 15,
+        "content": "Calculates angle, width, and height of a polygon formed by points p1, p2, and p3. Sorts QRCodeCoordinates based on their area and draws the largest one using cv2.",
+        "type": "comment"
+    },
+    "188": {
+        "file_id": 15,
+        "content": "        angle, center, width, height = get_rotation_angle_and_center(\n            *biggest_polygon.tolist()\n        )  # will fail?\n        QRWidth, QRHeight = int(width), int(height)\n        startingPoint = [int(center[0] - QRWidth / 2), int(center[1] - QRHeight / 2)]\n    else:\n        # randomly select one place to insert the shit.\n        height, width = img.shape[:2]\n        QRSize = min(height, width) / 5\n        QRHeight, QRWidth = QRImage.shape[:2]\n        if QRWidth > QRHeight:\n            QRHeight = int((QRHeight / QRWidth) * QRSize)\n            QRWidth = int(QRSize)\n        else:\n            QRWidth = int((QRWidth / QRHeight) * QRSize)\n            QRHeight = int(QRSize)\n        startingPoint = [\n            random.randint(0, math.floor(width - QRWidth)),\n            random.randint(0, math.floor(height - QRHeight)),\n        ]\n        angle, center = 0, [\n            startingPoint[0] + int(QRWidth / 2),\n            startingPoint[1] + int(QRHeight / 2),\n        ]\n        biggest_polygon = np.array(\n            [",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:569-594"
+    },
+    "189": {
+        "file_id": 15,
+        "content": "This code is responsible for determining the position and size of a QR code image to be inserted into an image. It first checks if there's a polygon present, and if so, it calculates the angle, center, width, and height based on the given polygon. If not, it randomly selects a place to insert the QR code by adjusting its size to fit within 5% of the image size and then determines the starting point and other parameters. The code is written in Python with libraries like numpy and random for numerical operations and generating random numbers.",
+        "type": "comment"
+    },
+    "190": {
+        "file_id": 15,
+        "content": "                startingPoint,\n                [startingPoint[0], startingPoint[1] + QRHeight],\n                [startingPoint[0] + QRWidth, startingPoint[1] + QRHeight],\n                [startingPoint[0] + QRWidth, startingPoint[1]],\n            ]\n        )\n        cv2.fillPoly(img, [biggest_polygon], (0, 0, 0))\n    QRImage = cv2.resize(QRImage, (QRWidth, QRHeight), interpolation=cv2.INTER_LINEAR)\n    # then we expand the image.\n    expanded_QR = np.zeros(img.shape, dtype=img.dtype)\n    height, width = QRImage.shape[:2]\n    slice_x_start, slice_x_end = startingPoint[1], height + startingPoint[1]\n    slice_y_start, slice_y_end = startingPoint[0], width + startingPoint[0]\n    # print(\"SLICES?\", slice_x_start, slice_x_end , slice_y_start, slice_y_end )\n    # print(\"IMAGE SHAPE?\",QRImage.shape)\n    expanded_QR[slice_x_start:slice_x_end, slice_y_start:slice_y_end] = QRImage\n    # then rotate.\n    if angle == 0:\n        rotated_im = expanded_QR\n    else:\n        angle_deg = 180 * (angle / np.pi)  # rotation error.",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:595-617"
+    },
+    "191": {
+        "file_id": 15,
+        "content": "This code detects QR codes, creates a bounding box around them, fills the polygon with black color, resizes and expands the image, and then rotates it by 180 degrees if angle is not zero. The purpose is to prepare a QR code image for further operations in an image processing pipeline.",
+        "type": "comment"
+    },
+    "192": {
+        "file_id": 15,
+        "content": "        rotation_matrix = cv2.getRotationMatrix2D(center, angle_deg, 1)\n        rotated_im = cv2.warpAffine(\n            expanded_QR, rotation_matrix, (img.shape[1], img.shape[0])\n        )\n    # combine. what?\n    output_img = rotated_im + img\n    # regularize\n    output_img.put(np.where(output_img > 255), 255)\n    output_img.put(np.where(output_img < 0), 0)\n    # save the image.\n    if output_with_qrcode_path is not None:\n        cv2.imwrite(output_with_qrcode_path, output_img)\n    return output_img  # for viewing.",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:618-633"
+    },
+    "193": {
+        "file_id": 15,
+        "content": "This code rotates an image using OpenCV, combines the rotated and original images, applies a regularization to pixel values, saves the resulting image if necessary, and returns it for viewing.",
+        "type": "comment"
+    },
+    "194": {
+        "file_id": 16,
+        "content": "/tasks/qq/qq_red_packet_collect/test_neo4j_creds.py",
+        "type": "filepath"
+    },
+    "195": {
+        "file_id": 16,
+        "content": "This code tests Neo4j credentials by iterating through various usernames and passwords, attempting to connect and retrieve a single node result. It prints the retrieved result and the used credentials if successful, or catches any exceptions during the process.",
+        "type": "summary"
+    },
+    "196": {
+        "file_id": 16,
+        "content": "from adtools import getNeo4jDriver\ndef test_login():\n    usernames = [\"kali\", \"user\", \"neo4j\", \"admin\", \"parrot\", \"\"]\n    passwords = [\"neo4j\", \"kali\", \"parrot\", \"admin\", \"password\", \"\"]\n    for u in usernames:\n        for p in passwords:\n            try:\n                driver = getNeo4jDriver(username=u, password=p, debug=False)\n                # print('RESPONSE?',r)\n                with driver.session() as session:\n                    result = session.run(\"MATCH (n) RETURN n LIMIT 1\")\n                    print(result.single())\n                    print(\"USING:\", u, p)\n            except:\n                pass\n                # import traceback\n                # traceback.print_exc()",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/test_neo4j_creds.py:1-19"
+    },
+    "197": {
+        "file_id": 16,
+        "content": "This code tests Neo4j credentials by iterating through various usernames and passwords, attempting to connect and retrieve a single node result. It prints the retrieved result and the used credentials if successful, or catches any exceptions during the process.",
+        "type": "comment"
+    },
+    "198": {
+        "file_id": 17,
+        "content": "/tasks/qq/qq_red_packet_collect/test_make_dog_cat_connection.py",
+        "type": "filepath"
+    },
+    "199": {
+        "file_id": 17,
+        "content": "This code imports a function from adtools to test making connections between cats and dogs. It defines three test functions: \"test_main\", \"test_delete\", and \"test_query\". The \"test_query\" function retrieves cat and dog ads. The main code block runs the \"test_query\" function if this script is run directly.",
         "type": "summary"
     }
 }

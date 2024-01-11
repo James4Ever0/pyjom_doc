@@ -1,538 +1,531 @@
 {
     "4200": {
-        "file_id": 531,
-        "content": "    mod_x_half, mod_y_half = mod_x / 2, mod_y / 2\n    x, y, w, h = block_x - mod_x_half, block_y - mod_y_half, mod_x, mod_y\n    return tuple([int(elem) for elem in [x, y, w, h]])\ndef getBlockWeightFromBlockCenterCoordinates(blockCenterCoordinates):\n    mod_x, mod_y = getModXModYFromBlockCenterCoordinates(blockCenterCoordinates)\n    weights = mod_x * mod_y / 8 / 8\n    return weights\nimport progressbar\nimport numpy as np\n# max_dst_x, max_dst_y = 0,0\ndef averageMotionVectors(motion_vector_list):\n    if len(motion_vector_list) == 0:\n        average_tuple = (0, 0)\n    if len(motion_vector_list) > 1:\n        marray = np.array(motion_vector_list)\n        # print(\"MAKING AVERAGE:\")\n        # print(marray)\n        average = np.average(marray, axis=0)\n        # breakpoint()\n        average_tuple = tuple(average)\n    else:\n        average_tuple = tuple(motion_vector_list[0])\n    return average_tuple\nmotion_area_ratio_array = []\n# average_weighted_motion_vector_array = []\n# average_global_weighted_motion_vector_array = []\naverage_weighted_motion_vector_cartesian_array = []",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:107-142"
+        "file_id": 527,
+        "content": "/tests/title_rewrite_paraphrase/test.py",
+        "type": "filepath"
     },
     "4201": {
-        "file_id": 531,
-        "content": "Function `getBlockWeightFromBlockCenterCoordinates` calculates the weight of a block based on its center coordinates.\nThe `averageMotionVectors` function calculates the average motion vector from a list of motion vectors.\n`motion_area_ratio_array` is used to store area ratios for blocks, which will be used in calculations later.",
-        "type": "comment"
+        "file_id": 527,
+        "content": "This code initializes a ClueAI client for paraphrasing, handles errors, and utilizes LRU cache. It generates paraphrased sentences using OpenAI's GPT2 model and allows configuration options. The \"clueai-base\" model is used to predict prompts and check if they are paraphrases of titles. Debug mode prints predicted text and success status, with an option to return scores.",
+        "type": "summary"
     },
     "4202": {
-        "file_id": 531,
-        "content": "average_global_weighted_motion_vector_cartesian_array = []\naverage_weighted_motion_vectors_filtered_cartesian_distance_array = []\naverage_global_weighted_motion_vectors_filtered_cartesian_distance_array = []\nfor _ in progressbar.progressbar(range(framesCount)):\n    success, frame, motion_vectors, frame_type, timestamp = cap.read()\n    height, width, channels = frame.shape\n    # breakpoint()\n    if success:\n        # what is the content of this motion vector?\n        # print(motion_vectors)\n        # import pandas as pd\n        # df = pd.DataFrame(motion_vectors)\n        # df = pd.DataFrame(motion_vectors,index=['source_index','unk0','unk1','src_x','src_y','dst_x','dst_y','motion_x','motion_y','motion_scale'])\n        # breakpoint()\n        # print()\n        # print(\"_____________________________\")\n        condition = motion_vectors[:, 0] < 0\n        # print(condition)\n        # print(condition.shape)\n        # breakpoint()\n        motion_vectors_simplified = motion_vectors[condition, :][:, [0, 5, 6, 7, 8, 9]]",
+        "file_id": 527,
+        "content": "# use our free api first. yes?\nimport yaml\nwith open(\"clueai_api.yaml\", \"r\") as f:\n    apiKey = yaml.load(f, Loader=yaml.FullLoader)[\"api_key\"]\n    print(\"Key?\", apiKey)\nimport clueai\n# initialize the Clueai Client with an API Key\n# 微调用户finetune_user=True\n# cl = clueai.Client(apiKey)\n# print(cl.check_usage(finetune_user=False))\n# shit. we are on trial.\n# {'使用量': 0, '剩余量': 5000, '用户类型': '免费用户'}\nfrom functools import lru_cache\n@lru_cache(maxsize=1)\ndef getClueAIClient(apiKey: str):\n    if apiKey == \"\":\n        return clueai.Client(\"\", check_api_key=False)\n    else:\n        return clueai.Client(apiKey)\ndef clueAIParaphraser(\n    title: str,\n    apiKey: str = \"\",\n    generate_config: dict = {\n        \"do_sample\": True,\n        \"top_p\": 0.8,\n        \"max_length\": 128,  # notice! not too long.\n        \"min_length\": 5,\n        \"length_penalty\": 1.0,\n        \"num_beams\": 1,\n    },\n    prompt_template: str = \"\"\"\n生成与下列文字相同意思的句子：\n{}\n答案：\n\"\"\",\n    debug: bool = False,\n):\n    cl = getClueAIClient(apiKey)  # good without API key\n    prompt = prompt_template.format(title)  # shit.",
         "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:143-164"
+        "location": "/tests/title_rewrite_paraphrase/test.py:1-46"
     },
     "4203": {
-        "file_id": 531,
-        "content": "This code calculates the motion vectors from video frames and filters them based on a condition. The condition checks if the x-component of the motion vector is less than 0, which may indicate horizontal movement. The code then selects specific columns (x, y coordinates, and scale) from the motion vectors that meet this condition for further processing.",
+        "file_id": 527,
+        "content": "The code initializes a ClueAI client using an API key and provides a function for generating paraphrased sentences. It also includes error handling for cases when no API key is provided or when the trial quota has been exceeded. The code uses LRU cache to store the ClueAI client instance, ensuring that subsequent calls will use the cached instance rather than creating a new one each time. The `clueAIParaphraser` function generates a paraphrased sentence using OpenAI's GPT2 model and provides options for configuring the generation process.",
         "type": "comment"
     },
     "4204": {
-        "file_id": 531,
-        "content": "        motion_vectors_scale = motion_vectors_simplified[:, [5]]\n        motion_vectors_scale_inversed = 1 / motion_vectors_scale\n        motion_vectors_with_scale = motion_vectors_simplified[:, [3, 4]]\n        motion_vectors_scale_inversed_stacked = np.hstack(\n            [motion_vectors_scale_inversed] * 2\n        )\n        motion_vectors_restored = (\n            motion_vectors_scale_inversed_stacked * motion_vectors_with_scale\n        )  # just element wise?\n        # print('STACKED:', motion_vectors_scale_inversed_stacked.shape)\n        # print(\"WITH SCALE:\", motion_vectors_with_scale.shape)\n        # print(\"RESTORED:\",motion_vectors_restored.shape)\n        # print(motion_vectors_simplified.shape)\n        # print(motion_vectors_scale.shape)\n        # breakpoint()\n        motion_vectors_dest_coords_restored = np.hstack(\n            [motion_vectors_simplified[:, [1, 2]], motion_vectors_restored]\n        )\n        # motion_vectors_simplified = motion_vectors[:,[0,5,6,7,8]]\n        # motion_vectors_simplified_unique = np.unique(motion_vectors_simplified, axis=0)",
+        "file_id": 527,
+        "content": "    # generate a prediction for a prompt\n    # 如果需要自由调整参数自由采样生成，添加额外参数信息设置方式：generate_config=generate_config\n    prediction = cl.generate(\n        model_name=\"clueai-base\", prompt=prompt, generate_config=generate_config\n    )\n    # 需要返回得分的话，指定return_likelihoods=\"GENERATION\"\n    output = prediction.generations[0].text\n    success = title.strip() != output.strip()\n    if debug:\n        # print the predicted text\n        print(\"prediction: {}\".format(output))\n        print(\"paraphrase success?\", success)\n    return output, success\n# title = \"世上所有小猫都是天使变的！\"\n# title = \"支持几十个不同类型的任务，具有较好的零样本学习能力和少样本学习能力。\"\ntitle = \"十只猫九只都拆家 ！\"\n# title = \"猫：脑子是个好东西但是我没有O.o\"\noutput, success = clueAIParaphraser(title, debug=True)",
         "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:165-184"
+        "location": "/tests/title_rewrite_paraphrase/test.py:47-67"
     },
     "4205": {
-        "file_id": 531,
-        "content": "This code segment is involved in optical flow calculation. It performs scaling, inverse scaling, and stacking of motion vectors to restore the original motion vector array. The code then concatenates the destination coordinates with restored motion vectors. This process helps in improving the accuracy of motion vector estimation.",
+        "file_id": 527,
+        "content": "This code generates a prediction for a given prompt using the \"clueai-base\" model and checks if it is a paraphrase of the provided title. It also has an optional parameter \"generate_config\" to adjust sampling and allows returning scores with \"return_likelihoods\". The code uses debug mode to print predicted text and success status.",
         "type": "comment"
     },
     "4206": {
-        "file_id": 531,
-        "content": "        # print(motion_vectors_simplified_unique.shape, motion_vectors.shape)\n        # breakpoint()\n        motion_vectors_dict = {}\n        for mv in motion_vectors_dest_coords_restored:\n            # drop duplicates first!\n            (\n                dst_x,  # corresponding macro block.\n                dst_y,  # for destination only\n                motion_x,\n                motion_y,\n                # motion_scale,  # don't know what the fuck is wrong with the motion scale\n            ) = mv.tolist()\n            # say we just want source_index <0, aka mv compared to previous frame\n            # try:\n            #     assert motion_x / motion_scale == src_x - dst_x\n            #     assert motion_y / motion_scale == src_y - dst_y\n            # except:\n            #     print(src_x, dst_x, motion_x, motion_scale)\n            #     print(src_y, dst_y, motion_y, motion_scale)\n            #     print(\"*\" * 20)\n            # it will be inaccurate if we abandon this subpixel precision.\n            # if source_index >= 0:",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:185-206"
+        "file_id": 528,
+        "content": "/tests/image_quality_tests/tiq2.py",
+        "type": "filepath"
     },
     "4207": {
-        "file_id": 531,
-        "content": "This code segment is extracting and processing motion vectors from a set of coordinates. It is checking for duplicates, performing calculations with source and destination coordinates, and possibly handling inaccuracies caused by subpixel precision. The code seems to be part of a larger process, as it includes debugging statements and references to variables that are not explicitly defined within the provided segment.",
-        "type": "comment"
+        "file_id": 528,
+        "content": "The code reads video frames, calculates image quality using BRISQUE algorithm, resizes and converts to grayscale. It then displays the resized frame on a GUI window and checks for user input (exiting upon 'q').",
+        "type": "summary"
     },
     "4208": {
-        "file_id": 531,
-        "content": "            #     continue\n            # if dst_x>max_dst_x:\n            #     max_dst_x = dst_x\n            # if dst_y>max_dst_y:\n            #     max_dst_y = dst_y\n            destCoord = (dst_x, dst_y)\n            motion_vector = (motion_x, motion_y)\n            # print(destCoord)\n            # breakpoint()\n            if motion_vector == (0, 0):\n                # print(\"zero motion vector detected. skipping\")\n                # breakpoint()\n                continue\n            # print('destination coords:',destCoord)\n            # print('motion vector:',motion_vector)\n            motion_vectors_dict.update(\n                {destCoord: motion_vectors_dict.get(destCoord, []) + [motion_vector]}\n            )\n            # you know, different frame sources may lead to different results.\n            # these vectors could overlap. which one you want to keep? the smaller ones or the bigger ones?\n            # if destCoord in destCoords:\n            #     print(\"SKIPPING DUPLICATE DESTCOORD:\", destCoord)\n            #     print(\"PREVIOUS MV\",prevMV)",
+        "file_id": 528,
+        "content": "import imquality.brisque as brisque\nimport cv2\nimport PIL\nfrom brisque import BRISQUE\n# integrated svmutil.py and svm.py from that git repo.\n# really strange.\nbrisq = BRISQUE()\nvideo = cv2.VideoCapture(\"../../samples/video/dog_with_text.mp4\")\n_,frame = video.read()\n# frame = imutils.resize(frame,width=720) #why?\nindex = 0\nscore = -1\nperiod = 2\nwhile frame is not None:\n    _, frame = video.read()\n    index+=1\n    if frame is None:\n        print(\"VIDEO END.\")\n        break\n    # just get image quality.\n    # the speed is not so damn fast.\n    image = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)\n    # image = PIL.Image.fromarray(image)\n    if index%period == 0:\n        try:\n            score = brisq.get_score(image) # the lower the better, it was said.\n        except:\n            # this is super fast. but i doubt that.\n            # import traceback\n            # traceback.print_exc()\n            # breakpoint()\n            score = -1 # unknown.\n    cv2.putText(\n        frame,\n        \"[{}]\".format(str(score)[:5]),\n        (200,200),",
         "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:207-230"
+        "location": "/tests/image_quality_tests/tiq2.py:1-40"
     },
     "4209": {
-        "file_id": 531,
-        "content": "This code iterates over motion vectors and updates a dictionary with the destination coordinates and corresponding motion vectors. It skips zero vectors and handles duplicate destinations, but doesn't specify which motion vector to keep in case of overlapping coordinates.",
+        "file_id": 528,
+        "content": "The code is reading frames from a video file and calculating the image quality using the BRISQUE algorithm. It prints the score for every 'period' number of frames, with a lower score indicating better image quality. If an error occurs while calculating the score, it assigns -1 (unknown) as the value. The code is also resizing the frame to a width of 720 pixels using imutils library and converting it to grayscale using cv2.cvtColor function.",
         "type": "comment"
     },
     "4210": {
-        "file_id": 531,
-        "content": "            #     print(\"CURRENT MV\", mv)\n            #     continue\n            # else:\n            #     destCoords.add(destCoord)\n            # prevMV = mv\n            # try:\n            #     # src_x, src_y may not apply the same rule.\n            #     # assert src_x % 16 == 8\n            #     # assert src_y % 16 == 8\n            #     assert checkMacroBlock(dst_x) is not None\n            #     assert checkMacroBlock(dst_y) is not None\n            #     # assert dst_x<=res_x # dst_x can go beyond the res_x\n            #     # assert dst_y<=res_y\n            #     # so all rules applied.\n            # except:\n            #     # print('source',src_x, src_y)\n            #     print(\"res\", res_x, res_y)\n            #     print('destionation',dst_x, dst_y)\n            #     print('motion',motion_x, motion_y)\n            #     print(\"scale\",motion_scale)\n        motion_vectors_dict_averaged = {\n            key: averageMotionVectors(motion_vectors_dict[key])\n            for key in motion_vectors_dict.keys()\n        }",
+        "file_id": 528,
+        "content": "        cv2.FONT_HERSHEY_SIMPLEX,\n        2,\n        (0,255,0),\n        3,\n        cv2.LINE_AA,\n    )\n    cv2.imshow('Output',frame)\n    key  =  cv2.waitKey(1) & 0xff\n    if key == ord('q'):\n        break",
         "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:231-254"
+        "location": "/tests/image_quality_tests/tiq2.py:41-50"
     },
     "4211": {
-        "file_id": 531,
-        "content": "This code is filtering and averaging motion vectors for macroblocks within a certain range. It checks if the source coordinates follow a specific rule, asserts that valid macroblock check functions are not None, and ensures the destination coordinates do not exceed the resolution limits. If any of these conditions fail, it prints debug information and continues execution. Finally, it calculates the averaged motion vectors for each macroblock in the dictionary.",
+        "file_id": 528,
+        "content": "This code is using OpenCV library to display an image on a GUI window with the title 'Output'. The image is drawn on it using a green color (0,255,0) and a simplex font. It checks for user input (key pressed) and if 'q' is entered, the loop breaks.",
         "type": "comment"
     },
     "4212": {
-        "file_id": 531,
-        "content": "        # assuming no duplicates?\n        weighted_motion_vectors = []\n        weights = []\n        rectangles = []\n        motion_vectors_filtered = []  # for getting data later?\n        for (\n            blockCenterCoordinates,\n            average_motion_vector,\n        ) in motion_vectors_dict_averaged.items():\n            if average_motion_vector == (0, 0):\n                continue\n                # wtf is this? why fucking zero?\n                # print('skipping zero average motion vector')\n                # print(\"destination coords\", key)\n                # print('average motion vector', average_motion_vector)\n            else:\n                m_x, m_y = average_motion_vector\n                motion_vectors_filtered.append(average_motion_vector)\n                rectangle_XYWH = getRectangleXYWHFromBlockCenterCoordinates(\n                    blockCenterCoordinates\n                )\n                rectangles.append(rectangle_XYWH)\n                blockWeight = getBlockWeightFromBlockCenterCoordinates(\n                    blockCenterCoordinates",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:255-278"
+        "file_id": 529,
+        "content": "/tests/image_quality_tests/test_pyiqa.sh",
+        "type": "filepath"
     },
     "4213": {
-        "file_id": 531,
-        "content": "This code filters out motion vectors with an average of (0, 0) and stores the remaining vectors in a list. It also extracts relevant information from the blockCenterCoordinates and calculates the weight for each block. Rectangles are created using the getRectangleXYWHFromBlockCenterCoordinates function, and weights are obtained through getBlockWeightFromBlockCenterCoordinates. The motion_vectors_filtered list keeps track of filtered motion vectors for later use.",
-        "type": "comment"
+        "file_id": 529,
+        "content": "This code is running the pyiqa_inference.py script with the specified image and name argument, which downloads the necessary weights from Torch Hub directory for image quality testing.",
+        "type": "summary"
     },
     "4214": {
-        "file_id": 531,
-        "content": "                )\n                weights.append(blockWeight)\n                weighted_motion_vectors.append(\n                    (\n                        m_x * blockWeight / frame_common_divisor,\n                        m_y * blockWeight / frame_common_divisor,\n                    )\n                )\n        weighted_motion_vectors = np.array(weighted_motion_vectors)\n        sum_weighted_motion_vector = np.sum(weighted_motion_vectors, axis=0)\n        average_global_weighted_motion_vector = (\n            sum_weighted_motion_vector / total_block_weights\n        )\n        sum_weights = sum(weights)\n        average_weighted_motion_vector = sum_weighted_motion_vector / sum_weights\n        motion_area_ratio = sum_weights / total_block_weights\n        # print(motion_vectors.shape)\n        motion_vectors_filtered_cartesian_distance = [\n            cartesianDistance(vector) for vector in motion_vectors_filtered\n        ] + [\n            0\n        ]  # to avoid errors.\n        motion_vectors_filtered_cartesian_distance = np.array(",
+        "file_id": 529,
+        "content": "python3 pyiqa_inference.py -n $1 -i sample.bmp\n# it is downloading weights to torch hub directory.",
         "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:279-301"
+        "location": "/tests/image_quality_tests/test_pyiqa.sh:1-2"
     },
     "4215": {
-        "file_id": 531,
-        "content": "This code calculates the average global weighted motion vector and average weighted motion vector, as well as the motion area ratio. It also filters and stores cartesian distances for each motion vector.",
+        "file_id": 529,
+        "content": "This code is running the pyiqa_inference.py script with the specified image and name argument, which downloads the necessary weights from Torch Hub directory for image quality testing.",
         "type": "comment"
     },
     "4216": {
-        "file_id": 531,
-        "content": "            motion_vectors_filtered_cartesian_distance\n        )\n        cartesianWeights = weights + [0]\n        cartesianWeights = np.array(cartesianWeights)\n        cartesianWeightsSum = np.sum(cartesianWeights)\n        weighted_motion_vectors_filtered_cartesian_distance = (\n            motion_vectors_filtered_cartesian_distance * cartesianWeights\n        )\n        sum_weighted_motion_vectors_filtered_cartesian_distance = np.sum(\n            weighted_motion_vectors_filtered_cartesian_distance\n        )\n        # print(\"SUM\", sum_weighted_motion_vectors_filtered_cartesian_distance)\n        # breakpoint()\n        average_weighted_motion_vectors_filtered_cartesian_distance = (\n            sum_weighted_motion_vectors_filtered_cartesian_distance / cartesianWeightsSum\n        )\n        average_global_weighted_motion_vectors_filtered_cartesian_distance = (\n            sum_weighted_motion_vectors_filtered_cartesian_distance\n            / total_block_weights # this is a number, not array!\n        )\n        min_cartesian = min(motion_vectors_filtered_cartesian_distance)",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:302-328"
+        "file_id": 530,
+        "content": "/tests/image_quality_tests/test_image_quality.py",
+        "type": "filepath"
     },
     "4217": {
-        "file_id": 531,
-        "content": "This code calculates weighted average motion vectors by multiplying the distance of each vector with its corresponding weight, summing them, and dividing by the total weight. The minimum cartesian distance is also found.",
-        "type": "comment"
+        "file_id": 530,
+        "content": "This code reads a video, extracts frames at periodic intervals, calculates the image quality using BRISQUE algorithm and displays it on the frame. The score is displayed in the lower-left corner of each frame, and the user can stop the loop by pressing 'q'.",
+        "type": "summary"
     },
     "4218": {
-        "file_id": 531,
-        "content": "        max_cartesian = max(motion_vectors_filtered_cartesian_distance)\n        motion_area_ratio_array.append(motion_area_ratio)\n        # print()\n        # print(average_weighted_motion_vector)\n        # print(average_global_weighted_motion_vector)\n        # breakpoint()\n        average_weighted_motion_vector_cartesian=cartesianDistance(average_weighted_motion_vector)\n        average_weighted_motion_vector_cartesian_array.append(average_weighted_motion_vector_cartesian)\n        average_global_weighted_motion_vector_cartesian = cartesianDistance(average_global_weighted_motion_vector)\n        average_global_weighted_motion_vector_cartesian_array.append(\n        average_global_weighted_motion_vector_cartesian\n        )\n        average_weighted_motion_vectors_filtered_cartesian_distance_array.append(\n            average_weighted_motion_vectors_filtered_cartesian_distance\n        )\n        average_global_weighted_motion_vectors_filtered_cartesian_distance_array.append(\n            average_global_weighted_motion_vectors_filtered_cartesian_distance",
+        "file_id": 530,
+        "content": "# import imquality.brisque as brisque\nimport cv2\nimport PIL\nvideo = cv2.VideoCapture(\"../../samples/video/dog_with_text.mp4\")\n_,frame = video.read()\n# frame = imutils.resize(frame,width=720) #why?\nindex = 0\nscore = -1\nperiod = 20\nwhile frame is not None:\n    _, frame = video.read()\n    index+=1\n    if frame is None:\n        print(\"VIDEO END.\")\n        break\n    # just get image quality.\n    # the speed is not so damn fast.\n    image = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)\n    image = PIL.Image.fromarray(image)\n    if index%period == 0:\n        try:\n            score = brisque.score(image) # the lower the better, it was said.\n        except:\n            score = -1 # unknown.\n    cv2.putText(\n        frame,\n        \"[{}]\".format(str(score)[:5]),\n        (200,200),\n        cv2.FONT_HERSHEY_SIMPLEX,\n        2,\n        (0,255,0),\n        3,\n        cv2.LINE_AA,\n    )\n    cv2.imshow('Output',frame)\n    key  =  cv2.waitKey(1) & 0xff\n    if key == ord('q'):\n        break",
         "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:329-346"
+        "location": "/tests/image_quality_tests/test_image_quality.py:1-40"
     },
     "4219": {
-        "file_id": 531,
-        "content": "Calculates the average weighted motion vector and global weighted motion vector in Cartesian distance, then appends them to corresponding arrays. It also computes and appends filtered Cartesian distances of both types of vectors to their respective arrays. No print statements or breakpoints are executed.",
+        "file_id": 530,
+        "content": "This code reads a video, extracts frames at periodic intervals, calculates the image quality using BRISQUE algorithm and displays it on the frame. The score is displayed in the lower-left corner of each frame, and the user can stop the loop by pressing 'q'.",
         "type": "comment"
     },
     "4220": {
         "file_id": 531,
-        "content": "        )\n        if motion_vectors_dict_averaged != {}:\n            # breakpoint()\n            if visualize:\n                print(\"motion_area_ratio\", motion_area_ratio)\n                print(\"average_weighted_motion_vector_cartesian\", average_weighted_motion_vector_cartesian)\n                print(\n                    \"average_global_weighted_motion_vecto_cartesianr\",\n                    average_global_weighted_motion_vector_cartesian,\n                )\n                print(\n                    \"average_weighted_motion_vectors_filtered_cartesian_distance\",\n                    average_weighted_motion_vectors_filtered_cartesian_distance,\n                )\n                print(\n                    \"average_global_weighted_motion_vectors_filtered_cartesian_distance\",\n                    average_global_weighted_motion_vectors_filtered_cartesian_distance,\n                )\n                motion_mask = np.zeros(\n                    (motion_render_frame[1], motion_render_frame[0], 1)\n                )\n                for index, (x, y, w, h) in enumerate(rectangles):",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:347-369"
+        "content": "/tests/image_quality_tests/t_pyiqa2.sh",
+        "type": "filepath"
     },
     "4221": {
         "file_id": 531,
-        "content": "The code checks if there are any motion vectors in the dictionary and prints various motion-related information and creates a motion mask with zeros.",
-        "type": "comment"
+        "content": "This code is piping the output of `pyiqa_test.py` into `test_pyiqa.sh`, filtering for lines containing \"taking time\", and returning those results.",
+        "type": "summary"
     },
     "4222": {
         "file_id": 531,
-        "content": "                    pt1, pt2 = XYWHToDiagonal(x, y, w, h)\n                    # print(pt1, pt2)\n                    current_cartesian = motion_vectors_filtered_cartesian_distance[\n                        index\n                    ]\n                    # print(type(pt1), type(pt1[0]))\n                    relative_motion_cartesian = (current_cartesian - min_cartesian) / (\n                        max_cartesian - min_cartesian\n                    )  # must from 0 to 1 so we can plot this,\n                    # relative_motion_cartesian = 255*((current_cartesian-min_cartesian)/(max_cartesian-min_cartesian))\n                    # relative_motion_cartesian = int(relative_motion_cartesian)\n                    # relative_motion_cartesian = min(255,max(0, relative_motion_cartesian))\n                    # breakpoint()\n                    cv2.rectangle(\n                        motion_mask,\n                        pt1,\n                        pt2,\n                        color=(relative_motion_cartesian,),\n                        thickness=-1,",
+        "content": "python3 pyiqa_test.py | xargs -iabc bash test_pyiqa.sh abc 2>&1 | grep \"taking time\"",
         "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:370-388"
+        "location": "/tests/image_quality_tests/t_pyiqa2.sh:1-1"
     },
     "4223": {
         "file_id": 531,
-        "content": "This code calculates the relative motion vector cartesian distance and draws a rectangle on an image using OpenCV's `cv2.rectangle` function. The rectangle dimensions are based on the input x, y, w, and h parameters, and its color is determined by the relative motion vector cartesian distance, converted to a range of 0-255 for image intensity values.",
+        "content": "This code is piping the output of `pyiqa_test.py` into `test_pyiqa.sh`, filtering for lines containing \"taking time\", and returning those results.",
         "type": "comment"
     },
     "4224": {
-        "file_id": 531,
-        "content": "                    )\n                # should we gaussian blur, threshold this, do convolution and then apply bounding box on it?\n                # # visualize this.\n                if show_picture:\n                    cv2.imshow(\"motion_mask\", motion_mask)\n                    cv2.waitKey(100)\n            # may you create bounding box for this? for tracking motion? or not?\n        # breakpoint()\n    else:\n        break\n# print('max_dst_x', max_dst_x)\n# print('max_dst_y', max_dst_y)\nimport matplotlib.pyplot as plt\n# plt.style.use('dark_background')\na, b = 5, 1\nfigure, axis = plt.subplots(a, b)\ndata = [\n    motion_area_ratio_array,\n    # average_weighted_motion_vector_array,\n    # average_global_weighted_motion_vector_array,\n    average_weighted_motion_vector_cartesian_array,\n    average_global_weighted_motion_vector_cartesian_array,\n    average_weighted_motion_vectors_filtered_cartesian_distance_array,\n    average_global_weighted_motion_vectors_filtered_cartesian_distance_array,\n]\ntitles = [\n    \"motion_area_ratio\",",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:389-419"
+        "file_id": 532,
+        "content": "/tests/image_quality_tests/README.md",
+        "type": "filepath"
     },
     "4225": {
-        "file_id": 531,
-        "content": "The code is visualizing and analyzing motion data using image processing techniques. It displays a motion mask, creates a bounding box for motion tracking, and plots various motion-related data on subplots. The code also includes options to blur, threshold, apply convolution, and display the results.",
-        "type": "comment"
+        "file_id": 532,
+        "content": "This code provides a solution to ensure image quality for model accuracy, examines ROI using DasiamRPN and siamMask, re-examines for potential loss of mark, applies motion analysis, suggests integrating TA-Lib for statistics, and recommends upscaling video with anime4k or other engines.",
+        "type": "summary"
     },
     "4226": {
-        "file_id": 531,
-        "content": "    # \"average_weighted_motion_vector\",\n    # \"average_global_weighted_motion_vector\",\n    \"average_weighted_motion_vector_cartesian\",\n    \"average_global_weighted_motion_vector_cartesian\",\n    \"average_weighted_motion_vectors_filtered_cartesian_distance\",\n    \"average_global_weighted_motion_vectors_filtered_cartesian_distance\",\n]\n# breakpoint()\nassert len(titles) == len(data)\nassert a*b >= len(titles)\nfor _a in range(a):\n    for _b in range(b):\n        index = _a * b + _b\n        if index > len(data) - 1:\n            break\n        if a == 1:\n            if b == 1:\n                axis[0].plot(data[index])\n                axis[0].set_title(titles[index])\n            else:\n                axis[_b].plot(data[index])\n                axis[_b].set_title(titles[index])\n        elif b == 1:\n            axis[_a].plot(data[index])\n            axis[_a].set_title(titles[index])\n        else:\n            axis[_a, _b].plot(data[index])\n            axis[_a, _b].set_title(titles[index])\nplt.show()",
+        "file_id": 532,
+        "content": "# princlple\nif the image quality is bad, then no matter what model we use we will get poor result.\n# solution\nuse image quality assessment to examine ROI tracked by DasiamRPN and make sure we will use the best sample and get most accurate result.\n# footnote\nDasiamRPN is a good tracker. so before abandon the tracking data re-examine the ROI for several times to see if it really lost its mark. so as the siamMask.\nYou can also examine the image quality by means of motion. if it heavily moves, we refuse to feed it into model.\nIntegrate TA-Lib for less boilerplates. i mean financial analysis can be applied anywhere. they are basically statistics. anything other than that might just be fake.\nwhere is your dog video?\n# further actions\nyou may upscale video using anime4k or other engines.",
         "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:420-449"
+        "location": "/tests/image_quality_tests/README.md:1-21"
     },
     "4227": {
-        "file_id": 531,
-        "content": "This code is plotting multiple sets of data onto a graph, with each set corresponding to an item in two lists of titles and data. The code asserts that the lengths of both lists are equal, and then iterates through each element of the lists using nested for loops. If a single plot is desired, it plots and labels one line of data at a time. If multiple plots are desired, it creates and labels a separate plot for each line of data. Finally, it displays the graph.",
+        "file_id": 532,
+        "content": "This code provides a solution to ensure image quality for model accuracy, examines ROI using DasiamRPN and siamMask, re-examines for potential loss of mark, applies motion analysis, suggests integrating TA-Lib for statistics, and recommends upscaling video with anime4k or other engines.",
         "type": "comment"
     },
     "4228": {
-        "file_id": 532,
-        "content": "/tests/motion_vector_estimation/mpegflow/test.sh",
+        "file_id": 533,
+        "content": "/tests/image_quality_tests/pyiqa_test.py",
         "type": "filepath"
     },
     "4229": {
-        "file_id": 532,
-        "content": "The code sets the VIDEO variable to a specific video file path, runs the mpegflow command on that file and redirects output to output.txt, but the .so file is fake so it doesn't work well. The code also provides an alternative method using Docker or downloading a real .so file from the web, creating an examples/vis_dump directory, and piping the mpegflow command's output into ./vis with the video file path.",
+        "file_id": 533,
+        "content": "This code is filtering out certain metric modes from the DEFAULT_CONFIGS dictionary, printing only those not in the allow_lists. The author comments that these methods may not be as useful and seems difficult to determine their effectiveness before downloading all models. They express confusion about the size of some model files.",
         "type": "summary"
     },
     "4230": {
-        "file_id": 532,
-        "content": "VIDEO=\"/root/Desktop/works/pyjom/samples/video/cute_cat_gif.mp4\"\n# ./mpegflow $VIDEO > output.txt\n# it does not help because the .so file is fake. you need a real one.\n# you may download it from web, or just use docker\n# mkdir -p examples/vis_dump && ./mpegflow $VIDEO | ./vis $VIDEO examples/vis_dump\n# maybe this shit is not good at all...",
+        "file_id": 533,
+        "content": "from pyiqa.default_model_configs import DEFAULT_CONFIGS\nmlist = []\nfor key in DEFAULT_CONFIGS.keys():\n    config = DEFAULT_CONFIGS[key]\n    mode = config[\"metric_mode\"]\n    if mode == \"NR\":\n        mlist.append(key)\n# print(mlist)\n# forbid_lists = [\"ilniqe\",\"nima\"]\nallow_lists = [\"niqe\", \"brisque\", \"paq2piq\"]\nfor elem in mlist:\n    if elem not in allow_lists:\n        continue\n    print(elem)\n# i need to say these methods are not as useful as it was said.\n# the objective shall be EMA based.\n# ['niqe', 'ilniqe', 'brisque', 'nrqm', 'pi', 'musiq', 'musiq-ava', 'musiq-koniq', 'musiq-paq2piq', 'musiq-spaq', 'nima', 'paq2piq', 'dbcnn']\n# you may try them all?\n# it is really hard to say before we download all these models.\n# seems not really dependent on the model size?\n# we've got freaking huge shits.\n# like this one, for nima.\n# https://download.pytorch.org/models/vgg16-397923af.pth\n# what is this shit for anyway?",
         "type": "code",
-        "location": "/tests/motion_vector_estimation/mpegflow/test.sh:1-10"
+        "location": "/tests/image_quality_tests/pyiqa_test.py:1-31"
     },
     "4231": {
-        "file_id": 532,
-        "content": "The code sets the VIDEO variable to a specific video file path, runs the mpegflow command on that file and redirects output to output.txt, but the .so file is fake so it doesn't work well. The code also provides an alternative method using Docker or downloading a real .so file from the web, creating an examples/vis_dump directory, and piping the mpegflow command's output into ./vis with the video file path.",
+        "file_id": 533,
+        "content": "This code is filtering out certain metric modes from the DEFAULT_CONFIGS dictionary, printing only those not in the allow_lists. The author comments that these methods may not be as useful and seems difficult to determine their effectiveness before downloading all models. They express confusion about the size of some model files.",
         "type": "comment"
     },
     "4232": {
-        "file_id": 533,
-        "content": "/tests/motion_vector_estimation/mpegflow/init.sh",
+        "file_id": 534,
+        "content": "/tests/image_quality_tests/pyiqa_inference.py",
         "type": "filepath"
     },
     "4233": {
-        "file_id": 533,
-        "content": "Downloading 'mpegflow' and 'vis' from the 1.0 release of vadimkantorov/mpegflow repository.",
+        "file_id": 534,
+        "content": "This code uses pyiqa library to evaluate image quality and compare algorithms, averaging scores for multiple inputs and timing the process. It saves or prints results and handles missing files with errors.",
         "type": "summary"
     },
     "4234": {
-        "file_id": 533,
-        "content": "curl -L -O https://github.com/vadimkantorov/mpegflow/releases/download/1.0/mpegflow\ncurl -L -O https://github.com/vadimkantorov/mpegflow/releases/download/1.0/vis",
+        "file_id": 534,
+        "content": "import argparse\nimport glob\nimport os\nfrom PIL import Image\nfrom pyiqa.models.inference_model import InferenceModel\nmetric_name = None\ndef main():\n    global metric_name\n    \"\"\"Inference demo for pyiqa.\n    \"\"\"\n    parser = argparse.ArgumentParser()\n    parser.add_argument('-i', '--input', type=str, default=None, help='input image/folder path.')\n    parser.add_argument('-r', '--ref', type=str, default=None, help='reference image/folder path if needed.')\n    parser.add_argument(\n        '-m',\n        '--metric_mode',\n        type=str,\n        default='FR',\n        help='metric mode Full Reference or No Reference. options: FR|NR.')\n    parser.add_argument('-n', '--metric_name', type=str, default='PSNR', help='IQA metric name, case sensitive.')\n    parser.add_argument('--model_path', type=str, default=None, help='Weight path for CNN based models.')\n    parser.add_argument('--img_range', type=float, default=1.0, help='Max value of image tensor.')\n    parser.add_argument(\n        '--input_size', type=int, nargs='+', default=None, help='size of input image. (H, W) for tuple input.')",
         "type": "code",
-        "location": "/tests/motion_vector_estimation/mpegflow/init.sh:1-2"
+        "location": "/tests/image_quality_tests/pyiqa_inference.py:1-26"
     },
     "4235": {
-        "file_id": 533,
-        "content": "Downloading 'mpegflow' and 'vis' from the 1.0 release of vadimkantorov/mpegflow repository.",
+        "file_id": 534,
+        "content": "This code defines a main function for inference demo of the pyiqa library. It takes input, reference image or folder paths as arguments, and allows selection of metric mode (Full Reference or No Reference) and metric name (IQA metric). It also accepts optional parameters like model path, maximum value of image tensor, and input size.",
         "type": "comment"
     },
     "4236": {
         "file_id": 534,
-        "content": "/tests/ffmpeg_audio_volume_detect_adjust/test_output_file_error.py",
-        "type": "filepath"
+        "content": "    parser.add_argument(\n        '--mean', type=float, nargs='+', default=None, metavar='MEAN', help='Override mean pixel value of dataset')\n    parser.add_argument(\n        '--std', type=float, nargs='+', default=None, metavar='STD', help='Override std deviation of of dataset')\n    parser.add_argument('--save_file', type=str, default=None, help='path to save results.')\n    args = parser.parse_args()\n    metric_name = args.metric_name.lower()\n    # set up IQA model\n    iqa_model = InferenceModel(metric_name, args.metric_mode, args.model_path, args.img_range, args.input_size,\n                               args.mean, args.std)\n    metric_mode = iqa_model.metric_mode\n    if os.path.isfile(args.input):\n        input_paths = [args.input]\n        if args.ref is not None:\n            ref_paths = [args.ref]\n    else:\n        input_paths = sorted(glob.glob(os.path.join(args.input, '*')))\n        if args.ref is not None:\n            ref_paths = sorted(glob.glob(os.path.join(args.ref, '*')))\n    if args.save_file:\n        sf = open(args.save_file, 'w')",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pyiqa_inference.py:27-53"
     },
     "4237": {
         "file_id": 534,
-        "content": "The code imports modules, defines paths and fetches media. It detects volume average, adjusts volume if no error occurs, and warns about potential clipping while displaying normalization stats for the output file.",
-        "type": "summary"
+        "content": "This code sets up an IQA (Image Quality Assessment) model for image quality evaluation. It takes in arguments such as the metric name, input and reference file paths, model path, image range, input size, mean, and std deviation values. If any file is missing, it throws an error. Finally, if a save file is specified, it opens the file for writing.",
+        "type": "comment"
     },
     "4238": {
         "file_id": 534,
-        "content": "import test # for appending path only.\nfrom pyjom.audiotoolbox import detect_volume_average, adjustVolumeInMedia\noutput_path = \"volDetect_test.mp4\"\n# detect_volume_average(output_path, debug=True)\nnormalizedOutputPath = \"normalized.mp4\"\n# Output extension mp4 does not support PCM audio. Please choose a suitable audio codec with the -c:a option.\n# wtf are you talking about?\nonline_fetched_media = \"/root/Desktop/works/pyjom/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/sample.mp4\"\n# is this the standard?\ntargets, error = detect_volume_average(online_fetched_media, debug=True)\n# at least let me see this shit.\n# breakpoint()\n# {'mean': -10.6, 'max': 0.0}\n# according to the volume, it seems that everyone agree with this 'industrial standard'\nif not error:\n    adjustVolumeInMedia(\n        output_path, normalizedOutputPath, overwrite_output=True, targets=targets\n    )\n    detect_volume_average(normalizedOutputPath, debug=True)\nelse:\n    print(\"error when detecting volume in media: %s\" % online_fetched_media)",
+        "content": "    avg_score = 0\n    test_img_num = len(input_paths)\n    for idx, img_path in enumerate(input_paths):\n        img_name = os.path.basename(img_path)\n        tar_img = Image.open(img_path)\n        if metric_mode == 'FR':\n            ref_img_path = ref_paths[idx]\n            ref_img = Image.open(ref_img_path)\n        else:\n            ref_img = None\n        score = iqa_model.test(tar_img, ref_img)\n        avg_score += score\n        print(f'{metric_name} score of {img_name} is: {score}')\n        if args.save_file:\n            sf.write(f'{img_name}\\t{score}\\n')\n    avg_score /= test_img_num\n    if test_img_num > 1:\n        print(f'Average {metric_name} score of {args.input} with {test_img_num} images is: {avg_score}')\n    if args.save_file:\n        sf.close()\n    if args.save_file:\n        print(f'Done! Results are in {args.save_file}.')\n    else:\n        print(f'Done!')\nimport timeit\nif __name__ == '__main__':\n    main() # to eliminate first time error.\n    repeatTime = 10 # just test\n    taketime = timeit.timeit(main,number=repeatTime)",
         "type": "code",
-        "location": "/tests/ffmpeg_audio_volume_detect_adjust/test_output_file_error.py:1-23"
+        "location": "/tests/image_quality_tests/pyiqa_inference.py:55-85"
     },
     "4239": {
         "file_id": 534,
-        "content": "The code imports the necessary modules and defines output path, normalized output path, and online fetched media. It attempts to detect volume average from the media file and adjusts the volume if no error occurs, otherwise it prints an error message.",
+        "content": "This code calculates the image quality score using a pre-trained model. It takes input images and optionally references images, then averages the scores for each image if there are multiple inputs. The results can be saved to a file or simply printed out. It also times how long the process took.",
         "type": "comment"
     },
     "4240": {
         "file_id": 534,
-        "content": "    # what is cliping?\n    # WARNING: Adjusting will lead to clipping of 4.209296 dB                                 \n# even worse with default settings.\n# VOLUME NORMALIZATION SUCCESSFUL\n# MEDIA PATH: normalized.mp4\n# VOLUME: {'mean': -25.1, 'max': -8.8}\n# ERROR STATUS: False\n# 'mean' -> target level\n# 'max' -> true peak (really?)",
+        "content": "    print(\"{} taking time:\".format(metric_name),taketime)\n###########SCOREBOARD##############\n# niqe taking time: 0.24909197200031485\n# brisque taking time: 0.1862209509999957\n# nrqm taking time: 18.15363560300466\n# pi taking time: 18.80046885000047\n# musiq taking time: 2.963457034995372\n# musiq-ava taking time: 2.9661162160045933\n# musiq-koniq taking time: 3.0705577400003676\n# musiq-paq2piq taking time: 2.957391322001058\n# musiq-spaq taking time: 2.948993805999635\n# paq2piq taking time: 1.4981017659956706\n# dbcnn taking time: 16.063134230993455",
         "type": "code",
-        "location": "/tests/ffmpeg_audio_volume_detect_adjust/test_output_file_error.py:24-32"
+        "location": "/tests/image_quality_tests/pyiqa_inference.py:86-99"
     },
     "4241": {
         "file_id": 534,
-        "content": "The code is warning about potential clipping due to audio adjustment, showing successful volume normalization with mean and max levels for the output file.",
+        "content": "This code snippet measures the time taken by various image quality assessment algorithms. The output shows the names and respective times for each algorithm in descending order. It can be used to compare the efficiency of these algorithms when evaluating image quality.",
         "type": "comment"
     },
     "4242": {
         "file_id": 535,
-        "content": "/tests/ffmpeg_audio_volume_detect_adjust/test_get_media_bitrate.py",
+        "content": "/tests/image_quality_tests/pybrisque_test.py",
         "type": "filepath"
     },
     "4243": {
         "file_id": 535,
-        "content": "The code imports necessary modules and defines a list of media file paths. It then iterates through the list, printing each media path and using the getAudioBitrate function to obtain the bitrate of each audio file. The result is printed for each file.",
+        "content": "This code imports the BRISQUE class from the brisque module, integrates svmutil.py and svm.py files, initializes an instance of BRISQUE as brisq, gets a feature from an image path using brisq.get_feature(), assigns an image path to 'image_path' variable, retrieves a quality score for the image using brisq.get_score(image_path), and prints the obtained score which is very fast.",
         "type": "summary"
     },
     "4244": {
         "file_id": 535,
-        "content": "import test\nfrom pyjom.audiotoolbox import getAudioBitrate\nmediaPaths = [\n    \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3\", # 320000\n    \"/root/Desktop/works/pyjom/tests/ffmpeg_audio_volume_detect_adjust/normalized.mp4\", # 130770\n]\nfor mediaPath in mediaPaths:\n    print(\"media path:\", mediaPath)\n    result = getAudioBitrate(mediaPath)\n    print(\"RESULT:\", result)",
+        "content": "from brisque import BRISQUE\n# integrated svmutil.py and svm.py from that git repo.\n# really strange.\nbrisq = BRISQUE()\n# brisq.get_feature('/path')\nimage_path = \"/root/Desktop/works/pyjom/tests/image_quality_tests/sample.bmp\"\nscore = brisq.get_score(image_path)\nprint(\"score:\",score)\n# this is damn fast.",
         "type": "code",
-        "location": "/tests/ffmpeg_audio_volume_detect_adjust/test_get_media_bitrate.py:1-11"
+        "location": "/tests/image_quality_tests/pybrisque_test.py:1-12"
     },
     "4245": {
         "file_id": 535,
-        "content": "The code imports necessary modules and defines a list of media file paths. It then iterates through the list, printing each media path and using the getAudioBitrate function to obtain the bitrate of each audio file. The result is printed for each file.",
+        "content": "This code imports the BRISQUE class from the brisque module, integrates svmutil.py and svm.py files, initializes an instance of BRISQUE as brisq, gets a feature from an image path using brisq.get_feature(), assigns an image path to 'image_path' variable, retrieves a quality score for the image using brisq.get_score(image_path), and prints the obtained score which is very fast.",
         "type": "comment"
     },
     "4246": {
         "file_id": 536,
-        "content": "/tests/ffmpeg_audio_volume_detect_adjust/test_get_audio_length.py",
+        "content": "/tests/image_quality_tests/pybrisque_init.sh",
         "type": "filepath"
     },
     "4247": {
         "file_id": 536,
-        "content": "This code imports the necessary modules, defines an audio file path, retrieves its duration using getAudioDuration function and prints the floating point duration.",
+        "content": "Installing required dependencies and libraries for pybrisque Python package, including libsvm-dev, pip3 installing pybrisque, alternative options provided for faster installation.",
         "type": "summary"
     },
     "4248": {
         "file_id": 536,
-        "content": "import test\nfrom pyjom.audiotoolbox import getAudioDuration\naudioPath = \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3\"\naudioDuration = getAudioDuration(audioPath)\nprint(\"audioDuration:\", audioDuration)\n# audioDuration: 302.915918367\n# obviously floating point duration.",
+        "content": "apt-get install libsvm-dev\npip3 install pybrisque\n# pip3 install --process-dependency-links pybrisque\npip3 install git+https://github.com/Salinger/libsvm-python.git\n# which is faster?",
         "type": "code",
-        "location": "/tests/ffmpeg_audio_volume_detect_adjust/test_get_audio_length.py:1-9"
+        "location": "/tests/image_quality_tests/pybrisque_init.sh:1-6"
     },
     "4249": {
         "file_id": 536,
-        "content": "This code imports the necessary modules, defines an audio file path, retrieves its duration using getAudioDuration function and prints the floating point duration.",
+        "content": "Installing required dependencies and libraries for pybrisque Python package, including libsvm-dev, pip3 installing pybrisque, alternative options provided for faster installation.",
         "type": "comment"
     },
     "4250": {
         "file_id": 537,
-        "content": "/tests/ffmpeg_audio_volume_detect_adjust/test.py",
+        "content": "/tests/idlefish_闲鱼_xianyu_spider_scraper_taobao_video_guangguang/README.md",
         "type": "filepath"
     },
     "4251": {
         "file_id": 537,
-        "content": "The code utilizes pyjom library to generate black videos for testing purposes, and it detects and adjusts audio volume of a media file named volDetect_test.mp4 with mean volume -16.8 and max volume -2.0 without any errors.",
+        "content": "This code snippet is a warning about potentially malicious files from a QQ group and the challenge of safely running a specific software (Wine). The comment suggests caution when dealing with such files.",
         "type": "summary"
     },
     "4252": {
         "file_id": 537,
-        "content": "# ffmpeg -i video.avi -af \"volumedetect\"\n# shall we get the output?\n# we can also detect if the stream does not have audio stream.\nimport sys\npyjom_path = \"/root/Desktop/works/pyjom\"\nsys.path.append(pyjom_path)\nfrom pyjom.audiotoolbox import getAudioDuration\nfrom pyjom.medialang.processors.dotProcessor.videoProcessor import executeEditlyScript\nfrom pyjom.videotoolbox import createPureColorVideo\n# for test only.\ndef create_black_video_without_audio(duration, mediapath):\n    createPureColorVideo(duration, mediapath)\n# this is for test only. not for work.\n# another editly script for another video. please?\ndef create_test_video_with_editly(audio):  # length is calculated by the audio length.\n    audio_duration = getAudioDuration(audio)\n    fast = True\n    output_path = \"volDetect_test.mp4\"\n    videoFilePath = \"black_video_with_equal_length_of_audio.mp4\"\n    create_black_video_without_audio(audio_duration, videoFilePath)\n    editly_json = {\n        \"width\": 1920,\n        \"height\": 1080,\n        \"fast\": fast,\n        \"fps\": 60,",
+        "content": "the file from qq group might be virus. be careful!\ndamn wine. how to run this shit safely?",
         "type": "code",
-        "location": "/tests/ffmpeg_audio_volume_detect_adjust/test.py:1-28"
+        "location": "/tests/idlefish_闲鱼_xianyu_spider_scraper_taobao_video_guangguang/README.md:1-3"
     },
     "4253": {
         "file_id": 537,
-        "content": "This code imports functions from the pyjom library to create a black video without audio, and provides two functions: one for creating a test video with Editly script based on an audio file's duration, and another for creating a black video with equal length as the given audio. It is intended for testing purposes only and not for actual work processes.",
+        "content": "This code snippet is a warning about potentially malicious files from a QQ group and the challenge of safely running a specific software (Wine). The comment suggests caution when dealing with such files.",
         "type": "comment"
     },
     "4254": {
-        "file_id": 537,
-        "content": "        \"outPath\": output_path,\n        \"defaults\": {\"transition\": None},\n        \"clips\": [],\n    }\n    editly_json.update({\"audioFilePath\": audio})\n    duration = cutTo = audio_duration\n    cutFrom = 0\n    mute = True\n    clip = {\n        \"duration\": duration,\n        \"layers\": [],\n    }\n    layer = {\n        \"type\": \"video\",\n        \"path\": videoFilePath,\n        \"resizeMode\": \"contain\",\n        \"cutFrom\": cutFrom,\n        \"cutTo\": cutTo,\n        # that's how we mute it.\n        \"mixVolume\": 1 - int(mute),\n    }\n    clip[\"layers\"].append(layer)\n    editly_json[\"clips\"].append(clip)\n    # execute the thing.\n    executeEditlyScript(\".\", editly_json)\n    print(\"media saved to: %s\" % output_path)\n    return output_path\nfrom pyjom.audiotoolbox import detect_volume_average\nif __name__ == \"__main__\":\n    # perform our test.\n    # are you sure this won't change the volume?\n    audiopath = \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3\"\n    detect_volume_average(audiopath, debug=True)\n    # MEDIA PATH: /root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3",
-        "type": "code",
-        "location": "/tests/ffmpeg_audio_volume_detect_adjust/test.py:29-65"
+        "file_id": 538,
+        "content": "/tests/hyper_param_optimization/test.py",
+        "type": "filepath"
     },
     "4255": {
-        "file_id": 537,
-        "content": "This code generates a video with a muted audio track by creating an Editly JSON configuration. It first checks the audio volume and then executes the script to save the resulting media at the specified output path. The provided audio path is \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3\".",
-        "type": "comment"
+        "file_id": 538,
+        "content": "This code uses Hyperopt library for parameter optimization, chooses hyperparameters from different cases via choice function, and samples 10 times for each search space.",
+        "type": "summary"
     },
     "4256": {
-        "file_id": 537,
-        "content": "    # VOLUME: {'mean': -10.8, 'max': 0.0}\n    # ERROR STATUS: False\n    # ______________________________\n    output_path = create_test_video_with_editly(audiopath)\n    detect_volume_average(output_path, debug=True)\n    # volume changed!\n    # MEDIA PATH: volDetect_test.mp4\n    # VOLUME: {'mean': -16.8, 'max': -2.0}\n    # ERROR STATUS: False\n    # how to adjust the volume accordingly?",
+        "file_id": 538,
+        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nfrom hyperopt import hp\n# usually this hyper parameter optimization is done regularlly, and the optimized parameters will be used for a while till next update.\n# but can we optimize these parameters offline?\n# if not offline then we can only use traditional machine learning instead...\n# or this trial and error process is actually a kind of offline machine learning, like random search and graph inference...\n# better use hyperopt with a discriminator ML algorithm.\n# space = hp.choice(\n#     \"a\",\n#     [(\"case 1\", 1 + hp.lognormal(\"c1\", 0, 1)), (\"case 2\", hp.uniform(\"c2\", -10, 10))],\n# )\nimport hyperopt.pyll.stochastic as stochastic\nspace = hp.choice(\"lambda\",[lambda :1, lambda:2]) # if it is lambda, function will not resolve. however, after passing this thing into the main criterion function, it will utilize the lambda function.\nfor _ in range(10):\n    sample = stochastic.sample(space)\n    print(\"SAMPLE:\", sample) # this will return the tuple. can we put some custom functions here?",
         "type": "code",
-        "location": "/tests/ffmpeg_audio_volume_detect_adjust/test.py:66-75"
+        "location": "/tests/hyper_param_optimization/test.py:1-24"
     },
     "4257": {
-        "file_id": 537,
-        "content": "The code is detecting and adjusting the audio volume of a media file (volDetect_test.mp4) using the function `detect_volume_average`. The current mean volume is -16.8 with a max volume of -2.0. The error status is False, indicating no issues during the process. The next step might be to adjust the volume according to these values.",
+        "file_id": 538,
+        "content": "This code uses the hyperopt library for parameter optimization. The hyperparameters are chosen from different cases using a choice function, including lambda functions. The space is sampled 10 times using stochastic sampling, and each sample is printed to the console.",
         "type": "comment"
     },
     "4258": {
         "file_id": 538,
-        "content": "/tests/tencent_video_recommendation_extraction/requests_html_test.py",
-        "type": "filepath"
+        "content": "    # there must be some integrations with custom functions. for example: scikit-learn\nprint(\"_______________________________\") # splited.\nfrom hyperopt.pyll import scope\n@scope.define # this is how we sample the \"LAMBDA\".\ndef my_func(a,b=1):\n    print(\"running function my_func\", a,b)\n    return a*b\nspace_0 = scope.my_func(hp.choice(\"myChoice\",[1,2]))\nspace_1 = scope.my_func(hp.choice(\"myChoice\",[1,2]), hp.choice(\"myChoice2\",[2,3,4]))\nfor _ in range(10):\n    print(stochastic.sample(space_0), stochastic.sample(space_1))",
+        "type": "code",
+        "location": "/tests/hyper_param_optimization/test.py:25-40"
     },
     "4259": {
         "file_id": 538,
-        "content": "Imports pyppeteer and initializes an HTMLSession object, sets the URL to a QQ video page, uses session.get() to fetch the page's content, then iterates through all absolute links in the fetched HTML using r.html.absolute_links. Prints each link.",
-        "type": "summary"
+        "content": "This code defines and samples two hyperparameter search spaces using the Hyperopt library's Pyll module. The \"my_func\" function is defined within a scope, allowing for easy integration with custom functions like Scikit-Learn. It then prints and samples from these search spaces 10 times.",
+        "type": "comment"
     },
     "4260": {
-        "file_id": 538,
-        "content": "from requests_html import HTMLSession # use pyppeteer.\nsession = HTMLSession()\n# url='https://www.baidu.com/'\nurl = 'http://v.qq.com/x/page/m0847y71q98.html'\nr = session.get(url)\nfor link in r.html.absolute_links:\n    print(link)",
-        "type": "code",
-        "location": "/tests/tencent_video_recommendation_extraction/requests_html_test.py:1-8"
+        "file_id": 539,
+        "content": "/tests/hyper_param_optimization/README.md",
+        "type": "filepath"
     },
     "4261": {
-        "file_id": 538,
-        "content": "Imports pyppeteer and initializes an HTMLSession object, sets the URL to a QQ video page, uses session.get() to fetch the page's content, then iterates through all absolute links in the fetched HTML using r.html.absolute_links. Prints each link.",
-        "type": "comment"
+        "file_id": 539,
+        "content": "This code provides a reference to the tutorials section and official documentation of the hyperopt library, found on its GitHub repository.",
+        "type": "summary"
     },
     "4262": {
         "file_id": 539,
-        "content": "/tests/tencent_video_recommendation_extraction/playwright_with_elinks.sh",
-        "type": "filepath"
+        "content": "[tutorials](https://github.com/hyperopt/hyperopt/wiki/FMin) found from [official documentation](http://hyperopt.github.io/hyperopt/) of [hyperopt](https://github.com/hyperopt/hyperopt).",
+        "type": "code",
+        "location": "/tests/hyper_param_optimization/README.md:1-1"
     },
     "4263": {
         "file_id": 539,
-        "content": "This code executes a Python script and an elinks command to extract recommended video IDs from a webpage, searching for them in specific HTML elements.",
-        "type": "summary"
+        "content": "This code provides a reference to the tutorials section and official documentation of the hyperopt library, found on its GitHub repository.",
+        "type": "comment"
     },
     "4264": {
-        "file_id": 539,
-        "content": "python3 dump_page.py\nelinks -dump dump.html > dump.log\n# please find recommended video id in <div data-vid=\"<vid>\">\n# or in <img src=\"//puui.qpic.cn/vpic_cover/<vid>/<vid>_old_ori.jpg/s640x360?max_age=7776000\">",
-        "type": "code",
-        "location": "/tests/tencent_video_recommendation_extraction/playwright_with_elinks.sh:1-5"
+        "file_id": 540,
+        "content": "/tests/hyper_param_optimization/optimize_suggest.py",
+        "type": "filepath"
     },
     "4265": {
-        "file_id": 539,
-        "content": "This code executes a Python script and an elinks command to extract recommended video IDs from a webpage, searching for them in specific HTML elements.",
-        "type": "comment"
+        "file_id": 540,
+        "content": "Code defines a function and uses Hyperopt's Tree-structured Parzen Estimators (TPE) algorithm to optimize the given function. It sets the hyperparameter space using hp.uniform and runs 100 trials, printing the result of the best trial.",
+        "type": "summary"
     },
     "4266": {
         "file_id": 540,
-        "content": "/tests/tencent_video_recommendation_extraction/phantomjs_test.js",
-        "type": "filepath"
+        "content": "from hyperopt import tpe, fmin, hp, STATUS_OK, STATUS_FAIL\nimport requests\ndef function(x):\n    print(\"trying timeout:\",x)\n    # result = x**2\n    status = STATUS_FAIL\n    try:\n        r = requests.get('https://www.baidu.com/', timeout=x)\n        if r.status_code == 200:\n            status = STATUS_OK\n    except:\n        print(\"FAILED WITH TIMEOUT:\", x) # this will rule out the unwanted ones.\n    return {\"loss\":x, \"status\":status}\nspace = hp.uniform(\"param\",0,2)\nresult = fmin(fn=function, space=space, algo=tpe.suggest, max_evals=100)\nprint(result)\n# {'param': 0.10165862536290635}\n# really working? 100ms could be so damn short...\n# by using `Trials` we could inspect results of every trial.",
+        "type": "code",
+        "location": "/tests/hyper_param_optimization/optimize_suggest.py:1-21"
     },
     "4267": {
         "file_id": 540,
-        "content": "This code uses PhantomJS and creates a new page. It opens the specified URL, checks if the status is \"success\", then retrieves the HTML of the page using evaluate() and outputs it to the console before exiting.",
-        "type": "summary"
+        "content": "Code defines a function and uses Hyperopt's Tree-structured Parzen Estimators (TPE) algorithm to optimize the given function. It sets the hyperparameter space using hp.uniform and runs 100 trials, printing the result of the best trial.",
+        "type": "comment"
     },
     "4268": {
-        "file_id": 540,
-        "content": "var page = require('webpage').create();\npage.open('http://v.qq.com/x/page/m0847y71q98.html', function(status) {\n    //console.log(\"Status: \" + status);\n    if (status === \"success\") {\n        //\tpage.render('example.png');\n        result = page.evaluate(() => document.body.innerHTML);\n        console.log(result)\n    }\n    phantom.exit();\n});",
-        "type": "code",
-        "location": "/tests/tencent_video_recommendation_extraction/phantomjs_test.js:1-10"
+        "file_id": 541,
+        "content": "/tests/editly_test_video_render_with_bgm/test.sh",
+        "type": "filepath"
     },
     "4269": {
-        "file_id": 540,
-        "content": "This code uses PhantomJS and creates a new page. It opens the specified URL, checks if the status is \"success\", then retrieves the HTML of the page using evaluate() and outputs it to the console before exiting.",
-        "type": "comment"
+        "file_id": 541,
+        "content": "This code sets up a headless Linux machine to run test cases for the Editly application using xvfb-run and specifying test parameters in a json5 file. It also discusses potential alternative methods and options for audio handling, resolution, and file playback.",
+        "type": "summary"
     },
     "4270": {
         "file_id": 541,
-        "content": "/tests/tencent_video_recommendation_extraction/loop_all_tags.py",
-        "type": "filepath"
+        "content": "# run in headless linux machine! test both xvfp specs?\nxvfb-run -s \"-ac -screen 0 1280x1024x24\" editly test.json5  # this will suffice. json5 will specify all specs? or use our GUI service run specifications (envs)?\n# sometimes we have weird issues with the ffplay. use 'open' instead? does quicktime automatically repair the file by itself?\n# xvfb-run -s \"-ac -screen 0 1920x1080x24\" editly test.json5 --fast # this will suffice. json5 will specify all specs? this 'fast' setting definitely reduced the output resolution to 334x188 15fps, which just saves my time in final production or remote preview from n2n/frp\n# without --keep-source-audio, will we not hear anything from the source video?\n# json5: json for humans\n# this much likely to bring python dict and json objects into a single readable format.",
+        "type": "code",
+        "location": "/tests/editly_test_video_render_with_bgm/test.sh:1-11"
     },
     "4271": {
         "file_id": 541,
-        "content": "This code reads the \"dump.html\" file, parses it with BeautifulSoup, and then iterates over all elements to check if their attributes include 'src' or 'href'. If so, it prints the key-value pair for further examination.",
-        "type": "summary"
+        "content": "This code sets up a headless Linux machine to run test cases for the Editly application using xvfb-run and specifying test parameters in a json5 file. It also discusses potential alternative methods and options for audio handling, resolution, and file playback.",
+        "type": "comment"
     },
     "4272": {
-        "file_id": 541,
-        "content": "from bs4 import BeautifulSoup\ndata = open(\"dump.html\",'r').read()\nsoup = BeautifulSoup(data)\nfor elem in soup.find_all():\n    # print(elem.attrs)\n    # for further examination\n    attrs = elem.attrs\n    for key in ['src', 'href']:\n        if key in attrs.keys():\n            print(key, attrs[key])",
-        "type": "code",
-        "location": "/tests/tencent_video_recommendation_extraction/loop_all_tags.py:1-14"
+        "file_id": 542,
+        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test.py",
+        "type": "filepath"
     },
     "4273": {
-        "file_id": 541,
-        "content": "This code reads the \"dump.html\" file, parses it with BeautifulSoup, and then iterates over all elements to check if their attributes include 'src' or 'href'. If so, it prints the key-value pair for further examination.",
-        "type": "comment"
+        "file_id": 542,
+        "content": "The code defines a function `troubleFunction` that initializes variable `a` to 0, attempts to print and return an undefined variable `b`, then successfully returns the value of `a`. The function call in `val = troubleFunction()` assigns 0 to `val`, which is printed. In the following lines, a variable `c` is initialized to 0 and an undefined variable `d` is printed, followed by printing the value of `c`.",
+        "type": "summary"
     },
     "4274": {
         "file_id": 542,
-        "content": "/tests/tencent_video_recommendation_extraction/dump_page.py",
-        "type": "filepath"
+        "content": "def troubleFunction():\n    a = 0\n    print(b) # skipped\n    return b # also skipped\n    return a # successfully returned with value of a\nval = troubleFunction()\nprint(val) # 0\nc = 0\nprint(d) # skipped\nprint(c) # printing value of c",
+        "type": "code",
+        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/test.py:1-12"
     },
     "4275": {
         "file_id": 542,
-        "content": "This code uses Playwright library to launch a headless Chromium browser, navigates to a QQ video page, waits for the DOM content loaded state, retrieves the HTML content, writes it to a \"dump.html\" file, and then closes the browser.",
-        "type": "summary"
+        "content": "The code defines a function `troubleFunction` that initializes variable `a` to 0, attempts to print and return an undefined variable `b`, then successfully returns the value of `a`. The function call in `val = troubleFunction()` assigns 0 to `val`, which is printed. In the following lines, a variable `c` is initialized to 0 and an undefined variable `d` is printed, followed by printing the value of `c`.",
+        "type": "comment"
     },
     "4276": {
-        "file_id": 542,
-        "content": "from playwright.sync_api import sync_playwright\ndef run(playwright):\n    webkit = playwright.chromium\n    browser = webkit.launch(headless=True)\n    context = browser.new_context()\n    page = context.new_page()\n    page.goto(\"https://v.qq.com/x/page/m0847y71q98.html\")\n    page.wait_for_load_state(\"domcontentloaded\")\n    content = page.content()\n    with open(\"dump.html\", 'w+') as f: f.write(content)\n    print(\"content write to dump.html\")\n    browser.close()\nwith sync_playwright() as playwright:\n    run(playwright)",
-        "type": "code",
-        "location": "/tests/tencent_video_recommendation_extraction/dump_page.py:1-16"
+        "file_id": 543,
+        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/standardFunction.py",
+        "type": "filepath"
     },
     "4277": {
-        "file_id": 542,
-        "content": "This code uses Playwright library to launch a headless Chromium browser, navigates to a QQ video page, waits for the DOM content loaded state, retrieves the HTML content, writes it to a \"dump.html\" file, and then closes the browser.",
-        "type": "comment"
+        "file_id": 543,
+        "content": "This function iterates through a list of statements, executes them one by one, and returns the result if a \"return\" statement is found. If an error occurs, it allows user input to fix the issue before continuing execution.",
+        "type": "summary"
     },
     "4278": {
         "file_id": 543,
-        "content": "/tests/spatial_temporal_slice_pip/test.py",
-        "type": "filepath"
+        "content": "def troubleFunction():\n    statementsAtSameLevel = [\n        \"f = 12\",\n        \"return a\",\n        \"return b\",\n        \"return c\",\n        \"return d\",\n        \"return e\",\n        \"return f\",\n    ]\n    for statement in statementsAtSameLevel:\n        print(\"executing statement:\", statement)\n        while True:\n            try:\n                if statement.startswith(\"return \"):\n                    print(\"eval return statement\")\n                    val = eval(statement.replace(\"return \", \"\"))\n                    return val\n                else:\n                    print(\"exec normal statement\")\n                    exec(statement)\n                break\n            except:\n                import traceback\n                traceback.print_exc()\n                print(\"error code:\", statement)\n                statement = input(\"please enter remedy:\\n\")\nval = troubleFunction()\nprint(\"get value:\", val)",
+        "type": "code",
+        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/standardFunction.py:1-32"
     },
     "4279": {
         "file_id": 543,
-        "content": "This code is loading a video file and reading frames from it using OpenCV's VideoCapture class. It continues to read frames until the frame cannot be retrieved, at which point it breaks out of the loop. The code seems to have some issues with low speed and possibly dealing with videos that have been detected as problematic by PIP (presumably a different part of the codebase).",
-        "type": "summary"
+        "content": "This function iterates through a list of statements, executes them one by one, and returns the result if a \"return\" statement is found. If an error occurs, it allows user input to fix the issue before continuing execution.",
+        "type": "comment"
     },
     "4280": {
-        "file_id": 543,
-        "content": "target_video = \"/media/root/help/pyjom/samples/video/LiGlReJ4i.mp4\" # 娜姐驾到 卡成傻逼\n# you should quit those which has unexpected long frame processing loops.\n# mask the area which has text on it. fill the area and blur the boundary.\n# you could also trash those videos with pip detected.\nimport cv2\n# shit it has low speed... canny\ncap = cv2.VideoCapture(target_video)\nret = 1\nwhile True:\n    ret, frame = cap.read()\n    if ret is None: break",
-        "type": "code",
-        "location": "/tests/spatial_temporal_slice_pip/test.py:1-19"
+        "file_id": 544,
+        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/return_inside_function.py",
+        "type": "filepath"
     },
     "4281": {
-        "file_id": 543,
-        "content": "This code is loading a video file and reading frames from it using OpenCV's VideoCapture class. It continues to read frames until the frame cannot be retrieved, at which point it breaks out of the loop. The code seems to have some issues with low speed and possibly dealing with videos that have been detected as problematic by PIP (presumably a different part of the codebase).",
-        "type": "comment"
+        "file_id": 544,
+        "content": "The code defines a function, \"error_func\", that attempts to return variable 'a', but catches any exception and prompts the user to input a return statement. It then evaluates the provided expression and returns its result, or executes it if not a valid return statement. The returned value is stored in 'val' and printed at the end.",
+        "type": "summary"
     },
     "4282": {
         "file_id": 544,
-        "content": "/tests/video_phash_deduplication/test_video_hash.py",
-        "type": "filepath"
+        "content": "def error_func():\n    try:\n        return a\n    except:\n        print('you must somehow return something')\n        while True:\n            code = input('please set some return statement.\\n')\n            if code.startswith('return '):\n                myReturnValue = eval(\"{}\".format(code.replace('return ','')))\n                print('about to return value')\n                return myReturnValue\n            else:\n                exec(code)\nval = error_func()\nprint('value returned:',val)",
+        "type": "code",
+        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/return_inside_function.py:2-17"
     },
     "4283": {
         "file_id": 544,
-        "content": "The code defines `getVideoPHash` to calculate a video's phash using the `videohashes` tool, testing it by comparing pairwise differences between hash values for different videos and considering duplicates based on a threshold.",
-        "type": "summary"
-    },
-    "4284": {
-        "file_id": 544,
-        "content": "# use some delogo stuff.\nfrom lazero.program.subprocess import runCommandGetJson\n# these two are similar. can be used as threshold.\n# aaaa3d8a2eaa1f8a delogo\n# aaaa398a2faa5d8a not delogoed.\n# aaaa3c8a2faa5e8a mp4 (very similar to delogoed version)\ndef getVideoPHash(filepath,debug=False, timeout=100):\n    import os\n    import imagehash\n    assert os.path.exists(filepath)\n    assert os.path.isfile(filepath)\n    if not os.path.isabs(filepath):\n        filepath = os.path.abspath(filepath)\n    commandLine = [\n        \"videohashes\", # installed in path.\n        # \"/root/Desktop/works/pyjom/tests/video_phash_deduplication/videohashes/videohashes-linux\",\n        \"-json\",\n        filepath,\n    ]\n    success, myJson = runCommandGetJson(commandLine, debug=debug, timeout=timeout)\n    if debug:\n        print(\"SUCCESS?\", success)\n        print(myJson, type(myJson))\n    if not success:\n        return\n    # breakpoint()\n    phashString = myJson[\"phash\"]\n    phash = imagehash.hex_to_hash(phashString)\n    if debug:\n        print(\"FILEPATH: %s\" % filepath)",
-        "type": "code",
-        "location": "/tests/video_phash_deduplication/test_video_hash.py:1-32"
-    },
-    "4285": {
-        "file_id": 544,
-        "content": "The code defines a function `getVideoPHash` that calculates a video's phash (a unique identifier for an image or video) using the `videohashes` command-line tool. It takes a filepath as input, checks if it exists and is a file, then runs the command to generate the JSON output. The function also converts the returned phash string to a binary hash and optionally prints debug information.",
+        "content": "The code defines a function, \"error_func\", that attempts to return variable 'a', but catches any exception and prompts the user to input a return statement. It then evaluates the provided expression and returns its result, or executes it if not a valid return statement. The returned value is stored in 'val' and printed at the end.",
         "type": "comment"
     },
+    "4284": {
+        "file_id": 545,
+        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/minterpreter.py",
+        "type": "filepath"
+    },
+    "4285": {
+        "file_id": 545,
+        "content": "The code analyzes and modifies statements, handling try-except blocks and function definitions with proper indentation. It prints except codes, nested try-except blocks, try block, entered code lines, and statement identifiers.",
+        "type": "summary"
+    },
     "4286": {
-        "file_id": 544,
-        "content": "        print(myJson)\n        print(\"PHASH:\", phash)\n    # if withDuration:\n    #     duration = myJson[\"duration\"]\n    #     return duration, phash\n    # duration is inaccurate\n    return phash\nif __name__ == \"__main__\":\n    videoPaths = [\n        \"cute_cat_gif.mp4\",\n        \"cute_cat_gif.gif\",\n        \"cat_delogo.gif\",\n        \"/root/Desktop/works/pyjom/samples/video/dog_with_large_text.gif\",\n    ]\n    hashs = [getVideoPHash(filepath,debug=True) for filepath in videoPaths]\n    dis0 = hashs[0] - hashs[1]  # small\n    dis1 = hashs[1] - hashs[2]  # big\n    dis2 = hashs[0] - hashs[2]  # big\n    dis3 = hashs[0] - hashs[3]  # big\n    print(dis0, dis1, dis2, dis3)\n    # 4 4 4\n    # strange. why?\n    # 4 4 4 42\n    # huge difference.\n    # what value do you decide to be duplicate?\n    # phash < 7 (really?)\n    # so how do we run this test?",
+        "file_id": 545,
+        "content": "# shall the code share modified version of statements?\nsource_code = open(\"test.py\", \"r\").readlines()\nregisteredLevels = []\n# should use restorable arrays/dict.\nfor lineNumber, line in enumerate(source_code):\n    line = line.replace(\"\\n\", \"\")\n    indentLevel = int(len(line.replace(line.strip(), \"\")) / 4)\n    # print(registeredLevels)\n    exceptCodes = [\"print('exception on code line: {}')\".format(lineNumber)]\n    if len(registeredLevels) > 0 and indentLevel <= registeredLevels[-1]:\n        mIndentLevel = registeredLevels.pop(-1)\n        print((mIndentLevel * 2) * 4 * \" \" + \"except:\")\n        for exceptCode in exceptCodes:\n            print((mIndentLevel * 2+1) * 4 * \" \" +exceptCode)\n    if line == \"\":\n        continue\n    print((indentLevel * 2) * 4 * \" \" + \"try:\")\n    print((indentLevel * 2 + 1) * 4 * \" \" + \"print('entering code line: {}')\".format(lineNumber))\n    line=line.strip()\n    # if not line.startswith('return '):\n    print((indentLevel * 2 + 1) * 4 * \" \" + line, \"# indent[{}]\".format(indentLevel))",
         "type": "code",
-        "location": "/tests/video_phash_deduplication/test_video_hash.py:33-65"
+        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/minterpreter.py:1-23"
     },
     "4287": {
-        "file_id": 544,
-        "content": "This code tests the video hashing function by calculating pairwise differences between hash values for different video files. It then compares the differences to determine potential duplicates and prints the results. The hash difference threshold for considering duplicates is set to 7, but this seems low and may need adjustment based on further testing.",
+        "file_id": 545,
+        "content": "This code is creating a modified version of statements and using restorable arrays/dict. It checks if the current indent level is less than or equal to the last registered level, then prints except codes and nested try-except blocks. If line is empty, it continues to next iteration. The code also prints try block, enters code line and the statement itself with an identifier for the indentation level.",
         "type": "comment"
     },
     "4288": {
         "file_id": 545,
-        "content": "/tests/video_phash_deduplication/test_milvus_library.py",
-        "type": "filepath"
+        "content": "    if line.startswith(\"def \"):\n        registeredLevels.append(indentLevel)\n        continue\n    print((indentLevel * 2) * 4 * \" \" + 'except:')\n    for exceptCode in exceptCodes:\n        print((indentLevel * 2+1) * 4 * \" \" + exceptCode)",
+        "type": "code",
+        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/minterpreter.py:24-29"
     },
     "4289": {
         "file_id": 545,
-        "content": "This code defines a Milvus function for connecting, managing collections, and caching. It creates Collections with specified data types, searches duplicated videos, retrieves video duration/hash, indexes videos, and reloads collection if necessary.",
-        "type": "summary"
-    },
-    "4290": {
-        "file_id": 545,
-        "content": "# # duplicate -> remove, do not insert\n# # not duplicate -> get the data, insert\n# # you want to clear the collection after this run?\n# from functools import lru_cache\n# from pymilvus import connections\n# @lru_cache(maxsize=1)\n# def connectMilvusDatabase(alias=\"default\", host=\"localhost\", port=\"19530\"):\n#     connection = connections.connect(\n#         alias=alias, host=host, port=port\n#     )  # can we reconnect?\n#     print(\"milvus connected\")\n# # connectMilvusDatabase()\n# # connectMilvusDatabase() # will not connect again.\n# from pymilvus import Collection\n# from pymilvus import utility\n# from pymilvus import CollectionSchema, FieldSchema, DataType\n# import traceback\n# def getMilvusVideoDeduplicationCollection(\n#     get_existing: bool = False,\n# ):  # most of the time we just use the same\n#     collection_name = \"video_deduplication\"\n#     try:\n#         if utility.has_collection(collection_name):  # be prudent.\n#             if get_existing:\n#                 return Collection(collection_name)\n#             utility.drop_collection(collection_name)",
-        "type": "code",
-        "location": "/tests/video_phash_deduplication/test_milvus_library.py:1-35"
-    },
-    "4291": {
-        "file_id": 545,
-        "content": "The code defines a function to connect to a Milvus database, get or remove an existing collection named \"video_deduplication\", and returns the collection if it already exists. The function uses caching and checks if the collection already exists before performing any actions.",
+        "content": "Checking for function definitions and printing except block with appropriate indentation.",
         "type": "comment"
     },
+    "4290": {
+        "file_id": 546,
+        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/hook_error_handler_to_see_if_context_preserved.py",
+        "type": "filepath"
+    },
+    "4291": {
+        "file_id": 546,
+        "content": "This code tests error handling and function execution preservation by setting an exception hook, enabling autoreload, and creating a temp file for dynamic environments. It runs a progress bar then calls anotherFunction() and allows user input to continue or not upon exception.",
+        "type": "summary"
+    },
     "4292": {
-        "file_id": 545,
-        "content": "#     except:\n#         traceback.print_exc()\n#         print(\"maybe the collection does not exist\")\n#     video_semantic_id = FieldSchema(  # how to insert this shit without prior knowledge?\n#         name=\"video_semantic_id\",\n#         dtype=DataType.INT64,\n#         is_primary=True,  # if is primary, will do check for 'not duplicate' or something.\n#         auto_id=True,  # no need for id generation.\n#     )\n#     video_length = FieldSchema(\n#         name=\"video_length\",\n#         dtype=DataType.FLOAT,\n#     )\n#     video_phash = FieldSchema(\n#         name=\"video_phash\", dtype=DataType.BINARY_VECTOR, dim=64\n#     )  # 64\n#     # single dimension? no multi dimension support?\n#     schema = CollectionSchema(\n#         fields=[video_semantic_id, video_length, video_phash],\n#         description=\"Test video deduplication\",\n#     )\n#     collection = Collection(\n#         name=collection_name,\n#         schema=schema,\n#         using=\"default\",\n#         shards_num=2,\n#     )\n#     # is this demo collection?\n#     return collection",
+        "file_id": 546,
+        "content": "# \n# import sys\n# i can assure that not a single 'reloading' decorator has been added to my code manually yet.\n# from basic import on_error_resume_next, err\n# on_error_resume_next()\nimport tempfile\n# def customExceptHook(a,b,c):\n#     print('ERROR INFO:', a,b,c)\n#     # <class 'AttributeError'> '_io.BufferedRandom' object has no attribute 'path' <traceback object at 0x7fd6c4325080>\n#     # it is a traceback object.\n#     print(\"context preserved! please take action!\")\n#     # preserved my ass.\n#     # this won't preserve context in any degree.\n#     while True:\n#         i = input('exit? (y for exit)\\n').lower()\n#         if i == 'y':\n#             break\n#     print('closing program now!')\n# sys.excepthook=customExceptHook\nimport os\n# add reloading to all these files? are you sure?\n# no support for block statements yet.\nfrom reloadr import autoreload\n@autoreload\ndef makeTrouble():\n    return 'success!'\ndef someFunction():\n    with tempfile.NamedTemporaryFile('w+',suffix='123') as f: # no such file now. wtf?\n        # print('LOCATION:',dir(f))",
         "type": "code",
-        "location": "/tests/video_phash_deduplication/test_milvus_library.py:36-65"
+        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/hook_error_handler_to_see_if_context_preserved.py:1-38"
     },
     "4293": {
-        "file_id": 545,
-        "content": "This code defines a CollectionSchema and Collection for Milvus library. The schema contains fields for video_semantic_id, video_length, and video_phash, with their respective data types and properties. The Collection is created with a name, schema, database usage, and number of shards.",
+        "file_id": 546,
+        "content": "This code is importing necessary modules and defining functions for handling exceptions. It sets a custom exception hook, enables autoreload for some functions, and creates a temporary file. The purpose seems to be testing error handling and context preservation in a dynamic environment.",
         "type": "comment"
     },
     "4294": {
-        "file_id": 545,
-        "content": "# # seems hard to setup.\n# # not started!\n# # https://milvus.io/docs/v2.0.0/metric.md#binary\n# # the metric is important to us.\n# import numpy as np\n# import bitarray\n# @lru_cache(maxsize=1)\n# def transformVideoPhash(videoPhash):\n#     # we need the raw phash.\n#     queryData = videoPhash.hash  # videoPhashTruthTable8x8 or something\n#     queryData = queryData.reshape(-1).tolist()\n#     queryData = [\"1\" if x else \"0\" for x in queryData]\n#     queryData = bitarray.bitarray(\"\".join(queryData), endian=\"little\")\n#     queryData = queryData.tobytes()\n#     return queryData\n# # dimension: 8*8=64\n# def indexVideoWithVideoDurationAndPhash(collection, videoDuration, videoPhash):\n#     queryData = transformVideoPhash(videoPhash)\n#     collection.insert([[np.float32(videoDuration)], [queryData]])\n# # can release even if not loaded.\n# from test_video_hash import getVideoPHash\n# import caer\n# @lru_cache(maxsize=1)\n# def getVideoDurationAndPhashFromFile(videoFilePath):\n#     videoDuration = caer.video.frames_and_fps.get_duration(videoFilePath)",
+        "file_id": 546,
+        "content": "        # /tmp/tmp7c5ffugz123\n        # still exist?\n        f.write('abcdefg')\n        f.flush() # write to disk.\n        print('LOCATION:',os.path.abspath(f.name))\n        print('has file?', os.path.exists(f.name)) # debugpy is nice.\n        # breakpoint() # we have the content here.\n        # this exception is caught, handled, but still recognized by the damn debugger.\n        try: # this must be directly in that context.\n            maketrouble() # no content here! it fucking triggered the alarm.\n        except:\n            mCode=None\n            while True:\n                try:\n                    mCode = input(\"remedy>>> \")\n                    if mCode == 'return':\n                        return\n                    elif mCode.startswith('return '):\n                        val = eval(mCode.replace('return ',''))\n                        return val\n                    else:\n                        exec(mCode)\n                except:\n                    import traceback\n                    traceback.print_exc()",
         "type": "code",
-        "location": "/tests/video_phash_deduplication/test_milvus_library.py:68-103"
+        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/hook_error_handler_to_see_if_context_preserved.py:39-63"
     },
     "4295": {
-        "file_id": 545,
-        "content": "Function `transformVideoPhash` takes a video phash and converts it into a binary format for Milvus library indexing. Function `indexVideoWithVideoDurationAndPhash` inserts the video duration and transformed phash into the specified collection. The `getVideoDurationAndPhashFromFile` function retrieves the video duration and corresponding phash of a given video file using caer's video module. All functions are cached to avoid redundant computations.",
+        "file_id": 546,
+        "content": "This code checks if a file still exists after writing content, despite the exception being caught and handled. It attempts to run `maketrouble()` within a try-except block and provides a remedy input prompt for error handling.",
         "type": "comment"
     },
     "4296": {
-        "file_id": 545,
-        "content": "#     videoPhash = getVideoPHash(videoFilePath)\n#     return videoDuration, videoPhash\n# def indexVideoWithVideoDurationAndPhashFromFile(collection, videoFilePath):\n#     videoDuration, videoPhash = getVideoDurationAndPhashFromFile(videoFilePath)\n#     indexVideoWithVideoDurationAndPhash(collection, videoDuration, videoPhash)\n# def reloadMilvusCollection(collection):\n#     collection.release()  # unload.\n#     collection.load()\n# # make it into some library!\n# # insert after load?\n# # # 1,64\n# # what is wrong? wtf?\n# # queryData = queryData.tolist()\n# def getDistancesBySearchingDuplicatedVideoInMilvusByFile(\n#     collection,\n#     videoFilePath,\n#     search_params={\"metric_type\": \"Jaccard\", \"params\": {\"nprobe\": 10}},\n#     autoreload: bool = True,\n#     span: float = 2,\n#     debug: bool = False,\n#     limit: int = 10,\n# ):\n#     if autoreload:\n#         reloadMilvusCollection(collection)\n#     videoDuration, videoPhash = getVideoDurationAndPhashFromFile(videoFilePath)\n#     queryData = transformVideoPhash(videoPhash)",
+        "file_id": 546,
+        "content": "                    print('trouble while executing code:', mCode)\n        print(\"won't have problem.\")\n    return 'myValue'\nfrom reloading import reloading\n@reloading\ndef anotherFunction():\n    # raise Exception('but just another shit!')\n    # it does not hook the function.\n    return 'yes please'\ndef mFunction():\n    while True:\n        try:\n            val= anotherFunction()\n            return val\n        except:\n            import traceback\n            traceback.print_exc()\n            print('please modify your code')\n            while True:\n                i = input('done? (y for done)\\n').lower()\n                if i == 'y':\n                    break\nimport progressbar\nimport time\ndef main():\n    print('please wait...')\n    for _ in progressbar.progressbar(range(5)):\n        time.sleep(1)\n    val = anotherFunction()\n    # val = mFunction()\n    print('value returned:', val) # it cannot restart the function actually raises the exception!\nif __name__ == \"__main__\":\n    main()",
         "type": "code",
-        "location": "/tests/video_phash_deduplication/test_milvus_library.py:104-136"
+        "location": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/hook_error_handler_to_see_if_context_preserved.py:64-104"
     },
     "4297": {
-        "file_id": 545,
-        "content": "This code snippet defines a function for searching duplicated videos in Milvus by their file path, using Jaccard metric. It also includes functions to get video duration and hash from the file, index videos with duration and hash, and reload Milvus collection if necessary. The search parameters include metric type, probe count, span, limit, and whether to enable debug mode.",
+        "file_id": 546,
+        "content": "This code aims to test the error handling and function execution preservation. The main function runs a progress bar, then calls anotherFunction(). If an exception occurs in anotherFunction(), it prints the exception details and asks for user input to continue or not. It doesn't actually restart the function if an exception is raised.",
         "type": "comment"
     },
     "4298": {
-        "file_id": 545,
-        "content": "#     minVideoLength = max(0, videoDuration - span)\n#     maxVideoLength = videoDuration + span\n#     results = collection.search(\n#         data=[queryData],  # this is the float dimension.\n#         anns_field=\"video_phash\",\n#         param=search_params,\n#         output_fields=[\"video_length\"],\n#         limit=limit,\n#         expr=\"video_length > {minVideoLength} and video_length < {maxVideoLength}\".format(\n#             minVideoLength=minVideoLength, maxVideoLength=maxVideoLength\n#         ),\n#     )\n#     theHit = results[0]\n#     # print(theHit)\n#     # so we can perform search without filtering afterwards.\n#     # results[0][0].entity.get('video_length')\n#     # print(results[0].ids)\n#     # now, we want to have the 'distance' parameter.\n#     # print(results[0])\n#     # print(theHit)\n#     distances = list(theHit.distances)\n#     if debug:\n#         print(\"distances: %s\" % distances)\n#     return distances\n#     # what is the distance? we need to try.\n#     # returh the closest distance?\n#     # results = [x for x in theHit]",
-        "type": "code",
-        "location": "/tests/video_phash_deduplication/test_milvus_library.py:137-164"
+        "file_id": 547,
+        "content": "/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/basic.py",
+        "type": "filepath"
     },
     "4299": {
-        "file_id": 545,
-        "content": "This code searches for videos within a specified range of video length in the Milvus library. It sets minimum and maximum lengths based on the query's duration and span, and uses these values to filter results from the search. The closest distance between the query and each result is then returned.",
-        "type": "comment"
+        "file_id": 547,
+        "content": "The code creates a function to calculate stack depth, iterates through bytecode for debugging, handles various operations, manages stack depth in an interpreter, and generates callables for traceback frames. It resumes execution, patches original with custom _excepthook, tries to execute until exception occurs, logs it, returns error type, and clears.",
+        "type": "summary"
     }
 }
