@@ -1,0 +1,538 @@
+{
+    "2000": {
+        "file_id": 195,
+        "content": "from test_commons import *\nfrom pyjom.musictoolbox import recognizeMusicFromFile\nfrom lazero.utils.logger import sprint\nfilepath = (\n    # \"/root/Desktop/works/pyjom/tests/music_recognization/exciting_bgm_cut_10seconds.mp3\"\n    \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3\"\n)\n# methods = [\"midomi\"]\nmethods = [\"songrec\", \"shazamio\", \"midomi\"]\nimport time\nfor method in methods:\n    result = recognizeMusicFromFile(filepath, backend=method, debug=True)\n    sprint(\"RESULT:\", result)\n    time.sleep(3)",
+        "type": "code",
+        "location": "/tests/unittest_music_recognition.py:1-16"
+    },
+    "2001": {
+        "file_id": 195,
+        "content": "This code tests the music recognition functionality of different backends (songrec, shazamio, and midomi) by calling the recognizeMusicFromFile function and logging the results. The filepath variable stores the path to the test audio file. The methods list determines which backends will be tested. After each test, there is a 3-second pause before moving on to the next backend.",
+        "type": "comment"
+    },
+    "2002": {
+        "file_id": 196,
+        "content": "/tests/unittest_ocr_filter_large_area_of_text.py",
+        "type": "filepath"
+    },
+    "2003": {
+        "file_id": 196,
+        "content": "This code sets up libraries and variables for processing image or video files, detects text within frames using EasyOCRReader, calculates text area percentage, draws rectangles, and displays the result.",
+        "type": "summary"
+    },
+    "2004": {
+        "file_id": 196,
+        "content": "from test_commons import *\n# import pytesseract\n# from pytesseract import Output\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\n# img = cv2.imread('image.jpg')\nfrom pyjom.videotoolbox import getVideoFrameIteratorWithFPS\ndetectionList = []\nfrom pyjom.imagetoolbox import getEasyOCRReader, LRTBToDiagonal\nreader = getEasyOCRReader((\"en\",))\nimport numpy as np\ntest_subject = \"image\"\nif test_subject == \"video\":\n    videoPath = \"/root/Desktop/works/pyjom/samples/video/dog_with_large_text.gif\"\n    iterator = getVideoFrameIteratorWithFPS(videoPath, start=-1, end=-1, fps=10)\nelif test_subject == \"image\":\n    imagePath = \"/root/Desktop/works/pyjom/samples/image/dog_saturday_night.bmp\"\n    iterator = [cv2.imread(imagePath)]\nelse:\n    raise Exception(\"unknown test_subject:\", test_subject)\n# threshold: {'max':0.3}\nfor frame in iterator:\n    height, width = frame.shape[:2]\n    img = np.zeros((height, width, 3))\n    detection, recognition = reader.detect(frame)  # not very sure.\n    if detection == [[]]:",
+        "type": "code",
+        "location": "/tests/unittest_ocr_filter_large_area_of_text.py:1-37"
+    },
+    "2005": {
+        "file_id": 196,
+        "content": "Code imports necessary libraries and sets up variables for working with an image or video file. It initializes OpenCV, EasyOCRReader, and numpy, then determines the test subject (image or video) to be used. The code creates an iterator based on the test subject and sets a threshold for detection. It loops through each frame in the iterator, creating a blank image, and detects text within the frame using EasyOCRReader.",
+        "type": "comment"
+    },
+    "2006": {
+        "file_id": 196,
+        "content": "        diagonalRects = []\n    else:\n        diagonalRects = [LRTBToDiagonal(x) for x in detection[0]]\n    for x1, y1, x2, y2 in diagonalRects:\n        w, h = x2 - x1, y2 - y1\n        x, y = x1, y1\n        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), -1)\n    # calculate the portion of the text area.\n    textArea = np.sum(img)\n    textAreaRatio = (textArea / 255) / (width * height)\n    print(\"text area: {:.2f} %\".format(textAreaRatio))\n    cv2.imshow(\"img\", img)\n    cv2.waitKey(0)",
+        "type": "code",
+        "location": "/tests/unittest_ocr_filter_large_area_of_text.py:38-50"
+    },
+    "2007": {
+        "file_id": 196,
+        "content": "This code calculates the text area percentage of an image and displays it. It first determines diagonal rectangles from detection data, then draws rectangles around the detected text areas using OpenCV's rectangle function. The total text area is calculated by summing pixel values in the image, which is then normalized to a percentage of the image's total area. Finally, the image with drawn rectangles and text area ratio is displayed.",
+        "type": "comment"
+    },
+    "2008": {
+        "file_id": 197,
+        "content": "/tests/unittest_photo_histogram_match_0.2.py",
+        "type": "filepath"
+    },
+    "2009": {
+        "file_id": 197,
+        "content": "This code performs image processing tasks, including text removal using inpainting and color distribution transfer between images. It displays all processed images before waiting for a key press.",
+        "type": "summary"
+    },
+    "2010": {
+        "file_id": 197,
+        "content": "# USAGE\n# python example.py --source images/ocean_sunset.jpg --target images/ocean_day.jpg\nimage_0 = \"/root/Desktop/works/pyjom/samples/image/dog_with_text2.png\"\nimage_1 = \"/root/Desktop/works/pyjom/samples/image/cute_cat.bmp\"\n# from lazero.utils.importers import cv2_custom_build_init\nfrom test_commons import *\n# cv2_custom_build_init()\n# import the necessary packages\nfrom color_transfer import color_transfer\nimport cv2\ndef show_image(title, image, width=300):\n    # resize the image to have a constant width, just to\n    # make displaying the images take up less screen real\n    # estate\n    r = width / float(image.shape[1])\n    dim = (width, int(image.shape[0] * r))\n    resized = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)\n    # show the resized image\n    cv2.imshow(title, resized)\n# load the images\nsource = cv2.imread(image_0)\ntarget = cv2.imread(image_1)\n# we inpaint this one from the beginning.\nfrom pyjom.imagetoolbox import (\n    getImageTextAreaRatio,\n    imageFourCornersInpainting,\n)  # also for image text removal.",
+        "type": "code",
+        "location": "/tests/unittest_photo_histogram_match_0.2.py:1-38"
+    },
+    "2011": {
+        "file_id": 197,
+        "content": "The code imports necessary packages, loads two images (source and target), and uses imageFourCornersInpainting for text removal from the source image. It also defines a function show_image to display resized images with constant width for efficient screen usage.",
+        "type": "comment"
+    },
+    "2012": {
+        "file_id": 197,
+        "content": "target = getImageTextAreaRatio(target, inpaint=True)\ntarget = imageFourCornersInpainting(target)\n# also remove the selected area.\n# transfer the color distribution from the source image\n# to the target image\ntransfer = color_transfer(source, target)\nimport numpy as np\ntransfer_02 = (target * 0.8 + transfer * 0.2).astype(np.uint8)\ntransfer_02_flip = cv2.flip(transfer_02, 1)\n# show the images and wait for a key press\nshow_image(\"Source\", source)\nshow_image(\"Target\", target)\nshow_image(\"Transfer\", transfer)\nshow_image(\"Transfer_02\", transfer_02)\nshow_image(\"Transfer_02_flip\", transfer_02_flip)\ncv2.waitKey(0)",
+        "type": "code",
+        "location": "/tests/unittest_photo_histogram_match_0.2.py:40-60"
+    },
+    "2013": {
+        "file_id": 197,
+        "content": "This code performs image processing tasks. It applies inpainting to the target image, transfers color distribution from source to target, creates a new transfer image with blending, flips one of the images, and displays all images before waiting for a key press.",
+        "type": "comment"
+    },
+    "2014": {
+        "file_id": 198,
+        "content": "/tests/unittest_lazero_external_downloader.py",
+        "type": "filepath"
+    },
+    "2015": {
+        "file_id": 198,
+        "content": "This code downloads a file from a given URL and saves it to a specified path. It checks if the file already exists at the target location, and if so, deletes it before initiating the download. The success or failure of the download is reported using print statement.",
+        "type": "summary"
+    },
+    "2016": {
+        "file_id": 198,
+        "content": "from lazero.network.downloader import download\nurl = \"https://media3.giphy.com/media/wTrXRamYhQzsY/giphy.gif?cid=dda24d502m79hkss38jzsxteewhs4e3ocd3iqext2285a3cq&rid=giphy.gif&ct=g\"\npath = \"/dev/shm/medialang/test.gif\"\nimport os\nif os.path.exists(path):\n    os.remove(path)\nreport = download(url, path)\nprint(\"download success?\", report)",
+        "type": "code",
+        "location": "/tests/unittest_lazero_external_downloader.py:1-14"
+    },
+    "2017": {
+        "file_id": 198,
+        "content": "This code downloads a file from a given URL and saves it to a specified path. It checks if the file already exists at the target location, and if so, deletes it before initiating the download. The success or failure of the download is reported using print statement.",
+        "type": "comment"
+    },
+    "2018": {
+        "file_id": 199,
+        "content": "/tests/unittest_musictoolbox_netease_music_lyric.py",
+        "type": "filepath"
+    },
+    "2019": {
+        "file_id": 199,
+        "content": "This code tests the functionality of getting music and lyrics using NeteaseMusic API from the pyjom library. It checks for similarity in keywords and prints the result, but encounters an issue when no lyrics are found. It then plans to test a specific music ID for lyrics retrieval and shows preparedness in case it fails.",
+        "type": "summary"
+    },
+    "2020": {
+        "file_id": 199,
+        "content": "from test_commons import *\nfrom pyjom.musictoolbox import neteaseMusic\nNMClient = neteaseMusic()\n# import random\nquery = \"linkin park numb\"\nfor sim in [False, True]:\n    result = NMClient.getMusicAndLyricWithKeywords(query, similar=sim, debug=True)\n    print(\"similar?\", sim)\n    # no lyrics! wtf??\n    breakpoint()\n# now let's test something surely will get lyrics.\n# music_id = 497572729\n# lyric_string = NMClient.getMusicLyricFromNetease(music_id)\n# print(\"LYRIC STRING:\",lyric_string)\n# in case we don't get the lyric, you should be prepared.\n# it works.",
+        "type": "code",
+        "location": "/tests/unittest_musictoolbox_netease_music_lyric.py:1-17"
+    },
+    "2021": {
+        "file_id": 199,
+        "content": "This code tests the functionality of getting music and lyrics using NeteaseMusic API from the pyjom library. It checks for similarity in keywords and prints the result, but encounters an issue when no lyrics are found. It then plans to test a specific music ID for lyrics retrieval and shows preparedness in case it fails.",
+        "type": "comment"
+    },
+    "2022": {
+        "file_id": 200,
+        "content": "/tests/unittest_sqlalchemy_1.3_alternative_wrapper_peewee.py",
+        "type": "filepath"
+    },
+    "2023": {
+        "file_id": 200,
+        "content": "The code initializes a Peewee SQLite database, defines models, performs CRUD operations, checks Bilibili videos, and handles non-existent usernames. It skips error handling for exceptions.",
+        "type": "summary"
+    },
+    "2024": {
+        "file_id": 200,
+        "content": "# now we try to create and persist a database.\n# do not delete it. we will check again.\n# the data we put into are some timestamps.\n# some peewee by the same guy who developed some database.\n# https://github.com/coleifer/peewee\n# 1.3.24 original sqlalchemy version, for our dearly chatterbot.\n# currently: 1.4.42\n# warning! might be incompatible.\nfrom peewee import *\n# some patch on /usr/local/lib/python3.9/dist-packages/peewee.py:3142\n# is it just a single file? no other files?\n# @property\n# def Model(self): # this is interesting. does it work as expected?\n#     class BaseModel(Model):\n#         class Meta:\n#             database = self\n#     return BaseModel\ndb = SqliteDatabase(\"my_database.db\")  # this database exists in local filesystem.\nclass User(db.Model):\n    username = CharField(unique=True)\n    # what about let's modify this shit?\nclass Account(db.Model):\n    # charlie_account.user_id to get username?\n    user = ForeignKeyField(User)  # what is this??\n    # if you don't set field, the user_id will be the default User.id",
+        "type": "code",
+        "location": "/tests/unittest_sqlalchemy_1.3_alternative_wrapper_peewee.py:1-39"
+    },
+    "2025": {
+        "file_id": 200,
+        "content": "This code sets up a Peewee SQLite database named \"my_database.db\" and defines two models: User and Account. The User model has a unique username field, while the Account model references the User model through a ForeignKeyField.",
+        "type": "comment"
+    },
+    "2026": {
+        "file_id": 200,
+        "content": "    # user = ForeignKeyField(User, field=User.username) # what is this??\n    password = (\n        CharField()\n    )  # you need to create a new table. do not modify this in place.\n    # maybe you want tinydb or something else.\n# User.bind(db) # this can dynamically change the database. maybe.\nclass User2(Model):  # what is this model for? empty?\n    username = CharField(unique=True)\nimport datetime\nclass BilibiliVideo(db.Model):\n    bvid = CharField(unique=True)\n    visible = BooleanField()\n    last_check = DateTimeField(\n        default=datetime.datetime.now\n    )  # this is default callable. will be managed as expected\n    # poster = ForeignKeyField(User) # is it my account anyway?\n# db.connect()\n# if using context manager, it will auto connect. no need to do shit.\n# are you sure you want to comment out the db.connect?\n# actually no need to connect this. it will auto connect.\ndb.create_tables(\n    [User, Account, BilibiliVideo]\n)  # it is the same damn database. but shit has happened already.\n# it is the foreign key reference.",
+        "type": "code",
+        "location": "/tests/unittest_sqlalchemy_1.3_alternative_wrapper_peewee.py:40-71"
+    },
+    "2027": {
+        "file_id": 200,
+        "content": "Code snippet is for creating tables and defining fields in a Peewee database. User2 seems empty, ForeignKeyField references are used, and db.connect() can be omitted with context manager.",
+        "type": "comment"
+    },
+    "2028": {
+        "file_id": 200,
+        "content": "# charlie = User.create(username='charlie') # fail the unique check. will raise exception.\ncharlie, flag = User.get_or_create(username=\"charlie\")  # will work without exception.\n# print(charlie)\n# breakpoint()\n# why we can pass a function instead of the object?\n# last_check = datetime.datetime.now()\nvideo_record, flag = BilibiliVideo.get_or_create(bvid=\"BV123\", visible=False)\n# print(video_record) # it will be good.\n# breakpoint()\nnext_check_time = datetime.datetime.now() - datetime.timedelta(\n    minutes=20\n)  # every 20 minutes check these things.\n# but for those which are already recognized as visible, we may not want to check these video till we select/search them. this is to reserve bandwidth.\nprint(\"NEXT CHECK TIME:\", next_check_time)\nresults_0 = BilibiliVideo.select().where(\n    BilibiliVideo.last_check < datetime.datetime.now()\n)  # needs to check\nresults_1 = BilibiliVideo.select().where(\n    BilibiliVideo.last_check > datetime.datetime.now()\n)  # no need to check\nprint(results_0)\nprint(results_1)  # these are just raw sql statements. have't executed yet.",
+        "type": "code",
+        "location": "/tests/unittest_sqlalchemy_1.3_alternative_wrapper_peewee.py:73-102"
+    },
+    "2029": {
+        "file_id": 200,
+        "content": "This code uses the `get_or_create` method to create or retrieve a User object with a specific username. It also retrieves a BilibiliVideo object based on a BVID, checks the last check time for videos, and selects videos that need to be checked or those that don't need to be checked. The results are printed for reference.",
+        "type": "comment"
+    },
+    "2030": {
+        "file_id": 200,
+        "content": "breakpoint()\n# warning: our table name is lowercased. may cause trouble.\n# but many sql statements are lower cased. case insensitive. at least my data are not case insensitive.\ncharlie_account, flag = Account.get_or_create(\n    user=charlie, password=\"abcd\"\n)  # this is not unique. warning!\nprint(charlie_account)\n# breakpoint()\n# charlie = User.update(username='michael') # no insertion?\n# use get_or_create here.\nmichael = User.get_or_create(username=\"michael\")\n# (data, flag)\ndata = User.get()  # this can only get one such instance?\n# get one single instance, aka: first.\n# print(data)\n# breakpoint()\nselection = User.select()  # still iterable?\n# breakpoint()\n# let's bind some database.\n# User2.bind(db)\n# if i don't bind the database what would happen?\n# error!\n# you need create such table first.\n# User2.create_table()\ndb.create_tables([User2])\nUser2.get_or_create(username=\"abcdef\")\nprint([x for x in User2.select()])\nusername = \"nonexistant\"\n# try:\nanswer = User2.get_or_none(User2.username == username)  # still raise exception huh?",
+        "type": "code",
+        "location": "/tests/unittest_sqlalchemy_1.3_alternative_wrapper_peewee.py:103-139"
+    },
+    "2031": {
+        "file_id": 200,
+        "content": "This code defines a Peewee model for a User class and performs CRUD operations like getting, creating, updating, and deleting users. It also demonstrates binding the database and creating tables. The code uses try-except to handle nonexistent usernames and raises an exception if no record is found.",
+        "type": "comment"
+    },
+    "2032": {
+        "file_id": 200,
+        "content": "print(\"ANSWER:\", answer)  # great this is simpler.\nif answer is None:\n    print(\"username does not exist:\", username)\n# except Exception as e:\n#     # print('exception type:', type(e))\n#     print('username does not exist:', username)\n#     # exception type: <class '__main__.User2DoesNotExist'>",
+        "type": "code",
+        "location": "/tests/unittest_sqlalchemy_1.3_alternative_wrapper_peewee.py:140-146"
+    },
+    "2033": {
+        "file_id": 200,
+        "content": "This code is printing an answer and checking if it's None. If the answer is None, it prints that the username does not exist. It skips error handling for exceptions.",
+        "type": "comment"
+    },
+    "2034": {
+        "file_id": 201,
+        "content": "/tests/unittest_get_subtid_name_and_majortid_name.py",
+        "type": "filepath"
+    },
+    "2035": {
+        "file_id": 201,
+        "content": "The function `getMajorMinorTopicMappings` retrieves major and minor topic IDs and names, storing them in the `majorMinorMappings` dictionary. The code uses this function to get the associated topics for a given tid, formats them into tags, and prints the result along with the tid for topic ID 1.",
+        "type": "summary"
+    },
+    "2036": {
+        "file_id": 201,
+        "content": "from bilibili_api import search\nBSP = search.bilibiliSearchParams\ndef getMajorMinorTopicMappings(debug: bool = False):\n    majorMinorMappings = {}\n    for key, value in BSP.all.tids.__dict__.items():\n        try:\n            major_tid = value.tid\n            if debug:\n                print(\"MAJOR\", key, major_tid)\n            content = {\"major\": {\"tid\": major_tid, \"name\": key}}\n            majorMinorMappings.update(\n                {major_tid: content, key: content, str(major_tid): content}\n            )\n            for subkey, subvalue in value.__dict__.items():\n                if subkey != \"tid\" and type(subvalue) == int:\n                    if debug:\n                        print(\"MINOR\", subkey, subvalue)\n                    content = {\n                        \"major\": {\"tid\": major_tid, \"name\": key},\n                        \"minor\": {\"tid\": subvalue, \"name\": subkey},\n                    }\n                    majorMinorMappings.update(\n                        {subvalue: content, subkey: content, str(subvalue): content}",
+        "type": "code",
+        "location": "/tests/unittest_get_subtid_name_and_majortid_name.py:1-26"
+    },
+    "2037": {
+        "file_id": 201,
+        "content": "This function `getMajorMinorTopicMappings` retrieves major and minor topic IDs and names from `BSP.all.tids` dictionary, storing them in `majorMinorMappings` dictionary for further use. It also prints the major and minor topics if debug mode is enabled.",
+        "type": "comment"
+    },
+    "2038": {
+        "file_id": 201,
+        "content": "                    )\n        except:\n            pass\n    return majorMinorMappings\ndef getTagStringFromTid(tid):\n    majorMinorTopicMappings = getMajorMinorTopicMappings()\n    topic = majorMinorTopicMappings.get(tid, None)\n    tags = []\n    if topic:\n        majorTopic = topic.get(\"major\", {}).get(\"name\", None)\n        minorTopic = topic.get(\"minor\", {}).get(\"name\", None)\n        if majorTopic:\n            tags.append(majorTopic)\n            if minorTopic:\n                tags.append(minorTopic)\n    return \",\".join(tags)\ntid = 1\ntagString = getTagStringFromTid(tid)\nprint(tid, tagString)",
+        "type": "code",
+        "location": "/tests/unittest_get_subtid_name_and_majortid_name.py:27-49"
+    },
+    "2039": {
+        "file_id": 201,
+        "content": "This code retrieves the major and minor topics associated with a given topic ID (tid) using the getMajorMinorTopicMappings() function. It then formats these topics into a comma-separated string of tags. If there are both a major and minor topic, they are concatenated in that order, else if only one exists, it is printed alone. Finally, the tid and associated tagString are printed to the console for the given topic ID 1.",
+        "type": "comment"
+    },
+    "2040": {
+        "file_id": 202,
+        "content": "/tests/unittest_houghline_dog_blur_detection.py",
+        "type": "filepath"
+    },
+    "2041": {
+        "file_id": 202,
+        "content": "The code imports libraries, reads an image, applies blur detection and edge detection, displays edges with lines based on Hough line detection using OpenCV, waits for a key press to close the window.",
+        "type": "summary"
+    },
+    "2042": {
+        "file_id": 202,
+        "content": "from lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\nimport numpy as np\n# command used for reading an image from the disk, cv2.imread function is used\nimagePath = \"/root/Desktop/works/pyjom/samples/image/dog_blue_sky_split_line.png\"\n# cannot find image without dark/black boundaries.\n# use blur detection, both for blur area removal and motion blur detection for key frame sampling/filtering\n# tool for finding non-blur based black borders:\n# ffmpeg -loop 1 -i /root/Desktop/works/pyjom/samples/image/dog_blue_sky_split_line.png -t 15 -vf cropdetect -f null -\n# maybe you can change the seconds to something shorter.\nimg1 = cv2.imread(imagePath)\n# gray1 = cv2.cvtColor(img1,cv2.COLOR_BGR2GRAY)\n# edges1 = cv2.Canny(gray1,50,150,apertureSize=3)\n# blurred = cv2.GaussianBlur(img1, (5, 5), 0)\nblurred = cv2.bilateralFilter(img1, 15, 75, 75)\nedges1 = cv2.Canny(blurred, 20, 210, apertureSize=3)\ncv2.imshow(\"EDGE\", edges1)\ncv2.waitKey(0)\nlines1 = cv2.HoughLines(edges1, 1, np.pi / 180, 200)  # wtf?",
+        "type": "code",
+        "location": "/tests/unittest_houghline_dog_blur_detection.py:1-28"
+    },
+    "2043": {
+        "file_id": 202,
+        "content": "The code imports necessary libraries, reads an image from disk, applies blur detection using bilateral filtering to remove blur and detect motion blur, converts the image to grayscale, detects edges using Canny edge detection, displays the edges, applies HoughLines to find lines in the image, and then waits for a key press to close the window.",
+        "type": "comment"
+    },
+    "2044": {
+        "file_id": 202,
+        "content": "for rho, theta in lines1[0]:\n    a = np.cos(theta)\n    b = np.sin(theta)\n    x = a * rho\n    y = b * rho\n    x_1 = int(x + 1000 * (-b))\n    y_1 = int(y + 1000 * (a))\n    x_2 = int(x - 1000 * (-b))\n    y_2 = int(y - 1000 * (a))\n    cv2.line(img1, (x_1, y_1), (x_2, y_2), (0, 0, 255), 2)\n# Creation of a GUI window in order to display the image on the screen\ncv2.imshow(\"line detection\", img1)\n# cv2.waitKey method used for holding the window on screen\ncv2.waitKey(0)\ncv2.destroyAllWindows()",
+        "type": "code",
+        "location": "/tests/unittest_houghline_dog_blur_detection.py:29-43"
+    },
+    "2045": {
+        "file_id": 202,
+        "content": "This code generates lines on an image based on Hough line detection. It iterates over the lines, calculates the coordinates of endpoints, and draws lines using OpenCV. The GUI window displays the image with the drawn lines, holds it open for any key press (cv2.waitKey), then destroys all windows upon closing.",
+        "type": "comment"
+    },
+    "2046": {
+        "file_id": 203,
+        "content": "/tests/unittest_online_topic_generator_giphy.py",
+        "type": "filepath"
+    },
+    "2047": {
+        "file_id": 203,
+        "content": "This code generates online topics, downloads assets, filters videos based on duration, FPS, color centrality, and processes them sequentially through specified filters. It checks validity using various functions, skips/deletes invalid or abandoned files.",
+        "type": "summary"
+    },
+    "2048": {
+        "file_id": 203,
+        "content": "from test_commons import *\nfrom pyjom.modules.topicGenerator import OnlineTopicGenerator\nfrom pyjom.modules.informationGathering import OnlineFetcher\nfrom lazero.utils import sprint\nfrom lazero.network import download, waitForServerUp\nfrom lazero.filesystem import tmpdir\nclash_refresher_port = 8677\nclash_refresher_url = \"http://127.0.0.1:{}\".format(clash_refresher_port)\nwaitForServerUp(clash_refresher_port, \"clash update controller\")\nelems, function_label = OnlineTopicGenerator()\nsprint(\"FUNCTION LABEL:\", function_label)\n# # 'pyjom.commons.OnlineTopicGenerator'\n# breakpoint()\ntmpPath = \"/dev/shm/medialang/online_test\"\nimport os\nproxy_url = \"http://127.0.0.1:8381\"\ndef set_proxy():\n    os.environ[\"http_proxy\"] = proxy_url\n    os.environ[\"https_proxy\"] = proxy_url\nflag = \"topic_with_fetcher\"\nwith tmpdir(path=tmpPath) as testDir:\n    print(\"TESTDIR:\", testDir)\n    if flag == \"only_topic_generator\":\n        # print(\"HERE??\",1)\n        for asset_id, meta in elems:\n            print(\"X\", asset_id, meta)\n            url = meta[\"url\"]",
+        "type": "code",
+        "location": "/tests/unittest_online_topic_generator_giphy.py:1-36"
+    },
+    "2049": {
+        "file_id": 203,
+        "content": "This code sets up an online topic generator and uses it to generate elements. It also defines a function to set a proxy, creates a temporary directory for testing, and checks if only the topic generator is needed. It then iterates through the generated elements, printing their IDs and URLs.",
+        "type": "comment"
+    },
+    "2050": {
+        "file_id": 203,
+        "content": "            extension = url.split(\"?\")[0].split(\".\")[-1]\n            basename = \".\".join([asset_id, extension])\n            download_path = os.path.join(tmpPath, basename)\n            try:\n                download(\n                    url,\n                    download_path,\n                    threads=6,\n                    size_filter={\"min\": 0.4, \"max\": 50},\n                    use_multithread=True,\n                )\n            except:\n                print(\"Error when download file\")\n            # X ('sr8jYZVVsCmxddga8w', {'height': 480, 'width': 474, 'url': 'https://media0.giphy.com/media/sr8jYZVVsCmxddga8w/giphy.gif'})\n            # breakpoint()\n            # seems good. now we check the cat/dog.\n    elif flag == \"topic_with_fetcher\":\n        sprint(\"checking online fetcher\")\n        # print(\"HERE??\",2)\n        set_proxy()\n        newElems, label = OnlineFetcher(\n            elems, tempdir=tmpPath\n        )  # infinite video generators.\n        for elem in newElems:\n            waitForServerUp(clash_refresher_port, \"clash update controller\")",
+        "type": "code",
+        "location": "/tests/unittest_online_topic_generator_giphy.py:37-61"
+    },
+    "2051": {
+        "file_id": 203,
+        "content": "This code block is downloading an asset from a specified URL, with options for size and multithreading. If any error occurs during the download process, it prints an error message. Then, it checks the topic of an online generator using OnlineFetcher, setting a proxy before executing it. This involves creating new elements and waiting for the server to be updated. The purpose seems to be related to topic-based online generation and video fetching.",
+        "type": "comment"
+    },
+    "2052": {
+        "file_id": 203,
+        "content": "            sprint(elem)\n            (item_id, local_video_location) = elem\n            # what is the freaking response?\n            from caer.video.frames_and_fps import get_duration, get_fps_float\n            # duration = get_duration(local_video_location)\n            from pyjom.commons import checkMinMaxDict\n            duration_filter = {\"min\": 0.6, \"max\": 9}\n            fps_filter = {\"min\": 7, \"max\": 60}\n            # fps_float = get_fps_float(local_video_location)\n            # duration_valid = checkMinMaxDict(duration,duration_filter)\n            # fps_valid = checkMinMaxDict(fps_float,fps_filter)\n            from pyjom.videotoolbox import (\n                getVideoColorCentrality,\n                checkVideoColorCentrality,\n                getEffectiveFPS,\n                NSFWVideoFilter,\n                yolov5_bezier_paddlehub_resnet50_dog_cat_video_filter,\n                dummyFilterFunction,  # just for dog and cat, no other animals.\n            )\n            video_color_filter = {\n                \"centrality\": {\"max\": 0.30},",
+        "type": "code",
+        "location": "/tests/unittest_online_topic_generator_giphy.py:62-85"
+    },
+    "2053": {
+        "file_id": 203,
+        "content": "This code snippet is filtering video elements based on their duration, FPS (frames per second), and color centrality. It uses the `get_duration`, `get_fps_float`, `checkMinMaxDict` functions from different modules. Additionally, it imports video processing tools like `getVideoColorCentrality`, `checkVideoColorCentrality`, `getEffectiveFPS`, and some specific filters such as `NSFWVideoFilter`, `yolov5_bezier_paddlehub_resnet50_dog_cat_video_filter`. It defines a threshold for the video's color centrality (\"max\": 0.30).",
+        "type": "comment"
+    },
+    "2054": {
+        "file_id": 203,
+        "content": "                \"max_nearby_center_percentage\": {\"max\": 0.20},\n            }\n            video_effective_fps_filter = {\"min\": 7}\n            valid = True\n            mList = [\n                [get_duration, duration_filter, checkMinMaxDict, \"duration\"],\n                [get_fps_float, fps_filter, checkMinMaxDict, \"fps\"],\n                [\n                    yolov5_bezier_paddlehub_resnet50_dog_cat_video_filter,\n                    None,\n                    dummyFilterFunction,\n                    \"DogCat\",\n                ],\n                [\n                    getVideoColorCentrality,\n                    video_color_filter,\n                    checkVideoColorCentrality,\n                    \"video_color_centrality\",\n                ],\n                [\n                    getEffectiveFPS,\n                    video_effective_fps_filter,\n                    checkMinMaxDict,\n                    \"EffectiveFPS\",\n                ],  # also, the dog/cat detector! fuck.\n                [NSFWVideoFilter, None, dummyFilterFunction, \"NSFW\"],",
+        "type": "code",
+        "location": "/tests/unittest_online_topic_generator_giphy.py:86-111"
+    },
+    "2055": {
+        "file_id": 203,
+        "content": "This code defines a list of filters and their parameters for processing video clips. Each filter is applied sequentially, checking if the clip meets specific criteria such as duration, FPS, color centrality, effectiveness, and whether it contains explicit content. The filters are specified by functions, with optional minimum/maximum thresholds or additional checks.",
+        "type": "comment"
+    },
+    "2056": {
+        "file_id": 203,
+        "content": "            ]\n            for function, mFilter, filterFunction, flag in mList:\n                mValue = function(local_video_location)\n                valid = filterFunction(mValue, mFilter)\n                if not valid:\n                    print(\"skipping due to invalid %s: %s\" % (flag, mValue))\n                    print(\"%s filter:\" % flag, mFilter)\n                    break\n            if not valid:\n                print(\"abandon video:\", item_id)\n            breakpoint()\n            if not valid:\n                if os.path.exists(local_video_location):\n                    print(\"removing abandoned video:\", local_video_location)\n                    os.remove(local_video_location)\n                # if you abandon that, better delete it!\n            # do time duration check, effective fps check, color centrality check, then the dog/cat check\n            # what's next? find some audio files? or just use one audio?\n    # print(\"HERE??\",3)\n    # print('flag', flag)",
+        "type": "code",
+        "location": "/tests/unittest_online_topic_generator_giphy.py:112-131"
+    },
+    "2057": {
+        "file_id": 203,
+        "content": "This code is filtering a video based on various flags and conditions. It checks for validity by using different functions and filters, and skips or deletes the file if it's invalid or abandoned. The process involves duration, FPS, color centrality, dog/cat detection, and potentially audio files.",
+        "type": "comment"
+    },
+    "2058": {
+        "file_id": 204,
+        "content": "/tests/unittest_ffmpegVideoPreProductionFilter.py",
+        "type": "filepath"
+    },
+    "2059": {
+        "file_id": 204,
+        "content": "This code imports necessary modules, checks ffmpeg, and utilizes MediaInfo for duration. It uses UUID to generate a unique cache file name. The code tests text detection in videos using ffmpeg filters, iterating through videoPaths and applying the filter on each video, while handling false positives and potential None output.",
+        "type": "summary"
+    },
+    "2060": {
+        "file_id": 204,
+        "content": "from test_commons import *\nfrom pyjom.medialang.processors.dotProcessor import ffmpegVideoPreProductionFilter\nimport tempfile\n# import MediaInfo\nvideoPaths = {\n    \"text\": \"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\",\n    \"logo\": \"/root/Desktop/works/pyjom/samples/video/LkS8UkiLL.mp4\",\n    # \"pip\":\"/root/Desktop/works/pyjom/samples/video/LiGlReJ4i.mp4\", # najie\n    \"pip\": \"/root/Desktop/works/pyjom/samples/video/LiEIfnsvn.mp4\",  # double pip\n    # 'complete':\"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\"\n}\ntempDir = \"/dev/shm/medialang\"  # anyway we just want something else...\ntest_ffmpeg = True\ntest_text_detector = False\ndef getVideoDuration(filePath):\n    from MediaInfo import MediaInfo\n    info = MediaInfo(filename=videoPath)\n    infoData = info.getInfo()\n    # print(infoData)\n    # breakpoint()\n    defaultWidth = infoData[\"videoWidth\"]\n    defaultHeight = infoData[\"videoHeight\"]\n    # print(infoData)\n    # print(infoData.keys())\n    # breakpoint()\n    start = 0\n    end = float(infoData[\"videoDuration\"])",
+        "type": "code",
+        "location": "/tests/unittest_ffmpegVideoPreProductionFilter.py:1-34"
+    },
+    "2061": {
+        "file_id": 204,
+        "content": "The code imports necessary modules, defines video paths and temporary directory locations, tests ffmpeg functionality, and retrieves the duration of a video using MediaInfo library.",
+        "type": "comment"
+    },
+    "2062": {
+        "file_id": 204,
+        "content": "    return end\ntestSubject = \"complete\"\nwith tempfile.TemporaryDirectory(prefix=tempDir) as allocatedTmpDir:\n    print(\"Allocated tmpDir:\", allocatedTmpDir)\n    if testSubject == \"logo\":\n        videoPath = videoPaths[\"logo\"]\n        filters = [\"logoRemoval\"]  # how the fuck?\n    elif testSubject == \"text\":\n        videoPath = videoPaths[\"text\"]\n        filters = [\"textRemoval\"]\n    elif testSubject == \"pip\":\n        videoPath = videoPaths[\"pip\"]\n        filters = [\"pipCrop\"]\n    elif testSubject == \"complete\":\n        # videoPath = videoPaths['complete']\n        # filters = ['pipCrop','textRemoval']\n        filters = [\"pipCrop\", \"textRemoval\", \"logoRemoval\"]\n    else:\n        raise Exception(\"Unknown testSubject: %s\" % testSubject)\n    # videoFileName = os.path.basename(videoPath)\n    # # we use the full video here? to check if this shit really works?\n    # # videoFile = os.path.join(allocatedTmpDir,videoFileName)\n    import uuid\n    cacheId = str(uuid.uuid4())\n    fileExtension = \"mp4\"\n    cacheFileName = \".\".join([cacheId, fileExtension])",
+        "type": "code",
+        "location": "/tests/unittest_ffmpegVideoPreProductionFilter.py:35-64"
+    },
+    "2063": {
+        "file_id": 204,
+        "content": "Sets temporary directory, determines filter type based on testSubject, and generates a unique cache file name using UUID.",
+        "type": "comment"
+    },
+    "2064": {
+        "file_id": 204,
+        "content": "    cachePath = os.path.join(allocatedTmpDir, cacheFileName)\n    # if testSubject == 'pip':\n    #     start=5\n    #     end=10\n    if test_text_detector:\n        from pyjom.medialang.processors.dotProcessor import detectTextRegionOverTime\n        for key, videoPath in videoPaths.items():\n            if testSubject != \"complete\":\n                if key != testSubject:\n                    continue\n            print(\"TESTING: %s\" % key)\n            start = 0\n            end = getVideoDuration(videoPath)\n            # regions = detectTextRegionOverTime(videoPath, start, end)\n            regions = detectTextRegionOverTime(\n                videoPath, 10, 20\n            )  # now we change the start and end.\n            for key, item in regions.items():\n                # could be empty here.\n                print(\"KEY:\", key)\n                print(\"ITEM:\", item)\n            # how to merge continual shits?\n        # pretty much None currently.\n        breakpoint()\n    if test_ffmpeg:\n        # the logoRemoval filter may make the video unwatchable if too many false positive areas were found.",
+        "type": "code",
+        "location": "/tests/unittest_ffmpegVideoPreProductionFilter.py:65-97"
+    },
+    "2065": {
+        "file_id": 204,
+        "content": "This code snippet is testing text detection in videos and ffmpeg filter functionality. It loops through videoPaths, detects text regions over time using `detectTextRegionOverTime` function, and prints the key and item for each detected region. It also handles None output for ffmpeg tests, and mentions potential false positive issues with the logoRemoval filter.",
+        "type": "comment"
+    },
+    "2066": {
+        "file_id": 204,
+        "content": "        for key, videoPath in videoPaths.items():\n            if testSubject != \"complete\":\n                if key != testSubject:\n                    continue\n            print(\"TESTING: %s\" % key)\n            start = 0\n            end = getVideoDuration(videoPath)\n            output = ffmpegVideoPreProductionFilter(\n                videoPath,\n                cachePath=cachePath,\n                start=start,\n                end=end,\n                filters=filters,\n                preview=True,\n            )  # resolution? make it sufficiently low!\n            print(\"ffmpeg pre production filter processing done.\")\n            print(\"output location:\", output)\n            breakpoint()",
+        "type": "code",
+        "location": "/tests/unittest_ffmpegVideoPreProductionFilter.py:98-117"
+    },
+    "2067": {
+        "file_id": 204,
+        "content": "The code iterates through videoPaths and tests the filter on each video. If testSubject is not \"complete\", it skips the iteration unless the key matches the testSubject. It then applies the ffmpegVideoPreProductionFilter to the video, prints the output location, and breaks the loop.",
+        "type": "comment"
+    },
+    "2068": {
+        "file_id": 205,
+        "content": "/tests/unittest_property_decorator.py",
+        "type": "filepath"
+    },
+    "2069": {
+        "file_id": 205,
+        "content": "This code defines a class with a property that increments its value each time accessed. It creates an object of the class, stores the property in a list twice, and prints the property's value three times, showing its dynamic nature.",
+        "type": "summary"
+    },
+    "2070": {
+        "file_id": 205,
+        "content": "# a dynamic property in set\nclass Obj:\n    def __init__(self):\n        self.val = 0\n    @property\n    def prop(self):\n        self.val += 1\n        return self.val\nobj = Obj()\n# mproperty = obj.prop\nmyData = [{\"a\": lambda: obj.prop}] * 2\nfor d in myData:\n    val = d[\"a\"]()\n    print(val)\n# for _ in range(3):\n#     print(obj.prop) # strange.",
+        "type": "code",
+        "location": "/tests/unittest_property_decorator.py:1-22"
+    },
+    "2071": {
+        "file_id": 205,
+        "content": "This code defines a class with a property that increments its value each time accessed. It creates an object of the class, stores the property in a list twice, and prints the property's value three times, showing its dynamic nature.",
+        "type": "comment"
+    },
+    "2072": {
+        "file_id": 206,
+        "content": "/tests/unittest_mathlib_ranges_continual.py",
+        "type": "filepath"
+    },
+    "2073": {
+        "file_id": 206,
+        "content": "This code imports necessary modules and defines input data. It then uses different functions to get results and prints them, with some additional operations like range extraction and rendering. The code seems to be focused on merging ranges of data using a specific library (mathlib) and performing certain operations with the merged data.",
+        "type": "summary"
+    },
+    "2074": {
+        "file_id": 206,
+        "content": "from test_commons import *\nfrom pyjom.mathlib import *\ninputList = [[(0, 1), (1, 1.1), (2, 3)], [(0.5, 1.5), (1.6, 2.5)]]\nmRangesDict = {\"sample_%s\" % num: inputList[num] for num in range(len(inputList))}\nresult_0 = getContinualNonSympyMergeResult(inputList)\nprint(result_0)\nprint(\"_\" * 20)\n# want to build a language?\nresult_1 = getContinualMappedNonSympyMergeResult(mRangesDict, concatSymbol=\"|\")\nprint(result_1)\nprint(\"_\" * 20)\nresult_2 = getContinualMappedNonSympyMergeResult(\n    mRangesDict, concatSymbol=\"|\", noEmpty=False\n)\nprint(result_2)\nprint(\"_\" * 20)\nstart, end = -1, 4\nresult_3 = getContinualMappedNonSympyMergeResultWithRangedEmpty(\n    mRangesDict, start, end, concatSymbol=\"|\"\n)\nprint(result_3)\nprint(\"_\" * 20)\nrenderList = mergedRangesToSequential(result_3)\nfor renderCommandString, commandTimeSpan in renderList:\n    print(renderCommandString, commandTimeSpan)\nprint(\"_\" * 20)\nfinalCatsMapped = getContinualMappedNonSympyMergeResult({})\nprint(finalCatsMapped)",
+        "type": "code",
+        "location": "/tests/unittest_mathlib_ranges_continual.py:1-36"
+    },
+    "2075": {
+        "file_id": 206,
+        "content": "This code imports necessary modules and defines input data. It then uses different functions to get results and prints them, with some additional operations like range extraction and rendering. The code seems to be focused on merging ranges of data using a specific library (mathlib) and performing certain operations with the merged data.",
+        "type": "comment"
+    },
+    "2076": {
+        "file_id": 207,
+        "content": "/tests/unittest_ffmpeg_delogo_parser.py",
+        "type": "filepath"
+    },
+    "2077": {
+        "file_id": 207,
+        "content": "This code defines a delogoParser function to parse command strings and processes video streams using the \"delogo\" filter. It checks parameter validity, removes logos from videos, and handles errors for debugging purposes.",
+        "type": "summary"
+    },
+    "2078": {
+        "file_id": 207,
+        "content": "import parse\nfrom pyjom.videotoolbox import getVideoWidthHeight\nfrom test_commons import *\nimport ffmpeg\ncommandString = \"delogo_0_671_360_6|delogo_144_662_6_4|delogo_355_661_5_7|delogo_117_661_7_5|delogo_68_661_18_5|delogo_182_658_165_9|delogo_252_492_3_1|delogo_214_492_1_2|delogo_200_492_3_1|delogo_74_492_2_1|delogo_170_490_6_4|delogo_145_490_9_4|delogo_129_490_12_4|delogo_107_490_4_3|delogo_91_487_8_6|delogo_72_485_4_3|delogo_147_484_4_3|delogo_178_483_11_11|delogo_219_480_1_1|delogo_53_480_6_2|delogo_268_478_1_1|delogo_164_478_8_4|delogo_128_477_8_4|delogo_295_475_1_1|delogo_105_475_10_4|delogo_61_474_5_4|delogo_274_472_3_2|delogo_196_470_5_2|delogo_209_469_1_1|delogo_143_469_8_5|delogo_75_467_26_6|delogo_0_33_360_25|delogo_0_24_360_6\"\nvideoPath = \"/root/Desktop/works/pyjom/samples/video/LkS8UkiLL.mp4\"\noutputPath = \"/dev/shm/output.mp4\"\ndef delogoParser(command):\n    return parse.parse(\"delogo_{x:d}_{y:d}_{w:d}_{h:d}\", command)\nwidth, height = getVideoWidthHeight(videoPath)\ndef delogoFilter(stream, commandParams):",
+        "type": "code",
+        "location": "/tests/unittest_ffmpeg_delogo_parser.py:1-20"
+    },
+    "2079": {
+        "file_id": 207,
+        "content": "This code defines a delogoParser function that parses a command string into a formatted format using regular expression. It also includes the getVideoWidthHeight function to retrieve the video width and height from a given path, and a delogoFilter function to process video streams with a given command parameter. The commandString contains a list of delogo positions, and the script will process a video at the specified output path.",
+        "type": "comment"
+    },
+    "2080": {
+        "file_id": 207,
+        "content": "    return stream.filter(\n        \"delogo\",\n        x=commandParams[\"x\"],\n        y=commandParams[\"y\"],\n        w=commandParams[\"w\"],\n        h=commandParams[\"h\"],\n    )\n# minArea = 20\ndef checkXYWH(XYWH, canvas, minArea=20):\n    x, y, w, h = XYWH\n    width, height = canvas\n    if x >= width - 1 or y >= height - 1:\n        return False, None\n    if x == 0:\n        x = 1\n    if y == 0:\n        y = 1\n    if x + w >= width:\n        w = width - x - 1\n        if w <= 2:\n            return False, None\n    if y + h >= height:\n        h = height - y - 1\n        if h <= 2:\n            return False, None\n    if w * h <= minArea:\n        return False, None\n    return True, (x, y, w, h)\nfor command in commandString.split(\"|\"):\n    try:\n        stream = ffmpeg.input(videoPath, ss=0, to=5).video\n        commandArguments = delogoParser(command)\n        x = commandArguments[\"x\"]\n        y = commandArguments[\"y\"]\n        w = commandArguments[\"w\"]\n        h = commandArguments[\"h\"]\n        status, XYWH = checkXYWH((x, y, w, h), (width, height))",
+        "type": "code",
+        "location": "/tests/unittest_ffmpeg_delogo_parser.py:21-64"
+    },
+    "2081": {
+        "file_id": 207,
+        "content": "This code snippet is a part of a larger program that involves video editing using the FFmpeg library. It filters a video stream with the \"delogo\" filter, taking command parameters for x, y, w, and h. Then, it checks if these parameters are valid by calling the checkXYWH function, which returns True or False depending on the input's validity. Finally, it loops through each command in the commandString, splitting them into smaller commands for video editing operations.",
+        "type": "comment"
+    },
+    "2082": {
+        "file_id": 207,
+        "content": "        if not status:\n            continue\n        x, y, w, h = XYWH\n        commandArguments = {\"x\": x, \"y\": y, \"w\": w, \"h\": h}\n        stream = delogoFilter(stream, commandArguments)\n        ffmpeg.output(stream, outputPath).run(overwrite_output=True)\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"WIDTH:\", width, \"HEIGHT:\", height)\n        maxX, maxY = (\n            commandArguments[\"x\"] + commandArguments[\"w\"],\n            commandArguments[\"y\"] + commandArguments[\"h\"],\n        )\n        print(\"MAX X:\", maxX, \"MAX Y:\", maxY)\n        print(\"ERROR!\", commandArguments)\n        breakpoint()",
+        "type": "code",
+        "location": "/tests/unittest_ffmpeg_delogo_parser.py:65-83"
+    },
+    "2083": {
+        "file_id": 207,
+        "content": "This code is implementing a delogo filter, which takes input video and removes the logo from it. It checks if the filter was successfully applied, then extracts the position and dimensions of the logo to apply the delogo filter. If any error occurs during this process, it prints out information for debugging and stops the execution.",
+        "type": "comment"
+    },
+    "2084": {
+        "file_id": 208,
+        "content": "/tests/unittest_video_cover_extraction_dog_cat_detections.py",
+        "type": "filepath"
+    },
+    "2085": {
+        "file_id": 208,
+        "content": "This script initializes a YOLOv5 model for object detection, focusing on dogs and cats, using image processing techniques to enhance accuracy. It may have difficulties categorizing certain objects and displays \"NO COVER FOUND.\" if no suitable cover is detected.",
+        "type": "summary"
+    },
+    "2086": {
+        "file_id": 208,
+        "content": "import torch\nimport os\nfrom lazero.utils.importers import cv2_custom_build_init\n# order:\n# detect if dog/cat is there, satisfying the qualification\n# remove watermark, remove text, remove potential watermark around corners using inpainting\n# use ffmpeg cropdetect, if has significant area change then no further processing\n# if no significant area change, use this blur detection to get the main area\n# remove watermark again?? around corners?\n# then reuse the dog detection and get the crop from processed/cropped image.\ncv2_custom_build_init()\nimport cv2\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# Model\n# localModelDir = (\n#     \"/root/Desktop/works/pyjom/pyjom/models/yolov5/ultralytics_yolov5_master/\"\n# )\n# # import os\n# os.environ[\n#     \"YOLOV5_MODEL_DIR\"\n# ] = \"/root/Desktop/works/pyjom/pyjom/models/yolov5/\"  # this is strange. must be a hack in the localModelDir\n# model = torch.hub.load(\n#     localModelDir, \"yolov5s\", source=\"local\"\n# )  # or yolov5m, yolov5l, yolov5x, custom\nfrom test_commons import *",
+        "type": "code",
+        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:1-31"
+    },
+    "2087": {
+        "file_id": 208,
+        "content": "This code is initializing a YOLOv5 model for object detection, specifically detecting dogs and cats. It also sets environment variables to disable proxies, imports necessary libraries, and defines the model path. The code aims to remove watermarks, text, and potentially blurred corners from images, crop detected animals, and possibly re-detect them to get the crop from the processed image.",
+        "type": "comment"
+    },
+    "2088": {
+        "file_id": 208,
+        "content": "from pyjom.commons import configYolov5\nmodel = configYolov5()\ndog_or_cat = \"dog\"\n# Images\n# img = '/media/root/help/pyjom/samples/image/miku_on_green.png'  # or file, Path, PIL, OpenCV, numpy, list\n# img = \"/root/Desktop/works/pyjom/samples/image/dog_with_text.jpg\"\nimgPath = \"/root/Desktop/works/pyjom/samples/image/dog_blue_sky.png\"\nimg = cv2.imread(imgPath)\ndefaultHeight, defaultWidth = img.shape[:2]\ntotal_area = defaultHeight * defaultWidth\n# Inference\nresults = model(img)\n# print(results)\n# # Results\n# breakpoint()\nanimal_detection_dataframe = results.pandas().xyxy[0]\n# results.show()\n# # results.print() # or .show(),\narea = (animal_detection_dataframe[\"xmax\"] - animal_detection_dataframe[\"xmin\"]) * (\n    animal_detection_dataframe[\"ymax\"] - animal_detection_dataframe[\"ymin\"]\n)\nanimal_detection_dataframe[\"area_ratio\"] = area / total_area\narea_threshold = 0.08  # min area?\nconfidence_threshold = 0.7  # this is image quality maybe.\ny_expansion_rate = 0.03  # to make the starting point on y axis less \"headless\"",
+        "type": "code",
+        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:32-67"
+    },
+    "2089": {
+        "file_id": 208,
+        "content": "The code imports a YOLOv5 configuration, sets the target animal to \"dog\", and reads an image file. It then performs inference using the model on the image and stores the results in the `results` variable. The code extracts the object detection data from `results`, calculates the area ratio for each detected object, and applies thresholds to filter out objects with low confidence or small areas.",
+        "type": "comment"
+    },
+    "2090": {
+        "file_id": 208,
+        "content": "df = animal_detection_dataframe\nnew_df = df.loc[\n    (df[\"area_ratio\"] >= area_threshold)\n    & (df[\"confidence\"] >= confidence_threshold)\n    & (df[\"name\"] == dog_or_cat)\n].sort_values(\n    by=[\"confidence\"]\n)  # this one is for 0.13\n# count = new_df.count(axis=0)\ncount = len(new_df)\n# print(\"COUNT: %d\" % count)\ndefaultCropWidth, defaultCropHeight = 1920, 1080\n# this is just to maintain the ratio.\n# you shall find the code elsewhere?\nallowedHeight = min(int(defaultWidth / defaultCropWidth * defaultHeight), defaultHeight)\nif count >= 1:\n    selected_col = new_df.iloc[0]  # it is a dict-like object.\n    # print(new_df)\n    # breakpoint()\n    selected_col_dict = dict(selected_col)\n    # these are floating point shits.\n    # {'xmin': 1149.520263671875, 'ymin': 331.6445007324219, 'xmax': 1752.586181640625, 'ymax': 1082.3826904296875, 'confidence': 0.9185908436775208, 'class': 16, 'name': 'dog', 'area_ratio': 0.13691652620239364}\n    x0, y0, x1, y1 = [\n        int(selected_col[key]) for key in [\"xmin\", \"ymin\", \"xmax\", \"ymax\"]",
+        "type": "code",
+        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:69-98"
+    },
+    "2091": {
+        "file_id": 208,
+        "content": "The code filters the animal detection dataframe based on area ratio, confidence threshold, and dog or cat name. It then sorts the filtered dataframe by confidence. If there is at least one row in the filtered dataframe, it selects the first row as 'selected_col'. The selected column contains values for xmin, ymin, xmax, ymax, confidence, class (dog or cat), and area_ratio. These values are used to extract a region of interest from an image by converting them into coordinates and then cropping the image accordingly.",
+        "type": "comment"
+    },
+    "2092": {
+        "file_id": 208,
+        "content": "    ]\n    y0_altered = max(int(y0 - (y1 - y0) * y_expansion_rate), 0)\n    height_current = min((y1 - y0_altered), allowedHeight)  # reasonable?\n    width_current = min(\n        int((height_current / defaultCropHeight) * defaultCropWidth), defaultWidth\n    )  # just for safety. not for mathematical accuracy.\n    # height_current = min(allowedHeight, int((width_current/defaultCropWidth)*defaultCropHeight))\n    # (x1+x0)/2-width_current/2\n    import random\n    x0_framework = random.randint(\n        max((x1 - width_current), 0), min((x0 + width_current), defaultWidth)\n    )\n    framework_XYWH = (x0_framework, y0_altered, width_current, height_current)\n    x_f, y_f, w_f, h_f = framework_XYWH\n    croppedImageCover = img[y_f : y_f + h_f, x_f : x_f + w_f, :]\n    # breakpoint()\n    # resize image\n    croppedImageCoverResized = cv2.resize(\n        croppedImageCover, (defaultCropWidth, defaultCropHeight)\n    )\n    cv2.imshow(\"CROPPED IMAGE COVER\", croppedImageCover)\n    cv2.imshow(\"CROPPED IMAGE COVER RESIZED\", croppedImageCoverResized)",
+        "type": "code",
+        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:99-122"
+    },
+    "2093": {
+        "file_id": 208,
+        "content": "This code snippet is responsible for cropping an image and resizing it. It adjusts the cropping parameters to ensure a reasonable aspect ratio while maintaining mathematical safety. The random x0_framework value ensures that the cropped image falls within the allowed width, avoiding any potential out-of-bounds errors. The resulting images are then displayed using OpenCV's imshow function.",
+        "type": "comment"
+    },
+    "2094": {
+        "file_id": 208,
+        "content": "    # print(selected_col_dict)\n    # print(count)\n    # breakpoint()\n    cv2.waitKey(0)\nelse:\n    print(\"NO COVER FOUND.\")\n# # results.save()\n# # # print(type(results),dir(results))\n# breakpoint()\n# import cv2\n# image = cv2.imread(\"runs/detect/exp3/miku_on_green.jpg\")\n# cv2.imshow(\"NONE\",image)\n# # results.print()  # or .show(),\n# # hold it.\n# # image 1/1: 720x1280 1 bird # what the fuck is a bird?\n# # os.system(\"pause\")\n# # input()\n# this shit has been detected but not in the right category.",
+        "type": "code",
+        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:123-141"
+    },
+    "2095": {
+        "file_id": 208,
+        "content": "The code seems to be a part of an image processing script. It checks for the detection of objects (dog and cat) in images, potentially for cover extraction purposes. The code might have issues with the categorization of certain detected objects. If no suitable cover is found, it displays a \"NO COVER FOUND.\" message.",
+        "type": "comment"
+    },
+    "2096": {
+        "file_id": 209,
+        "content": "/tests/unittest_tempfile_generator.py",
+        "type": "filepath"
+    },
+    "2097": {
+        "file_id": 209,
+        "content": "This code generates temporary files named with a \".data\" suffix and yields their names. The generated file paths are then printed, data is written to the files, and the content of these files is read and printed. Finally, it closes all temporary files.",
+        "type": "summary"
+    },
+    "2098": {
+        "file_id": 209,
+        "content": "import tempfile\ndef generateFile():\n    data = b\"abc\"\n    while True:\n        with tempfile.NamedTemporaryFile(\"wb\", suffix=\".data\") as f:\n            name = f.name\n            print(\"tempfile name:\", name)\n            f.write(data)\n            f.seek(0)  # strange.\n            # what the fuck?\n            # f.close()\n            yield name\nif __name__ == \"__main__\":\n    grt = generateFile()\n    filepath = grt.__next__()\n    for _ in range(2):\n        # good?\n        with open(filepath, \"rb\") as f:\n            content = f.read()\n            print(\"content in {}:\".format(filepath), content)",
+        "type": "code",
+        "location": "/tests/unittest_tempfile_generator.py:1-24"
+    },
+    "2099": {
+        "file_id": 209,
+        "content": "This code generates temporary files named with a \".data\" suffix and yields their names. The generated file paths are then printed, data is written to the files, and the content of these files is read and printed. Finally, it closes all temporary files.",
+        "type": "comment"
+    }
+}

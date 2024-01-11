@@ -1,0 +1,20 @@
+{
+    "summary": "The code uses AudioOwl library to import audio file data, calculates beat times, slices beats, finds closest BPM time and selects startup beat. It then detects the closest beat time to a specified value, appends it to 'selected_beat_times' and prints this list.",
+    "details": [
+        {
+            "comment": "The code imports necessary libraries, reads audio file information and waveform using AudioOwl library, stores the relevant data in a dictionary, and provides a function to find the closest element in a sorted list.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/tests/music_analysis/bpm_tracking/test_audioowl.py\":0-29",
+            "content": "import matplotlib\nmatplotlib.use(\"TkAgg\")\nimport matplotlib.pyplot as plt # cannot plot shit. must change the thing.\nimport audioowl # do not install with dependencies. check it in setup.py and install latest versions.\nmyMusic = \"tarot_desc_acc_exceprt.wav\"\n# myMusic = \"/root/Desktop/works/bilibili_tarot/tarot_desc_acc.wav\"\nfrom MediaInfo import MediaInfo\ninfo = MediaInfo(filename = myMusic)\ninfo = info.getInfo()\nprint(info)\n# breakpoint()\naudioSampleRate = info[\"audioSamplingRate\"]\naudioSampleRate = int(audioSampleRate)\nwaveform = audioowl.get_waveform(myMusic,sr=audioSampleRate)\ndata = audioowl.analyze_file(myMusic,sr=audioSampleRate) # how fucking long?\n# plt.figure()\n# plt.vlines(data['beat_samples'], -1.0, 1.0)\n# plt.plot(waveform)\n# plt.show()\n# dict_keys(['sample_rate', 'duration', 'beat_samples', 'number_of_beats', 'tempo_float', 'tempo_int', 'zero_crossing', 'noisiness_median', 'noisiness_sum', 'notes', 'dominant_note'])\ndef getClosest(mlist,standard):\n    # mlist is sorted.\n    # assert mlist == list(sorted(mlist))"
+        },
+        {
+            "comment": "Calculates beat times for audio, ensures beats are evenly sliced, finds closest bpm time, selects original beat as startup.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/tests/music_analysis/bpm_tracking/test_audioowl.py\":30-68",
+            "content": "    queue_list = []\n    last_elem = None\n    for elem in mlist:\n        mred = abs(elem-standard)\n        queue_list.append(mred)\n        if len(queue_list) > 2:\n            queue_list.pop(0)\n        if len(queue_list) == 2:\n            #compare now.\n            last_mred = queue_list[0]\n            if mred >= last_mred: return last_elem\n        last_elem = elem\n    return last_elem\na,b,c,d = [data[k] for k in [\"beat_samples\",\"duration\",\"sample_rate\",\"tempo_float\"]]\nprint(data)\nbreakpoint()\nsingle_bpm_time = 60/d\nbpm_times = [single_bpm_time*(2**x) for x in range(5)] #usually works.\nmin_beat_time = 2 # minimum beat skip time.\nclosest_beat_time = getClosest(bpm_times,min_beat_time)\n# breakpoint()\nmin_outro_time = 3 # must longer than the song.\n# total_samples = b*c\nbeat_times = [x/c for x in a if x <= c*(b - min_outro_time)] # no final cut.\n# so the beats are evenly sliced.\n# print(beat_times)\n# breakpoint()\nselected_beat_times = [0] # original beat. the startup.\nfor i,x in enumerate(beat_times):\n    lastBeat = selected_beat_times[-1]"
+        },
+        {
+            "comment": "This code segment is finding the closest beat time to a specified value from a set of beat times. It continues from the last detected beat and appends the selected beat time to the 'selected_beat_times' list. Finally, it prints out the 'selected_beat_times'.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/tests/music_analysis/bpm_tracking/test_audioowl.py\":69-77",
+            "content": "    if x <= lastBeat:\n        continue\n    ired_beat_times = beat_times[i:] # exactly what we want.\n    selectedBeat = getClosest(ired_beat_times,lastBeat+closest_beat_time)\n    selected_beat_times.append(selectedBeat)\nprint('selected beat times:')\nprint(selected_beat_times)\n# we have to check the thing."
+        }
+    ]
+}

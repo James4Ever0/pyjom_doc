@@ -1,0 +1,20 @@
+{
+    "summary": "This code fetches Weibo feedback data, extracts comment info, populates a dictionary with details, and appends meta and updated feedback to \"mfeedback\" for specified key.",
+    "details": [
+        {
+            "comment": "The code is fetching feedback data from a Weibo API and extracting comment information. It makes requests to the API, parses JSON responses, and populates a dictionary with the comment details including text, user (if specified), and like counts. Comments are nested within each post and reply comments are also present, but their significance is unclear.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/pyjom/modules/feedbackCollecting/weiboFeedback.py\":0-26",
+            "content": "from pyjom.commons import *\nimport requests\nimport json\ndef weiboCheckFeedback(meta, with_user=False):\n    feedback = {\"comments\": []}\n    id_ = meta[\"id\"]\n    uid = meta[\"uid\"]\n    url = sinaWeiboApi[\"weibo_build_comments\"].format(100, id_, uid)\n    with requests.get(url) as r:# somwhow working but we usually have nothing to see.\n        mdata = r.text\n        mdata = json.loads(mdata)\n        if mdata[\"ok\"] == 1: # what is this ok?\n            for elem in mdata[\"data\"]:\n                elem0 = {}\n                elem0[\"text\"] = elem[\"text\"]\n                if with_user:\n                    userMeta = elem[\"user\"]\n                    userMeta = {k:userMeta[k] for k in [\"id\",\"name\"]}\n                    elem0[\"user\"] = userMeta\n                elem0[\"like_counts\"] = elem[\"like_counts\"]\n                elem0[\"comments\"] = []\n                for comm in elem[\n                    \"comments\"\n                ]:  # also have reply_comment, though i don't know what it really means here.\n                    comm0 = {}"
+        },
+        {
+            "comment": "Function weiboFeedback takes content and optional with_user parameter, checks if there are feedback entries for each blog, appends comment elements to corresponding keys in mfeedback dictionary, and returns the feedback data.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/pyjom/modules/feedbackCollecting/weiboFeedback.py\":27-52",
+            "content": "                    comm0[\"text\"] = comm[\"text\"]\n                    if with_user:\n                        userMeta2 = comm[\"user\"]\n                        userMeta2 = {k:userMeta2[k] for k in [\"id\",\"name\"]} # we don't fancy things here\n                        comm0[\"user\"] = userMeta2\n                    comm0[\"like_count\"] = comm[\"like_count\"]\n                    elem0[\"comments\"].append(comm0)\n                feedback[\"comments\"].append(elem0)\n        else:\n            print(json.dumps(mdata,indent=4))\n            print(\"NOT OK WITH WEIBO FEEDBACK!\")\n        return feedback\n@decorator\ndef weiboFeedback(content,with_user=False):\n    mfeedback = {}  # ordered by the blog id.\n    # it will create shit after all. debug first.\n    for key in content:\n        mfeedback[key] = []\n        print(\"feedback key:\",key)\n        print(\"feedback value:\",content[key])\n        for blog in content[key]:\n            review = blog[\"review\"] # what is this heck?\n            meta = review[\"meta\"]\n            print(\"feedback meta:\")"
+        },
+        {
+            "comment": "This code prints the JSON representation of \"meta\" with indentation, retrieves feedback from the \"review\", updates \"feedback\" with data from \"weiboCheckFeedback\", and appends meta and updated feedback to \"mfeedback\" for the specified key.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/pyjom/modules/feedbackCollecting/weiboFeedback.py\":53-58",
+            "content": "            print(json.dumps(meta,indent=4))\n            feedback = review[\"feedback\"] # what is this update?\n            data = weiboCheckFeedback(meta,with_user=with_user)\n            feedback.update(data)\n            mfeedback[key].append({\"meta\": meta, \"feedback\": feedback})\n    return mfeedback"
+        }
+    ]
+}

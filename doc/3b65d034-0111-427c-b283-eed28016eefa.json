@@ -1,0 +1,15 @@
+{
+    "summary": "The code converts video frames to grayscale, creates an optical flow object, and uploads the first two frames to GPU for calculation. It downloads a GPU flow, visualizes it using flow_vis library, displays in a window, and quits on 'q'. No garbage collection is performed.",
+    "details": [
+        {
+            "comment": "Reading video file, converting frames to grayscale, creating optical flow object with specified parameters, and uploading the first two frames to GPU for calculation.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/tests/optical_flow/nvidia_of_test.py\":0-35",
+            "content": "from nvidia_common import *\nimport numpy as np \nimport cv2\nimport flow_vis\nvideo_file = \"/media/root/help/pyjom/samples/video/dog_with_text.mp4\"\n# this is the fastest.\nvideo = cv2.VideoCapture(video_file)\nret, img = video.read()\nprevImg = img.copy()\nwhile True:\n    ret, img = video.read()\n    if img is None: break\n    else:\n        frame1 = prevImg\n        frame1 = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)\n        frame2 = img # why freaking grayscale?\n        frame2 =  cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)\n        prevImg = img.copy()\n        perfPreset = 5\n        gpuId=0\n        # nvof = cv2.cuda_NvidiaOpticalFlow_2_0.create((frame1.shape[1], frame1.shape[0]),5, False, False, False, 0)\n        gpu_flow =cv2.cuda_FarnebackOpticalFlow.create(5, 0.5, False,\n                                                        15, 3, 5, 1.2, 0)\n        gpu_frame_a = cv2.cuda_GpuMat()\n        gpu_frame_b = cv2.cuda_GpuMat()\n        gpu_frame_a.upload(frame1)\n        gpu_frame_b.upload(frame2)\n        # -- exec flow --\n        gpu_flow = cv2.cuda_FarnebackOpticalFlow.calc(gpu_flow, gpu_frame_a,"
+        },
+        {
+            "comment": "This code downloads a GPU flow, potentially transposes it and prints its shape, then visualizes the flow using flow_vis library. It displays the visualization in a window and quits when 'q' is pressed. No garbage collection is performed.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/tests/optical_flow/nvidia_of_test.py\":36-52",
+            "content": "                                                      gpu_frame_b, None)\n        gpu_flow = gpu_flow.download()\n        # gpu_flow = gpu_flow.transpose(2,0,1)\n        # print(gpu_flow.shape())\n        # breakpoint()\n        # gpu_flow = th.from_numpy(gpu_flow).half()\n        # cv2.writeOpticalFlow('OpticalFlow.flo', flowUpSampled)\n        visualize = flow_vis.flow_to_color(gpu_flow, convert_to_bgr=False)\n        cv2.imshow(\"OPTFLOW\",visualize)\n        if cv2.waitKey(20) == chr(\"q\"):\n            print(\"QUIT THIS SHIT\")\n            break\n        # nvof.collectGarbage()"
+        }
+    ]
+}

@@ -1,0 +1,20 @@
+{
+    "summary": "OnlineFetcher is a decorator for retrieving online media assets with specific criteria using lazero libraries. It chains functions, fetches URLs from frame metadata, creates download paths and skips unsuccessful downloads while handling exceptions during Giphy asset fetching.",
+    "details": [
+        {
+            "comment": "The function, OnlineFetcher, is a decorator that takes in a list of information and retrieves online media assets based on certain criteria such as source, frame size filter, temporary directory path, number of threads for multithreading, and timeout duration. It uses the download and tmpdir functions from lazero libraries for network downloading and temporary directories respectively. The function is chained to perform these operations.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/pyjom/modules/informationGathering/onlineFetcher.py\":0-31",
+            "content": "from pyjom.commons import *\nfrom typing import Literal\nfrom lazero.network import download\nfrom lazero.filesystem import tmpdir\n@decorator\ndef OnlineFetcher(\n    infoList,\n    source: Literal[\"giphy\"] = \"giphy\",\n    frame_size_filter: dict = {\n        \"width\": {\"min\": 150, \"max\": 1000},\n        \"height\": {\"min\": 150, \"max\": 1000},\n    },\n    tempdir=\"/dev/shm/medialang/online\",\n    threads=20,\n    # threads=-0.5,\n    use_multithread=True,\n    timeout=120\n):\n    # how do you chain this shit up?\n    assert os.path.isabs(tempdir)\n    with tmpdir(path=tempdir) as TD:\n        assert os.path.isdir(tempdir)\n        assert os.path.exists(tempdir)\n        for info in infoList:  # generator most likely\n            if source == \"giphy\":\n                (source_id, frameMeta) = info\n                width, height = frameMeta[\"width\"], frameMeta[\"height\"]\n                asset_id = \"video_[{}_{}]_[{}x{}]\".format(source, source_id, width, height)\n                flag = frameSizeFilter(frameMeta, frame_size_filter)\n                if flag:"
+        },
+        {
+            "comment": "Code block fetches the URL from frame metadata, extracts extension and filename, creates download path, attempts to download file using specified parameters (threads, size filter, use_multithread, timeout), yields source ID and download path if successful, skips and logs if unsuccessful.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/pyjom/modules/informationGathering/onlineFetcher.py\":32-52",
+            "content": "                    # this time it is selected.\n                    url = frameMeta[\"url\"]\n                    extension = url.split(\"?\")[0].split(\".\")[-1]\n                    basename = \".\".join([asset_id, extension])\n                    download_path = os.path.join(tempdir, basename)\n                    try:\n                        result = download(\n                            url,\n                            download_path,\n                            threads=threads,\n                            size_filter={\"min\": 0.4, \"max\": 50},\n                            use_multithread=use_multithread,\n                            timeout=timeout\n                        )\n                        if result:\n                            yield source_id, download_path\n                        else:\n                            print(\"not downloading source:\", source_id)\n                            print(\"skipping:\", frameMeta)\n                            # print(\"____WTF IS GOING ON WITH THE DOWNLOADER?____\")\n                            # breakpoint()"
+        },
+        {
+            "comment": "This code segment catches exceptions during asset fetching from Giphy and prints the error message along with stack trace.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/pyjom/modules/informationGathering/onlineFetcher.py\":53-56",
+            "content": "                    except:\n                        import traceback\n                        traceback.print_exc()\n                        print(\"error fetching assets from giphy\")"
+        }
+    ]
+}

@@ -1,0 +1,546 @@
+{
+    "1400": {
+        "file_id": 115,
+        "content": "                                start=cutFrom,\n                                end=cutTo,\n                                cachePath=cachePath,\n                                preview=fast,\n                                audio=not mute,\n                            )\n                            # what is this filepath? man how do i handle this?\n                            videoFilePath = processedFilePath\n                            # get video information!\n                            # if processed:\n                            # this must be true now.\n                            cutFrom = 0\n                            cutTo = layerOriginalDuration\n                            speed = layerElemItem.args.get(\"speed\", 1)\n                            # was wrong.\n                            layerDuration = (cutTo - cutFrom) / speed\n                            layer_durations.append(layerDuration)\n                            layer = {\n                                \"type\": \"video\",\n                                \"path\": videoFilePath,",
+        "type": "code",
+        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:472-492"
+    },
+    "1401": {
+        "file_id": 115,
+        "content": "This code is processing a video file and saving it to a specified path. It sets the start and end time of the clip, determines the speed of playback, and appends the duration of the layer to a list. The processed video file's path is stored in \"videoFilePath\".",
+        "type": "comment"
+    },
+    "1402": {
+        "file_id": 115,
+        "content": "                                \"resizeMode\": \"contain\",\n                                \"cutFrom\": cutFrom,\n                                \"cutTo\": cutTo,\n                                # that's how we mute it.\n                                \"mixVolume\": 1 - int(mute),\n                            }\n                            removeKeys = []\n                            for key, elem in layer.items():\n                                if elem is None:\n                                    removeKeys.append(key)\n                            for key in removeKeys:\n                                del layer[key]\n                    if layer is not None:\n                        clip[\"layers\"].append(layer)\n                    else:\n                        raise Exception(\"NOT IMPLEMENTED LAYER FORMAT:\", layerElem)\n                maxDuration = max(layer_durations)\n                clip[\"duration\"] = maxDuration\n                template[\"clips\"].append(clip)\n                # then just execute this template, or let's just view it.",
+        "type": "code",
+        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:493-512"
+    },
+    "1403": {
+        "file_id": 115,
+        "content": "The code is modifying a clip's properties, such as mute and resize mode, based on input parameters like cutFrom and cutTo. It also handles None values in the layer dictionary by removing them. The code then sets the maximum duration of all layers, adds the modified clip to the template, and finally executes or views the template.",
+        "type": "comment"
+    },
+    "1404": {
+        "file_id": 115,
+        "content": "            if verbose:\n                print(\"________________editly template________________\")\n                print(\n                    json.dumps(template, ensure_ascii=False, indent=4)\n                )  # let's view it elsewhere? or in `less`?\n                print(\"________________editly template________________\")\n            # breakpoint()\n            # return template\n            executeEditlyScript(medialangTmpDir, template)\n            os.rename(output_path, outputPath)\n            return outputPath",
+        "type": "code",
+        "location": "/pyjom/medialang/processors/dotProcessor/videoProcessor.py:513-523"
+    },
+    "1405": {
+        "file_id": 115,
+        "content": "This code snippet checks if verbose is true and prints the editly template in a formatted way. It then executes the Editly script, renames the output file from `output_path` to `outputPath`, and finally returns the output path.",
+        "type": "comment"
+    },
+    "1406": {
+        "file_id": 116,
+        "content": "/pyjom/medialang/functions/__init__.py",
+        "type": "filepath"
+    },
+    "1407": {
+        "file_id": 116,
+        "content": "The code imports detectors from the medialangFunctions module and creates a dictionary of available media language functions. The getMedialangFunction function searches the dictionary for the specified function name, returns it if found, and prints its type and name. If not found, it returns None.",
+        "type": "summary"
+    },
+    "1408": {
+        "file_id": 116,
+        "content": "from pyjom.medialang.functions.detectors import *\nmedialangFunctions = {\"detector\": medialangDetectors}\ndef getMedialangFunction(function):\n    for key in medialangFunctions:\n        mgroup = medialangFunctions[key]\n        for key2 in mgroup:\n            if key2 == function:\n                function = mgroup[key2]\n                print(\"function type:\", key)\n                print(\"function name:\", key2)\n                return function\n    return None",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/__init__.py:1-15"
+    },
+    "1409": {
+        "file_id": 116,
+        "content": "The code imports detectors from the medialangFunctions module and creates a dictionary of available media language functions. The getMedialangFunction function searches the dictionary for the specified function name, returns it if found, and prints its type and name. If not found, it returns None.",
+        "type": "comment"
+    },
+    "1410": {
+        "file_id": 117,
+        "content": "/pyjom/medialang/functions/detectors/yolov5_Detector.py",
+        "type": "filepath"
+    },
+    "1411": {
+        "file_id": 117,
+        "content": "The code introduces two functions, `yolov5_Identifier` and `yolov5_Detector`, which utilize the YOLOv5 model for object detection and identification. The functions apply the model to input frames and media paths at set intervals, storing and returning results with specified configurations.",
+        "type": "summary"
+    },
+    "1412": {
+        "file_id": 117,
+        "content": "from .mediaDetector import *\n# assume you not to run many instances at once?\n# how to identify same video in a sequence?\ndef yolov5_Identifier(frame, threshold=0.4,model = \"yolov5s\"):\n    model = configYolov5(model=model)\n    # assert to be read from opencv2\n    img = cv2_HWC2CHW(frame)\n    results = model(img) # pass the image through our model\n    df = results.pandas().xyxy[0]\n    # print(df)\n    data = []\n    for _, line in df.iterrows():\n        left = (line[\"xmin\"],line[\"ymin\"])\n        right = (line[\"xmax\"],line[\"ymax\"])\n        confidence = line[\"confidence\"]\n        if confidence < threshold:\n            continue # skipping threshold too low.\n        class_ = line[\"class\"]\n        name = line[\"name\"]\n        data.append({\"location\":[left,right],\"confidence\":confidence,\"identity\":{\"class\":class_,\"name\":name}})\n    return data\ndef yolov5_Detector(mediapaths, model=\"yolov5s\", threshold=0.4, timestep=0.2):\n    # any better detectors? deeplearning?\n    results = []\n    data_key = \"yolov5\"\n    assert model i",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/yolov5_Detector.py:1-31"
+    },
+    "1413": {
+        "file_id": 117,
+        "content": "The code defines two functions, `yolov5_Identifier` and `yolov5_Detector`, which are used for object detection and identification using the YOLOv5 model. The `yolov5_Identifier` function takes a frame as input, applies the YOLOv5 model to it, and returns the identified objects with their locations, confidences, and classes. The `yolov5_Detector` function applies the `yolov5_Identifier` function to multiple media paths at specified time intervals, storing and returning the detection results for each path.",
+        "type": "comment"
+    },
+    "1414": {
+        "file_id": 117,
+        "content": "n [\"yolov5n\",\"yolov5s\",\"yolov5m\",\"yolov5l\",\"yolov5x\",\"yolov5n6\",\"yolov5s6\",\"yolov5m6\",\"yolov5l6\",\"yolov5x6\"] # increase the parameters does not sufficiently improve accuracy.\n    keyword = \"{}_detector\".format(data_key)\n    for mediapath in mediapaths:\n        print(\"mediapath:\", mediapath)\n        mediatype = getFileType(mediapath)\n        print(\"subtitle of mediatype:\", mediatype)\n        assert mediatype in [\"video\", \"image\"]  # gif? anything like that?\n        result = {\"type\": mediatype, data_key: {}}\n        config = {\"threshold\": threshold,\"model\":model}\n        if mediatype == \"image\":\n            data = cv2.imread(mediapath)\n            data = keywordDecorator(yolov5_Identifier, **config)(data)\n            result[data_key].update({keyword: data})\n            result[data_key].update({\"config\": config})\n            # results.append(result)\n        else:\n            mdata, metadata = videoFrameIterator(\n                mediapath,\n                data_producer=keywordDecorator(yolov5_Identifier, **config),",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/yolov5_Detector.py:31-50"
+    },
+    "1415": {
+        "file_id": 117,
+        "content": "Looping through each media path, the code checks the media type (video or image) and applies YOLOv5 detection using keywordDecorator on the specified data_key. It stores the result in a dictionary and also includes the configuration used for detection.",
+        "type": "comment"
+    },
+    "1416": {
+        "file_id": 117,
+        "content": "                framebatch=1,\n                timestep=timestep,\n                keyword=keyword,\n            )\n            metadata.update({\"config\": config})\n            result[data_key][keyword] = mdata\n            result[data_key].update(metadata)\n        results.append(result)\n    return results",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/yolov5_Detector.py:51-59"
+    },
+    "1417": {
+        "file_id": 117,
+        "content": "Function is creating a data structure for YOLOv5 detector output, updating metadata with the configuration and storing it in a list.",
+        "type": "comment"
+    },
+    "1418": {
+        "file_id": 118,
+        "content": "/pyjom/medialang/functions/detectors/videoDiffDetector.py",
+        "type": "filepath"
+    },
+    "1419": {
+        "file_id": 118,
+        "content": "The code includes a `frameDifferential` function that computes the average or maximum difference between frames, and a `videoDiffDetector` function which calculates pixel values for each block in a video. The results are stored in a dictionary and appended to a list of results after updating metadata.",
+        "type": "summary"
+    },
+    "1420": {
+        "file_id": 118,
+        "content": "from .mediaDetector import *\ndef frameDifferential(frame_a, frame_b, cut=3, absolute=True, method=\"average\"):\n    assert cut >= 1\n    # calculate average difference.\n    # you can select ROI instead.\n    # the cut is generated by the smallest side. neglect the boundary.\n    mshape = frame_a.shape\n    width, height = mshape[:2]\n    mcut = int(min(width, height) / cut)\n    result = frame_a - frame_b\n    methods = {\"average\": np.average, \"max\": np.max, \"min\": np.min}\n    # it is hard to tell where the heck does the target go. since the color difference means nothing precisely.\n    # maybe you should mark the target for us? for our training model?\n    # and again use our superduper unet? you know sometimes we get static.\n    # so use both inputs. one for static and one for motion.\n    if absolute:\n        result = np.abs(result)\n    if len(mshape) == 3:\n        result = methods[method](result, axis=2)  # just np.max\n        # i guess it is about the max value not the unified.\n    shape0 = int(width / mcut)\n    shape1 = int(height / mcut)",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/videoDiffDetector.py:1-24"
+    },
+    "1421": {
+        "file_id": 118,
+        "content": "This code defines a function called `frameDifferential` that calculates the average difference between two frames. It takes in two frame images, a cut value to determine the size of each block, and an optional absolute parameter. The code calculates the average or maximum difference within each block, with the option to take the absolute value if necessary. The result is returned as a new image with the same shape as the input frames.",
+        "type": "comment"
+    },
+    "1422": {
+        "file_id": 118,
+        "content": "    diff = np.zeros((shape0, shape1)).tolist()\n    # mapping = {}\n    for x in range(shape0):\n        for y in range(shape1):\n            diff[x][y] = float(\n                np.average(result[x * mcut : (x + 1) * mcut, y * mcut : (y + 1) * mcut])\n            )\n            # this mapping is bad.\n            # mapping.update({str((x,y)):((x*mcut,(x+1)*mcut),(y*mcut,(y+1)*mcut))})\n    return {\"diff\": diff, \"blocksize\": mcut}  # required for recovering center points.\n    # transform the frames into smaller matricies.\n    # not required all the time though.\ndef videoDiffDetector(mediapaths, cut=3, absolute=True, method=\"average\", timestep=0.2):\n    # any better detectors? deeplearning?\n    results = []\n    data_key = \"diff_result\"\n    for mediapath in mediapaths:\n        print(\"mediapath:\", mediapath)\n        mediatype = getFileType(mediapath)\n        print(\"subtitle of mediatype:\", mediatype)\n        assert mediatype in [\"video\"]  # gif? anything like that?\n        result = {\"type\": mediatype, data_key: {}}\n        config = {\"cut\": cut, \"absolute\": absolute, \"method\": method}",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/videoDiffDetector.py:25-49"
+    },
+    "1423": {
+        "file_id": 118,
+        "content": "Code snippet defines a videoDiffDetector function that takes mediapaths as input, iterates through each path, and calculates the average pixel values of frames within each block of size mcut. The results are stored in a dictionary and returned along with the block size for recovering center points later on if needed.",
+        "type": "comment"
+    },
+    "1424": {
+        "file_id": 118,
+        "content": "        keyword = \"frame_differential\"\n        mdata, metadata = videoFrameIterator(\n            mediapath,\n            data_producer=keywordDecorator(frameDifferential, **config),\n            framebatch=2,\n            timestep=timestep,\n            keyword=keyword,\n        )\n        metadata.update({\"config\": config})\n        result[data_key][keyword] = mdata\n        result[data_key].update(metadata)\n        results.append(result)\n    return results",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/videoDiffDetector.py:50-62"
+    },
+    "1425": {
+        "file_id": 118,
+        "content": "This code calls a function to iterate over frames in a video using frame differential as the data producer, then updates metadata and appends the result to a list of results.",
+        "type": "comment"
+    },
+    "1426": {
+        "file_id": 119,
+        "content": "/pyjom/medialang/functions/detectors/subtitleDetector.py",
+        "type": "filepath"
+    },
+    "1427": {
+        "file_id": 119,
+        "content": "The `mediaSubtitleDetector` function uses PaddleOCR to detect subtitles in videos or images, processing media paths and storing results under 'subtitle_result'. It alters and updates metadata before appending the altered results to a list and returning them.",
+        "type": "summary"
+    },
+    "1428": {
+        "file_id": 119,
+        "content": "from .mediaDetector import *\nfrom .entityDetector import ocrEntityDetector\ndef getPaddleOCR(mediapath, lang=\"ch\",use_angle_cls=True,cls=True,rec=True):\n    ocr = configOCR(use_angle_cls=use_angle_cls,cls=cls,rec=rec, lang=lang)\n    # print(mediapath)\n    # breakpoint()\n    result = ocr.ocr(mediapath,cls=cls,rec=rec)\n    # print(result)\n    # breakpoint()\n    return result\ndef stablePaddleOCR(mediapath, lang=\"ch\"):\n    data = getPaddleOCR(mediapath, lang=lang)\n    for ind, element in enumerate(data):\n        certainty = element[1][1]\n        # print(\"certainty:\",certainty)\n        data[ind][1] = (element[1][0], float(certainty))  # fix the float32 error.\n        # what is the fetched shit anyway?\n    return data\ndef mediaSubtitleDetector(\n    mediapaths,\n    videocr=False,\n    timestep=0.5,\n    videocr_config={\"lang\": \"chi_sim+eng\", \"sim_threshold\": 70, \"conf_threshold\": 65},\n):\n    # it must be video/image.\n    # we detect shit not to remove shit.\n    # this is separated.\n    results = []\n    data_key = \"subtitle_result\"",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/subtitleDetector.py:1-34"
+    },
+    "1429": {
+        "file_id": 119,
+        "content": "Code snippet defines a `mediaSubtitleDetector` function that detects subtitles in videos or images. It utilizes the `getPaddleOCR` and `stablePaddleOCR` functions for OCR operations. The `getPaddleOCR` function takes media path, language, use_angle_cls, cls, and rec as input to configure OCR, perform OCR on the image, and return the result. The `stablePaddleOCR` function improves certainty values in the results and returns them. The `mediaSubtitleDetector` function processes a list of media paths, performs subtitle detection, and stores the results in the 'subtitle_result' key.",
+        "type": "comment"
+    },
+    "1430": {
+        "file_id": 119,
+        "content": "    for mediapath in mediapaths:\n        print(\"mediapath:\", mediapath)\n        mediatype = getFileType(mediapath)\n        print(\"subtitle of mediatype:\", mediatype)\n        assert mediatype in [\"video\", \"image\"]\n        result = {\"type\": mediatype, data_key: {}}\n        if mediatype == \"image\":\n            data = getPaddleOCR(mediapath)\n            result[data_key].update({\"paddleocr\": data})\n            # each line per sentence, coordinates.\n        else:\n            if videocr:\n                config = videocr_config\n                data = get_subtitles(\n                    mediapath, **config\n                )  # what is the speed of this? also the quality?\n                data = srt.parse(data)\n                data = [serializeSRT(x) for x in data]\n                result[data_key].update({\"videocr\": data})\n                result[data_key][\"config\"] = config\n            else:\n                keyword = \"paddleocr\" # we will try to merge alike ones.\n                mdata, metadata = videoFrameIterator(\n                    mediapath,",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/subtitleDetector.py:35-58"
+    },
+    "1431": {
+        "file_id": 119,
+        "content": "The code iterates through a list of media paths, checks the file type, and then fetches subtitles or performs OCR based on the file type. It uses PaddleOCR for image files and either the provided videocr or a default config for video files. The speed and quality of the subtitle detection are not mentioned in the code.",
+        "type": "comment"
+    },
+    "1432": {
+        "file_id": 119,
+        "content": "                    data_producer=stablePaddleOCR, \n                    timestep=timestep,\n                    keyword=keyword,\n                )\n                # we should process the mdata. alter it and change it.\n                # mdata = ocrEntityDetector(mdata) # we enable this step later.\n                result[data_key][keyword] = mdata\n                result[data_key].update(metadata)\n                # what is this frame?\n            # use traditional things.\n        results.append(result)\n    return results",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/subtitleDetector.py:59-70"
+    },
+    "1433": {
+        "file_id": 119,
+        "content": "The code processes media data using stablePaddleOCR, potentially alters and changes mdata, and updates metadata for the result. The altered results are then appended to a list before being returned.",
+        "type": "comment"
+    },
+    "1434": {
+        "file_id": 120,
+        "content": "/pyjom/medialang/functions/detectors/mediaDetector.py",
+        "type": "filepath"
+    },
+    "1435": {
+        "file_id": 120,
+        "content": "The videoFrameIterator function initializes a video capture object, iterates through frames, checks arguments, raises exceptions, and reads frames using paddleocr. It stores metadata per batch, stops at no detection or end of video, and returns results in `mdata` and `metadata`.",
+        "type": "summary"
+    },
+    "1436": {
+        "file_id": 120,
+        "content": "from pyjom.medialang.commons import *\nimport cv2\n# import numpy.core.multiarray # caused by numpy version errors. upgrade to resolve.\nfrom videocr import get_subtitles  # are you sure?\nimport srt\nimport progressbar\ndef videoFrameIterator(\n    mediapath, timestep=0.5, framebatch=1, data_producer=None, keyword=None\n):\n    assert data_producer is not None\n    assert type(keyword) == str\n    assert type(framebatch) == int\n    assert framebatch >= 1\n    # obviously not for motion detection, if i was saying.\n    cap = cv2.VideoCapture(mediapath)\n    mdata = []\n    fps = cap.get(cv2.CAP_PROP_FPS)\n    frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)  # no need of this to get the timecode.\n    frames = int(frames)\n    # timestep = timestep # unit in seconds.\n    if timestep != None:\n        frameStep = int(fps * timestep)\n    else:\n        frameStep = 1 # for None we do frame by frame analysis.\n        timestep = 1/fps # generate fake timestep. nothing special.\n    assert frameStep > 0\n    frameIndex = 0\n    # while(cap.isOpened()):",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/mediaDetector.py:1-31"
+    },
+    "1437": {
+        "file_id": 120,
+        "content": "This function, videoFrameIterator, initializes a video capture object and iterates through the frames of a video file while maintaining a timestep. The timestep determines how many frames to skip between captures and can be adjusted based on user needs. It also includes checks for proper arguments and raises exceptions if any are not met.",
+        "type": "comment"
+    },
+    "1438": {
+        "file_id": 120,
+        "content": "    stepframes = []\n    for _ in progressbar.progressbar(range(frames)):\n        ret, frame = cap.read()\n        if type(frame) != np.ndarray:\n            # most likely no thing shown.\n            break\n        timecode = float(frameIndex / fps)\n        if (frameIndex % frameStep) == 0:\n            # what is this shit?\n            # print(\"frame:\",type(frame))\n            # will be replaced!\n            stepframes.append(copy.deepcopy(frame))\n            if len(stepframes) == framebatch:\n                data = data_producer(\n                    *stepframes\n                )  # usually we treat frames differently?\n                stepframes.pop(0)\n                # this is part of paddleocr.\n                mdata.append(\n                    {\n                        \"time\": timecode,\n                        \"frame\": frameIndex,\n                        keyword: copy.deepcopy(data),\n                    }\n                )\n        frameIndex += 1\n    # result[\"subtitle_result\"][\"paddleocr\"] = mdata\n    cap.release()\n    metadata = {\"fps\": float(fps), \"timestep\": timestep, \"framebatch\": framebatch}",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/mediaDetector.py:32-60"
+    },
+    "1439": {
+        "file_id": 120,
+        "content": "This code reads frames from a video and processes them in batches using the paddleocr library. It stores metadata such as frame index, timecode, and resulting data for each processed batch. The loop stops when no object is detected or it reaches the end of the video. Finally, the captured metadata and the result are returned.",
+        "type": "comment"
+    },
+    "1440": {
+        "file_id": 120,
+        "content": "    return mdata, metadata",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/mediaDetector.py:61-61"
+    },
+    "1441": {
+        "file_id": 120,
+        "content": "This line of code is returning two variables, `mdata` and `metadata`, after the function's processing.",
+        "type": "comment"
+    },
+    "1442": {
+        "file_id": 121,
+        "content": "/pyjom/medialang/functions/detectors/frameborder_Detector.py",
+        "type": "filepath"
+    },
+    "1443": {
+        "file_id": 121,
+        "content": "The code detects squares in images using blurring, edge detection, and HoughLines for lines. It processes video frames for object detection, OCR adjustments, and removes premature rectangles while applying theta filtering. It performs calculations, checks rectangles, and stores data using background models and contours to detect frame changes.",
+        "type": "summary"
+    },
+    "1444": {
+        "file_id": 121,
+        "content": "from .mediaDetector import *\nimport numpy as np\nimport cv2\nimport pybgs as bgs\nimport talib\nimport uuid\nimport itertools\nimport copy\n# consider merging this project with autoup, or just borrow some of its content.\n# assume you not to run many instances at once?\n# how to identify same video in a sequence?\n# maybe you can paint translated words with paddleocr?\n# framedifference can only be applied to videos, not freaking images.\ndef huffline_stillImage_Identifier(mediapath,**config): # wtf?\n    img = cv2.imread(mediapath)\n    line_thresh =  config[\"line_thresh\"]\n    includeBoundaryLines = config[\"includeBoundaryLines\"] # applied to those cornered crops.\\\n    blurKernel = config[\"blurKernel\"]\n    blurred = cv2.GaussianBlur(img,blurKernel, 0)\n    edges = cv2.Canny(blurred,20,210,apertureSize = 3) # great.\n    lines = cv2.HoughLines(edges,1,np.pi/180,line_thresh)\n    angle_error = config[\"angle_error\"]   # this can only detect square things, absolute square.\n    # we need to know horizontal and vertical lines, when they cross we get points.",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:1-26"
+    },
+    "1445": {
+        "file_id": 121,
+        "content": "This code reads an image and applies Gaussian blur and Canny edge detection. It then uses the HoughLines algorithm to identify straight lines in the image. The identified horizontal and vertical lines can be used to detect square objects, but this implementation may have limitations as it assumes squares only.",
+        "type": "comment"
+    },
+    "1446": {
+        "file_id": 121,
+        "content": "    frameHeight, frameWidth = img.shape[:2]\n    # print(\"height: \", frameHeight)\n    # print(\"width: \", frameWidth)\n    mlines = {\"horizontal\":[], \"vertical\":[]}\n    if includeBoundaryLines:\n        originPoint = (0,0)\n        cornerPoint = (frameWidth,frameHeight)\n        mlines[\"horizontal\"].append(originPoint)\n        mlines[\"horizontal\"].append(cornerPoint)\n        mlines[\"vertical\"].append(originPoint)\n        mlines[\"vertical\"].append(cornerPoint)\n    if lines is None: lines = []\n    for line in lines:\n        for r_theta in line:\n            # breakpoint()\n            r,theta = r_theta.tolist()\n            # Stores the value of cos(theta) in a\n            # filter detected lines?\n            # theta filter:\n            if not abs(theta % (np.pi/2) )< angle_error:\n                continue # this is filtering.\n            # print(\"line parameter:\",r,theta)\n            a = np.cos(theta)\n            # Stores the value of sin(theta) in b\n            b = np.sin(theta)\n            # x0 stores the value rcos(theta)",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:27-54"
+    },
+    "1447": {
+        "file_id": 121,
+        "content": "This code calculates the image height and width, creates horizontal and vertical line lists, appends origin and corner points to each list if including boundary lines is enabled. It also checks if lines are provided as input, filters out lines with angle error, and computes cos(theta) and sin(theta) for line parameter calculations.",
+        "type": "comment"
+    },
+    "1448": {
+        "file_id": 121,
+        "content": "            x0 = a*r\n            # y0 stores the value rsin(theta)\n            y0 = b*r\n            # x1 stores the rounded off value of (rcos(theta)-1000sin(theta))\n            x1 = int(x0 + 1000*(-b))\n            # y1 stores the rounded off value of (rsin(theta)+1000cos(theta))\n            y1 = int(y0 + 1000*(a))\n            # x2 stores the rounded off value of (rcos(theta)+1000sin(theta))\n            x2 = int(x0 - 1000*(-b))\n            # y2 stores the rounded off value of (rsin(theta)-1000cos(theta))\n            y2 = int(y0 - 1000*(a))\n            # cv2.line draws a line in img from the point(x1,y1) to (x2,y2).\n            # (0,0,255) denotes the colour of the line to be\n            #drawn. In this case, it is red.\n            df_x = abs(x1-x2)\n            df_y = abs(y1-y2)\n            lineType = \"vertical\"\n            if df_x > df_y:\n                lineType = \"horizontal\"\n            # we just need one single point and lineType.\n            linePoint = (x1,y1)\n            mlines[lineType].append(linePoint)",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:55-83"
+    },
+    "1449": {
+        "file_id": 121,
+        "content": "This code calculates the coordinates of a line using trigonometry (a*r and b*r for x0 and y0) with an additional 1000 multipliers in the calculations. It then determines the rounded values for four points based on these coordinates, creating lines for vertical or horizontal segments as needed. The calculated line data is stored in a list called mlines.",
+        "type": "comment"
+    },
+    "1450": {
+        "file_id": 121,
+        "content": "            # cv2.line(img,(x1,y1), (x2,y2), (0,0,255),2)\n            # would not draw lines this time. draw found rects instead.\n    # get rectangle points. or just all possible rectangles?\n    # enumerate all possible lines.\n    rects =[] # list of rectangles\n    if len(mlines[\"horizontal\"]) < 2 or len(mlines[\"vertical\"]) < 2:\n        # print(\"unable to form rectangles.\")\n        # return [] # no rect.\n        pass\n    else:\n        for line_h1, line_h2 in itertools.combinations(mlines[\"horizontal\"],2):\n            ymin, ymax = list(sorted([line_h1[1],line_h2[1]]))\n            for line_v1, line_v2 in itertools.combinations(mlines[\"vertical\"], 2):\n                xmin, xmax = list(sorted([line_v1[0],line_v2[0]]))\n                rect = ((xmin,ymin),(xmax,ymax))\n                rects.append(rect)\n        # print(\"RECT DICT MAIN LIST:\")\n        # print(rect_dict_main_list) # maybe i want this shit?\n    return rects\ndef huffline_horizontal_vertical_FrameIterator(mediapath,**config):\n    video_file = mediapath # this one with cropped boundaries.",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:84-105"
+    },
+    "1451": {
+        "file_id": 121,
+        "content": "This function generates rectangles based on horizontal and vertical lines detected in the image. It requires a minimum of two horizontal and two vertical lines for rectangle formation. The function combines these lines to find the bounding box coordinates, then stores them as rectangles in a list before returning the list of rectangles.",
+        "type": "comment"
+    },
+    "1452": {
+        "file_id": 121,
+        "content": "    video = cv2.VideoCapture(video_file)\n    def rectMerge(oldRect, newRect,delta_thresh = config[\"delta_thresh\"]):\n        # if very much alike, we merge these rects.\n        # what about those rect that overlaps? we check exactly those who overlaps.\n        # 1. check all new rects against all old rects. if they overlap, highly alike (or not) then mark it as having_alike_rect (or not) and append to new old rect list. <- after those old rects have been marked with alike sign, one cannot revoke the sign. still remaining new rects will be checked against them.\n        # 2. while checking, if not very alike then append newRect to new rect list.\n        # 3. if one old rect has not yet been checked as having_alike_rect then cut its life. otherwise extend its life, though not extend above max_rect_life.\n        (old_x1,old_y1), (old_x2, old_y2) = oldRect\n        (new_x1,new_y1), (new_x2, new_y2) = newRect\n        # too many rects?\n        old_w = old_x2-old_x1\n        old_h = old_y2-old_y1\n        det_x1 = abs(new_x1 - old_x1)/ old_w",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:107-122"
+    },
+    "1453": {
+        "file_id": 121,
+        "content": "The code defines a function `rectMerge` that merges similar rectangles based on their overlap and likeness. It first checks all new rectangles against all old rectangles for overlap, marks them as having_alike_rect if highly alike or not, appends new rectangles to a new rectangle list, and extends the life of old rectangles without exceeding max_rect_life.",
+        "type": "comment"
+    },
+    "1454": {
+        "file_id": 121,
+        "content": "        det_x2 = abs(new_x2 - old_x2)/ old_w\n        det_y1 = abs(new_y1 - old_y1)/ old_h\n        det_y2 = abs(new_y2 - old_y2)/ old_h\n        # print(\"deltas:\",det_x1, det_x2, det_y1, det_y2)\n        having_alike_rect =  (det_x1 < delta_thresh) and (det_y1 < delta_thresh) and (det_x2 < delta_thresh ) and (det_y2 < delta_thresh)\n        myRect = newRect\n        if having_alike_rect:\n            myRect = oldRect\n        return myRect, having_alike_rect\n    def rectSurge(oldRectList, newRectList,diff_img_output,delta_thresh = config[\"delta_thresh\"], min_rect_life = config[\"min_rect_life\"], max_rect_life = config[\"max_rect_life\"],max_rect_list_length = 30, rect_area_threshold = 0.05):\n        yd,xd = diff_img_output.shape\n        aread = yd*xd\n        min_area_thresh = rect_area_threshold * aread\n        def getRectArea(rect):\n            (x0,y0),(x1,y1) = rect\n            return (x1-x0)*(y1-y0)\n        def getDiff(rect,diff_img_output):\n            (x0,y0),(x1,y1) = rect\n            diff_area = diff_img_output[y0:y1,x0:x1]",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:123-146"
+    },
+    "1455": {
+        "file_id": 121,
+        "content": "Function detects changes in rectangles by comparing their dimensions and returns the updated rectangle and a boolean value if they are similar or different. It also calculates the area threshold based on image size, and provides functions for getting rectangle area and difference with diff_img_output.",
+        "type": "comment"
+    },
+    "1456": {
+        "file_id": 121,
+        "content": "            return np.sum(diff_area)\n        def getScore(rect,totalArea,r0=2,r1=5,key=\"rect\"):\n            # if key:\n            #     rect = x[\"rect\"]\n            # else: rect = x\n            area = getRectArea(rect)\n            diff = getDiff(rect,diff_img_output)\n            val1 = diff/area\n            val2 = diff/totalArea\n            return r0*val1+r1*val2\n        newToOldDictList = []\n        oldRectDictList = [{\"rect\":x[\"rect\"], \"alike\":False, \"life\":x[\"life\"],\"uuid\":x[\"uuid\"]} for x in oldRectList if getRectArea(x[\"rect\"]) > min_area_thresh] # actually they are all dict lists. you can pass an empty list as oldRectList anyway.\n        newRectList = [x for x in newRectList if getRectArea(x) > min_area_thresh] # get something else.\n        oldRectDictList = list(reversed(sorted(oldRectDictList,key=lambda x: getScore(x[\"rect\"],aread))))[:max_rect_list_length]\n        newRectList = list(reversed(sorted(newRectList,key=lambda x: getScore(x,aread))))[:max_rect_list_length]\n        # oldRectDictLis",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:147-164"
+    },
+    "1457": {
+        "file_id": 121,
+        "content": "The code defines a function to detect and process rectangles based on their area and difference from an image. It creates two lists of rectangle dictionaries, one for new and old rectangles, and sorts them based on a score calculated using the getScore() function. The sorted lists are then truncated to the max_rect_list_length value.",
+        "type": "comment"
+    },
+    "1458": {
+        "file_id": 121,
+        "content": "t = sorted(oldRectDictList,key=lambda x:getRectArea(x[\"rect\"]), reverse=True) # not good since we got other freaking shits.\n        # print(\"OLDRECTDICTLIST:\",oldRectDictList)\n        # print(\"NEW RECT LENGTH:\",len(newRectList))\n        for newRect in newRectList:\n            needAppend = True\n            for index, oldRectDict in enumerate(oldRectDictList):\n                # print(\"ENUMERATING OLD INDEX:\",index)\n                oldRect = oldRectDict[\"rect\"]\n                _, having_alike_rect = rectMerge(oldRect,newRect,delta_thresh=delta_thresh)\n                if having_alike_rect:\n                    needAppend = False\n                    if not oldRectDict[\"alike\"]:\n                        # print(\"SET ALIKE:\",index,oldRect)\n                        oldRectDictList[index][\"alike\"] = True\n                    # ignore myRect.\n            if needAppend:\n                newToOldDictList.append({\"rect\":newRect,\"life\":1,\"uuid\":str(uuid.uuid4())}) # make sure it is not duplicated?\n                # if appended we shall break this loop. but when shall we append?",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:164-182"
+    },
+    "1459": {
+        "file_id": 121,
+        "content": "Code snippet is sorting a list of oldRectDictList based on the area of rectangles in reverse order. It then compares each new rectangle with old rectangles and updates their alike status accordingly. If no match is found, it adds a new entry to newToOldDictList.",
+        "type": "comment"
+    },
+    "1460": {
+        "file_id": 121,
+        "content": "        oldToOldDictList = []\n        # print(\"OLD RECT LENGTH:\",len(oldRectDictList))\n        for oldRectDict in oldRectDictList:\n            alike = oldRectDict[\"alike\"]\n            life = oldRectDict[\"life\"]\n            oldRect = oldRectDict[\"rect\"]\n            myUUID = oldRectDict[\"uuid\"]\n            if not alike:\n                life -=1\n            else:\n                life +=1\n                life = min(max_rect_life, life)\n            if life <= min_rect_life:\n                continue\n            oldToOldDictList.append({\"rect\":oldRect,\"life\":life,\"uuid\":myUUID})\n        return oldToOldDictList + newToOldDictList # a combination.\n    def updateTotalRects(oldTotalRectDict,rectList,currentFrameIndex,diffFrame,minRectArea = 1):\n        for elem in rectList:\n            uuid = elem[\"uuid\"]\n            rect = elem[\"rect\"]\n            (x0,y0),(x1,y1) = rect\n            rectArea = (x1-x0)*(y1-y0)\n            if rectArea <minRectArea:\n                continue\n            if uuid not in oldTotalRectDict.keys():",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:183-209"
+    },
+    "1461": {
+        "file_id": 121,
+        "content": "The code is iterating over old and new rectangles, updating their life count and filtering out rectangles with areas below a certain threshold. It then combines the old and new rectangle lists to form a single list.",
+        "type": "comment"
+    },
+    "1462": {
+        "file_id": 121,
+        "content": "                oldTotalRectDict.update({uuid:{\"rect\":rect,\"startFrame\":currentFrameIndex,\"endFrame\":None,\"meanDifference\":None}}) # finally,remove those without endFrame.\n            else:\n                duration = currentFrameIndex - oldTotalRectDict[uuid][\"startFrame\"]\n                # filter rect areas.\n                diff = diffFrame[y0:y1,x0:x1] # this is shit. we need to crop this shit.\n                # grayscale.\n                # std = np.abs(std)\n                # get the total delta over time?\n                # std = np.mean(std,axis=2)\n                diff_x = np.mean(diff.flatten())\n                # std_x = np.std(std,axis=2)\n                # std_x = np.std(std_x,axis=1)\n                # std_x = np.std(std_x,axis=0)\n                std_total = diff_x # later we need to convert this float64.\n                # breakpoint()\n                if std_total is None:\n                    print(\"RECT:\",rect)\n                    breakpoint()\n                prev_std = oldTotalRectDict[uuid][\"meanDifference\"]",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:210-228"
+    },
+    "1463": {
+        "file_id": 121,
+        "content": "This code updates the oldTotalRectDict with a new rectangle, calculates duration of rectangles, crops and grayscales the difference frame, computes mean difference over time, and checks if std_total is not None to prevent potential errors.",
+        "type": "comment"
+    },
+    "1464": {
+        "file_id": 121,
+        "content": "                if duration == 1:\n                    oldTotalRectDict[uuid][\"meanDifference\"] = std_total\n                elif prev_std is None:\n                    oldTotalRectDict[uuid][\"meanDifference\"] = std_total\n                else:\n                    dur2 = duration - 1\n                    try:\n                        new_std = (dur2*prev_std + std_total)/duration # may freaking exceed limit.\n                    except:\n                        print(\"dur2\",dur2)\n                        print(\"prev_std\",prev_std)\n                        print(\"std_total\",std_total)\n                        print(\"duration\",duration)\n                        breakpoint()\n                    oldTotalRectDict[uuid][\"meanDifference\"] = new_std\n                oldTotalRectDict[uuid][\"endFrame\"] = currentFrameIndex\n        return oldTotalRectDict\n    total_rect_dict ={}\n    rect_dict_main_list = []\n    min_rect_life_display_thresh = config[\"min_rect_life_display_thresh\"] # a filter.\n    # mode = 1\n    line_thresh = config[\"line_thresh\"]",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:229-252"
+    },
+    "1465": {
+        "file_id": 121,
+        "content": "This code calculates the mean difference of a rectangular object's characteristics (like area or aspect ratio) over time, taking into account previous calculations and the duration of frames. It filters out any rectangles that have not met the minimum threshold for display duration.",
+        "type": "comment"
+    },
+    "1466": {
+        "file_id": 121,
+        "content": "    includeBoundaryLines = config[\"includeBoundaryLines\"] # applied to those cornered crops.\n    # this will slow down the process. or maybe?\n    frameIndex = -1\n    prevFrame = None\n    # if mode == 1:\n    # import pybgs as bgs\n    algorithm = (\n    bgs.FrameDifference()\n    )  # this\n    framePeriod = config[\"framePeriod\"]\n    config_minRectArea = config[\"minRectArea\"]\n    frame_total_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))\n    # print(\"FRAME_TOTAL_COUNT:\",frame_total_count)\n    # breakpoint()\n    ocr_period = 10\n    ocr_result = []\n    # from .subtitleDetector import getPaddleOCR\n    from shapely.geometry import Point, Polygon\n    def checkPointInOcrRect(ocr_result,point,span=0):\n        xp,yp = point\n        p = Point(xp,yp)\n        for ocr_rect in ocr_result:\n            # print(\"OCR_RECT\", ocr_rect)\n            # breakpoint()\n            # if certainty < certainty_thresh: continue\n            p0,p1,p2,p3 = ocr_rect\n            p0 = (p0[0]-span,p0[1]-span)\n            p1 = (p1[0]+span,p1[1]-span)\n            p2 = (p2[0]+span,p2[1]+span)",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:253-281"
+    },
+    "1467": {
+        "file_id": 121,
+        "content": "This code appears to be part of a video processing pipeline. It initializes an object detection algorithm and uses Shapely's Polygon for point-in-polygon testing with PaddleOCR. The function checkPointInOcrRect checks if a given point lies within the polygons defined by the OCR results, potentially using a span or offset for more accurate detection. Frame border detection is performed through frame differencing with a configurable frame period and minimum rectangle area threshold.",
+        "type": "comment"
+    },
+    "1468": {
+        "file_id": 121,
+        "content": "            p3 = (p3[0]-span,p3[1]+span) # it is float.\n            plist = [(x[0],x[1]) for x in [p0,p1,p2,p3]]\n            poly = Polygon(plist)\n            if poly.contains(p):\n                return True\n        return False\n    def checkLineIntersectOcrRect(ocr_result,linepoint,linetype,span=0):\n        xp,yp = linepoint\n        # p = Point(xp,yp)\n        for ocr_rect in ocr_result:\n            # print(\"OCR_RECT\", ocr_rect)\n            # breakpoint()\n            # if certainty < certainty_thresh: continue\n            p0,p1,p2,p3 = ocr_rect\n            p0 = (p0[0]-span,p0[1]-span)\n            p1 = (p1[0]+span,p1[1]-span)\n            p2 = (p2[0]+span,p2[1]+span)\n            p3 = (p3[0]-span,p3[1]+span) # it is float.\n            plist = [(x[0],x[1]) for x in [p0,p1,p2,p3]]\n            if linetype == \"vertical\":\n                xlist = [x[0] for x in plist]\n                xmin,xmax = min(xlist),max(xlist)\n                if xp >=xmin and xp <= xmax:\n                    return True\n            else:\n                ylist = [x[1] for x in plist]",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:282-308"
+    },
+    "1469": {
+        "file_id": 121,
+        "content": "The function `frameborder_Detector()` checks if a given point is inside a polygon. The `checkLineIntersectOcrRect()` function detects whether a line intersects an OCR rectangle, considering both horizontal and vertical lines. It adjusts the coordinates of the OCR rectangle's points by subtracting or adding a span, then checks if the line intersects the adjusted rectangle.",
+        "type": "comment"
+    },
+    "1470": {
+        "file_id": 121,
+        "content": "                ymin,ymax = min(ylist),max(ylist)\n                if yp >= ymin and yp <= ymax:\n                    return True\n            # poly = Polygon(plist)\n            # if poly.contains(p):\n            #     return True\n        return False\n    for _ in progressbar.progressbar(range(frame_total_count)):\n        ret, img = video.read()\n        # if frameIndex% ocr_period == 0:\n        #     ocr_result = getPaddleOCR(img,cls=True,rec=False)\n        if img is None:\n            # if mode == 1:\n            popKeys = []\n            for key in total_rect_dict.keys():\n                elem = total_rect_dict[key]\n                if elem[\"endFrame\"] is None:\n                    popKeys.append(key)\n            for key in popKeys:\n                total_rect_dict.pop(key) # remove premature rectangles.\n            break\n        else: frameIndex+=1\n        if not frameIndex % framePeriod == 0:\n            continue# do shit.\n        # if mode == 1:\n        diff_img_output = algorithm.apply(img)\n        # what about the freaking still image?",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:309-336"
+    },
+    "1471": {
+        "file_id": 121,
+        "content": "The code is performing image detection and processing, using a video source to read frames. It checks if the frameIndex meets certain conditions and performs OCR (Optical Character Recognition) on specific frames. If a premature rectangle is detected in the total_rect_dict dictionary, it removes it. The code also applies an algorithm to the still image frames.",
+        "type": "comment"
+    },
+    "1472": {
+        "file_id": 121,
+        "content": "        # Convert the img to grayscale\n        # gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)\n        # no need to use gray image.\n        # Apply edge detection method on the image\n        blurred = cv2.GaussianBlur(img, config[\"blurKernel\"], 0)\n        edges = cv2.Canny(blurred,20,210,apertureSize = 3) # great.\n        # why not applying edges directly to rectangles?\n        # This returns an array of r and theta values\n        # line_thresh =  200\n        # maintain a rectangle list. merge the alikes?\n        # if mode == 1:\n        lines = cv2.HoughLines(edges,1,np.pi/180,line_thresh)\n        if lines is None:\n            lines = []\n        angle_error = 0.00003   # this can only detect square things, absolute square.\n        # we need to know horizontal and vertical lines, when they cross we get points.\n        frameHeight, frameWidth = img.shape[:2]\n        # print(\"height: \", frameHeight)\n        # print(\"width: \", frameWidth)\n        mlines = {\"horizontal\":[], \"vertical\":[]}\n        if includeBoundaryLines:",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:337-362"
+    },
+    "1473": {
+        "file_id": 121,
+        "content": "This code snippet is performing edge detection on an image and applying the HoughLines transform to identify horizontal and vertical lines. It also includes an option for including boundary lines. The code converts the image to grayscale, applies Gaussian blur, and performs Canny edge detection. The resulting edges are then passed to the HoughLines transform to find lines, which are categorized as either \"horizontal\" or \"vertical\".",
+        "type": "comment"
+    },
+    "1474": {
+        "file_id": 121,
+        "content": "            originPoint = (0,0)\n            cornerPoint = (frameWidth,frameHeight)\n            mlines[\"horizontal\"].append(originPoint)\n            mlines[\"horizontal\"].append(cornerPoint)\n            mlines[\"vertical\"].append(originPoint)\n            mlines[\"vertical\"].append(cornerPoint)\n        # lineTrans = {}\n        for line in lines:\n            for r_theta in line:\n                # breakpoint()\n                r,theta = r_theta.tolist()\n                # Stores the value of cos(theta) in a\n                # filter detected lines?\n                # theta filter:\n                if not abs(theta % (np.pi/2) )< angle_error:\n                    continue # this is filtering.\n                # print(\"line parameter:\",r,theta)\n                a = np.cos(theta)\n                # Stores the value of sin(theta) in b\n                b = np.sin(theta)\n                # x0 stores the value rcos(theta)\n                x0 = a*r\n                # y0 stores the value rsin(theta)\n                y0 = b*r\n                # x1 stores the rounded off value of (rcos(theta)-1000sin(theta))",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:363-391"
+    },
+    "1475": {
+        "file_id": 121,
+        "content": "This code calculates the line parameters and applies a theta filter to eliminate lines that are close to being vertical or horizontal. It stores cos(theta) in 'a', sin(theta) in 'b', r*cos(theta) in 'x0', and r*sin(theta) in 'y0'. The theta filter ensures only appropriate angles are included, preventing false detections of vertical/horizontal lines.",
+        "type": "comment"
+    },
+    "1476": {
+        "file_id": 121,
+        "content": "                x1 = int(x0 + 1000*(-b))\n                # y1 stores the rounded off value of (rsin(theta)+1000cos(theta))\n                y1 = int(y0 + 1000*(a))\n                # x2 stores the rounded off value of (rcos(theta)+1000sin(theta))\n                x2 = int(x0 - 1000*(-b))\n                # y2 stores the rounded off value of (rsin(theta)-1000cos(theta))\n                y2 = int(y0 - 1000*(a))\n                # cv2.line draws a line in img from the point(x1,y1) to (x2,y2).\n                # (0,0,255) denotes the colour of the line to be\n                #drawn. In this case, it is red.\n                df_x = abs(x1-x2)\n                df_y = abs(y1-y2)\n                lineType = \"vertical\"\n                if df_x > df_y:\n                    lineType = \"horizontal\"\n                # we just need one single point and lineType.\n                linePoint = (x1,y1)\n                # for p_rect in rect:\n                mlines[lineType].append(linePoint)\n                # mlines2[lineType].append([(x1,y1), (x2,y2)])",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:392-417"
+    },
+    "1477": {
+        "file_id": 121,
+        "content": "This code calculates the coordinates of a line using trigonometry and draws it on an image in PyJOM's media language detector. It also determines the type of line (vertical or horizontal) based on the difference between its endpoints' x and y values. The line's starting point is stored in 'linePoint', and the lines are appended to the 'mlines' list according to their type.",
+        "type": "comment"
+    },
+    "1478": {
+        "file_id": 121,
+        "content": "                # lineTrans.update({str((x1,y1)+lineType):(x2,y2)})\n                # cv2.line(img,(x1,y1), (x2,y2), (0,0,255),2)\n                # would not draw lines this time. draw found rects instead.\n        # get rectangle points. or just all possible rectangles?\n        yd,xd = diff_img_output.shape\n        # print(\"IMAGE SHAPE\",xd,yd)\n        rangeLimitRatio = 0.1\n        # rangeLimit = \n        visual=False\n        for lineType in mlines.keys():\n            dropIndexs = []\n            data0 =mlines[lineType]\n            if lineType == \"vertical\":\n                selectedPoints = [x[0] for x in data0]\n                rangeLimit = xd*rangeLimitRatio\n                selectedRanges = list_to_range(selectedPoints,rangeLimit)\n                # print(selectedRanges)\n                selectedRangesFlattened = [x for y in selectedRanges for x in y]\n                # print(selectedRangesFlattened)\n                data0 = [x for x in data0 if x[0] in selectedRangesFlattened]\n            else:\n                selectedPoints = [x[1] for x in data0]",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:418-439"
+    },
+    "1479": {
+        "file_id": 121,
+        "content": "This code is iterating over line types in the mlines dictionary, specifically targeting vertical and horizontal lines. For vertical lines, it selects points and determines a range limit for filtering out unnecessary data. It then applies this range to flatten the data and refine the list of valid points. For horizontal lines, it performs a similar process but selects different coordinates.",
+        "type": "comment"
+    },
+    "1480": {
+        "file_id": 121,
+        "content": "                rangeLimit = yd*rangeLimitRatio\n                selectedRanges = list_to_range(selectedPoints,rangeLimit)\n                selectedRangesFlattened = [x for y in selectedRanges for x in y]\n                data0 = [x for x in data0 if x[1] in selectedRangesFlattened]\n            # for index, linePoint in enumerate(data0):\n            #     # linePoint = mlines[lineType]\n            #     if checkLineIntersectOcrRect(ocr_result,linePoint,lineType): dropIndexs.append(index)\n            # newdata0 = [data0[i] for i in range(len(data0)) if i not in dropIndexs]\n            newdata0 = data0\n            mlines[lineType] = newdata0\n            if visual:\n                for linePoint in newdata0:\n                    (x1,y1) = linePoint\n                    # (x2,y2) = lineTrans[str((x1,y1))+lineType]\n                    if lineType == \"vertical\":\n                        x2 = x1\n                        y2 = yd\n                    else:\n                        x2 = xd\n                        y2 = y1\n                    cv2.line(img,(x1,y1), (x2,y2), (0,0,255),2)",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:440-460"
+    },
+    "1481": {
+        "file_id": 121,
+        "content": "This code section is responsible for updating the line data based on a specified range and removing any lines that intersect with the OCR result. It then generates a new list of line points and visualizes them on the image, if visualization is enabled.",
+        "type": "comment"
+    },
+    "1482": {
+        "file_id": 121,
+        "content": "        # enumerate all possible lines.\n        if len(mlines[\"horizontal\"]) < 2 or len(mlines[\"vertical\"]) < 2:\n            # print(\"unable to form rectangles.\")\n            continue\n        else:\n            rects =[] # list of rectangles\n            eliminateRatio = 0.3\n            for line_h1, line_h2 in itertools.combinations(mlines[\"horizontal\"],2): # this is a problem.\n                ymin, ymax = list(sorted([line_h1[1],line_h2[1]]))\n                yspan = ymax-ymin\n                if yspan < yd*eliminateRatio:\n                    continue\n                for line_v1, line_v2 in itertools.combinations(mlines[\"vertical\"], 2): # this is a problem.\n                    xmin, xmax = list(sorted([line_v1[0],line_v2[0]]))\n                    rect = ((xmin,ymin),(xmax,ymax))\n                    # pr1,pr2 = rect\n                    # for p_rect in rect:\n                    #     if checkPointInOcrRect(ocr_result,p_rect): continue # skip those traitors.\n                    xspan = xmax-xmin\n                    if xspan < xd*eliminateRatio:",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:461-481"
+    },
+    "1483": {
+        "file_id": 121,
+        "content": "This code snippet combines horizontal and vertical lines to form rectangles. If there are less than two horizontal or vertical lines, the process is skipped. For each pair of horizontal lines and pairs of vertical lines, it checks if the aspect ratio is above a certain threshold before proceeding.",
+        "type": "comment"
+    },
+    "1484": {
+        "file_id": 121,
+        "content": "                        continue\n                    rects.append(rect)\n            # for index,elem in enumerate(rect_dict_main_list):\n            rect_dict_main_list = rectSurge(rect_dict_main_list,rects,diff_img_output)\n            # print(\"RECT DICT MAIN LIST:\")\n            # print(rect_dict_main_list) # maybe i want this shit?\n            total_rect_dict = updateTotalRects(total_rect_dict,rect_dict_main_list,frameIndex,diff_img_output,minRectArea=config_minRectArea)\n            mdisplayed_rect_count = 0\n            for rect_dict in rect_dict_main_list:\n                life = rect_dict[\"life\"]\n                if life < min_rect_life_display_thresh:\n                    continue # this is needed.\n                # draw shit now.\n                mdisplayed_rect_count +=1\n                (xmin,ymin),(xmax,ymax) = rect_dict[\"rect\"]\n                cv2.rectangle(img,(xmin,ymin),(xmax,ymax) , (255,0,0), 2)\n            #     (xmin,ymin),(xmax,ymax) = rect\n            #     rect_area = (xmax-xmin) * (ymax-ymin)",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:482-500"
+    },
+    "1485": {
+        "file_id": 121,
+        "content": "The code iterates through a list of rectangles, appends them to the rects list if their life is above a certain threshold. It then updates the total_rect_dict and displays rectangles with a life above a minimum threshold on the image. The rectangles are drawn as bounding boxes using cv2.rectangle function.",
+        "type": "comment"
+    },
+    "1486": {
+        "file_id": 121,
+        "content": "            #     print(\"rect found:\",rect,rect_area)\n            prevFrame = img.copy()\n            # print(\"total rects:\",mdisplayed_rect_count)\n        if visual:\n            cv2.imshow('linesDetected.jpg', img)\n            # cv2.imshow(\"edges.jpg\",edges) # not for fun.\n            if cv2.waitKey(20) == ord(\"q\"):\n                print(\"QUIT INTERFACE.\")\n                break\n    # All the changes made in the input image are finally\n    # written on a new image houghlines.jpg\n    # if mode == 1:\n    print(\"FINAL RESULT:\")\n    for key in total_rect_dict.keys():\n        elem = total_rect_dict[key]\n        print(\"RECT UUID\",key)\n        print(\"RECT CONTENT\",elem)\n    popKeys = []\n    for key in total_rect_dict.keys():\n        elem = total_rect_dict[key]\n        if elem[\"endFrame\"] is None:\n            popKeys.append(key)\n    for key in popKeys:\n        total_rect_dict.pop(key) # remove premature rectangles.\n    # break\n    return total_rect_dict\ndef framedifference_talib_FrameIterator(mediapath,**config):\n    algorithm = (",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:501-529"
+    },
+    "1487": {
+        "file_id": 121,
+        "content": "The code is detecting frames in an image using computer vision techniques. It creates a rectangle around each frame, counts the total number of rectangles displayed, and displays the image with detected frames. The program checks for user input to quit and then removes any prematurely ended rectangles from the dictionary before returning the final list of rectangles. The function is part of a larger algorithm for frame detection and iteration using talib library in PyJOM.",
+        "type": "comment"
+    },
+    "1488": {
+        "file_id": 121,
+        "content": "        bgs.FrameDifference()\n    )  # this is not stable since we have more boundaries. shall we group things?\n    video_file = (\n        mediapath  # this is doggy video without borders.\n    )\n    # video_file = \"../../samples/video/LiEIfnsvn.mp4\" # this one with cropped boundaries.\n    capture = cv2.VideoCapture(video_file)\n    while not capture.isOpened():\n        capture = cv2.VideoCapture(video_file)\n        # cv2.waitKey(1000)\n        # print(\"Wait for the header\")\n    pos_frame = capture.get(1)\n    past_frames = config[\"past_frames\"]\n    def getAppendArray(mx1, min_x, past_frames=past_frames):\n        return np.append(mx1[-past_frames:], min_x)\n    def getFrameAppend(frameArray, pointArray, past_frames=past_frames):\n        mx1, mx2, my1, my2 = [\n            getAppendArray(a, b, past_frames=past_frames)\n            for a, b in zip(frameArray, pointArray)\n        ]\n        return mx1, mx2, my1, my2\n    timeperiod = config[\"timeperiod\"]\n    def getStreamAvg(a, timeperiod=timeperiod):  # to maintain stability.",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:530-559"
+    },
+    "1489": {
+        "file_id": 121,
+        "content": "The code is initializing a video file and capturing frames from it. It uses various functions such as FrameDifference, getAppendArray, and getFrameAppend for processing the frames and points. The purpose is to maintain stability in the data by averaging over a certain time period using the getStreamAvg function.",
+        "type": "comment"
+    },
+    "1490": {
+        "file_id": 121,
+        "content": "        return talib.stream.EMA(a, timeperiod=timeperiod)\n    change_threshold = config[\"change_threshold\"]\n    def checkChange(frame_x1, val_x1, h, change_threshold=change_threshold):\n        return (abs(frame_x1 - val_x1) / h) > change_threshold  # really changed.\n    mx1, mx2, my1, my2 = [np.array([]) for _ in range(4)]\n    # past_frames = 19\n    #already set.\n    perc = config[\"perc\"]\n    frame_num = 0 # not to change.\n    # what is the time to update the frame?\n    frame_x1, frame_y1, frame_x2, frame_y2 = [None for _ in range(4)]\n    reputation = 0\n    max_reputation = config[\"max_reputation\"]\n    minVariance =config[\"minVariance\"]\n    frameDict = {}  # include index, start, end, coords.\n    frameIndex = 0\n    framePeriod = config[\"framePeriod\"]\n    frame_total_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))\n    # print(\"FRAME_TOTAL_COUNT:\",frame_total_count)\n    # breakpoint()\n    for _ in progressbar.progressbar(range(frame_total_count)):\n        flag, frame = capture.read()\n        if not frameIndex%framePeriod == 0:",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:560-588"
+    },
+    "1491": {
+        "file_id": 121,
+        "content": "This code appears to be a part of a larger function or program. It initializes variables and loops through frames of a video, likely for analysis or processing purposes. The code uses the EMA (Exponential Moving Average) from the talib library and has conditions to check changes in frame values. It also sets up dictionaries and tracks the frame index and total count of frames in the video. Further understanding would require knowledge about the rest of the codebase and how this specific function contributes to its overall functionality.",
+        "type": "comment"
+    },
+    "1492": {
+        "file_id": 121,
+        "content": "            continue # skip shit.\n        frameIndex += 1\n        if flag:\n            pos_frame = capture.get(1)  # this is getting previous frame without read again.\n            img_output = algorithm.apply(frame)\n            img_bgmodel = algorithm.getBackgroundModel()\n            _, contours = cv2.findContours(\n                img_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE\n            )\n            # maybe you should merge all active areas.\n            if contours is not None:\n                # continue\n                counted = False\n                for contour in contours:\n                    [x, y, w, h] = cv2.boundingRect(img_output)\n                    if not counted:\n                        min_x, min_y = x, y\n                        max_x, max_y = x + w, y + h\n                        counted = True\n                    else:\n                        min_x = min(min_x, x)\n                        min_y = min(min_y, y)\n                        max_x = max(max_x, x + w)\n                        max_y = max(max_y, y + h)",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:589-612"
+    },
+    "1493": {
+        "file_id": 121,
+        "content": "Continuing loop through frames and skipping invalid ones. Updates frame index and retrieves previous frame without re-reading. Applies an algorithm to the current frame and gets the background model. Finds contours in the processed frame using cv2 library, iterates through each contour, calculates bounding rectangles for detection areas, updates minimum/maximum coordinates if not counted, and continues until all contours are analyzed.",
+        "type": "comment"
+    },
+    "1494": {
+        "file_id": 121,
+        "content": "                        # only create one single bounding box.\n                # print(\"points:\",min_x, min_y, max_x,max_y)\n                this_w = max_x - min_x\n                this_h = max_y - min_y\n                thresh_x = max(minVariance, int(perc * (this_w)))\n                thresh_y = max(minVariance, int(perc * (this_h)))\n                mx1, mx2, my1, my2 = getFrameAppend(\n                    (mx1, mx2, my1, my2), (min_x, max_x, min_y, max_y)\n                )\n                val_x1, val_x2, val_y1, val_y2 = [\n                    getStreamAvg(a) for a in (mx1, mx2, my1, my2)\n                ]\n                # not a number. float\n                # will return False on any comparison, including equality.\n                if (\n                    abs(val_x1 - min_x) < thresh_x\n                    and abs(val_x2 - max_x) < thresh_x\n                    and abs(val_y1 - min_y) < thresh_y\n                    and abs(val_y2 - max_y) < thresh_y\n                ):\n                    needChange = False\n                    # this will create bounding rect.",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:613-634"
+    },
+    "1495": {
+        "file_id": 121,
+        "content": "This code creates a single bounding box by calculating the threshold values based on the percentage and bounding box dimensions. It checks if the average stream values of the bounding box corners are within the calculated thresholds, and if so, it sets needChange to False, indicating that no change is needed in the bounding rect creation.",
+        "type": "comment"
+    },
+    "1496": {
+        "file_id": 121,
+        "content": "                    # this cannot handle multiple active rects.\n                    reputation = max_reputation\n                    if frame_x1 == None:\n                        needChange = True\n                    elif (\n                        checkChange(frame_x1, val_x1, this_w)\n                        or checkChange(frame_x2, val_x2, this_w)\n                        or checkChange(frame_y1, val_y1, this_h)\n                        or checkChange(frame_y2, val_y2, this_h)\n                    ):\n                        needChange = True\n                        # the #2 must be of this reason.\n                    if needChange:\n                        frame_x1, frame_y1, frame_x2, frame_y2 = [\n                            int(a) for a in (min_x, min_y, max_x, max_y)\n                        ]\n                        print()\n                        print(\"########FRAME CHANGED########\")\n                        frame_num += 1\n                        frame_area = (frame_x2 - frame_x1) * (frame_y2 - frame_y1)\n                        # update the shit.",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:635-655"
+    },
+    "1497": {
+        "file_id": 121,
+        "content": "This code checks if the frame boundaries have changed and updates them accordingly. If a change occurs, it increments the frame number and prints \"########FRAME CHANGED########\". The frame area is then calculated based on the updated frame boundaries.",
+        "type": "comment"
+    },
+    "1498": {
+        "file_id": 121,
+        "content": "                        coords = ((frame_x1, frame_y1), (frame_x2, frame_y2))\n                        frameDict[frame_num] = {\n                            \"coords\": coords,\n                            \"start\": frameIndex,\n                            \"end\": frameIndex,\n                        }\n                        print(\n                            \"FRAME INDEX: {}\".format(frame_num)\n                        )  # this is the indexable frame. not uuid.\n                        print(\"FRAME AREA: {}\".format(frame_area))\n                        print(\"FRAME COORDS: {}\".format(str(coords)))\n                    # allow us to introduce our new frame determinism.\n                else:\n                    if reputation > 0:\n                        reputation -= 1\n                if frame_x1 is not None and reputation > 0:\n                    # you may choose to keep cutting the frame? with delay though.\n                    cv2.rectangle(\n                        frame, (frame_x1, frame_y1), (frame_x2, frame_y2), (255, 0, 0), 2",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:656-674"
+    },
+    "1499": {
+        "file_id": 121,
+        "content": "Code is detecting frames in an image, storing their coordinates and index range in a dictionary. If the frame's reputation is positive, it will reduce the reputation and continue cutting the frame if needed. It also prints information about the detected frame to the console.",
+        "type": "comment"
+    }
+}

@@ -1,0 +1,536 @@
+{
+    "3900": {
+        "file_id": 486,
+        "content": "class {{ channelName }}:\n    tid = {{ channelTid }}{% for subChannelName, subChannelTid in subChannels %}\n    {{ subChannelName }} = {{ subChannelTid }}{% endfor %}",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/template.j2:2-4"
+    },
+    "3901": {
+        "file_id": 486,
+        "content": "This code defines a class with properties named after channel names, where the values are their respective channel TIDs. It also includes subchannels as additional properties, each with its own TID.",
+        "type": "comment"
+    },
+    "3902": {
+        "file_id": 487,
+        "content": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py",
+        "type": "filepath"
+    },
+    "3903": {
+        "file_id": 487,
+        "content": "The code processes generators, repairs links, detects errors, and extracts links using regular expressions. It also parses video descriptions for BGM detection and author keyword extraction with Jieba segmentation, and updates video information by processing video-related data.",
+        "type": "summary"
+    },
+    "3904": {
+        "file_id": 487,
+        "content": "import json\nfrom bs4 import BeautifulSoup\nfrom lazero.utils.logger import sprint\ndef generatorToList(generator):\n    return [x for x in generator]\ndef linkFixer(link, prefix=\"http:\"):\n    if link.startswith(\"//\"):\n        return prefix + link\n    return link\ndef traceError(errorMsg: str = \"error!\", _breakpoint: bool = False):\n    import traceback\n    traceback.print_exc()\n    sprint(errorMsg)\n    if _breakpoint:\n        return breakpoint()\ndef extractLinks(description, extract_bgm=True):\n    \"\"\"Extract and remove links in description\"\"\"\n    import re\n    # notice, we don't need to go wild here. we just want the title and the cover, and the tags.\n    expression = r\"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\"\n    # expr = re.compile(expression)\n    links = re.findall(expression, description)\n    # if links == None:\n    #     links = []\n    desc_without_link = re.sub(expression, \"\", description)\n    desc_without_link_per_line = [\n        x.replace(\"\\n\", \"\").strip() for x in desc_without_link.split(\"\\n\")",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:1-37"
+    },
+    "3905": {
+        "file_id": 487,
+        "content": "The code contains functions for handling generators, fixing links, error tracing, and extracting links from descriptions. It uses regular expressions to find links in the description and removes them while preserving other relevant information like titles and tags.",
+        "type": "comment"
+    },
+    "3906": {
+        "file_id": 487,
+        "content": "    ]\n    desc_without_link_per_line = [x for x in desc_without_link_per_line if len(x) > 0]\n    bgms = []\n    final_desc_list = []\n    if not extract_bgm:\n        final_desc_list = desc_without_link_per_line\n    else:\n        for line in desc_without_link_per_line:\n            bgmCandidateTemplates = [\"{}：\", \"{}:\", \"{} \"]\n            fixers = [x.format(\"\") for x in bgmCandidateTemplates]\n            bgmCandidates = [x.format(\"bgm\") + \"(.+)\" for x in bgmCandidateTemplates]\n            has_bgm = False\n            for candidate in bgmCandidates:\n                bgm_parse_result = re.findall(candidate, line.lower())\n                if len(bgm_parse_result) > 0:\n                    has_bgm = True\n                    # bgm = line[len(bgmCandidates) :]\n                    bgm = bgm_parse_result[0]\n                    bgm = bgm.strip()\n                    for fixer in fixers:\n                        bgm = bgm.strip(fixer)\n                    if len(bgm) > 0:\n                        bgms.append(bgm)\n                    break",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:38-61"
+    },
+    "3907": {
+        "file_id": 487,
+        "content": "This code extracts background music (BGMs) from a list of descriptions. It checks each description line for specific patterns using regular expressions and adds them to the bgms list if found. If no BGMs are found, it stores all the description lines without links in final_desc_list.",
+        "type": "comment"
+    },
+    "3908": {
+        "file_id": 487,
+        "content": "            if not has_bgm:\n                final_desc_list.append(line)\n    desc_without_link = \"\\n\".join(final_desc_list)\n    return links, bgms, desc_without_link\ndef videoDurationStringToSeconds(durationString):\n    if type(durationString) == int:\n        return durationString  # not string at all.\n    if type(durationString) != str:\n        print(\"unknown durationString type: %s\" % type(durationString))\n        return None\n    durationString = durationString.strip()\n    mList = durationString.split(\":\")[::-1]\n    if len(mList) > 3:\n        print(\"DURATION STRING TOO LONG\")\n        return None\n    seconds = 0\n    for index, elem in enumerate(mList):\n        elem = int(elem)\n        seconds += (60**index) * elem\n    return seconds\ndef clearHtmlTags(htmlObject):\n    a = BeautifulSoup(htmlObject, features=\"lxml\")\n    return a.text\ndef detectAuthorRelatedKeywords(title_tag, author_keywords):\n    abandon = False\n    for keyword in author_keywords:\n        if len(keyword) > 1:\n            if keyword in title_tag:\n                abandon = True  # detected this thing.",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:62-96"
+    },
+    "3909": {
+        "file_id": 487,
+        "content": "The code contains functions for parsing video descriptions, converting duration strings to seconds, and detecting related keywords. It also handles cases where a background music (BGM) is or isn't present. The final description without links is returned along with the links and BGMs.",
+        "type": "comment"
+    },
+    "3910": {
+        "file_id": 487,
+        "content": "                break\n    return abandon\ndef getAuthorKeywords(author):\n    author = author.strip()\n    import jieba\n    author_keywords = jieba.lcut(author)\n    author_keywords = [x.strip() for x in author_keywords]\n    author_keywords = [x for x in author_keywords if len(x) > 0]\n    return author_keywords\ndef removeAuthorRelatedTags(description_or_title, author):\n    templates = [\"【{}】\", \"@{}\", \"{}\"]\n    tags = [template.format(author) for template in templates]\n    for tag in tags:\n        description_or_title = description_or_title.replace(tag, \"\")\n    return description_or_title\ndef splitTitleTags(title, author_keywords):\n    import re\n    pattern = r\"【.+】\"\n    title_tags = re.findall(pattern, title)\n    title = re.sub(pattern, \"\", title)\n    title_tags = [x.lstrip(\"【\").rstrip(\"】\").strip() for x in title_tags]\n    title_tags = [x for x in title_tags if len(x) > 0]\n    final_title_tags = []\n    for title_tag in title_tags:\n        detected = detectAuthorRelatedKeywords(title_tag, author_keywords)\n        if not detected:",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:97-131"
+    },
+    "3911": {
+        "file_id": 487,
+        "content": "This code performs the following tasks:\n1. Extracts author keywords using Jieba segmentation and removes leading/trailing whitespace, while discarding empty strings.\n2. Removes author-related tags from the description or title by replacing them with an empty string.\n3. Splits the title into tags, removing any leading/trailing brackets, and eliminating empty strings.\n4. Detects if each tag contains any of the author's keywords and adds it to a list called \"final_title_tags\" only if it does.",
+        "type": "comment"
+    },
+    "3912": {
+        "file_id": 487,
+        "content": "            final_title_tags.append(title_tag)\n    return title, title_tags\ndef parseVideoSearchItem(video, disableList: list = [], debug=False):\n    bvid = video[\"bvid\"]\n    pubdate = video['pubdate']\n    if \"author\" not in disableList:\n        author = video[\"author\"]\n        author_id = video[\"mid\"] # this is important. may let us able to find out the fans count.\n    else:\n        author = \"\"\n        author_id = -1\n    author_keywords = getAuthorKeywords(author)\n    if \"tag\" not in disableList:\n        tag = video[\"tag\"]\n        tags = tag.split(\",\")\n        tags = [\n            tag for tag in tags if not detectAuthorRelatedKeywords(tag, author_keywords)\n        ]\n    else:\n        tags = []\n    if \"typeid\" not in disableList and \"typename\" not in disableList:\n        categoryId = int(video.get(\"typeid\", video.get(\"type_id\")))\n        categoryName = video.get(\"typename\", video.get(\"type_name\"))\n    else:\n        categoryId = 0\n        categoryName = \"\"\n    title = video[\"title\"]  # remove those markers, please?",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:132-160"
+    },
+    "3913": {
+        "file_id": 487,
+        "content": "The function takes a video object, optional disabled list for author and tag keywords, and debug flag as input. It extracts the bvid and pubdate from the video object. If author is not in disableList, it retrieves the author name and id. The author's keywords are obtained using getAuthorKeywords function. If tag is not in disableList, it splits the tags and removes any related to author keywords. The typeid and typename are also extracted if not in disableList, otherwise set to default values. Finally, title removal markers are applied.",
+        "type": "comment"
+    },
+    "3914": {
+        "file_id": 487,
+        "content": "    title = clearHtmlTags(title)\n    title = removeAuthorRelatedTags(title, author)\n    title, title_tags = splitTitleTags(\n        title, author_keywords\n    )  # use author for filtering unwanted title tags.\n    duration = video[\"duration\"]  # this is not recommended. we need seconds.\n    play = video.get(\"play\", video.get(\"view\"))  # select some hot videos.\n    cover = video[\"pic\"]\n    cover = linkFixer(cover)\n    if \"description\" not in disableList:\n        description = video.get(\"description\", video.get(\"desc\"))\n        description = clearHtmlTags(description)\n        description = removeAuthorRelatedTags(description, author)\n    else:\n        description = \"\"\n    links_in_description, bgms, description = extractLinks(description)\n    duration_seconds = videoDurationStringToSeconds(duration)\n    resultTuple = (\n        author,\n        author_id,\n        bvid,\n        tags,\n        categoryId,\n        categoryName,\n        title,\n        duration_seconds,\n        play,\n        cover,\n        description,\n        links_in_description,",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:161-190"
+    },
+    "3915": {
+        "file_id": 487,
+        "content": "This code parses video data from a bilibili search API response and extracts relevant information such as author, title, duration, play count, cover image, and description. It applies filters to remove unwanted HTML tags and uses author keywords for filtering. It converts duration strings to seconds and extracts links from the description.",
+        "type": "comment"
+    },
+    "3916": {
+        "file_id": 487,
+        "content": "        bgms,\n        title_tags,\n        pubdate\n    )\n    if debug:\n        for metadata in resultTuple:\n            print(metadata)\n    from lazero.utils.logger import sprint\n    if debug:\n        sprint()\n    return resultTuple\n# you might want the creater's name, to filter out unwanted parts.\ndef iterateResultList(resultList, debug=False):\n    for video in resultList:\n        # be warned cause all these things might fail.\n        try:\n            if video[\"type\"] == \"video\":\n                yield parseVideoSearchItem(video, debug=debug)\n        except:\n            traceError(\"error iterating video metadata\")\n            continue\ndef parseSearchAllResult(data, debug=False):\n    # if not generator:\n    #     return generatorToList(parseSearchAllResult(data, debug=debug,generator=True))\n    results = data[\"result\"]\n    for elem in results:\n        try:\n            if elem[\"result_type\"] == \"video\":\n                resultList = elem[\"data\"]\n                for videoMetadata in iterateResultList(resultList, debug=debug):",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:191-227"
+    },
+    "3917": {
+        "file_id": 487,
+        "content": "This code defines a function `parseSearchAllResult` that takes in data and a boolean debug parameter. It extracts the \"result\" list from the data, then iterates through each element checking if its type is 'video'. For each video, it yields a parsed video metadata using the `iterateResultList` function, while handling any exceptions that may occur. The `iterateResultList` function iterates over a result list of video items, yielding the parsed data for videos and handling exceptions related to parsing video metadata.",
+        "type": "comment"
+    },
+    "3918": {
+        "file_id": 487,
+        "content": "                    yield videoMetadata\n        except:\n            traceError(\"error iterating data results\")\ndef parseSearchVideoResult(data, debug=False):\n    # if not generator:\n    #     return generatorToList(parseSearchVideoResult(data, debug=debug,generator=True))\n    try:\n        resultList = data[\"result\"]\n        try:\n            for videoMetadata in iterateResultList(resultList, debug=debug):\n                try:\n                    yield videoMetadata\n                except:\n                    traceError(\"error iterating video metadata\")\n        except:\n            traceError(\"error iterating result list\")\n    except:\n        traceError(\"error parsing search video result\")\ndef parseVideoInfo(videoInfo, debug=False):\n    data = videoInfo\n    # no tag out here.\n    secondaryVideoInfoList = []\n    data_copy = data.copy()\n    data_copy.update({\"author\": data[\"owner\"][\"name\"], \"mid\": data[\"owner\"][\"mid\"]})\n    data_copy.update(data[\"stat\"])\n    primaryVideoInfo = parseVideoSearchItem(\n        data_copy, disableList=[\"tag\", \"typeid\", \"typename\"], debug=debug",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:228-258"
+    },
+    "3919": {
+        "file_id": 487,
+        "content": "The code defines two functions, `parseSearchVideoResult` and `parseVideoInfo`, which are responsible for parsing video search results and video information respectively. The code utilizes exception handling to handle errors while iterating over data and result lists. It also includes a function `iterateResultList` to iterate over the result list.",
+        "type": "comment"
+    },
+    "3920": {
+        "file_id": 487,
+        "content": "    )\n    # videoInfoList.append(primaryVideoInfo)\n    season = data.get(\"ugc_season\", {})  # we only care about this thing.\n    season_cover = season.get(\"cover\", None)  # it could be noting.\n    sections = season.get(\"sections\", [])\n    for section in sections:\n        for episode in section[\"episodes\"]:\n            # print(episode.keys())\n            # breakpoint()\n            arc = episode[\"arc\"]\n            stat = arc[\"stat\"]\n            videoInfo = episode.copy()\n            videoInfo.update(stat)\n            videoInfo.update(arc)\n            authorRelatedVideoInfo = parseVideoSearchItem(\n                videoInfo,\n                disableList=[\"tag\", \"typeid\", \"typename\", \"description\", \"author\"],\n                debug=debug,\n            )  # author is the same as the original video.\n            secondaryVideoInfoList.append(authorRelatedVideoInfo)\n            # BV1Cb4y1s7em\n            # []\n            # 0\n            # 这次真的燃起来了！！！\n            # 217\n            # 27911\n            # http://i2.hdslb.com/bfs/archive/c5a0d18ee077fb6a4ac0970ccb0a3788e137d14f.jpg",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:259-286"
+    },
+    "3921": {
+        "file_id": 487,
+        "content": "Code iterates through season episodes, extracts arc and stat information from each episode, creates a videoInfo dictionary with episode and arc data, updates the author-related video information by parsing the original video, and appends it to secondaryVideoInfoList.",
+        "type": "comment"
+    },
+    "3922": {
+        "file_id": 487,
+        "content": "    return primaryVideoInfo, secondaryVideoInfoList\ndef parseVideoRelated(videoRelatedData, debug=False):\n    data = videoRelatedData\n    # if not generator:\n    #     return generatorToList(parseVideoRelated(data, debug=debug,generator=True))\n    try:\n        for videoInfo in data:\n            try:\n                videoInfo2 = videoInfo.copy()\n                videoInfo2.update({\"author\": videoInfo[\"owner\"][\"name\"]})\n                videoInfo2.update({\"mid\": videoInfo[\"owner\"][\"mid\"]})\n                # also update the stat.\n                videoInfo2.update(videoInfo[\"stat\"])\n                try:\n                    yield parseVideoSearchItem(\n                        videoInfo2,\n                        disableList=[\"tag\", \"typeid\", \"typename\"],\n                        debug=debug,\n                    )\n                    # print(videoMetadata)\n                except:\n                    traceError()\n            except:\n                traceError()\n    except:\n        traceError()\nif __name__ == \"__main__\":\n    # test_subject = \"search_video\"",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:287-318"
+    },
+    "3923": {
+        "file_id": 487,
+        "content": "This code defines a function `parseVideoRelated` that parses video-related data and yields parsed video information, and also includes an if block for generator handling. It updates the video info with author name and mid, and applies the `parseVideoSearchItem` to each item in the data list. If any error occurs during processing, it traces the error.",
+        "type": "comment"
+    },
+    "3924": {
+        "file_id": 487,
+        "content": "    # test_subject = \"search_all\"\n    # test_subject = 'video_related'\n    test_subject = \"video_info\"\n    # test_subject = 'extract_links'\n    if test_subject == \"search_all\":\n        with open(\"search_result_all.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for mresult in parseSearchAllResult(data):\n            print(\"RESULT:\")\n            sprint(mresult)\n    elif test_subject == \"search_video\":\n        with open(\"search_by_type_result_video.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for mresult in parseSearchVideoResult(data):\n            print(\"VIDEO SEARCH RESULT:\")\n            sprint(mresult)\n    elif test_subject == \"video_info\":\n        with open(\"video_info.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        primaryVideoInfo, secondaryVideoInfoList = parseVideoInfo(data)\n        videoInfoList = [primaryVideoInfo] + secondaryVideoInfoList\n        for mVideoInfo in videoInfoList:",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:319-343"
+    },
+    "3925": {
+        "file_id": 487,
+        "content": "This code is testing different APIs by reading JSON files and parsing the data. It tests \"search_all\", \"search_video\", and \"video_info\" sections. For each section, it reads a corresponding JSON file, loads the data, and then prints the results after parsing. This appears to be part of API testing for a video search application.",
+        "type": "comment"
+    },
+    "3926": {
+        "file_id": 487,
+        "content": "            print(mVideoInfo)\n            sprint()\n    elif test_subject == \"video_related\":\n        with open(\"video_related.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for videoMetadata in parseVideoRelated(data):\n            print(videoMetadata)\n            sprint()\n    elif test_subject == \"extract_links\":\n        description = (\n            \"http://www.toutiao.com/a6347649852365897986/ 男子送走从小养大的狗，狗狗用泪汪汪的眼神看着他\\n\"\n            + \"https://www.youtube.com/watch?v=r724w57oXyU\"\n            + \" https://www.youtube.com/shorts/UYCy8HD1C7o\"\n        )\n        links, desc = extractLinks(description)\n        print(links)\n        print(desc)\n    else:\n        raise Exception(\"unknown test_subject:\", test_subject)",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:344-363"
+    },
+    "3927": {
+        "file_id": 487,
+        "content": "The code snippet appears to handle different test subjects, each with a specific task. For \"video_related\", it reads data from a JSON file and processes it using the parseVideoRelated function, then prints videoMetadata for each videoMetadata in the parsed data. The \"extract_links\" subject extracts links from a given description and prints them. Unknown test subjects will raise an Exception.",
+        "type": "comment"
+    },
+    "3928": {
+        "file_id": 488,
+        "content": "/tests/bilibili_search_api_modification_section_params_get_related_videos/recursive_search_bilibili_test.py",
+        "type": "filepath"
+    },
+    "3929": {
+        "file_id": 488,
+        "content": "The code changes directory, initializes OpenCV, and fetches video metadata for production. It imports necessary modules and displays an image using imshow, pausing until a keyboard event occurs for visualization purposes.",
+        "type": "summary"
+    },
+    "3930": {
+        "file_id": 488,
+        "content": "import sys\nimport os\nos.chdir(\"../../\")\nsys.path.append(\".\")\n# ignore the global proxy now, we are not going to use that.\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\nfrom pyjom.platforms.bilibili.postMetadata import getBilibiliPostMetadataForDogCat\n# metatopic = {\n#     \"optional\": [\n#         [\n#             \"狗狗\",\n#             \"狗\",\n#             \"汪汪\",\n#             \"修勾\",\n#             \"汪\",\n#             \"狗子\",\n#         ],\n#         [\"喵喵\", \"猫\", \"猫咪\", \"喵\"],\n#     ],\n#     \"dynamic\": [[\"可爱\", \"萌\", \"萌宠\", \"行为\", \"燃\"]],\n# }\n# maybe this is not task specific. just maybe.\nif __name__ == \"__main__\":\n    for (\n        mCover,\n        mTagSeries,\n        mTitle,\n        mBgm,\n        mDescription,\n        dog_or_cat,\n    ) in getBilibiliPostMetadataForDogCat():\n        print(\"FETCHED VIDEO METADATA FOR PRODUCTION:\")\n        videoMetadata = mCover, mTagSeries, mTitle, mBgm, mDescription, dog_or_cat\n        print(videoMetadata)\n        mCover2 = cv2.resize(mCover, (int(1920 / 2), int(1080 / 2)))",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/recursive_search_bilibili_test.py:1-45"
+    },
+    "3931": {
+        "file_id": 488,
+        "content": "The code changes the directory, appends the current path to Python's sys.path, and removes the global proxy environment variables. It then initializes OpenCV with a custom build and imports necessary modules. Finally, it loops through fetched video metadata for production, resizing the cover image, and prints the metadata.",
+        "type": "comment"
+    },
+    "3932": {
+        "file_id": 488,
+        "content": "        cv2.imshow(\"COVER\", mCover2)\n        cv2.waitKey(0)\n        breakpoint()",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/recursive_search_bilibili_test.py:46-48"
+    },
+    "3933": {
+        "file_id": 488,
+        "content": "The code snippet displays an image using OpenCV's imshow function, pauses the execution until a keyboard event occurs with waitKey, and then terminates the loop with breakpoint. It is used for visualizing an image, potentially during debugging or analysis.",
+        "type": "comment"
+    },
+    "3934": {
+        "file_id": 489,
+        "content": "/tests/bilibili_search_api_modification_section_params_get_related_videos/load_json5_render_template.py",
+        "type": "filepath"
+    },
+    "3935": {
+        "file_id": 489,
+        "content": "The code reads a JSON5 file named 'channelConfig.json5' and a Jinja2 template file named 'template.j2'. It then parses the JSON5 data to obtain channel information such as name and tid. For each channel, it tries to extract subChannel information (name and tid). If successful, it appends them to a list called subChannels. The code renders the Jinja2 template with the extracted channel and subchannel information, and then prints the rendered data.",
+        "type": "summary"
+    },
+    "3936": {
+        "file_id": 489,
+        "content": "import json5\nimport jinja2\ntemplate = open('template.j2','r').read()\ntemplate = jinja2.Template(template)\ndata = open(\"channelConfig.json5\",'r').read()\ndata = json5.loads(data)\nchannelList = data['channelList']\nfor channel in channelList:\n    try:\n        channelName = channel['name']\n        channelTid = channel['tid']\n        subChannels = []\n        for subChannel in channel['sub']:\n            try:\n                subChannelName = subChannel['name']\n                subChannelTid = subChannel['tid']\n                subChannels.append((subChannelName, subChannelTid))\n            except:\n                continue\n        rendered_data = template.render(channelName=channelName, channelTid=channelTid, subChannels=subChannels)\n        print(rendered_data)\n    except:\n        continue",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/load_json5_render_template.py:1-26"
+    },
+    "3937": {
+        "file_id": 489,
+        "content": "The code reads a JSON5 file named 'channelConfig.json5' and a Jinja2 template file named 'template.j2'. It then parses the JSON5 data to obtain channel information such as name and tid. For each channel, it tries to extract subChannel information (name and tid). If successful, it appends them to a list called subChannels. The code renders the Jinja2 template with the extracted channel and subchannel information, and then prints the rendered data.",
+        "type": "comment"
+    },
+    "3938": {
+        "file_id": 490,
+        "content": "/tests/anime1_me_video_download/test_download.sh",
+        "type": "filepath"
+    },
+    "3939": {
+        "file_id": 490,
+        "content": "This script downloads \"crossdressing.mp4\" from the URL using various cookies until successful, involving timestamp, header, and Google Analytics parameters.",
+        "type": "summary"
+    },
+    "3940": {
+        "file_id": 490,
+        "content": "# curl -L -o crossdressing.mp4 --cookie \"e=1652443257\" https://shiro.v.anime1.me/1019/6b.mp4\n# curl -L -o crossdressing.mp4 --cookie \"e=1652443257; p=eyJpc3MiOiJhbmltZTEubWUiLCJleHAiOjE2NTI0NDMyNTcwMDAsImlhdCI6MTY1MjQyODk1NTAwMCwic3ViIjoiLzEwMTkvNmIubXA0In0\" https://shiro.v.anime1.me/1019/6b.mp4\n# curl -L -o crossdressing.mp4 --cookie \"h=i6CylEHO-BiMkCPCqFDk_A\" https://shiro.v.anime1.me/1019/6b.mp4\n# curl -L -o crossdressing.mp4 --cookie \"e=1652443257; p=eyJpc3MiOiJhbmltZTEubWUiLCJleHAiOjE2NTI0NDMyNTcwMDAsImlhdCI6MTY1MjQyODk1NTAwMCwic3ViIjoiLzEwMTkvNmIubXA0In0; h=i6CylEHO-BiMkCPCqFDk_A\" https://shiro.v.anime1.me/1019/6b.mp4\ncurl -L -o crossdressing.mp4 --cookie \"e=1652443257; p=eyJpc3MiOiJhbmltZTEubWUiLCJleHAiOjE2NTI0NDMyNTcwMDAsImlhdCI6MTY1MjQyODk1NTAwMCwic3ViIjoiLzEwMTkvNmIubXA0In0; h=i6CylEHO-BiMkCPCqFDk_A\" https://shiro.v.anime1.me/1019/6b.mp4 # the only way to be.\n# curl -L -o crossdressing.mp4 --cookie \"e=1652443257; p=eyJpc3MiOiJhbmltZTEubWUiLCJleHAiOjE2NTI0NDMyNTcwMDAsImlhdCI6MTY1Mj",
+        "type": "code",
+        "location": "/tests/anime1_me_video_download/test_download.sh:1-6"
+    },
+    "3941": {
+        "file_id": 490,
+        "content": "This script is downloading a video file named \"crossdressing.mp4\" from the URL \"https://shiro.v.anime1.me/1019/6b.mp4\", using different combinations of cookies to access and save the file, with each attempt providing additional cookie values until the final combination successfully downloads the video.",
+        "type": "comment"
+    },
+    "3942": {
+        "file_id": 490,
+        "content": "QyODk1NTAwMCwic3ViIjoiLzEwMTkvNmIubXA0In0; h=i6CylEHO-BiMkCPCqFDk_A; _ga=GA1.2.1032429949.1652428850; _gid=GA1.2.244096696.1652428850\" https://shiro.v.anime1.me/1019/6b.mp4",
+        "type": "code",
+        "location": "/tests/anime1_me_video_download/test_download.sh:6-6"
+    },
+    "3943": {
+        "file_id": 490,
+        "content": "The code appears to be a string containing a series of parameters and URL for downloading an MP4 file. The specific parameters include a timestamp, header value, Google Analytics IDs, and the video URL.",
+        "type": "comment"
+    },
+    "3944": {
+        "file_id": 491,
+        "content": "/tests/anime1_me_video_download/parse_static.py",
+        "type": "filepath"
+    },
+    "3945": {
+        "file_id": 491,
+        "content": "Code is parsing HTML data from 'sample.html' using BeautifulSoup and finding video tags. It then extracts channel and episode information from JSON data, formats download link, and prints the episode ID and download link. The code likely automates the process of downloading videos from a specific website.",
+        "type": "summary"
+    },
+    "3946": {
+        "file_id": 491,
+        "content": "source = \"sample.html\"\n# curl -L -o sample.html \"https://anime1.me/category/2022%e5%b9%b4%e6%98%a5%e5%ad%a3/%e5%8b%87%e8%80%85%e8%be%ad%e8%81%b7%e4%b8%8d%e5%b9%b9%e4%ba%86\"\nfrom bs4 import BeautifulSoup\ndata = open(source,\"r\",encoding=\"utf-8\").read()\ndom = BeautifulSoup(data)\n# dom = BeautifulSoup(data,features='lxml')\nimport urllib.parse as up\nimport json\nimport re\nvideos = dom.find_all(\"video\")\nformat_download_link = lambda c,e: \"https://shiro.v.anime1.me/{}/{}.mp4\".format(c,e)\nfor video in videos:\n    # print(dir(video))\n    data_src = \"data-apireq\"\n    json_obj = video[data_src]\n    json_obj = up.unquote(json_obj)\n    json_obj = json.loads(json_obj)\n    channel, episode = json_obj[\"c\"], json_obj[\"e\"]\n    link = format_download_link(channel, episode)\n    episode_id = re.findall(r\"\\d+\",episode)[0]\n    print(\"EPISODE:\",episode_id)\n    print(\"DOWNLOAD LINK:\",link)\n    # breakpoint()",
+        "type": "code",
+        "location": "/tests/anime1_me_video_download/parse_static.py:1-28"
+    },
+    "3947": {
+        "file_id": 491,
+        "content": "Code is parsing HTML data from 'sample.html' using BeautifulSoup and finding video tags. It then extracts channel and episode information from JSON data, formats download link, and prints the episode ID and download link. The code likely automates the process of downloading videos from a specific website.",
+        "type": "comment"
+    },
+    "3948": {
+        "file_id": 492,
+        "content": "/tests/anime1_me_video_download/get_cookie_sample.py",
+        "type": "filepath"
+    },
+    "3949": {
+        "file_id": 492,
+        "content": "This code downloads a file, displays progress in real-time, uses chunked data for memory efficiency, and sets cookies from response headers.",
+        "type": "summary"
+    },
+    "3950": {
+        "file_id": 492,
+        "content": "import requests\nimport json\nimport urllib.parse as up\nimport sys\n# import multithread\nfrom fake_useragent import UserAgent\nua = UserAgent()\nuser_agent =ua.random\nurl = \"https://v.anime1.me/api\"\n# data = '{\"c\":\"1019\",\"e\":\"6b\",\"t\":1652428857,\"p\":0,\"s\":\"ec9042ac177510fd67dd508f4d974074\"}'\n# data = '%7B%22c%22%3A%221019%22%2C%22e%22%3A%222b%22%2C%22t%22%3A1652429744%2C%22p%22%3A0%2C%22s%22%3A%225a78c05bd07077f05278ed6b44897878%22%7D'\ndata = \"%7B%22c%22%3A%221019%22%2C%22e%22%3A%225b%22%2C%22t%22%3A1652429744%2C%22p%22%3A0%2C%22s%22%3A%222d424b87559a56d7f761c436bca72502%22%7D\"\ndata_unquote = up.unquote(data)\ndata_json = json.loads(data_unquote)\n# url0 = \"https://anime1.me/category/2022%e5%b9%b4%e6%98%a5%e5%ad%a3/%e5%8b%87%e8%80%85%e8%be%ad%e8%81%b7%e4%b8%8d%e5%b9%b9%e4%ba%86\"\ns = requests.Session()\ns.headers.update({\"User-Agent\":user_agent}) # no freaking drama.\n# s.get(url0)\n# r = requests.post(url,body=data)\nmdata = \"d={}\".format(data)\nmheaders = {'authority': 'v.anime1.me'\n  ,'accept': '*/*' \n  ,'accept-language': 'en-US,en;q=0.9' ",
+        "type": "code",
+        "location": "/tests/anime1_me_video_download/get_cookie_sample.py:1-28"
+    },
+    "3951": {
+        "file_id": 492,
+        "content": "Code imports necessary libraries, sets a random user agent, defines the URL and data for API request, creates a session with the user agent as header, and formats the data for the API call.",
+        "type": "comment"
+    },
+    "3952": {
+        "file_id": 492,
+        "content": "  ,'content-type': 'application/x-www-form-urlencoded' \n  ,'origin': 'https://anime1.me' \n  ,'referer': 'https://anime1.me/'}\nrpost = s.post(url,data=mdata,headers=mheaders)\n# print(dir(rpost))\nmjson2 = rpost.json()\ndownload_url = mjson2['s']['src']\ndownload_url = \"https:\"+download_url\ndownload_name = \"sample\"\ndownload_name = \"{}.{}\".format(download_name,download_url.split(\".\")[-1])\n# '{\"success\":false,\"errors\":[\"Signature invalid.\"]}' <- shit.\n# breakpoint()\n# print(rpost.text) # good. then where is the cookie?\n# print(s.cookies)\nfilename = download_name\n# print(\"downloading target file:\",filename)\n# download_object = multithread.Downloader(download_url, filename,aiohttp_args= {\"headers\":mheaders_session}) # ther e is no 'Content-Length'\n# download_object.start()\nwith open(filename, 'wb') as f:\n    # response = requests.get(url, stream=True)\n    response = s.get(download_url,stream = True)\n    total = response.headers.get('content-length')\n    if total is None:\n        f.write(response.content)\n    else:\n        downloaded = 0",
+        "type": "code",
+        "location": "/tests/anime1_me_video_download/get_cookie_sample.py:29-60"
+    },
+    "3953": {
+        "file_id": 492,
+        "content": "This code downloads a video from anime1.me and saves it in the specified format. It uses requests library to handle HTTP requests, extracts download URL from JSON response, sets headers for post and get requests, opens file in write mode for downloading the video, checks content length of the video, and downloads it if content length is available.",
+        "type": "comment"
+    },
+    "3954": {
+        "file_id": 492,
+        "content": "        total = int(total)\n        for data in response.iter_content(chunk_size=max(int(total/1000), 1024*1024)):\n            downloaded += len(data)\n            f.write(data)\n            done = int(50*downloaded/total)\n            sys.stdout.write('\\r[{}{}]'.format('█' * done, '.' * (50-done)))\n            sys.stdout.flush()\nsys.stdout.write('\\n')\n# print(download_content.headers)\n# now you have the freaking cookie.\n# <RequestsCookieJar[<Cookie e=1652444144 for .v.anime1.me/1019/2b.mp4>, <Cookie h=oRLPqsTE0KXMFmVWJD669g for .v.anime1.me/1019/2b.mp4>, <Cookie p=eyJpc3MiOiJhbmltZTEubWUiLCJleHAiOjE2NTI0NDQxNDQwMDAsImlhdCI6MTY1MjQzNDEzNzAwMCwic3ViIjoiLzEwMTkvMmIubXA0In0 for .v.anime1.me/1019/2b.mp4>]>\n# get set-cookie header.",
+        "type": "code",
+        "location": "/tests/anime1_me_video_download/get_cookie_sample.py:61-72"
+    },
+    "3955": {
+        "file_id": 492,
+        "content": "This code is downloading a file and displaying the progress in real-time. It uses chunked data to manage memory efficiently and sets cookies from the response headers.",
+        "type": "comment"
+    },
+    "3956": {
+        "file_id": 493,
+        "content": "/tests/anime1_me_video_download/README.md",
+        "type": "filepath"
+    },
+    "3957": {
+        "file_id": 493,
+        "content": "This code instructs to extract data from the video API, send it to a specific URL, use the resulting cookie for downloading the video from another URL to avoid errors.",
+        "type": "summary"
+    },
+    "3958": {
+        "file_id": 493,
+        "content": "the data is hide in the video data-api. unquote it and we will get the info. \npost data to https://v.anime1.me/api, then use responded cookie p,h with the original e(timestamp) for download.\ndownload video from https://shiro.v.anime1.me/(or elsewhere) or somehow we will get it wrong.",
+        "type": "code",
+        "location": "/tests/anime1_me_video_download/README.md:1-5"
+    },
+    "3959": {
+        "file_id": 493,
+        "content": "This code instructs to extract data from the video API, send it to a specific URL, use the resulting cookie for downloading the video from another URL to avoid errors.",
+        "type": "comment"
+    },
+    "3960": {
+        "file_id": 494,
+        "content": "/tests/anime1_me_video_download/get_best_edm.sh",
+        "type": "filepath"
+    },
+    "3961": {
+        "file_id": 494,
+        "content": "The code uses FFmpeg to extract segments from the \"edm_super_summit.m4a\" audio file, saving them as \"best_edm_split.mp3\" and \"best_edm_split2.mp3\". The -ss option specifies the start time and -to the end time for each segment.",
+        "type": "summary"
+    },
+    "3962": {
+        "file_id": 494,
+        "content": "# ffmpeg -y -i edm_super_summit.m4a -ss 00:00:50 -to 00:01:05 best_edm_split.mp3\nffmpeg -y -i edm_super_summit.m4a -ss 00:01:38 -to 00:01:49 best_edm_split2.mp3",
+        "type": "code",
+        "location": "/tests/anime1_me_video_download/get_best_edm.sh:1-2"
+    },
+    "3963": {
+        "file_id": 494,
+        "content": "The code uses FFmpeg to extract segments from the \"edm_super_summit.m4a\" audio file, saving them as \"best_edm_split.mp3\" and \"best_edm_split2.mp3\". The -ss option specifies the start time and -to the end time for each segment.",
+        "type": "comment"
+    },
+    "3964": {
+        "file_id": 495,
+        "content": "/tests/anime1_me_video_download/api_curl.sh",
+        "type": "filepath"
+    },
+    "3965": {
+        "file_id": 495,
+        "content": "The code sends a POST request to anime1.me API using cURL, containing video ID, episode number, timestamp, and secret key, likely for interacting with anime videos. It also includes the \"--compressed\" flag for file compression during download, saving storage space and time.",
+        "type": "summary"
+    },
+    "3966": {
+        "file_id": 495,
+        "content": "curl 'https://v.anime1.me/api' \\\n  -H 'authority: v.anime1.me' \\\n  -H 'accept: */*' \\\n  -H 'accept-language: en-US,en;q=0.9' \\\n  -H 'content-type: application/x-www-form-urlencoded' \\\n  -H 'origin: https://anime1.me' \\\n  -H 'referer: https://anime1.me/' \\\n  --data-raw 'd=%7B%22c%22%3A%221019%22%2C%22e%22%3A%226b%22%2C%22t%22%3A1652431596%2C%22p%22%3A0%2C%22s%22%3A%221bc65800b44a935eb4e5287655c64cb2%22%7D' \\\n  --compressed\n# curl 'https://v.anime1.me/api' \\\n#   -H 'authority: v.anime1.me' \\\n#   -H 'accept: */*' \\\n#   -H 'accept-language: en-US,en;q=0.9' \\\n#   -H 'content-type: application/x-www-form-urlencoded' \\\n#   -H 'origin: https://anime1.me' \\\n#   -H 'referer: https://anime1.me/' \\\n#   -H 'sec-ch-ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"101\"' \\\n#   -H 'sec-ch-ua-mobile: ?1' \\\n#   -H 'sec-ch-ua-platform: \"Android\"' \\\n#   -H 'sec-fetch-dest: empty' \\\n#   -H 'sec-fetch-mode: cors' \\\n#   -H 'sec-fetch-site: same-site' \\\n#   -H 'user-agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.41 Mobile Safari/537.36' \\",
+        "type": "code",
+        "location": "/tests/anime1_me_video_download/api_curl.sh:1-24"
+    },
+    "3967": {
+        "file_id": 495,
+        "content": "This code sends a POST request to 'https://v.anime1.me/api' using cURL, with specified headers and data in the request body. The request includes an API key for authentication and retrieves data from the anime1.me website.",
+        "type": "comment"
+    },
+    "3968": {
+        "file_id": 495,
+        "content": "#   --data-raw 'd=%7B%22c%22%3A%221019%22%2C%22e%22%3A%226b%22%2C%22t%22%3A1652431596%2C%22p%22%3A0%2C%22s%22%3A%221bc65800b44a935eb4e5287655c64cb2%22%7D' \\\n#   --compressed\n# curl 'https://v.anime1.me/api' \\\n#   -H 'authority: v.anime1.me' \\\n#   -H 'accept: */*' \\\n#   -H 'accept-language: en-US,en;q=0.9' \\\n#   -H 'content-type: application/x-www-form-urlencoded' \\\n#   -H 'cookie: _ga=GA1.2.354375679.1652431604; _gid=GA1.2.1847563412.1652431604; _gat=1' \\\n#   -H 'origin: https://anime1.me' \\\n#   -H 'referer: https://anime1.me/' \\\n#   -H 'sec-ch-ua: \" Not A;Brand\";v=\"99\", \"Chromium\";v=\"101\"' \\\n#   -H 'sec-ch-ua-mobile: ?1' \\\n#   -H 'sec-ch-ua-platform: \"Android\"' \\\n#   -H 'sec-fetch-dest: empty' \\\n#   -H 'sec-fetch-mode: cors' \\\n#   -H 'sec-fetch-site: same-site' \\\n#   -H 'user-agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.4951.41 Mobile Safari/537.36' \\\n#   --data-raw 'd=%7B%22c%22%3A%221019%22%2C%22e%22%3A%226b%22%2C%22t%22%3A1652431596%2C%22p%22%3A0%2C%22s%22%3A%221bc65800b44a935eb4e5287655c64cb2%22%7D' \\",
+        "type": "code",
+        "location": "/tests/anime1_me_video_download/api_curl.sh:25-43"
+    },
+    "3969": {
+        "file_id": 495,
+        "content": "This code is making an API request to 'https://v.anime1.me/api' using curl command with various headers and a data payload in JSON format. The payload contains information such as video ID, episode number, timestamp, and secret key. It seems to be fetching information or performing an action related to an anime video from the anime1.me website.",
+        "type": "comment"
+    },
+    "3970": {
+        "file_id": 495,
+        "content": "#   --compressed",
+        "type": "code",
+        "location": "/tests/anime1_me_video_download/api_curl.sh:44-44"
+    },
+    "3971": {
+        "file_id": 495,
+        "content": "The code snippet \"--compressed\" is used to compress the file during download, which can save storage space and reduce transfer time.",
+        "type": "comment"
+    },
+    "3972": {
+        "file_id": 496,
+        "content": "/tests/image_quality_tests/tiq2.py",
+        "type": "filepath"
+    },
+    "3973": {
+        "file_id": 496,
+        "content": "The code reads video frames, calculates image quality using BRISQUE algorithm, resizes and converts to grayscale. It then displays the resized frame on a GUI window and checks for user input (exiting upon 'q').",
+        "type": "summary"
+    },
+    "3974": {
+        "file_id": 496,
+        "content": "import imquality.brisque as brisque\nimport cv2\nimport PIL\nfrom brisque import BRISQUE\n# integrated svmutil.py and svm.py from that git repo.\n# really strange.\nbrisq = BRISQUE()\nvideo = cv2.VideoCapture(\"../../samples/video/dog_with_text.mp4\")\n_,frame = video.read()\n# frame = imutils.resize(frame,width=720) #why?\nindex = 0\nscore = -1\nperiod = 2\nwhile frame is not None:\n    _, frame = video.read()\n    index+=1\n    if frame is None:\n        print(\"VIDEO END.\")\n        break\n    # just get image quality.\n    # the speed is not so damn fast.\n    image = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)\n    # image = PIL.Image.fromarray(image)\n    if index%period == 0:\n        try:\n            score = brisq.get_score(image) # the lower the better, it was said.\n        except:\n            # this is super fast. but i doubt that.\n            # import traceback\n            # traceback.print_exc()\n            # breakpoint()\n            score = -1 # unknown.\n    cv2.putText(\n        frame,\n        \"[{}]\".format(str(score)[:5]),\n        (200,200),",
+        "type": "code",
+        "location": "/tests/image_quality_tests/tiq2.py:1-40"
+    },
+    "3975": {
+        "file_id": 496,
+        "content": "The code is reading frames from a video file and calculating the image quality using the BRISQUE algorithm. It prints the score for every 'period' number of frames, with a lower score indicating better image quality. If an error occurs while calculating the score, it assigns -1 (unknown) as the value. The code is also resizing the frame to a width of 720 pixels using imutils library and converting it to grayscale using cv2.cvtColor function.",
+        "type": "comment"
+    },
+    "3976": {
+        "file_id": 496,
+        "content": "        cv2.FONT_HERSHEY_SIMPLEX,\n        2,\n        (0,255,0),\n        3,\n        cv2.LINE_AA,\n    )\n    cv2.imshow('Output',frame)\n    key  =  cv2.waitKey(1) & 0xff\n    if key == ord('q'):\n        break",
+        "type": "code",
+        "location": "/tests/image_quality_tests/tiq2.py:41-50"
+    },
+    "3977": {
+        "file_id": 496,
+        "content": "This code is using OpenCV library to display an image on a GUI window with the title 'Output'. The image is drawn on it using a green color (0,255,0) and a simplex font. It checks for user input (key pressed) and if 'q' is entered, the loop breaks.",
+        "type": "comment"
+    },
+    "3978": {
+        "file_id": 497,
+        "content": "/tests/image_quality_tests/test_pyiqa.sh",
+        "type": "filepath"
+    },
+    "3979": {
+        "file_id": 497,
+        "content": "This code is running the pyiqa_inference.py script with the specified image and name argument, which downloads the necessary weights from Torch Hub directory for image quality testing.",
+        "type": "summary"
+    },
+    "3980": {
+        "file_id": 497,
+        "content": "python3 pyiqa_inference.py -n $1 -i sample.bmp\n# it is downloading weights to torch hub directory.",
+        "type": "code",
+        "location": "/tests/image_quality_tests/test_pyiqa.sh:1-2"
+    },
+    "3981": {
+        "file_id": 497,
+        "content": "This code is running the pyiqa_inference.py script with the specified image and name argument, which downloads the necessary weights from Torch Hub directory for image quality testing.",
+        "type": "comment"
+    },
+    "3982": {
+        "file_id": 498,
+        "content": "/tests/image_quality_tests/test_image_quality.py",
+        "type": "filepath"
+    },
+    "3983": {
+        "file_id": 498,
+        "content": "This code reads a video, extracts frames at periodic intervals, calculates the image quality using BRISQUE algorithm and displays it on the frame. The score is displayed in the lower-left corner of each frame, and the user can stop the loop by pressing 'q'.",
+        "type": "summary"
+    },
+    "3984": {
+        "file_id": 498,
+        "content": "# import imquality.brisque as brisque\nimport cv2\nimport PIL\nvideo = cv2.VideoCapture(\"../../samples/video/dog_with_text.mp4\")\n_,frame = video.read()\n# frame = imutils.resize(frame,width=720) #why?\nindex = 0\nscore = -1\nperiod = 20\nwhile frame is not None:\n    _, frame = video.read()\n    index+=1\n    if frame is None:\n        print(\"VIDEO END.\")\n        break\n    # just get image quality.\n    # the speed is not so damn fast.\n    image = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)\n    image = PIL.Image.fromarray(image)\n    if index%period == 0:\n        try:\n            score = brisque.score(image) # the lower the better, it was said.\n        except:\n            score = -1 # unknown.\n    cv2.putText(\n        frame,\n        \"[{}]\".format(str(score)[:5]),\n        (200,200),\n        cv2.FONT_HERSHEY_SIMPLEX,\n        2,\n        (0,255,0),\n        3,\n        cv2.LINE_AA,\n    )\n    cv2.imshow('Output',frame)\n    key  =  cv2.waitKey(1) & 0xff\n    if key == ord('q'):\n        break",
+        "type": "code",
+        "location": "/tests/image_quality_tests/test_image_quality.py:1-40"
+    },
+    "3985": {
+        "file_id": 498,
+        "content": "This code reads a video, extracts frames at periodic intervals, calculates the image quality using BRISQUE algorithm and displays it on the frame. The score is displayed in the lower-left corner of each frame, and the user can stop the loop by pressing 'q'.",
+        "type": "comment"
+    },
+    "3986": {
+        "file_id": 499,
+        "content": "/tests/image_quality_tests/t_pyiqa2.sh",
+        "type": "filepath"
+    },
+    "3987": {
+        "file_id": 499,
+        "content": "This code is piping the output of `pyiqa_test.py` into `test_pyiqa.sh`, filtering for lines containing \"taking time\", and returning those results.",
+        "type": "summary"
+    },
+    "3988": {
+        "file_id": 499,
+        "content": "python3 pyiqa_test.py | xargs -iabc bash test_pyiqa.sh abc 2>&1 | grep \"taking time\"",
+        "type": "code",
+        "location": "/tests/image_quality_tests/t_pyiqa2.sh:1-1"
+    },
+    "3989": {
+        "file_id": 499,
+        "content": "This code is piping the output of `pyiqa_test.py` into `test_pyiqa.sh`, filtering for lines containing \"taking time\", and returning those results.",
+        "type": "comment"
+    },
+    "3990": {
+        "file_id": 500,
+        "content": "/tests/image_quality_tests/README.md",
+        "type": "filepath"
+    },
+    "3991": {
+        "file_id": 500,
+        "content": "This code provides a solution to ensure image quality for model accuracy, examines ROI using DasiamRPN and siamMask, re-examines for potential loss of mark, applies motion analysis, suggests integrating TA-Lib for statistics, and recommends upscaling video with anime4k or other engines.",
+        "type": "summary"
+    },
+    "3992": {
+        "file_id": 500,
+        "content": "# princlple\nif the image quality is bad, then no matter what model we use we will get poor result.\n# solution\nuse image quality assessment to examine ROI tracked by DasiamRPN and make sure we will use the best sample and get most accurate result.\n# footnote\nDasiamRPN is a good tracker. so before abandon the tracking data re-examine the ROI for several times to see if it really lost its mark. so as the siamMask.\nYou can also examine the image quality by means of motion. if it heavily moves, we refuse to feed it into model.\nIntegrate TA-Lib for less boilerplates. i mean financial analysis can be applied anywhere. they are basically statistics. anything other than that might just be fake.\nwhere is your dog video?\n# further actions\nyou may upscale video using anime4k or other engines.",
+        "type": "code",
+        "location": "/tests/image_quality_tests/README.md:1-21"
+    },
+    "3993": {
+        "file_id": 500,
+        "content": "This code provides a solution to ensure image quality for model accuracy, examines ROI using DasiamRPN and siamMask, re-examines for potential loss of mark, applies motion analysis, suggests integrating TA-Lib for statistics, and recommends upscaling video with anime4k or other engines.",
+        "type": "comment"
+    },
+    "3994": {
+        "file_id": 501,
+        "content": "/tests/image_quality_tests/pyiqa_test.py",
+        "type": "filepath"
+    },
+    "3995": {
+        "file_id": 501,
+        "content": "This code is filtering out certain metric modes from the DEFAULT_CONFIGS dictionary, printing only those not in the allow_lists. The author comments that these methods may not be as useful and seems difficult to determine their effectiveness before downloading all models. They express confusion about the size of some model files.",
+        "type": "summary"
+    },
+    "3996": {
+        "file_id": 501,
+        "content": "from pyiqa.default_model_configs import DEFAULT_CONFIGS\nmlist = []\nfor key in DEFAULT_CONFIGS.keys():\n    config = DEFAULT_CONFIGS[key]\n    mode = config[\"metric_mode\"]\n    if mode == \"NR\":\n        mlist.append(key)\n# print(mlist)\n# forbid_lists = [\"ilniqe\",\"nima\"]\nallow_lists = [\"niqe\", \"brisque\", \"paq2piq\"]\nfor elem in mlist:\n    if elem not in allow_lists:\n        continue\n    print(elem)\n# i need to say these methods are not as useful as it was said.\n# the objective shall be EMA based.\n# ['niqe', 'ilniqe', 'brisque', 'nrqm', 'pi', 'musiq', 'musiq-ava', 'musiq-koniq', 'musiq-paq2piq', 'musiq-spaq', 'nima', 'paq2piq', 'dbcnn']\n# you may try them all?\n# it is really hard to say before we download all these models.\n# seems not really dependent on the model size?\n# we've got freaking huge shits.\n# like this one, for nima.\n# https://download.pytorch.org/models/vgg16-397923af.pth\n# what is this shit for anyway?",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pyiqa_test.py:1-31"
+    },
+    "3997": {
+        "file_id": 501,
+        "content": "This code is filtering out certain metric modes from the DEFAULT_CONFIGS dictionary, printing only those not in the allow_lists. The author comments that these methods may not be as useful and seems difficult to determine their effectiveness before downloading all models. They express confusion about the size of some model files.",
+        "type": "comment"
+    },
+    "3998": {
+        "file_id": 502,
+        "content": "/tests/image_quality_tests/pyiqa_inference.py",
+        "type": "filepath"
+    },
+    "3999": {
+        "file_id": 502,
+        "content": "This code uses pyiqa library to evaluate image quality and compare algorithms, averaging scores for multiple inputs and timing the process. It saves or prints results and handles missing files with errors.",
+        "type": "summary"
+    }
+}

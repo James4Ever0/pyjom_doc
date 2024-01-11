@@ -1,0 +1,549 @@
+{
+    "600": {
+        "file_id": 46,
+        "content": "/pyjom/languagetoolbox.py",
+        "type": "filepath"
+    },
+    "601": {
+        "file_id": 46,
+        "content": "This code uses Tesseract OCR, topic modeling, and text preprocessing to extract text from font-specific images, removes unwanted characters, generates topics, applies TF-IDF vectors, paraphrases using ClueAI API, and offers multi-threaded input/output handling.",
+        "type": "summary"
+    },
+    "602": {
+        "file_id": 46,
+        "content": "########################[FILTERING]#########################\n# DONE: use notofu for rendering then use tesseract for recognition\nimport pygame\nimport functools\n@functools.lru_cache(maxsize=1)\ndef initPygame():\n    os.environ[\"SDL_VIDEODRIVER\"] = \"dummy\"\n    # headless pygame\n    pygame.init()\nimport os\nimport pytesseract\ndef renderSingleLineTextUsingFont(\n    textContent: str,\n    output_name: str,\n    fontPath: str = os.path.join(\n        os.dirname(__file__),\n        \"../tests/render_and_recognize_long_text_to_filter_unwanted_characters/get_and_merge_fonts/GoNotoCurrent.ttf\",\n    ),\n    fontSize: int = 40,\n    margin: int = 20,\n):\n    assert os.path.exists(fontPath)\n    initPygame()\n    black, white = pygame.Color(\"black\"), pygame.Color(\"white\")\n    # pillow can also do that\n    # https://plainenglish.io/blog/generating-text-on-image-with-python-eefe4430fe77\n    # pygame.font.get_fonts()\n    # install your font to system please? but why all lower case font names?\n    # fontName = \"notosans\"\n    # this font is bad.",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:1-41"
+    },
+    "603": {
+        "file_id": 46,
+        "content": "Code imports necessary libraries and defines a function `renderSingleLineTextUsingFont` that takes input text, output image name, font path, font size, and margin as parameters. It checks if the specified font exists, initializes pygame in headless mode, sets up colors, and renders the text onto an image with specified font, size, and margin.",
+        "type": "comment"
+    },
+    "604": {
+        "file_id": 46,
+        "content": "    # font = pygame.font.SysFont(fontName,fontSize)\n    # fontPath = \"/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf\" # shit this fails.\n    # use some kind of super large merged notofont.\n    font = pygame.font.Font(fontPath, fontSize)\n    word_surface = font.render(textContent, False, black)\n    word_width, word_height = word_surface.get_size()\n    SIZE = (word_width + margin * 2, word_height + margin * 2)\n    image = pygame.display.set_mode(SIZE, pygame.RESIZABLE)\n    image.fill(white)\n    image.blit(word_surface, (margin, margin))\n    pygame.display.update()\n    pygame.image.save(image, output_name)\ndef recognizeCharactersFromImageWithTesseract(\n    imagePath: str, langs: list = [\"eng\", \"chi_sim\", \"chi_tra\", \"jpn\"]\n):\n    # pytesseract.get_languages(config=\"\")\n    langCode = \"+\".join(langs)\n    output = pytesseract.image_to_string(imagePath, lang=langCode)\n    return output\nimport tempfile\ndef convertToChineseOrEnglishOrJapaneseCharactersUsingTesseract(char_list: str):\n    with tempfile.NamedTemporaryFile(\"wb\", suffix=\".png\") as f:",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:43-74"
+    },
+    "605": {
+        "file_id": 46,
+        "content": "The code initializes a Pygame font, renders text on the surface, gets its size, sets up a display image, fills it with white, blits the rendered text onto the image, updates the display, and saves the final image.\nThe recognizeCharactersFromImageWithTesseract function uses Tesseract OCR to recognize characters in an image file for specified languages and returns the output as a string.\nThe convertToChineseOrEnglishOrJapaneseCharactersUsingTesseract function temporarily stores input text in a PNG file, uses Tesseract to extract Chinese, English, or Japanese characters from the image, and potentially returns the extracted text.",
+        "type": "comment"
+    },
+    "606": {
+        "file_id": 46,
+        "content": "        imagePath = f.name\n        renderSingleLineTextUsingFont(char_list,imagePath)\n        output = recognizeCharactersFromImageWithTesseract(imagePath)\n        return output\n# bilibili title requirements may also applied to tags, descriptions\nimport re\nimport string as string_builtin\nfrom zhon.hanzi import punctuation as chinese_punctuation\ndef filterNonChineseOrEnglishOrJapaneseCharacters(char_list: str):\n    output = []\n    checkers = {\n        \"chinese\": lambda c: (\n            (c in chinese_punctuation) or (re.match(r\"[\\u4e00-\\u9fa5]\", c) is not None)\n        ),\n        \"english\": lambda c: (\n            (c in \" \" + string_builtin.punctuation)\n            or (re.match(r\"[a-zA-Z0-9]\", c) is not None)\n        ),\n        \"japanese\": lambda c: re.match(r\"[一-龠ぁ-ゔァ-ヴーａ-ｚＡ-Ｚ０-９々〆〤ヶ]\", c) is not None,\n    }\n    for char in char_list:\n        signal = True\n        for key, checker in checkers.items():\n            signal = checker(char)\n            if signal in [False, 0, None]:\n                break\n        if signal:",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:75-107"
+    },
+    "607": {
+        "file_id": 46,
+        "content": "This function filters out non-Chinese, English, or Japanese characters from a given list of characters. It iterates through each character and checks if it belongs to any of these three categories using the provided checkers dictionary. If a character does not belong to any of these categories, it is excluded from the output list.",
+        "type": "comment"
+    },
+    "608": {
+        "file_id": 46,
+        "content": "            output.append(char)\n    return \"\".join(output)\n########################[FILTERING]#########################\n########################[PREPROCESSING & TOPIC MODELING]#########################\nenglishNLP = None\nenglishStopWords = None\nporterStemmer = None\ndef get_topics(model, feature_names, n_top_words):\n    # 首先是遍历模型中存储的话题序号和话题内容\n    topics = []\n    for topic_idx, topic in enumerate(model.components_):\n        # 然后打印话题的序号以及指定数量的最高频的关键词\n        message = \"topic #%d:\" % topic_idx\n        mList = [feature_names[i] for i in topic.argsort()[: -n_top_words - 1 : -1]]\n        mListStr = \" \".join(mList)\n        message += mListStr\n        mSet = set(mList)  # the set contains word groups like 'river question'\n        cDict = {k: mList.count(k) for k in mSet}\n        mRealList = mListStr.split(\" \")\n        mRealList = [\n            x.strip() for x in mRealList if len(x.strip()) > 1\n        ]  # usually things shorter than 2 letters are no good.\n        mRealSet = set(mRealList)\n        cRealDict = {k: mRealList.count(k) for k in mRealSet}",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:108-136"
+    },
+    "609": {
+        "file_id": 46,
+        "content": "This code is implementing a function `get_topics` for retrieving topics and their corresponding words from a topic model. It iterates through the model's components, sorts them by frequency, selects top n_top_words, removes short/redundant keywords, and stores this information in the 'topics' list.",
+        "type": "comment"
+    },
+    "610": {
+        "file_id": 46,
+        "content": "        topics.append({\"combined\": mList, \"separate\": mRealList})\n    return topics\ndef print_topics(model, feature_names, n_top_words):\n    # 首先是遍历模型中存储的话题序号和话题内容\n    for topic_idx, topic in enumerate(model.components_):\n        # 然后打印话题的序号以及指定数量的最高频的关键词\n        message = \"topic #%d:\" % topic_idx\n        mList = [feature_names[i] for i in topic.argsort()[: -n_top_words - 1 : -1]]\n        mListStr = \" \".join(mList)\n        message += mListStr\n        mSet = set(mList)  # the set contains word groups like 'river question'\n        cDict = {k: mList.count(k) for k in mSet}\n        mRealList = mListStr.split(\" \")\n        mRealList = [\n            x.strip() for x in mRealList if len(x.strip()) > 1\n        ]  # usually things shorter than 2 letters are no good.\n        mRealSet = set(mRealList)\n        cRealDict = {k: mRealList.count(k) for k in mRealSet}\n        print(\"MESSAGE\", message)\n        print(\"SET\", mSet)\n        print(\"COUNT DICT\", cDict)  # pointless to count here?\n        print(\"RealSET\", mRealSet)\n        print(\"RealCOUNT DICT\", cRealDict)",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:137-162"
+    },
+    "611": {
+        "file_id": 46,
+        "content": "This code generates and prints the topics from a given model, along with their indexes. It then displays the top words for each topic and provides two count dictionaries: one for the original list and another for the filtered real list. The original list includes all words sorted by frequency, while the real list only contains words longer than 2 characters to exclude noise or irrelevant terms. The code also prints the sets of these lists and the count dictionaries.",
+        "type": "comment"
+    },
+    "612": {
+        "file_id": 46,
+        "content": "    print()\ndef englishSentencePreprocessing(\n    text, unwantedPOS=[\"PRON\", \"CCONJ\", \"ADP\", \"PART\", \"PUNCT\", \"AUX\"]\n):\n    global englishNLP, englishStopWords, porterStemmer\n    from nltk.corpus import stopwords\n    from nltk.tokenize import word_tokenize\n    import en_core_web_sm\n    from nltk.stem import PorterStemmer\n    if englishNLP is None:\n        englishNLP = en_core_web_sm.load()\n    doc = englishNLP(text)\n    if englishStopWords is None:\n        set(stopwords.words(\"english\"))\n        englishStopWords = set([elem.lower() for elem in stopwords.words(\"english\")])\n    if porterStemmer is None:\n        porterStemmer = PorterStemmer()\n    lemma_word1 = []\n    # this shit has the lang tag. it might be useful for language detection. really?\n    for token in doc:\n        if token.pos_ in unwantedPOS:\n            continue\n        if token.text.lower() in englishStopWords:\n            continue\n        lemma_word1.append(token.text)\n    Stem_words = []\n    for w in lemma_word1:\n        rootWord = porterStemmer.stem(w)",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:163-194"
+    },
+    "613": {
+        "file_id": 46,
+        "content": "This code defines a function called \"englishSentencePreprocessing\" that performs English sentence preprocessing. It utilizes the NLTK and spaCy libraries for natural language processing. The function loads an English language model, tokenizes text into words, filters out unwanted parts of speech (POS) and stop words, and applies stemming to the remaining words. The filtered and stemmed words are stored in \"lemma_word1\" list which is then used further in the code.",
+        "type": "comment"
+    },
+    "614": {
+        "file_id": 46,
+        "content": "        Stem_words.append(rootWord)\n    return Stem_words\ndef sentenceFlatten(sentence, padding=\" \"):\n    assert len(padding) == 1\n    assert type(padding) == str\n    for x in \"\\n\\r\\t\":\n        sentence = sentence.replace(x, padding)\n    while True:\n        if padding * 2 in sentence:\n            sentence = sentence.replace(padding * 2, padding)\n        else:\n            break\n    sentence = sentence.strip()\n    return sentence\ndef englishTopicModeling(sentences, n_top_words=10, ngram_range=(1, 2), n_components=5):\n    try:\n        dataList = []\n        for sentence in sentences:\n            sentence = sentenceFlatten(sentence)\n            row = englishSentencePreprocessing(sentence)\n            if len(row) > 0:\n                elem = \" \".join(row)\n                dataList.append(elem)\n        data = \"\\n\".join(dataList)\n        from sklearn.feature_extraction.text import TfidfVectorizer\n        # 创建一个CountVectoerizer实例\n        tfidf = TfidfVectorizer(ngram_range=ngram_range)\n        # 打开刚刚保存的txt文档\n        from io import StringIO",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:195-230"
+    },
+    "615": {
+        "file_id": 46,
+        "content": "The code defines several functions for natural language processing tasks. \"englishSentencePreprocessing\" stems words, \"sentenceFlatten\" removes newlines and extra spaces in a sentence, and \"englishTopicModeling\" tokenizes sentences using TfidfVectorizer from sklearn library to perform English topic modeling. It takes a list of sentences, sets parameters for n-gram range and the number of topics, and converts the data into TF-IDF vectors.",
+        "type": "comment"
+    },
+    "616": {
+        "file_id": 46,
+        "content": "        f = StringIO(data)\n        # 使用CountVectorizer拟合数据\n        x_train = tfidf.fit_transform(f)\n        from sklearn.decomposition import LatentDirichletAllocation\n        lda = LatentDirichletAllocation(n_components=n_components)\n        lda.fit(x_train)\n        topics = get_topics(lda, tfidf.get_feature_names(), n_top_words)\n    except:\n        import traceback\n        traceback.print_exc()\n        topics = []\n    return topics\nfrom functools import lru_cache\nfrom lazero.utils.logger import traceError\n# import os\n@lru_cache(maxsize=1)\ndef getChineseStopWords(\n    stopwordFileList=[\n        \"/root/Desktop/works/pyjom/tests/stopwords/chinese_stopwords.txt\",\n        \"/root/Desktop/works/pyjom/tests/stopwords/stopwords-zh/stopwords-zh.json\",\n    ]\n):\n    import json\n    stopwords = []\n    for filename in stopwordFileList:\n        # if os.path.exists(filename) and os.path.isfile(filename):\n        try:\n            with open(filename, \"r\") as f:\n                content = f.read()\n            if filename.endswith(\".json\"):",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:232-269"
+    },
+    "617": {
+        "file_id": 46,
+        "content": "This code snippet is importing necessary libraries and defining a function to process text data. It uses CountVectorizer to convert text into numerical features, then applies LatentDirichletAllocation for topic modeling on the transformed data. If there's an exception during processing, it prints the error traceback and returns an empty list. Additionally, it defines another function getChineseStopWords which reads Chinese stopwords from different files and returns them as a list. The function getChineseStopWords is decorated with @lru_cache for performance optimization.",
+        "type": "comment"
+    },
+    "618": {
+        "file_id": 46,
+        "content": "                try:\n                    mList = json.loads(content)\n                    assert type(mList) == list\n                    stopwords += mList\n                except:\n                    traceError(_breakpoint=True)\n            else:\n                mList = content.split(\"\\n\")\n                mList = [x.replace(\"\\n\", \"\").strip() for x in mList]\n                mList = [x for x in mList if len(x) > 0]\n                stopwords += mList\n        except:\n            traceError(_breakpoint=True)\n    return list(set(stopwords))\ndef chineseSentencePreprocessing(sentence):\n    import jieba\n    import string\n    from zhon.hanzi import punctuation\n    chinese_stopwords = getChineseStopWords()\n    words = jieba.lcut(sentence)\n    rows = []\n    for word in words:\n        word = word.strip()\n        if word in punctuation:\n            continue\n        elif word in string.punctuation:\n            continue\n        elif word in chinese_stopwords:\n            continue\n        rows.append(word)\n    return rows\ndef chineseTopicModeling(sentences, n_top_words=10, ngram_range=(1, 2), n_components=5):",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:270-306"
+    },
+    "619": {
+        "file_id": 46,
+        "content": "The code loads stop words from a JSON file or provides them as a list, handles exceptions for reading and parsing errors, and returns the set of unique stop words. The chineseSentencePreprocessing function uses Jieba to tokenize Chinese sentences, filtering out punctuation and stop words, and returns a list of remaining words. The chineseTopicModeling function performs topic modeling on given sentences with specified parameters.",
+        "type": "comment"
+    },
+    "620": {
+        "file_id": 46,
+        "content": "    try:\n        dataList = []\n        for sentence in sentences:\n            sentence = sentenceFlatten(sentence)\n            row = chineseSentencePreprocessing(sentence)\n            if len(row) > 0:\n                elem = \" \".join(row)\n                dataList.append(elem)\n        data = \"\\n\".join(dataList)\n        from sklearn.feature_extraction.text import TfidfVectorizer\n        # 创建一个CountVectoerizer实例\n        tfidf = TfidfVectorizer(ngram_range=ngram_range)\n        # 打开刚刚保存的txt文档\n        from io import StringIO\n        f = StringIO(data)\n        # 使用CountVectorizer拟合数据\n        x_train = tfidf.fit_transform(f)\n        from sklearn.decomposition import LatentDirichletAllocation\n        lda = LatentDirichletAllocation(n_components=n_components)\n        lda.fit(x_train)\n        topics = get_topics(lda, tfidf.get_feature_names(), n_top_words)\n    except:\n        import traceback\n        traceback.print_exc()\n        topics = []\n    return topics\n########################[PREPROCESSING & TOPIC MODELING]#########################",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:307-343"
+    },
+    "621": {
+        "file_id": 46,
+        "content": "This code performs text preprocessing and topic modeling. It flattens sentences, applies Chinese sentence processing, creates a TfidfVectorizer to transform the data, fits it with CountVectorizer, then uses LatentDirichletAllocation for topic modeling. It handles potential exceptions by printing traceback and returns an empty list if error occurs.",
+        "type": "comment"
+    },
+    "622": {
+        "file_id": 46,
+        "content": "from typing import Literal\n########################[PARAPHRASING]########################\ndef chineseParaphraserAPI(\n    content: str,\n    debug: bool = False,\n    target_id: int = 0,\n    timeout: int = 10,\n    providers: list[str] = [\n        \"http://www.wzwyc.com/api.php?key=\",\n        \"http://ai.guiyigs.com/api.php?key=\",\n    ],  # it is about to close! fuck. \"本站于2023年2月19日关站\" buy code from \"1900373358\"\n):\n    import requests\n    target = providers[target_id]  # all the same?\n    data = {\"info\": content}\n    # target = \"http://www.xiaofamaoai.com/result.php\"\n    # xfm_uid = \"342206661e655450c1c37836d23dc3eb\"\n    # data = {\"contents\":content, \"xfm_uid\":xfm_uid, \"agreement\":\"on\"}\n    # nothing? fuck?\n    r = requests.post(target, data=data, timeout=timeout)\n    output = r.text\n    success = output.strip() != content.strip()\n    if debug:\n        print(output)\n    return output, success\nimport clueai\n@lru_cache(maxsize=1)\ndef getClueAIClient(apiKey: str):\n    if apiKey == \"\":\n        return clueai.Client(\"\", check_api_key=False)",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:346-385"
+    },
+    "623": {
+        "file_id": 46,
+        "content": "This function, chineseParaphraserAPI, takes a string input and uses a list of API providers to obtain a paraphrased version of the input. It utilizes the requests library for making HTTP requests. The getClueAIClient function is a cached wrapper for initializing a clueai Client with an optional apiKey parameter.",
+        "type": "comment"
+    },
+    "624": {
+        "file_id": 46,
+        "content": "    else:\n        return clueai.Client(apiKey)\ndef clueAIParaphraser(\n    title: str,\n    apiKey: str = \"\",\n    generate_config: dict = {\n        \"do_sample\": True,\n        \"top_p\": 0.8,\n        \"max_length\": 128,  # notice! not too long.\n        \"min_length\": 5,\n        \"length_penalty\": 1.0,\n        \"num_beams\": 1,\n    },\n    prompt_template: str = \"\"\"\n生成与下列文字相同意思的句子：\n{}\n答案：\n\"\"\",\n    debug: bool = False,\n):\n    cl = getClueAIClient(apiKey)  # good without API key\n    prompt = prompt_template.format(title)  # shit.\n    # generate a prediction for a prompt\n    # 如果需要自由调整参数自由采样生成，添加额外参数信息设置方式：generate_config=generate_config\n    prediction = cl.generate(\n        model_name=\"clueai-base\", prompt=prompt, generate_config=generate_config\n    )\n    # 需要返回得分的话，指定return_likelihoods=\"GENERATION\"\n    output = prediction.generations[0].text\n    success = title.strip() != output.strip()\n    if debug:\n        # print the predicted text\n        print(\"prediction: {}\".format(output))\n        print(\"paraphrase success?\", success)\n    return output, success",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:386-423"
+    },
+    "625": {
+        "file_id": 46,
+        "content": "This code defines a function named `clueAIParaphraser` that returns a paraphrased text using the ClueAI API. It requires an API key, a title to paraphrase, optional generate_config parameters for the AI model, and a debug flag. The function generates a prediction from the input prompt, extracts the generated text, checks if the original title and predicted text are different (success), and optionally prints the prediction and success status if debugging is enabled.",
+        "type": "comment"
+    },
+    "626": {
+        "file_id": 46,
+        "content": "import paddlehub as hub\n@lru_cache(maxsize=1)\ndef getBaiduLanguageTranslationModel():\n    language_translation_model = hub.Module(name=\"baidu_translate\")\n    return language_translation_model\n@lru_cache(maxsize=1)\ndef getBaiduLanguageRecognitionModel():\n    language_recognition_model = hub.Module(name=\"baidu_language_recognition\")\n    return language_recognition_model\nBAIDU_API_SLEEP_TIME = 1\nBAIDU_TRANSLATOR_LOCK_FILE = (\n    \"/root/Desktop/works/pyjom/tests/karaoke_effects/baidu_translator.lock\"\n)\ndef baidu_lang_detect(\n    content: str, sleep=BAIDU_API_SLEEP_TIME, lock_file=BAIDU_TRANSLATOR_LOCK_FILE\n):  # target language must be chinese.\n    import filelock\n    lock = filelock.FileLock(lock_file)\n    with lock:\n        import time\n        time.sleep(sleep)\n        language_recognition_model = getBaiduLanguageRecognitionModel()\n        langid = language_recognition_model.recognize(content)\n        return langid\ndef baidu_translate(\n    content: str,\n    source: str,\n    target: str,\n    sleep: int = BAIDU_API_SLEEP_TIME,",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:426-466"
+    },
+    "627": {
+        "file_id": 46,
+        "content": "This code imports PaddleHub module, defines functions for getting Baidu translation and recognition models using LRU cache, sets API sleep time and lock file path, and includes functions for language detection and translation using Baidu API.",
+        "type": "comment"
+    },
+    "628": {
+        "file_id": 46,
+        "content": "    lock_file: str = BAIDU_TRANSLATOR_LOCK_FILE,\n):  # target language must be chinese.\n    import filelock\n    lock = filelock.FileLock(lock_file)\n    with lock:\n        import time\n        time.sleep(sleep)\n        language_translation_model = getBaiduLanguageTranslationModel()\n        translated_content = language_translation_model.translate(\n            content, source, target\n        )\n        return translated_content\nfrom typing import Iterable, Union\nimport random\ndef baiduParaphraserByTranslation(\n    content: str,\n    debug: bool = False,\n    paraphrase_depth: Union[\n        int, Iterable\n    ] = 1,  # only 1 intermediate language, default.\n    suggested_middle_languages: list[str] = [\n        \"zh\",\n        \"en\",\n        \"jp\",\n    ],  # english, japanese, chinese\n):\n    if issubclass(type(paraphrase_depth), Iterable):\n        paraphrase_depth = random.choice(paraphrase_depth)\n    target_language_id = baidu_lang_detect(content)\n    all_middle_languages = list(set(suggested_middle_languages + [target_language_id]))",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:467-505"
+    },
+    "629": {
+        "file_id": 46,
+        "content": "This function utilizes Baidu's language translation model to paraphrase input content by translating it through a randomly chosen intermediate language from the provided list. The intermediate languages include Chinese, English, and Japanese. It uses a FileLock for synchronization when accessing the Baidu translation model, allowing safe parallel use in multi-threaded environments. The target language is detected using baidu_lang_detect function.",
+        "type": "comment"
+    },
+    "630": {
+        "file_id": 46,
+        "content": "    assert paraphrase_depth > 0\n    if paraphrase_depth > 1:\n        assert len(all_middle_languages) >= 3\n    current_language_id = target_language_id\n    middle_content = content\n    head_tail_indexs = set([0, paraphrase_depth - 1])\n    intermediate_languages = []\n    for loop_id in range(paraphrase_depth):\n        forbid_langs = set([current_language_id])\n        if loop_id in head_tail_indexs:\n            forbid_langs.add(target_language_id)\n        non_target_middle_languages = [\n            langid for langid in all_middle_languages if langid not in forbid_langs\n        ]\n        if debug:\n            print(f\"INDEX: {loop_id} INTERMEDIATE LANGS: {non_target_middle_languages}\")\n        middle_language_id = random.choice(non_target_middle_languages)\n        middle_content = baidu_translate(\n            middle_content, source=current_language_id, target=middle_language_id\n        )\n        current_language_id = middle_language_id\n        intermediate_languages.append(middle_language_id)\n    output_content = baidu_translate(",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:507-533"
+    },
+    "631": {
+        "file_id": 46,
+        "content": "This code is generating a multi-level paraphrase by randomly selecting languages from a list of middle languages, excluding the target and current language. It ensures that the paraphrase_depth is greater than 1 before proceeding to select intermediate languages. The chosen middle language's content is translated using baidu_translate function. The selected language ID and content are added to the respective lists for each loop iteration, resulting in a multi-level paraphrase.",
+        "type": "comment"
+    },
+    "632": {
+        "file_id": 46,
+        "content": "        middle_content, source=current_language_id, target=target_language_id\n    )\n    success = output_content.strip() != content.strip()\n    if debug:\n        print(\"SOURCE LANGUAGE:\", target_language_id)\n        print(\"USING INTERMEDIATE LANGUAGES:\", intermediate_languages)\n        print(\"PARAPHRASED:\", output_content)\n        print(\"paraphrase success?\", success)\n    return output_content, success\ndef paraphraser(\n    content: str,\n    method: Literal[\"clueai_free\", \"cn_nlp_online\", \"baidu_translator\"] = \"clueai_free\",\n    debug: bool = False,\n    configs: dict = {},\n):  # you could add some translation based methods.\n    implementedMethods = [\"clueai_free\", \"cn_nlp_online\", \"baidu_translator\"]\n    if method not in implementedMethods:\n        raise NotImplementedError(\"method '%s' not implemented\")\n    if content.strip() == \"\":\n        return content, True  # to protect paraphrasers.\n    try:\n        if method == \"clueai_free\":\n            output, success = clueAIParaphraser(content, debug=debug, **configs)",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:534-559"
+    },
+    "633": {
+        "file_id": 46,
+        "content": "The code defines a function `paraphraser` which takes in a content string, specifies the method of paraphrasing (clueai_free, cn_nlp_online, baidu_translator) and an optional debug mode. The implemented methods are checked before proceeding to ensure that only valid inputs are accepted. Empty strings are handled with a return statement. Within a try block, the function calls the corresponding paraphrasing method based on the specified input and returns the output along with a boolean value indicating if paraphrase was successful.",
+        "type": "comment"
+    },
+    "634": {
+        "file_id": 46,
+        "content": "        elif method == \"cn_nlp_online\":\n            output, success = chineseParaphraserAPI(content, debug=debug, **configs)\n        elif method == \"baidu_translator\":\n            output, success = baiduParaphraserByTranslation(\n                content, debug=debug, **configs\n            )\n        # you should not be here.\n        else:\n            raise NotImplementedError(\"method '%s' not implemented\")\n        return output, success\n    except NotImplementedError as e:\n        raise e\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"Failed to paraphrase content using method '%s'\" % method)\n        print(\"Returning original content and failed signal.\")\n        return content, False\n########################[PARAPHRASING]########################",
+        "type": "code",
+        "location": "/pyjom/languagetoolbox.py:560-581"
+    },
+    "635": {
+        "file_id": 46,
+        "content": "This code checks the method for paraphrasing and executes the corresponding function. If the method is not implemented, it raises a NotImplementedError. If there's any other exception, it prints the traceback and returns the original content with failure signal.",
+        "type": "comment"
+    },
+    "636": {
+        "file_id": 47,
+        "content": "/pyjom/commons.py",
+        "type": "filepath"
+    },
+    "637": {
+        "file_id": 47,
+        "content": "The code imports libraries, handles data operations and errors, interacts with Redis caching, supports debug mode, and maps media file extensions. It detects corrupted content, checks server availability, utilizes ffprobe and mediainfo for media details, configures YOLOv5 model, writes to a file, and prints log path.",
+        "type": "summary"
+    },
+    "638": {
+        "file_id": 47,
+        "content": "import traceback\nfrom pyjom.config import *\nfrom typing import Union\nfrom pyjom.mathlib import checkMinMaxDict\nimport datetime\nimport os\nimport shutil\nimport socket\nimport json\nimport mimetypes\nimport jinja2\nimport copy\nimport uuid\nimport numpy as np\nimport torch\nimport pathlib\nimport site\nimport sys\nimport random\n# from functools import lru_cache\ncommonRedisPort = 9291\nos.system(\"ulimit -n 1048576\")\nfrom lazero.utils.logger import sprint\nfrom functools import lru_cache\nimport time\ndef getJSTimeStamp():\n    return int(time.time() * 1000)\nfrom pymilvus import connections\n@lru_cache(maxsize=1)\ndef connectMilvusDatabase(alias=\"default\", host=\"localhost\", port=\"19530\"):\n    connection = connections.connect(\n        alias=alias, host=host, port=port\n    )  # can we reconnect?\n    print(\"milvus connected\")\n    return connection\n# what is the redis connection?\nimport redis\n@lru_cache(maxsize=1)\ndef getRedisConnection(host=\"localhost\", port=commonRedisPort):\n    connection = redis.Redis(host=host, port=port)\n    return connection\ndef removeRedisValueByKey(",
+        "type": "code",
+        "location": "/pyjom/commons.py:1-58"
+    },
+    "639": {
+        "file_id": 47,
+        "content": "The code imports various libraries and defines several functions. It connects to Milvus and Redis databases, gets the current JSTimeStamp, and provides functions for connecting to these databases and removing a Redis value by key. The redis connection is cached using LRU cache for performance optimization.",
+        "type": "comment"
+    },
+    "640": {
+        "file_id": 47,
+        "content": "    key: str, debug: bool = False, host=\"localhost\", port=commonRedisPort\n):\n    connection = getRedisConnection(host=host, port=port)\n    returnCode = connection.delete(key)\n    messages = {\n        0: \"key {} not found\".format(key),\n        1: \"delete key {} successfully\".format(key),\n    }\n    if debug:\n        print(messages.get(returnCode, \"unknown return code: {}\".format(returnCode)))\n    return returnCode\ndef removeRedisValueByKeys(\n    keys: list[str], debug: bool = False, host=\"localhost\", port=commonRedisPort\n):\n    for key in keys:\n        removeRedisValueByKey(key, debug=debug, host=host, port=port)\n# @lru_cache(maxsize=1)\n# def getSafeEvalEnvironment():\n#     return sf\ndef safe_eval(\n    code, safenodes=[\"List\", \"Dict\", \"Tuple\", \"Set\", \"Expression\", \"Constant\", \"Load\"]\n):  # strange.\n    from evalidate import safeeval\n    result = safeeval(code, {}, safenodes=safenodes)\n    return result\nimport pickle, dill\ncommonIterableDataTypes = [tuple, list, dict, set]\ncommonNonIterableDataTypes = [int, float, str, bool]",
+        "type": "code",
+        "location": "/pyjom/commons.py:59-96"
+    },
+    "641": {
+        "file_id": 47,
+        "content": "This code includes two functions, one for deleting a single key from Redis and the other for deleting multiple keys. It also has constants for data types and imports necessary libraries for handling data serialization and evaluation. The getSafeEvalEnvironment function is likely used to cache an environment for safe evaluation, although it is not currently utilized. The safe_eval function uses the evalidate library to evaluate input code within a restricted environment. Common iterable and non-iterable data types are defined for potential usage throughout the codebase.",
+        "type": "comment"
+    },
+    "642": {
+        "file_id": 47,
+        "content": "commonDataTypes = commonNonIterableDataTypes + commonIterableDataTypes\ndef stringifiableCheck(value, debug: bool = False):\n    try:\n        str_value = repr(value)\n        restored_value = safe_eval(value)\n        return restored_value == value\n    except:\n        if debug:\n            traceback.print_exc()\n    return False\ndef setRedisValueByKey(\n    key: str,\n    value,\n    dataType=None,\n    encoding: str = \"utf-8\",\n    host=\"localhost\",\n    port=commonRedisPort,\n    debug: bool = False,\n):\n    def stringifyAndEncode(value):\n        data = repr(value)\n        data = data.encode(encoding)\n        return data\n    connection = getRedisConnection(host=host, port=port)\n    if dataType is None:\n        dataType = type(value)\n        if dataType in commonDataTypes and stringifiableCheck(\n            value, debug=debug\n        ):  # this automation only happens when leaving blank for dataType.\n            data = stringifyAndEncode(value)\n        else:\n            dataType = \"dill\"\n            data = dill.dumps(value)\n    else:",
+        "type": "code",
+        "location": "/pyjom/commons.py:97-135"
+    },
+    "643": {
+        "file_id": 47,
+        "content": "This code defines functions for handling data types and communicating with Redis. It checks if a value is stringifiable, encodes it, and stores it in Redis based on the provided data type. If no data type is given, it automatically determines the type and performs encoding if necessary.",
+        "type": "comment"
+    },
+    "644": {
+        "file_id": 47,
+        "content": "        if dataType in commonDataTypes:\n            data = stringifyAndEncode(value)\n        elif dataType == \"dill\":\n            data = dill.dumps(value)\n        elif dataType == \"pickle\":\n            data = pickle.dumps(value)\n        else:\n            raise Exception(\"unknown dataType:\", dataType)\n    connection.set(key, data)\n    return dataType\ndef getRedisValueByKey(\n    key: str,\n    dataType=None,\n    encoding: str = \"utf-8\",\n    debug: bool = False,\n    host=\"localhost\",\n    port=commonRedisPort,\n):\n    connection = getRedisConnection(host=host, port=port)\n    value = connection.get(key)\n    if value is not None:\n        if debug:\n            print('data \"{}\" is not None'.format(key))\n        if dataType == None:\n            return dataType\n        elif dataType in commonDataTypes:\n            decoded_value = value.decode(encoding)\n            if dataType in commonNonIterableDataTypes:\n                if dataType == str:\n                    return decoded_value\n                else:\n                    return dataType(decoded_value)",
+        "type": "code",
+        "location": "/pyjom/commons.py:136-169"
+    },
+    "645": {
+        "file_id": 47,
+        "content": "The code handles data storage and retrieval from Redis. It checks the data type, encodes or serializes the value accordingly (using stringifyAndEncode, dill, or pickle), and stores it in Redis using set method. The getRedisValueByKey function retrieves a value by key and decodes it based on the specified data type, if provided. It returns None if the value is not found or the data type is not specified. The code also handles debugging messages and exceptions for unknown data types.",
+        "type": "comment"
+    },
+    "646": {
+        "file_id": 47,
+        "content": "            else:\n                # safe eval using nsjail?\n                return safe_eval(decoded_value)\n        elif dataType == \"pickle\":\n            return pickle.loads(value)\n        elif dataType == \"dill\":\n            return dill.loads(value)\n        else:\n            raise Exception(\"unknown dataType:\", dataType)\n    if debug:\n        print('data \"{}\" is None'.format(key))\ndef getRedisCachedSet(\n    setName: str,\n    debug: bool = False,\n    host=\"localhost\",\n    port=commonRedisPort,\n    dataType=\"dill\",\n) -> set:\n    # so we know this datatype is set!\n    # but what is our plan? we use dill by default.\n    data = getRedisValueByKey(\n        setName, debug=debug, host=host, port=port, dataType=dataType\n    )\n    if data is None:\n        return set()\n    assert type(data) == set\n    return data\ndef addToRedisCachedSet(\n    item,\n    setName: str,\n    debug: bool = False,\n    host=\"localhost\",\n    port=commonRedisPort,\n    dataType=\"dill\",\n):\n    cachedSet = getRedisCachedSet(\n        setName, debug=debug, host=host, port=port, dataType=dataType",
+        "type": "code",
+        "location": "/pyjom/commons.py:170-210"
+    },
+    "647": {
+        "file_id": 47,
+        "content": "This code defines functions to interact with Redis cached sets. The `getRedisCachedSet` function retrieves a set from Redis, deserializing the data using either pickle or dill depending on the specified data type. If the data is None, it returns an empty set. The `addToRedisCachedSet` function adds an item to a Redis cached set after first retrieving the existing set and updating it with the new item before saving it back to Redis. Both functions support debug mode and have default values for host, port, and data type (dill).",
+        "type": "comment"
+    },
+    "648": {
+        "file_id": 47,
+        "content": "    )\n    cachedSet.add(item)\n    setRedisValueByKey(setName, cachedSet, dataType=dataType, host=host, port=port)\n    return cachedSet\ndef shuffleAndPopFromList(mlist):\n    import random\n    random.shuffle(mlist)\n    return mlist.pop(0)\ndef getMediaBitrate(mediaPath, audioOnly=False, videoOnly=False):\n    # demo output:\n    # {'programs': [], 'streams': [{'bit_rate': '130770'}]}\n    commandArguments = [\n        \"ffprobe\",\n        \"-i\",\n        mediaPath,\n        \"-v\",\n        \"quiet\",\n    ]\n    if audioOnly:\n        commandArguments += [\n            \"-select_streams\",\n            \"a:0\",\n        ]\n    elif videoOnly:\n        commandArguments += [\n            \"-select_streams\",\n            \"v:0\",\n        ]\n    commandArguments += [\n        \"-show_entries\",\n        \"stream=bit_rate\",\n        \"-hide_banner\",\n        \"-print_format\",\n        \"json\",\n    ]\n    result = subprocess.run(commandArguments, capture_output=True, encoding=\"UTF-8\")\n    stdout = result.stdout\n    stderr = result.stderr\n    try:\n        assert result.returncode == 0",
+        "type": "code",
+        "location": "/pyjom/commons.py:211-255"
+    },
+    "649": {
+        "file_id": 47,
+        "content": "1. Defines functions for caching, shuffling lists, and retrieving media bitrate.\n2. Uses Redis to store sets of data with configurable host and port.\n3. Shuffles a list of items and returns the first item in the new order.\n4. Retrieves the bitrate of a video or audio stream using ffprobe, then prints it in JSON format.",
+        "type": "comment"
+    },
+    "650": {
+        "file_id": 47,
+        "content": "        stdout_json = json.loads(stdout)\n        return stdout_json\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"potential error logs:\")\n        print(stderr)\n        print(\"error when getting media bitrate\")\n        return {}\ndef getFileExtensionToMeaningDictFromString(inputString):\n    inputStringList = inputString.split(\"\\n\")\n    fileExtensionToMeaningDict = {}\n    for line in inputStringList:\n        line = line.strip()\n        if len(line) < 5:\n            continue\n        # try:\n        meaning, extensions = line.split(\" - \")  # problem fixed.\n        # except:\n        #     print('line:',[line])\n        #     breakpoint()\n        meaning = meaning.strip()\n        extensions = extensions.split(\" or \")\n        for extension in extensions:\n            extension = extension.strip()\n            if len(extension) > 0:\n                fileExtensionToMeaningDict.update({extension: meaning})\n    return fileExtensionToMeaningDict\n@lru_cache(maxsize=1)\ndef getMediaFileExtensionToMeaningDict():",
+        "type": "code",
+        "location": "/pyjom/commons.py:256-290"
+    },
+    "651": {
+        "file_id": 47,
+        "content": "This code loads a JSON from stdout, handles potential errors by printing them and returns an empty dictionary. It also defines a function to create a file extension to meaning dictionary using input string lines. Lastly, it caches a media file extension to meaning dictionary with the help of @lru_cache decorator.",
+        "type": "comment"
+    },
+    "652": {
+        "file_id": 47,
+        "content": "    # no input needed.\n    videoExtensions = \"\"\"MP4 or MPEG4 video file - .mp4\n264 video file - .h264\nAVI video file - .avi\nMKV or Matroska Multimedia Container - .mkv\nMPEG video file - .mpeg or .mpg\nMOV or Apple QuickTime video file - .mov\nApple MP4 video file - .m4v\nAdobe flash video - .flv\n3GP video file - .3gp\nWindows Media Video file - .wmv\nDVD Video Object - .vob\"\"\"\n    imageExtensions = \"\"\"JPEG image - .jpeg or .jpg\nPNG image - .png\nGIF image - .gif\nPhotoshop or PSD image - .psd\nAdobe Illustrator image - .ai\nTIFF image - .tif or .tiff\"\"\"\n    documentExtensions = \"\"\"Microsoft Word file - .doc or .docx\nPDF file - .pdf\nText file - .txt\nMicrosoft Excel file - .xls\nMicrosoft Excel Open XML file - .xlsx\nMicrosoft Excel file with macros - .xlsm\nMicrosoft PowerPoint presentation - .ppt\nMicrosoft PowerPoint slide show - .pps\nMicrosoft PowerPoint Open XML presentation - .pptx\"\"\"\n    audioExtensions = \"\"\"MP3 audio file - .mp3\nAAC audio file - .aac\nAC3 audio file - .ac3\nWAV audio file - .wav\nWMA audio file - .wma\nOgg Vorbis audio file - .ogg",
+        "type": "code",
+        "location": "/pyjom/commons.py:291-323"
+    },
+    "653": {
+        "file_id": 47,
+        "content": "The code defines various file extensions for video, image, document, and audio formats. It includes common extension types for each category, allowing the codebase to identify and handle different file types appropriately.",
+        "type": "comment"
+    },
+    "654": {
+        "file_id": 47,
+        "content": "MIDI audio file - .midi or .mid\nCD audio file - .cda\nAIF audio file - .aif\"\"\"\n    mapping = [\n        (\"video\", videoExtensions),\n        (\"audio\", audioExtensions),\n        (\"image\", imageExtensions),  # gif could be video.\n        (\"document\", documentExtensions),\n    ]\n    mediaFileExtensionToMeaningDict = {\n        key: getFileExtensionToMeaningDictFromString(value) for key, value in mapping\n    }\n    return mediaFileExtensionToMeaningDict\ndef determineMediaTypeByExtension(extension):\n    extension = extension.strip()\n    if not extension.startswith(\".\"):\n        extension = \".\" + extension\n    extension_lower = extension.lower()\n    # this has to be cached.\n    mediaFileExtensionToMeaningDict = getMediaFileExtensionToMeaningDict()\n    for (\n        mediaType,\n        fileExtensionToMeaningDict,\n    ) in mediaFileExtensionToMeaningDict.items():\n        for fileExtension, meaning in fileExtensionToMeaningDict.items():\n            if fileExtension.lower == extension_lower:\n                return mediaType\n    return \"unknown\"",
+        "type": "code",
+        "location": "/pyjom/commons.py:324-353"
+    },
+    "655": {
+        "file_id": 47,
+        "content": "This code defines a function getMediaFileExtensionToMeaningDict() that maps file extensions to their meanings (video, audio, image, document). It also includes a determineMediaTypeByExtension() function which takes an extension as input, checks it against the mapping and returns the corresponding media type. This code suggests that caching is necessary for efficiency.",
+        "type": "comment"
+    },
+    "656": {
+        "file_id": 47,
+        "content": "def corruptMediaFilter(\n    mediaPath, tag: str = \"media\", bad_words: list[str] = [\"invalid\", \"failed\", \"error\"]\n):\n    if not os.path.exists(mediaPath):\n        print(\"{} file does not exist\".format(tag))\n    import ffmpeg\n    not_nice = [word.lower() for word in bad_words]\n    corrupted = False\n    try:\n        stdout, stderr = (\n            ffmpeg.input(mediaPath)\n            .output(\"null\", f=\"null\")\n            .run(capture_stdout=True, capture_stderr=True)\n        )\n        stderr_lower = stderr.decode(\"utf-8\").lower()\n        for word in not_nice:\n            if word in stderr_lower:\n                print(\"{} is corrupted\".format(tag))\n                corrupted = True\n                break\n    except:\n        import traceback\n        traceback.print_exc()\n        corrupted = True\n        print(\"corrupt {}\".format(tag))\n    if not corrupted:\n        print(\"video is fine\")\n    # return True for fine video.\n    valid = not corrupted\n    sprint(\"{} file path:\".format(tag), mediaPath)\n    return valid\n## bring about 'redis cache' for faster testing.",
+        "type": "code",
+        "location": "/pyjom/commons.py:356-392"
+    },
+    "657": {
+        "file_id": 47,
+        "content": "This function named 'corruptMediaFilter' takes the path of a media file and checks for potentially corrupted content by scanning the ffmpeg output. If any 'bad words' found in stderr, it considers the file corrupted. If no issues found, it declares the video as fine and returns True. It also prints status updates to stdout about file existence, corruption status, and video condition.",
+        "type": "comment"
+    },
+    "658": {
+        "file_id": 47,
+        "content": "import redis\nfrom redis_lru import RedisLRU\n# from functools import lru_cache\noneDay = 60 * 60 * 24  # one day?\nredisExpire = oneDay * 7  # god damn it!\n# @lru_cache(maxsize=1)\ndef redisLRUCache(\n    ttl=redisExpire,\n    redisAddress=\"127.0.0.1\",\n    redisPort=commonRedisPort,\n    max_size=20,\n    debug=True,\n):\n    client = redis.StrictRedis(host=redisAddress, port=redisPort)\n    cache = RedisLRU(client, max_size=max_size, debug=debug)\n    return cache(ttl=ttl)\n# this is root. this is not site-packages.\ndef frameSizeFilter(frameMeta, frame_size_filter):\n    width, height = frameMeta[\"width\"], frameMeta[\"height\"]\n    flagWidth, (minWidth, maxWidth) = checkMinMaxDict(\n        width, frame_size_filter.get(\"width\", {}), getMinMaxVal=True\n    )  # type: ignore\n    flagHeight, (minHeight, maxHeight) = checkMinMaxDict(\n        height, frame_size_filter.get(\"height\", {}), getMinMaxVal=True\n    )  # type: ignore\n    if not (flagWidth and flagHeight):\n        print(\"Filter out invalid video with shape of {}x{}\".format(width, height))",
+        "type": "code",
+        "location": "/pyjom/commons.py:393-423"
+    },
+    "659": {
+        "file_id": 47,
+        "content": "This code defines a function `redisLRUCache` that utilizes Redis LRU cache for storing data with Time-To-Live (TTL) and optional parameters like TTL, redisAddress, redisPort, max_size, and debug. It also includes a helper function `frameSizeFilter` that checks the dimensions of a frame against specified width and height ranges from a frame_size_filter dictionary. If both dimensions are filtered out, it prints a message indicating an invalid video shape.",
+        "type": "comment"
+    },
+    "660": {
+        "file_id": 47,
+        "content": "        print(\n            \"Valid Width and Height are {}-{}x{}-{}\".format(\n                minWidth, maxWidth, minHeight, maxHeight\n            )\n        )\n        return False\n    return True\n# site_path = pathlib.Path([x for x in site.getsitepackages() if \"site-packages\" in x][0])\nos.environ[\"USE_NVIDIA_OPENCV\"] = \"yes\"\nif os.environ[\"USE_NVIDIA_OPENCV\"] == \"yes\":\n    site_path = pathlib.Path(\"/usr/local/lib/python3.9/site-packages\")\n    cv2_libs_dir = (\n        site_path / \"cv2\" / f\"python-{sys.version_info.major}.{sys.version_info.minor}\"\n    )\n    print(cv2_libs_dir)\n    cv2_libs = sorted(cv2_libs_dir.glob(\"*.so\"))\n    if len(cv2_libs) == 1:\n        print(\"INSERTING:\", cv2_libs[0].parent)\n        sys.path.insert(1, str(cv2_libs[0].parent))\nmimetypes.init()\ndef waitForServerUp(\n    port, message, timeout=1, messageLength: Union[None, int] = None  # for netease.\n):  # this messageLength is the length of the binary message.\n    import requests\n    while True:\n        try:\n            url = \"http://localhost:{}\".format(port)",
+        "type": "code",
+        "location": "/pyjom/commons.py:424-457"
+    },
+    "661": {
+        "file_id": 47,
+        "content": "This code checks if the OpenCV library is installed correctly and sets the system path accordingly. It also initializes mimetypes and defines a function waitForServerUp that makes HTTP requests to localhost on a specified port, waiting for a response until the timeout is reached. The function accepts optional parameters for message and messageLength (for netease).",
+        "type": "comment"
+    },
+    "662": {
+        "file_id": 47,
+        "content": "            with requests.get(url, timeout=timeout) as r:\n                if messageLength is not None:\n                    contentLength = len(r.content)\n                    if messageLength <= contentLength:\n                        break\n                else:\n                    if type(message) == str:\n                        text = r.text.strip('\"').strip(\"'\")\n                    else:\n                        text = r.json()\n                    print(\"SERVER AT PORT %d RESPONDS:\" % port, [text])\n                    assert text == message\n                    print(\"SERVER AT PORT %d IS UP\" % port)\n                    break\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"SERVER AT PORT %d MIGHT NOT BE UP\" % port)\n            print(\"EXPECTED MESSAGE:\", [message])\n            import time\n            time.sleep(1)\nclass D2Point:\n    def __init__(self, x, y):\n        self.x = x\n        self.y = y\ndef doRectOverlap(l1, r1, l2, r2):\n    # if rectangle has area 0, no overlap",
+        "type": "code",
+        "location": "/pyjom/commons.py:458-490"
+    },
+    "663": {
+        "file_id": 47,
+        "content": "Code fetches a message from server using URL, checks its length against expected length and prints the received response. If there is a mismatch, it raises an error. If the connection fails, it waits for a second before trying again.",
+        "type": "comment"
+    },
+    "664": {
+        "file_id": 47,
+        "content": "    if l1.x == r1.x or l1.y == r1.y or r2.x == l2.x or l2.y == r2.y:\n        return False\n    # If one rectangle is on left side of other\n    if l1.x >= r2.x or l2.x >= r1.x:\n        return False\n    if l1.y >= r2.y or l2.y >= r1.y:\n        return False\n    return True\ndef checkRectOverlap(rect0, rect1):\n    assert len(rect0) == 2\n    assert len(rect1) == 2\n    return doRectOverlap(\n        D2Point(*rect0[0]), D2Point(*rect0[1]), D2Point(*rect1[0]), D2Point(*rect1[1])\n    )\ndef getOverlapRect(rect0, rect1):\n    if checkRectOverlap(rect0, rect1):\n        leftXList = (rect0[0][0], rect1[0][0])\n        leftYList = (rect0[0][1], rect1[0][1])\n        rightXList = (rect0[1][0], rect1[1][0])\n        rightYList = (rect0[1][1], rect1[1][1])\n        leftX = max(leftXList)\n        leftY = max(leftYList)\n        rightX = min(rightXList)\n        rightY = min(rightYList)\n        return [(leftX, leftY), (rightX, rightY)]\n    else:\n        return None\ndef makeValueInRange(value, minVal, maxVal):\n    assert minVal < maxVal\n    return min(max(minVal, value), maxVal)",
+        "type": "code",
+        "location": "/pyjom/commons.py:491-526"
+    },
+    "665": {
+        "file_id": 47,
+        "content": "The code checks for rectangle overlap, returns the overlapping rectangle if exists, and clamps values within a given range.",
+        "type": "comment"
+    },
+    "666": {
+        "file_id": 47,
+        "content": "# this sucks...\ndef infiniteShuffle(access_list, shuffle=True, infinite=True, endMark=True):\n    flag = True\n    while flag:\n        if shuffle:\n            random.shuffle(access_list)\n        for data in access_list:\n            yield data\n        if endMark and infinite:\n            yield None\n        if not infinite:\n            flag = False\ndef inRange(target, mRange, tolerance=1):\n    assert tolerance <= 1\n    assert tolerance > 0\n    start, end = mRange\n    start, end = start * tolerance, end / tolerance\n    return target >= start and target <= end\ndef overlapRange(range_a, range_b):\n    begin_a, end_a = range_a\n    begin_b, end_b = range_b\n    possible_overlap = (max(begin_a, begin_b), min(end_a, end_b))\n    if possible_overlap[0] < possible_overlap[1]:  # overlapping\n        return possible_overlap\n    # return common range.\nfrom lazero.utils.json import jsonWalk2, jsonify, jsonWalk, jsonLocate, jsonUpdate\njson.__dict__.update({\"walk\": jsonWalk, \"locate\": jsonLocate, \"update\": jsonUpdate})\ndef replacer(content, sources=[], target=\"\"):",
+        "type": "code",
+        "location": "/pyjom/commons.py:529-565"
+    },
+    "667": {
+        "file_id": 47,
+        "content": "The code defines a function \"infiniteShuffle\" that shuffles and yields data from an access list, either stopping when the list ends or if set to infinite mode. Function \"inRange\" checks if a target value falls within specified range boundaries with optional tolerance. Function \"overlapRange\" calculates the overlap between two given ranges. The code also updates JSON functions (\"walk\", \"locate\", and \"update\") under the json module. Finally, a function named \"replacer\" is defined, but its functionality isn't clear from the given code snippet.",
+        "type": "comment"
+    },
+    "668": {
+        "file_id": 47,
+        "content": "    for source in sources:\n        content = content.replace(source, target)\n    return content\ndef multi_replacer(content, replacer_list=[[[], \"\"]]):\n    for sources, target in replacer_list:\n        content = replacer(content, sources=sources, target=target)\n    return content\nfrom pyjom.mathlib import extract_span, convoluted\nimport MediaInfo\nimport subprocess\ndef json_auto_float_int(jsonObj):\n    jsonObj = jsonify(jsonObj)\n    for location, content in jsonWalk(jsonObj):\n        # content = jsonLocate(jsonObj,location)\n        if type(content) == str:\n            if \"/\" in content:\n                try:\n                    content = eval(content)  # could be dangerous!\n                    if type(content) in [float, int]:\n                        jsonUpdate(jsonObj, location=location, update_content=content)\n                except:\n                    pass\n            elif \".\" in content:\n                try:\n                    content = float(content)\n                    jsonUpdate(jsonObj, location=location, update_content=content)",
+        "type": "code",
+        "location": "/pyjom/commons.py:566-600"
+    },
+    "669": {
+        "file_id": 47,
+        "content": "The code appears to be a combination of functions that replace specific strings within a given content, update JSON objects by converting certain string types to either float or int, and potentially include some math-related operations. It seems to involve the use of external libraries such as MediaInfo and subprocess for possibly retrieving additional information or performing computations.",
+        "type": "comment"
+    },
+    "670": {
+        "file_id": 47,
+        "content": "                except:\n                    pass\n            else:\n                try:\n                    content = int(content)\n                    jsonUpdate(jsonObj, location=location, update_content=content)\n                except:\n                    pass\n    return jsonObj\ndef ffprobe_media_info(filename, video_size: Union[None, str] = None):\n    cmd = \"ffprobe{} -v quiet -print_format json -show_format -show_streams\".format(\n        \" -video_size {}\".format(video_size.strip()) if video_size else \"\"\n    )\n    cmd = cmd.split(\" \")\n    cmd = cmd + [filename]\n    output = subprocess.check_output(cmd)\n    return json_auto_float_int(json.loads(output))\ndef json_media_info(filename):\n    cmd = [\"mediainfo\", \"--Output=JSON\", filename]\n    output = subprocess.check_output(cmd)\n    return json_auto_float_int(json.loads(output))\ndef get_media_info(filename):\n    mdf = MediaInfo.MediaInfo(filename=filename)\n    return json_auto_float_int(mdf.getInfo())\ndef getTextFileLength(path):\n    with open(path, \"r\", encoding=\"utf-8\") as f:",
+        "type": "code",
+        "location": "/pyjom/commons.py:601-634"
+    },
+    "671": {
+        "file_id": 47,
+        "content": "The code contains functions for retrieving media information. It uses ffprobe and mediainfo commands to extract video format, codec, size, duration, bitrate, and other details from the specified file. The information is returned in JSON format after converting floating-point numbers to integers if needed. The getTextFileLength function reads a text file's length using Python's built-in open() function.",
+        "type": "comment"
+    },
+    "672": {
+        "file_id": 47,
+        "content": "        return len(f.read())\ndef append_sublist(main_dict, sublist_key, item):\n    main_dict[sublist_key] = main_dict.get(sublist_key, []) + [item]\ndef update_subdict(mdict, key, subdict):\n    # print(\"UPDATING SUBDICT\", mdict,key, subdict)\n    if key not in mdict:\n        mdict[key] = subdict\n    else:\n        mdict[key].update(subdict)\n    return mdict\ndef read_json(filepath):\n    with open(filepath, \"r\") as f:\n        return json.loads(f.read())\ndef list_to_range(mlist, rangeLimit):\n    mlist = set(mlist)\n    mlist = list(sorted(mlist))\n    currentRange = []\n    lastElem = None\n    myRanges = []\n    for elem in mlist:\n        if lastElem == None:\n            lastElem = elem\n            currentRange = [elem]\n            continue\n        myRange = elem - lastElem\n        if rangeLimit >= myRange:\n            lastElem = elem\n            if len(currentRange) == 2:\n                currentRange[1] = elem\n            else:\n                currentRange.append(elem)\n        else:\n            myRanges.append(currentRange)\n            lastElem = elem",
+        "type": "code",
+        "location": "/pyjom/commons.py:635-676"
+    },
+    "673": {
+        "file_id": 47,
+        "content": "This code defines functions for working with dictionaries and JSON files. It includes functions to append a sublist, update a subdictionary, read a JSON file, and convert a list of elements into ranges based on their differences. These functions can be used together or separately depending on the specific task at hand.",
+        "type": "comment"
+    },
+    "674": {
+        "file_id": 47,
+        "content": "            currentRange = [elem]\n    if len(myRanges) > 0:\n        if myRanges[-1] != currentRange:\n            myRanges.append(currentRange)\n    else:\n        myRanges.append(currentRange)\n    return myRanges\n# from youtube science.\ndef list_startswith(a, b):\n    value = 0\n    if len(a) < len(b):\n        return False\n    for i, v in enumerate(b):\n        v0 = a[i]\n        if v == v0:\n            value += 1\n    return value == len(b)\ndef list_endswith(a, b):\n    value = 0\n    if len(a) < len(b):\n        return False\n    c = a[-len(b) :]\n    for i, v in enumerate(b):\n        v0 = c[i]\n        if v == v0:\n            value += 1\n    return value == len(b)\ndef cv2_HWC2CHW(frame):\n    if len(frame.shape) == 3:\n        img = frame[:, :, ::-1].transpose((2, 0, 1))\n    else:\n        img = frame[np.newaxis, :, :]\n    return img\nocrCore = None\nocrConfig = {\n    \"use_angle_cls\": True,\n    \"lang\": \"ch\",\n}  # it can detect english too. but no space included.\ndef configOCR(**kwargs):\n    global ocrCore, ocrConfig\n    if ocrCore is not None:",
+        "type": "code",
+        "location": "/pyjom/commons.py:677-727"
+    },
+    "675": {
+        "file_id": 47,
+        "content": "This code defines several functions related to lists, image conversion, and OCR configuration. It checks if a list starts or ends with another list, converts an image's shape from HWC to CHW, and configures the OCR engine with language options. The global ocrCore and ocrConfig variables store the OCR engine and its configurations, which can be updated using the configOCR function.",
+        "type": "comment"
+    },
+    "676": {
+        "file_id": 47,
+        "content": "        if kwargs == ocrConfig:\n            pass\n    else:\n        ocrConfig = kwargs\n        from paddleocr import PaddleOCR\n        # breakpoint()\n        ocrCore = PaddleOCR(**kwargs)\n        # breakpoint() # this is not the problem. maybe.\n    return ocrCore\ndef getScriptFileBaseDir(script_file):\n    basepath = os.path.abspath(script_file)\n    basepath = basepath.replace(os.path.basename(basepath), \"\")\n    return basepath\ndef getTemplateFileBaseDir(tmpDir=\"templates\"):\n    basedir = getScriptFileBaseDir(__file__)\n    basedir = os.path.join(basedir, tmpDir)\n    assert os.path.exists(basedir)\n    return basedir\nyolov5_model = None\n@lru_cache(maxsize=1)\ndef configYolov5(model=\"yolov5s\"):\n    global yolov5_model  # not the same\n    if yolov5_model == None:\n        basedir = getTemplateFileBaseDir(tmpDir=\"models/yolov5\")\n        os.environ[\"YOLOV5_MODEL_DIR\"] = basedir\n        localModelPath = os.path.join(\n            basedir, \"ultralytics_yolov5_master/\"\n        )  # required to load it. we have modified this shit somehow.",
+        "type": "code",
+        "location": "/pyjom/commons.py:728-764"
+    },
+    "677": {
+        "file_id": 47,
+        "content": "This code snippet defines a function \"configYolov5\" that retrieves the YOLOv5 model configuration. It first checks if the global variable \"yolov5_model\" is set, and if not, it sets it based on the given \"model\" parameter. The function also includes the paths to the YOLOv5 model directory using the \"getScriptFileBaseDir\" and \"getTemplateFileBaseDir\" functions. Finally, an LRU cache decorator ensures efficient retrieval of the model configuration.",
+        "type": "comment"
+    },
+    "678": {
+        "file_id": 47,
+        "content": "        modelPath = model\n        # we set enviorment variable instead.\n        # breakpoint()\n        yolov5_model = torch.hub.load(localModelPath, modelPath, source=\"local\")\n    return yolov5_model\ndef getTemplatePath(template_dirs, template_path):\n    basedir = getTemplateFileBaseDir()\n    for template_dir in template_dirs:\n        basedir = os.path.join(basedir, template_dir)\n        assert os.path.exists(basedir)\n    template_path = os.path.join(basedir, template_path)\n    assert os.path.exists(template_path)\n    return template_path\ndef joinScriptFileBaseDir(script_file, local_file_path):\n    basepath = getScriptFileBaseDir(script_file)\n    file_path = os.path.join(basepath, local_file_path)\n    return file_path\ndef renderTemplate(template, template_args, enable_json=True):\n    template = jinja2.Template(template)\n    if enable_json:\n        for key in template_args.keys():\n            data = template_args[key]\n            if type(data) in [dict, list, tuple]:\n                try:\n                    data = json.dumps(data)",
+        "type": "code",
+        "location": "/pyjom/commons.py:765-795"
+    },
+    "679": {
+        "file_id": 47,
+        "content": "Code snippet defines several functions:\n- `getTemplatePath()` joins template directory paths and asserts if the resulting path exists.\n- `joinScriptFileBaseDir()` combines script file base directory with a local file path.\n- `renderTemplate()` renders a Jinja2 template, optionally converting dictionaries/lists to JSON.",
+        "type": "comment"
+    },
+    "680": {
+        "file_id": 47,
+        "content": "                    template_args[key] = data\n                except:\n                    pass\n    script = template.render(**template_args)\n    return script\ndef configDecorator(func, config=\"config.json\"):\n    def mytarget(*args, **kwargs):\n        return func(*args, **(kwargs | {\"config\": config}))\n    return mytarget\ndef jsonPrettyPrint(feedback, indent=4):\n    assert type(indent) == int\n    mtype = \"json\"\n    feedback_type = type(feedback)\n    if feedback_type != str:\n        try:\n            mfeedback_content = json.dumps(feedback, indent=indent)\n        except:\n            mfeedback_content = str(feedback)\n            mtype = str(feedback_type)\n    else:\n        mfeedback_content = feedback\n        mtype = \"str\"\n    return mtype, mfeedback_content\ndef getFileType(fbase0):\n    # quick dirty fix.\n    # for gif we have a hard fix.\n    translateTable = {\"gif\": \"video\"}  # force conversion.\n    # print(\"FBASE:\", fbase0)\n    suffix = fbase0.split(\".\")[-1]\n    guessedType = translateTable.get(suffix, None)\n    # breakpoint()",
+        "type": "code",
+        "location": "/pyjom/commons.py:796-833"
+    },
+    "681": {
+        "file_id": 47,
+        "content": "commons.py file contains various utility functions, including a template rendering function with exception handling, a decorator that uses a specific configuration file, a function to pretty print JSON data with optional indentation, and a function for guessing the type of a file based on its extension.",
+        "type": "comment"
+    },
+    "682": {
+        "file_id": 47,
+        "content": "    if guessedType:\n        return guessedType\n    mimestart = mimetypes.guess_type(fbase0)[0]\n    if mimestart != None:\n        mimestart = mimestart.split(\"/\")[0]\n        return mimestart\n    return \"unknown\"\ndef getAbsoluteFilePath(fpath):\n    assert os.path.exists(fpath)\n    if os.path.isabs(fpath):\n        return fpath\n    return os.path.abspath(fpath)\ndef getFileExtension(fpath):\n    basename = os.path.basename(fpath)\n    assert \".\" in basename\n    return basename.split(\".\")[-1]\ndef getLocalFileType(fpath):  # this is guessing, not file probing.\n    fbase = os.path.basename(fpath)\n    return getFileType(fbase)\ndef getHostname():\n    return socket.gethostname()\ndef keywordDecorator(func, **kwargs2):\n    def mytarget(*margs, **kwargs):\n        if \"trace_source\" in kwargs.keys():\n            if kwargs2[\"trace_source\"]:\n                return func(*margs, **(kwargs | kwargs2)), \".\".join(\n                    [__name__, func.__name__]\n                )\n        return func(*margs, **(kwargs | kwargs2))\n    return mytarget",
+        "type": "code",
+        "location": "/pyjom/commons.py:834-874"
+    },
+    "683": {
+        "file_id": 47,
+        "content": "This code includes functions for getting file types, extensions, and local file names. It also includes a decorator for tracing source locations and a function to get the hostname. The \"getFileType\" function uses the guessed type or the mimetype of the file if it exists. The \"getAbsoluteFilePath\" returns an absolute path if given, otherwise it returns the absolute path of the relative path. The \"getFileExtension\" gets the extension of a file name. The \"getLocalFileType\" guesses the file type based on its name. The \"getHostname\" function retrieves the hostname of the current machine. Finally, the \"keywordDecorator\" is used for traceable source locations.",
+        "type": "comment"
+    },
+    "684": {
+        "file_id": 47,
+        "content": "def decorator(func):\n    def mytarget(*args, **kwargs):\n        return func(*args, **kwargs), \".\".join([__name__, func.__name__])\n    return mytarget\ndef chineseDetector(string):\n    base, celi = 0x4E00, 0x9FA5\n    for elem in string:\n        mydata = ord(elem)\n        if mydata >= base and mydata <= celi:\n            return True\n    return False\ndef getTimestamp():\n    return datetime.datetime.now().timestamp()\ndef dumpTrashDir(trash_dir):\n    if os.path.exists(trash_dir):\n        if os.path.isdir(trash_dir):\n            shutil.rmtree(trash_dir)\n        else:\n            os.remove(trash_dir)\ndef writeFileWithPath(path, fname, content, mode, encoding=None):\n    if not os.path.exists(path):\n        os.makedirs(path)\n    log_path = os.path.join(path, fname)\n    if \"b\" not in mode:\n        if encoding == None:\n            with open(log_path, mode) as f:\n                f.write(content)\n        else:\n            with open(log_path, mode, encoding=encoding) as f:\n                f.write(content)\n    else:\n        with open(log_path, mode) as f:",
+        "type": "code",
+        "location": "/pyjom/commons.py:877-917"
+    },
+    "685": {
+        "file_id": 47,
+        "content": "This code includes functions for a decorator, Chinese detector, timestamp generation, removing trash directories, and writing files. The decorator function takes a function as an argument and returns a wrapper function. The ChineseDetector function checks if a string contains Chinese characters. The getTimestamp function returns the current timestamp. The dumpTrashDir function removes the specified trash directory if it exists and is a directory. The writeFileWithPath function writes content to a file with the given path, filename, and mode.",
+        "type": "comment"
+    },
+    "686": {
+        "file_id": 47,
+        "content": "            f.write(content)\n    print(\"file written at:\\n{}\".format(log_path))",
+        "type": "code",
+        "location": "/pyjom/commons.py:918-919"
+    },
+    "687": {
+        "file_id": 47,
+        "content": "Writes the content to a file, then prints the log path indicating successful file writing.",
+        "type": "comment"
+    },
+    "688": {
+        "file_id": 48,
+        "content": "/pyjom/audiotoolbox.py",
+        "type": "filepath"
+    },
+    "689": {
+        "file_id": 48,
+        "content": "This code detects audio duration and volume using audioread library, adjusts media file volume with ffmpeg, normalizes audio, and handles errors.",
+        "type": "summary"
+    },
+    "690": {
+        "file_id": 48,
+        "content": "# first and foremost is the audio correction, the volume detector, the audio detector.\n# https://trac.ffmpeg.org/wiki/AudioVolume\n# but first how to get the audio duration?\n# for video we have caer. but for audio?\nimport audioread\nfrom lazero.utils.logger import sprint\nimport ffmpeg\nfrom typing import Literal\nfrom pyjom.commons import *\nimport parse\ndef getAudioBitrate(mediaPath):\n    return int(getMediaBitrate(mediaPath, audioOnly=True)[\"streams\"][0][\"bit_rate\"])\ndef getAudioDuration(audioFilePath):\n    with audioread.audio_open(audioFilePath) as f:\n        totalSeconds = f.duration\n    return totalSeconds  # is this float number or integer?\n    # how about let's test this?\ndef detect_volume_average(mediapath, debug=False):\n    # ffmpeg -i input.wav -filter:a volumedetect -f null /dev/null\n    # audio = ffmpeg.input(mediapath)\n    audio = ffmpeg.input(mediapath).audio\n    # does not have audio track, so error occurs.\n    # don't know how to capture the track. anyway, do put the audio into the test video.\n    # might have exception. what to do with it then??",
+        "type": "code",
+        "location": "/pyjom/audiotoolbox.py:1-32"
+    },
+    "691": {
+        "file_id": 48,
+        "content": "This code retrieves the audio duration and volume average from an input media file using the audioread library. The getAudioDuration function returns the total duration in seconds, while the detect_volume_average function processes the media path to obtain the volume average. However, it may encounter exceptions if the audio track is not available or the track cannot be captured properly.",
+        "type": "comment"
+    },
+    "692": {
+        "file_id": 48,
+        "content": "    volDict = {}\n    error = False\n    try:\n        stdout, stderr = (\n            audio.filter(\"volumedetect\")\n            .output(\"/dev/null\", f=\"null\")\n            .run(capture_stdout=True, capture_stderr=True)\n        )\n        # where is the output?\n        stderr = stderr.decode(\"utf-8\")\n        stderr_lines = stderr.split(\"\\n\")\n        formatString = \"[Parsed_volumedetect{}] {volumeType}_volume: {value:g} dB\"\n        for line in stderr_lines:\n            line = line.strip()\n            result = parse.parse(formatString, line)\n            if result is not None:\n                volumeType, value = result[\"volumeType\"], result[\"value\"]\n                volDict.update({volumeType: value})\n    except:\n        import traceback\n        traceback.print_exc()\n        # print(stderr)\n        # nothing will be shown in stderr, if there is no audio in the media container.\n        print(\"error when detecting volume for: %s\" % mediapath)\n        error = True\n    if debug:\n        print(\"MEDIA PATH: %s\" % mediapath)\n        print(\"VOLUME:\", volDict)",
+        "type": "code",
+        "location": "/pyjom/audiotoolbox.py:33-61"
+    },
+    "693": {
+        "file_id": 48,
+        "content": "This code attempts to detect the volume of audio files and stores the volume details in a dictionary. It uses the \"volumedetect\" filter, redirects output to \"/dev/null\", captures both stdout and stderr, and parses the error output for volume information. If there's no audio in the media container, it will show an error message. Debug mode prints the media path and volume dictionary if set.",
+        "type": "comment"
+    },
+    "694": {
+        "file_id": 48,
+        "content": "        sprint(\"ERROR STATUS:\", error)\n    return volDict, error\ndef adjustVolumeInMedia(\n    mediaPath,\n    outputPath,\n    targets={\n        \"mean\": -10.8,  # -13.2 fuck.\n        \"max\": 0.0,\n    },  # what is the real value anyway? we want the volume fetched from web.\n    overwrite_output=False,\n    bitrate=320000,\n    algorithm: Literal[\"rms\", \"ebu\", \"peak\"] = \"rms\",\n):  # must set target volume.\n    # use ffmpeg-normalize?\n    # use aac for mp4 output. let's do it!\n    target_level = targets.get(\"mean\", None)\n    true_peak = targets.get(\"max\", None)\n    commandline = [\n        \"ffmpeg-normalize\",\n        \"-o\",\n        outputPath,\n        \"-pr\",\n        \"-nt\",\n        algorithm,\n    ]\n    commandline += [\"-b:a\", str(bitrate)]  # the bitrate part.\n    # now much better. let's see if we have other methods.\n    # VOLUME NORMALIZATION SUCCESSFUL\n    # MEDIA PATH: normalized.mp4\n    # VOLUME: {'mean': -11.0, 'max': 0.0}\n    # ERROR STATUS: False\n    # commandline = [\"ffmpeg-normalize\", \"-o\", outputPath, \"-pr\"]\n    # VOLUME: {'mean': -13.2, 'max': 0.0}",
+        "type": "code",
+        "location": "/pyjom/audiotoolbox.py:62-97"
+    },
+    "695": {
+        "file_id": 48,
+        "content": "The function adjusts the volume of media files located at a specific path. It accepts parameters for output file path, target volume levels (mean and max), overwrite option, bitrate, and algorithm type. It uses ffmpeg-normalize command line tool to normalize the audio, and returns a dictionary containing mean and max volume values upon successful execution. If an error occurs, it returns the error status as well.",
+        "type": "comment"
+    },
+    "696": {
+        "file_id": 48,
+        "content": "    # the 'mean' is still not correctified.\n    # ERROR STATUS: False\n    # video codec we use 'copy' if the extension name is the same.\n    outputPathExtension = outputPath.lower().split(\".\")[-1]\n    mediaPathExtension = mediaPath.lower().split(\".\")[-1]\n    outputMediaType = determineMediaTypeByExtension(outputPathExtension)\n    # treat this as a common repository.\n    if outputPathExtension == mediaPathExtension and outputMediaType == \"video\":\n        commandline += [\"-c:v\", \"copy\"]\n    # problem is, the container must be video compabible.\n    # list the thing here?\n    if outputPathExtension == \"mp4\":\n        commandline += [\"-c:a\", \"aac\"]\n    if target_level:\n        commandline += [\"-t\", str(target_level)]\n    if true_peak:\n        commandline += [\"-tp\", str(true_peak)]\n    if overwrite_output:\n        commandline += [\"-f\"]\n    commandline += [mediaPath]\n    status = subprocess.run(commandline)  # is it even successful?\n    returncode = status.returncode\n    try:\n        assert returncode == 0\n        print(\"VOLUME NORMALIZATION SUCCESSFUL\")",
+        "type": "code",
+        "location": "/pyjom/audiotoolbox.py:98-122"
+    },
+    "697": {
+        "file_id": 48,
+        "content": "This code is normalizing the volume of a video file and correcting its container type if necessary. It checks the input and output extensions, sets the video and audio codecs, handles target level, true peak, and overwrite settings, and runs subprocess command to execute FFmpeg for processing. The script prints \"VOLUME NORMALIZATION SUCCESSFUL\" if returncode is 0, indicating successful volume normalization.",
+        "type": "comment"
+    },
+    "698": {
+        "file_id": 48,
+        "content": "        return outputPath\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"error when normalizing audio for media: %s\" % mediaPath)\n    # media = ffmpeg.input(videoPath)\n    # audio = media.audio\n    # video = media.video\n    # audio = audio.filter()",
+        "type": "code",
+        "location": "/pyjom/audiotoolbox.py:123-132"
+    },
+    "699": {
+        "file_id": 48,
+        "content": "This code snippet is responsible for normalizing audio for a given media file. If an error occurs during the process, it prints the error message and stack trace using the traceback module.",
+        "type": "comment"
+    }
+}

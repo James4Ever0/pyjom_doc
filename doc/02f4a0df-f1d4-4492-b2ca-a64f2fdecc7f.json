@@ -1,0 +1,20 @@
+{
+    "summary": "This code imports TensorFlow and nsfwjs libraries, processes GIF frames at 1fps, loads a model for classification using predictions, and sets up a file stream to read data in chunks for partial processing.",
+    "details": [
+        {
+            "comment": "Code imports TensorFlow and nsfwjs libraries, and defines an array of prediction results for three frames. The filepath is set to \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.gif\". The code chooses the top three categories from each frame, processes them at 1fps, and does not consider other classes.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/tests/nsfw_violence_drug_detection/nsfwjs_gif.js\":0-26",
+            "content": "const tf = require('@tensorflow/tfjs-node')\nconst nsfw = require('nsfwjs')\n// predictions [\n//     [\n//       { className: 'Neutral', probability: 0.9845383167266846 },\n//       { className: 'Porn', probability: 0.009829860180616379 },\n//       { className: 'Drawing', probability: 0.003906613681465387 }\n//     ],\n//     [\n//       { className: 'Neutral', probability: 0.9763429760932922 },\n//       { className: 'Porn', probability: 0.014182578772306442 },\n//       { className: 'Drawing', probability: 0.007088858168572187 }\n//     ],\n//     [\n//       { className: 'Neutral', probability: 0.9598317742347717 },\n//       { className: 'Drawing', probability: 0.03286046162247658 },\n//       { className: 'Porn', probability: 0.003989457152783871 }\n//     ]\n//   ]\nfilepath = \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.gif\"\n// mechanism: choose three most likely categories per chosen frame, process at 1fps.\n// no other classes?\n// filepath = \"/root/Desktop/works/pyjom/samples/video/cat_invalid_eye_rolling.gif\""
+        },
+        {
+            "comment": "The code reads a file into a stream, stores it in chunks, combines the chunks into a final data buffer, and then loads a model to classify the GIF using its predictions. This allows for efficient processing of large files and accurate detection of content.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/tests/nsfw_violence_drug_detection/nsfwjs_gif.js\":28-63",
+            "content": "const fs = require('fs');\n// Store file data chunks in this array\nlet chunks = [];\n// We can use this variable to store the final data\nlet fileBuffer;\n// Read file into stream.Readable\nlet fileStream = fs.createReadStream(filepath);\n// An error occurred with the stream\nfileStream.once('error', (err) => {\n    // Be sure to handle this properly!\n    console.error(err);\n});\nlet _model\nconst load_model = async() => {\n    _model = await nsfw.load()\n    console.log('model ready')\n}\n// Keep the model in memory, make sure it's loaded only once\n// File is done being read\nfileStream.once('end', () => {\n    // create the final data Buffer from data chunks;\n    fileBuffer = Buffer.concat(chunks);\n    // do shit here.\n    console.log(\"filebuffer ready\")\n    load_model().then(() => {\n        _model.classifyGif(fileBuffer, { topk: 3, fps: 1 })\n            .then(predictions => console.log('predictions', predictions))\n            .catch(error => console.log('model error', error))\n    })\n    // Of course, you can do anything else you need to here, like emit an event!"
+        },
+        {
+            "comment": "This code snippet sets up a file stream that reads data in chunks. The 'data' event triggers for each chunk, and pushes the chunk into an array (chunks). This allows performing actions on partial data as it arrives.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/tests/nsfw_violence_drug_detection/nsfwjs_gif.js\":64-72",
+            "content": "});\n// Data is flushed from fileStream in chunks,\n// this callback will be executed for each chunk\nfileStream.on('data', (chunk) => {\n    chunks.push(chunk); // push data chunk to array\n    // We can perform actions on the partial data we have so far!\n});"
+        }
+    ]
+}

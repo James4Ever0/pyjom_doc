@@ -1,0 +1,20 @@
+{
+    "summary": "The videoFrameIterator function initializes a video capture object, iterates through frames, checks arguments, raises exceptions, and reads frames using paddleocr. It stores metadata per batch, stops at no detection or end of video, and returns results in `mdata` and `metadata`.",
+    "details": [
+        {
+            "comment": "This function, videoFrameIterator, initializes a video capture object and iterates through the frames of a video file while maintaining a timestep. The timestep determines how many frames to skip between captures and can be adjusted based on user needs. It also includes checks for proper arguments and raises exceptions if any are not met.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/pyjom/medialang/functions/detectors/mediaDetector.py\":0-30",
+            "content": "from pyjom.medialang.commons import *\nimport cv2\n# import numpy.core.multiarray # caused by numpy version errors. upgrade to resolve.\nfrom videocr import get_subtitles  # are you sure?\nimport srt\nimport progressbar\ndef videoFrameIterator(\n    mediapath, timestep=0.5, framebatch=1, data_producer=None, keyword=None\n):\n    assert data_producer is not None\n    assert type(keyword) == str\n    assert type(framebatch) == int\n    assert framebatch >= 1\n    # obviously not for motion detection, if i was saying.\n    cap = cv2.VideoCapture(mediapath)\n    mdata = []\n    fps = cap.get(cv2.CAP_PROP_FPS)\n    frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)  # no need of this to get the timecode.\n    frames = int(frames)\n    # timestep = timestep # unit in seconds.\n    if timestep != None:\n        frameStep = int(fps * timestep)\n    else:\n        frameStep = 1 # for None we do frame by frame analysis.\n        timestep = 1/fps # generate fake timestep. nothing special.\n    assert frameStep > 0\n    frameIndex = 0\n    # while(cap.isOpened()):"
+        },
+        {
+            "comment": "This code reads frames from a video and processes them in batches using the paddleocr library. It stores metadata such as frame index, timecode, and resulting data for each processed batch. The loop stops when no object is detected or it reaches the end of the video. Finally, the captured metadata and the result are returned.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/pyjom/medialang/functions/detectors/mediaDetector.py\":31-59",
+            "content": "    stepframes = []\n    for _ in progressbar.progressbar(range(frames)):\n        ret, frame = cap.read()\n        if type(frame) != np.ndarray:\n            # most likely no thing shown.\n            break\n        timecode = float(frameIndex / fps)\n        if (frameIndex % frameStep) == 0:\n            # what is this shit?\n            # print(\"frame:\",type(frame))\n            # will be replaced!\n            stepframes.append(copy.deepcopy(frame))\n            if len(stepframes) == framebatch:\n                data = data_producer(\n                    *stepframes\n                )  # usually we treat frames differently?\n                stepframes.pop(0)\n                # this is part of paddleocr.\n                mdata.append(\n                    {\n                        \"time\": timecode,\n                        \"frame\": frameIndex,\n                        keyword: copy.deepcopy(data),\n                    }\n                )\n        frameIndex += 1\n    # result[\"subtitle_result\"][\"paddleocr\"] = mdata\n    cap.release()\n    metadata = {\"fps\": float(fps), \"timestep\": timestep, \"framebatch\": framebatch}"
+        },
+        {
+            "comment": "This line of code is returning two variables, `mdata` and `metadata`, after the function's processing.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/pyjom/medialang/functions/detectors/mediaDetector.py\":60-60",
+            "content": "    return mdata, metadata"
+        }
+    ]
+}

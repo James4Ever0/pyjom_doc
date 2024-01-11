@@ -1,0 +1,533 @@
+{
+    "1000": {
+        "file_id": 82,
+        "content": "/pyjom/modules/globalOptimizer/dummyOptimizer.py",
+        "type": "filepath"
+    },
+    "1001": {
+        "file_id": 82,
+        "content": "The code defines two decorators, `dummyOptimizer` and `dummyReviewOptimizer`, which take in a topic, feedback or review as parameters. They are intended for some optimization process but seem to be not optimized themselves. The inner function within `dummyOptimizer` prints the current topic and feedback, returning \"pending\". `dummyReviewOptimizer` returns \"processed and labeled content.\". It's unclear how these functions are meant to be used or their actual functionality.",
+        "type": "summary"
+    },
+    "1002": {
+        "file_id": 82,
+        "content": "from pyjom.commons import *\nfrom lazero.program.functools import (\n    iterateWithTempDirectory,\n)  # you can also switch to 'AUTO'\n@decorator  # called 'iterateWithTempDirectory'\ndef dummyOptimizer(topic, feedback):  # wtf is this?\n    # not optimized. need schedule.\n    @iterateWithTempDirectory()\n    def inner(elem):\n        print(\"current topic: %s\" % str(topic))\n        print(\"from feedback:\", elem)\n        return \"pending\"\n    return inner(feedback)\n@decorator\ndef dummyReviewOptimizer(topic, feedback, review):\n    return \"processed and labeled content.\"",
+        "type": "code",
+        "location": "/pyjom/modules/globalOptimizer/dummyOptimizer.py:1-21"
+    },
+    "1003": {
+        "file_id": 82,
+        "content": "The code defines two decorators, `dummyOptimizer` and `dummyReviewOptimizer`, which take in a topic, feedback or review as parameters. They are intended for some optimization process but seem to be not optimized themselves. The inner function within `dummyOptimizer` prints the current topic and feedback, returning \"pending\". `dummyReviewOptimizer` returns \"processed and labeled content.\". It's unclear how these functions are meant to be used or their actual functionality.",
+        "type": "comment"
+    },
+    "1004": {
+        "file_id": 83,
+        "content": "/pyjom/modules/informationGathering/weiboInfo.py",
+        "type": "filepath"
+    },
+    "1005": {
+        "file_id": 83,
+        "content": "The code fetches and parses Weibo posts related to a keyword, extracting information like title, URL, author, images, and videos. It handles topic-related video searches and uses a generator function for expiry prevention.",
+        "type": "summary"
+    },
+    "1006": {
+        "file_id": 83,
+        "content": "from pyjom.commons import *\nimport requests\nimport random\nimport jieba\nimport json\nimport parse\nimport urllib.parse\ndef weiboLinkSearch(keyword):\n    links = []\n    myfilter = list(jieba.cut(keyword))\n    myfilter = [x for x in myfilter if chineseDetector(x)]\n    page = random.randint(\n        1, 100\n    )  # just a demo we do not know how to handle this one just yet.\n    url = sinaWeiboApi[\"search_with_page\"].format(keyword, page)\n    with requests.get(url) as r:\n        print(\"STATUS_CODE:\", r.status_code)\n        if r.status_code == 200:\n            content = r.content.decode(\"utf-8\")\n            content = parse.parse(\"initFeed({content})\", content)\n            content = content[\"content\"]\n            # import pyperclip\n            # pyperclip.copy(content)\n            # print(content)\n            content = json.loads(content)\n            data = content[\"data\"]\n            feed1 = data[\"feed1\"]\n            for elem in feed1:\n                url = elem[\"url\"]\n                title = elem[\"title\"]\n                fsum = 0",
+        "type": "code",
+        "location": "/pyjom/modules/informationGathering/weiboInfo.py:1-33"
+    },
+    "1007": {
+        "file_id": 83,
+        "content": "This code is fetching the latest 100 Weibo posts containing a specified keyword. It first tokenizes the keyword using jieba, removes non-Chinese characters using chineseDetector, and randomly selects a page number between 1 to 100. Then, it constructs a URL for Sina Weibo API's search endpoint with the selected page, retrieves the content from the URL using requests, parses the JSON response containing the latest feeds, and extracts the URL and title of each feed. The fetched data is stored in the variables 'url' and 'title', respectively.",
+        "type": "comment"
+    },
+    "1008": {
+        "file_id": 83,
+        "content": "                for f in myfilter:\n                    if f in title:\n                        fsum += 1\n                if fsum == len(myfilter):\n                    links.append(url)\n            return links\ndef weiboStatusParser(content):\n    mtitle = None\n    if \"topic_struct\" in content.keys():\n        mtopic = [(x[\"topic_title\"], x[\"topic_url\"]) for x in content[\"topic_struct\"]]\n    else:\n        mtopic = None\n    mtext_raw = content[\"text_raw\"]\n    mtext = content[\"text\"]\n    mtime = content[\"created_at\"]\n    mauthor = content[\"user\"][\"screen_name\"]\n    mid = content[\"idstr\"]  # used for fetching comments.\n    mauthor_id = content[\"user\"][\"idstr\"]\n    mblogid = content[\"mblogid\"]\n    reposts_count = content[\"reposts_count\"]\n    comments_count = content[\"comments_count\"]\n    attitudes_count = content[\"attitudes_count\"]\n    mfeedback = {\n        \"reposts_count\": reposts_count,\n        \"comments_count\": comments_count,\n        \"attitudes_count\": attitudes_count,\n    }\n    mcontent = {\n        \"video\": None,\n        \"picture\": None,",
+        "type": "code",
+        "location": "/pyjom/modules/informationGathering/weiboInfo.py:34-66"
+    },
+    "1009": {
+        "file_id": 83,
+        "content": "This code parses a Weibo content, extracting relevant information such as title, author, text, timestamp, and feedback count. It checks for topic structures in the content and appends URLs to a list if specific filters are met. The code returns the parsed Weibo status data and related links.",
+        "type": "comment"
+    },
+    "1010": {
+        "file_id": 83,
+        "content": "        \"title\": mtitle,\n        \"topic\": mtopic,\n        \"text\": {\"raw\": mtext_raw, \"html\": mtext},\n        \"author\": mauthor,\n        \"meta\": {\"time\": mtime, \"id\": mid, \"mblogid\": mblogid, \"uid\": mauthor_id},\n        \"feedback\": mfeedback,\n    }\n    if len(content[\"pic_ids\"]) > 0 and content[\"pic_num\"] > 0:\n        print(\"picture count:\", content[\"pic_num\"])\n        content[\"picture\"] = []\n        for pid in content[\"pic_ids\"]:\n            pic_srcs = [\n                \"original\",\n                \"mw2000\",\n                \"largest\",\n                \"large\",\n                \"bmiddle\",\n                \"thumbnail\",\n            ]\n            picBase = content[\"pic_infos\"][pid]\n            picUrl = None\n            for src in pic_srcs:\n                if src in picBase.keys():\n                    picUrl = picBase[src]\n                    if \"url\" in picUrl.keys():\n                        picUrl = picUrl[\"url\"]\n                        if picUrl is not None:\n                            print(\"fetched picture [{}]\\n{}\".format(src, picUrl))",
+        "type": "code",
+        "location": "/pyjom/modules/informationGathering/weiboInfo.py:67-94"
+    },
+    "1011": {
+        "file_id": 83,
+        "content": "This code is extracting and organizing information from a Weibo post. It creates a dictionary with various details including title, topic, text, author, time, id, etc. If there are pictures in the post, it fetches them based on different sizes and adds the URL to a list in the dictionary.",
+        "type": "comment"
+    },
+    "1012": {
+        "file_id": 83,
+        "content": "                            break\n            if picUrl is not None:\n                content[\"picture\"].append(picUrl)\n            # only select the clearest, if possible.\n    elif \"page_info\" in content.keys():\n        print(content[\"page_info\"])  # this is how you print it.\n        videoBase = content[\"page_info\"][\"media_info\"]\n        potential_links = [\n            \"stream_url_hd\",\n            \"mp4_hd_url\",\n            \"h265_mp4_hd\",\n            \"inch_4_mp4_hd\",\n            \"inch_5_mp4_hd\",\n            \"inch_5_5_mp4_hd\",\n            \"mp4_sd_url\",\n            \"stream_url\",\n            \"h265_mp4_ld\",\n            \"mp4_720p_mp4\",\n            \"hevc_mp4_720p\",\n        ]\n        h5_url = videoBase[\"h5_url\"]\n        download_link = [videoBase[x] for x in potential_links if videoBase[x] != \"\"][0]\n        mvideo_info = {\n            \"video_orientation\": videoBase[\"video_orientation\"],\n            \"h5_url\": h5_url,\n            \"download_link\": download_link,\n        }\n        mcontent[\"video\"] = mvideo_info\n        # print(list(videoBase.keys()))",
+        "type": "code",
+        "location": "/pyjom/modules/informationGathering/weiboInfo.py:95-123"
+    },
+    "1013": {
+        "file_id": 83,
+        "content": "The code checks if \"page_info\" exists in content and then proceeds to extract potential video links from the \"videoBase\". It creates a new dictionary, mvideo_info, containing the video orientation, h5_url, and download link. Finally, it adds this new dictionary to the content under the key \"video\".",
+        "type": "comment"
+    },
+    "1014": {
+        "file_id": 83,
+        "content": "        if \"video_title\" not in videoBase.keys():\n            try:\n                mcontent[\"title\"] = videoBase[\"titles\"][0][\"title\"]\n            except:\n                try:\n                    mcontent[\"title\"] = videoBase[\"content2\"]\n                except:\n                    try:\n                        mcontent[\"title\"] = videoBase[\"video_title\"]\n                    except:\n                        try:\n                            mcontent[\"title\"] = videoBase[\"next_title\"]\n                        except:\n                            try:\n                                mcontent[\"title\"] = videoBase[\"cards\"][0][\"content2\"]\n                            except:\n                                mcontent[\"title\"] = videoBase[\"page_title\"]\n        else:\n            mcontent[\"title\"] = videoBase[\"video_title\"]\n    return mcontent\ndef weiboVideoSearch(keyword):\n    links = weiboLinkSearch(keyword)\n    # info = []\n    for link in links:  # use yleid here.\n        myId = link.split(\"/\")[-1]\n        # need cookie to do the job?",
+        "type": "code",
+        "location": "/pyjom/modules/informationGathering/weiboInfo.py:124-151"
+    },
+    "1015": {
+        "file_id": 83,
+        "content": "The code attempts to fetch the video title from various possible keys in the 'videoBase' dictionary. If \"video_title\" doesn't exist, it tries alternative keys. It then returns the 'mcontent' dictionary containing the retrieved or default title. The function 'weiboVideoSearch' performs a keyword-based search for links and processes each link separately with a specific ID extraction method.",
+        "type": "comment"
+    },
+    "1016": {
+        "file_id": 83,
+        "content": "        videoLink = sinaWeiboApi[\"weibo_status_by_blogid\"].format(\n            myId\n        )  # sina got better grammar?\n        # videoLink = \"https://www.weibo.com/ajax/status/show?id=\"+myId\n        with requests.get(videoLink) as r:\n            print(\"fetching video link:\", videoLink)\n            print(\"STATUS_CODE:\", r.status_code)\n            if r.status_code == 200:\n                content = r.text\n                # print('response content:',content)\n                # this is not formatted. this is pure json i suppose.\n                # content = parse.parse(\"initFeed({content})\",content)\n                if content == None:\n                    print(\"skipping link:\", videoLink)\n                    continue\n                # content = content[\"content\"]\n                # with open(\"{}.json\".format(myId),\"w+\",encoding=\"utf-8\") as f:\n                #     f.write(content)\n                content = json.loads(content)\n                mcontent = weiboStatusParser(content)  # this is a generator, not a list.",
+        "type": "code",
+        "location": "/pyjom/modules/informationGathering/weiboInfo.py:152-171"
+    },
+    "1017": {
+        "file_id": 83,
+        "content": "Code fetches the video link using the Sina Weibo API and checks if the status code is 200. If successful, it retrieves the response content and parses it as JSON to extract relevant information. The extracted information is then processed by a generator function called weiboStatusParser.",
+        "type": "comment"
+    },
+    "1018": {
+        "file_id": 83,
+        "content": "                yield mcontent # this is a generator, not a list. how to get our feedback?\n        # return info\n        # make it into generator so links will not expire so damn fast.\ndef weiboInfoLogic(topic):\n    infoDict = {}\n    for elem in topic[\"entities\"]:\n        keyword = elem[\"chinese\"]\n        if keyword is not None:\n            info = weiboVideoSearch(keyword)\n            infoDict.update({keyword: info})\n    return infoDict\n@decorator\ndef weiboInfo(topic):\n    infoDict = weiboInfoLogic(topic)\n    return infoDict\n@decorator\ndef weiboFetcher(topic):\n    mtopic_bytes = json.dumps(topic).encode()\n    protocol = \"sinafetch://{}\".format(\n        urllib.parse.quote(mtopic_bytes)\n    )  # this is the posted_location, submit to feedback. containing the keyword in json.\n    # which is not desired since in this way we will not get the feedback.\n    infoDict = weiboInfoLogic(topic)\n    return protocol, infoDict",
+        "type": "code",
+        "location": "/pyjom/modules/informationGathering/weiboInfo.py:172-201"
+    },
+    "1019": {
+        "file_id": 83,
+        "content": "The code defines a function `weiboInfoLogic` that searches for videos related to a given topic and returns the results in a dictionary. It also defines a decorator (not shown) that is applied to the `weiboInfo` and `weiboFetcher` functions. The `weiboInfo` function calls `weiboInfoLogic` to gather information about the topic, while the `weiboFetcher` function constructs a protocol for submitting the topic and also calls `weiboInfoLogic`. The code uses generator to make the links not expire quickly.",
+        "type": "comment"
+    },
+    "1020": {
+        "file_id": 84,
+        "content": "/pyjom/modules/informationGathering/onlineFetcher.py",
+        "type": "filepath"
+    },
+    "1021": {
+        "file_id": 84,
+        "content": "OnlineFetcher is a decorator for retrieving online media assets with specific criteria using lazero libraries. It chains functions, fetches URLs from frame metadata, creates download paths and skips unsuccessful downloads while handling exceptions during Giphy asset fetching.",
+        "type": "summary"
+    },
+    "1022": {
+        "file_id": 84,
+        "content": "from pyjom.commons import *\nfrom typing import Literal\nfrom lazero.network import download\nfrom lazero.filesystem import tmpdir\n@decorator\ndef OnlineFetcher(\n    infoList,\n    source: Literal[\"giphy\"] = \"giphy\",\n    frame_size_filter: dict = {\n        \"width\": {\"min\": 150, \"max\": 1000},\n        \"height\": {\"min\": 150, \"max\": 1000},\n    },\n    tempdir=\"/dev/shm/medialang/online\",\n    threads=20,\n    # threads=-0.5,\n    use_multithread=True,\n    timeout=120\n):\n    # how do you chain this shit up?\n    assert os.path.isabs(tempdir)\n    with tmpdir(path=tempdir) as TD:\n        assert os.path.isdir(tempdir)\n        assert os.path.exists(tempdir)\n        for info in infoList:  # generator most likely\n            if source == \"giphy\":\n                (source_id, frameMeta) = info\n                width, height = frameMeta[\"width\"], frameMeta[\"height\"]\n                asset_id = \"video_[{}_{}]_[{}x{}]\".format(source, source_id, width, height)\n                flag = frameSizeFilter(frameMeta, frame_size_filter)\n                if flag:",
+        "type": "code",
+        "location": "/pyjom/modules/informationGathering/onlineFetcher.py:1-32"
+    },
+    "1023": {
+        "file_id": 84,
+        "content": "The function, OnlineFetcher, is a decorator that takes in a list of information and retrieves online media assets based on certain criteria such as source, frame size filter, temporary directory path, number of threads for multithreading, and timeout duration. It uses the download and tmpdir functions from lazero libraries for network downloading and temporary directories respectively. The function is chained to perform these operations.",
+        "type": "comment"
+    },
+    "1024": {
+        "file_id": 84,
+        "content": "                    # this time it is selected.\n                    url = frameMeta[\"url\"]\n                    extension = url.split(\"?\")[0].split(\".\")[-1]\n                    basename = \".\".join([asset_id, extension])\n                    download_path = os.path.join(tempdir, basename)\n                    try:\n                        result = download(\n                            url,\n                            download_path,\n                            threads=threads,\n                            size_filter={\"min\": 0.4, \"max\": 50},\n                            use_multithread=use_multithread,\n                            timeout=timeout\n                        )\n                        if result:\n                            yield source_id, download_path\n                        else:\n                            print(\"not downloading source:\", source_id)\n                            print(\"skipping:\", frameMeta)\n                            # print(\"____WTF IS GOING ON WITH THE DOWNLOADER?____\")\n                            # breakpoint()",
+        "type": "code",
+        "location": "/pyjom/modules/informationGathering/onlineFetcher.py:33-53"
+    },
+    "1025": {
+        "file_id": 84,
+        "content": "Code block fetches the URL from frame metadata, extracts extension and filename, creates download path, attempts to download file using specified parameters (threads, size filter, use_multithread, timeout), yields source ID and download path if successful, skips and logs if unsuccessful.",
+        "type": "comment"
+    },
+    "1026": {
+        "file_id": 84,
+        "content": "                    except:\n                        import traceback\n                        traceback.print_exc()\n                        print(\"error fetching assets from giphy\")",
+        "type": "code",
+        "location": "/pyjom/modules/informationGathering/onlineFetcher.py:54-57"
+    },
+    "1027": {
+        "file_id": 84,
+        "content": "This code segment catches exceptions during asset fetching from Giphy and prints the error message along with stack trace.",
+        "type": "comment"
+    },
+    "1028": {
+        "file_id": 85,
+        "content": "/pyjom/modules/informationGathering/localFetcher.py",
+        "type": "filepath"
+    },
+    "1029": {
+        "file_id": 85,
+        "content": "This code defines a function called filesystemFetcher that takes a topic as input. The function uses the protocol and path from the topic to create a URI. It also iterates over the content in the topic, determining the file type for each item using getLocalFileType. Finally, it adds this information to a list and returns the URI and the content.",
+        "type": "summary"
+    },
+    "1030": {
+        "file_id": 85,
+        "content": "from pyjom.commons import *\n@decorator\ndef filesystemFetcher(topic):\n    protocol = topic[\"protocol\"]\n    path = topic[\"path\"]\n    content = []\n    for fname in topic[\"content\"]:\n        ftype = getLocalFileType(fname)\n        content.append({\"type\": ftype, \"path\": fname})\n    # maybe using this protocol is a good start to pass things around?\"\n    return \"{}://{}\".format(protocol, path), content",
+        "type": "code",
+        "location": "/pyjom/modules/informationGathering/localFetcher.py:1-13"
+    },
+    "1031": {
+        "file_id": 85,
+        "content": "This code defines a function called filesystemFetcher that takes a topic as input. The function uses the protocol and path from the topic to create a URI. It also iterates over the content in the topic, determining the file type for each item using getLocalFileType. Finally, it adds this information to a list and returns the URI and the content.",
+        "type": "comment"
+    },
+    "1032": {
+        "file_id": 86,
+        "content": "/pyjom/modules/informationGathering/dummyInfoGather.py",
+        "type": "filepath"
+    },
+    "1033": {
+        "file_id": 86,
+        "content": "This function, dummyInfo, returns a list of animals (husky, cats, and kitten) without any context. It is likely used in a broader program as a placeholder or dummy information gathering module.",
+        "type": "summary"
+    },
+    "1034": {
+        "file_id": 86,
+        "content": "from pyjom.commons import *\n@decorator\ndef dummyInfo(topic):\n    return [\"husky\", \"cats\", \"kitten\"]",
+        "type": "code",
+        "location": "/pyjom/modules/informationGathering/dummyInfoGather.py:1-6"
+    },
+    "1035": {
+        "file_id": 86,
+        "content": "This function, dummyInfo, returns a list of animals (husky, cats, and kitten) without any context. It is likely used in a broader program as a placeholder or dummy information gathering module.",
+        "type": "comment"
+    },
+    "1036": {
+        "file_id": 87,
+        "content": "/pyjom/modules/informationGathering/dummyFetcher.py",
+        "type": "filepath"
+    },
+    "1037": {
+        "file_id": 87,
+        "content": "The code defines a function \"dummyFetcher\" which takes a topic as input and returns a protocol string along with a dictionary containing information about huskies. This could be used for passing data between different parts of the application.",
+        "type": "summary"
+    },
+    "1038": {
+        "file_id": 87,
+        "content": "from pyjom.commons import *\n@decorator\ndef dummyFetcher(topic):\n    # maybe using this protocol is a good start to pass things around?\"\n    return \"randomprotocol://randomcontent\", {\"husky\": {\"video\": \"<cute huskies>\"}}",
+        "type": "code",
+        "location": "/pyjom/modules/informationGathering/dummyFetcher.py:1-7"
+    },
+    "1039": {
+        "file_id": 87,
+        "content": "The code defines a function \"dummyFetcher\" which takes a topic as input and returns a protocol string along with a dictionary containing information about huskies. This could be used for passing data between different parts of the application.",
+        "type": "comment"
+    },
+    "1040": {
+        "file_id": 88,
+        "content": "/pyjom/modules/informationGathering/__init__.py",
+        "type": "filepath"
+    },
+    "1041": {
+        "file_id": 88,
+        "content": "This code imports various modules for information gathering from different sources, such as dummy, Weibo, and online services. It includes functionality for fetching data locally or from the internet.",
+        "type": "summary"
+    },
+    "1042": {
+        "file_id": 88,
+        "content": "from pyjom.modules.informationGathering.dummyInfoGather import *\nfrom pyjom.modules.informationGathering.dummyFetcher import *\nfrom pyjom.modules.informationGathering.weiboInfo import *\nfrom pyjom.modules.informationGathering.localFetcher import *\nfrom pyjom.modules.informationGathering.onlineFetcher import *",
+        "type": "code",
+        "location": "/pyjom/modules/informationGathering/__init__.py:1-5"
+    },
+    "1043": {
+        "file_id": 88,
+        "content": "This code imports various modules for information gathering from different sources, such as dummy, Weibo, and online services. It includes functionality for fetching data locally or from the internet.",
+        "type": "comment"
+    },
+    "1044": {
+        "file_id": 89,
+        "content": "/pyjom/modules/globalUpdator/dummyUpdator.py",
+        "type": "filepath"
+    },
+    "1045": {
+        "file_id": 89,
+        "content": "The code imports necessary modules, defines a function 'dummyUpdator' decorated with an unknown decorator and wrapped in 'iterateWithTempDirectory()'. It returns the string \"updated. since it is pending we will schedule another optimization\".",
+        "type": "summary"
+    },
+    "1046": {
+        "file_id": 89,
+        "content": "from pyjom.commons import *\nfrom lazero.program.functools import iterateWithTempDirectory\n@decorator\n@iterateWithTempDirectory()\ndef dummyUpdator(optimized_result):\n    return \"updated. since it is pending we will schedule another optimization\"",
+        "type": "code",
+        "location": "/pyjom/modules/globalUpdator/dummyUpdator.py:1-7"
+    },
+    "1047": {
+        "file_id": 89,
+        "content": "The code imports necessary modules, defines a function 'dummyUpdator' decorated with an unknown decorator and wrapped in 'iterateWithTempDirectory()'. It returns the string \"updated. since it is pending we will schedule another optimization\".",
+        "type": "comment"
+    },
+    "1048": {
+        "file_id": 90,
+        "content": "/pyjom/modules/globalUpdator/__init__.py",
+        "type": "filepath"
+    },
+    "1049": {
+        "file_id": 90,
+        "content": "This code imports all the functions and classes from the \"dummyUpdator\" module in the \"pyjom.modules.globalUpdator.dummyUpdator\" package, allowing them to be used within this file or other parts of the program as needed.",
+        "type": "summary"
+    },
+    "1050": {
+        "file_id": 90,
+        "content": "from pyjom.modules.globalUpdator.dummyUpdator import *",
+        "type": "code",
+        "location": "/pyjom/modules/globalUpdator/__init__.py:1-1"
+    },
+    "1051": {
+        "file_id": 90,
+        "content": "This code imports all the functions and classes from the \"dummyUpdator\" module in the \"pyjom.modules.globalUpdator.dummyUpdator\" package, allowing them to be used within this file or other parts of the program as needed.",
+        "type": "comment"
+    },
+    "1052": {
+        "file_id": 91,
+        "content": "/pyjom/modules/feedbackCollecting/dummyFeedback.py",
+        "type": "filepath"
+    },
+    "1053": {
+        "file_id": 91,
+        "content": "The code imports necessary modules, defines a function `dummyFeedback` that takes 'content' as input, and prints the content while returning \"pending\". The decorator is used for function execution in a temporary directory.",
+        "type": "summary"
+    },
+    "1054": {
+        "file_id": 91,
+        "content": "from pyjom.commons import *\nfrom lazero.program.functools import iterateWithTempDirectory # you can also switch to 'AUTO'\n@decorator\n@iterateWithTempDirectory()\ndef dummyFeedback(\n    content # i think i need another function decorator for this. really? this will break pattern, for sure. temp files will be missing? so you need some tempdir decorator?\n):  # anyway, it is dummy. i don't expect nothing.\n    print(\"from poster:\", content)\n    return \"pending\"",
+        "type": "code",
+        "location": "/pyjom/modules/feedbackCollecting/dummyFeedback.py:1-11"
+    },
+    "1055": {
+        "file_id": 91,
+        "content": "The code imports necessary modules, defines a function `dummyFeedback` that takes 'content' as input, and prints the content while returning \"pending\". The decorator is used for function execution in a temporary directory.",
+        "type": "comment"
+    },
+    "1056": {
+        "file_id": 92,
+        "content": "/pyjom/modules/feedbackCollecting/__init__.py",
+        "type": "filepath"
+    },
+    "1057": {
+        "file_id": 92,
+        "content": "The code imports all functions and classes from the 'dummyFeedback' module and 'weiboFeedback' module into the current file, allowing for their use within this module.",
+        "type": "summary"
+    },
+    "1058": {
+        "file_id": 92,
+        "content": "from pyjom.modules.feedbackCollecting.dummyFeedback import *\nfrom pyjom.modules.feedbackCollecting.weiboFeedback import *",
+        "type": "code",
+        "location": "/pyjom/modules/feedbackCollecting/__init__.py:1-2"
+    },
+    "1059": {
+        "file_id": 92,
+        "content": "The code imports all functions and classes from the 'dummyFeedback' module and 'weiboFeedback' module into the current file, allowing for their use within this module.",
+        "type": "comment"
+    },
+    "1060": {
+        "file_id": 93,
+        "content": "/pyjom/modules/feedbackCollecting/weiboFeedback.py",
+        "type": "filepath"
+    },
+    "1061": {
+        "file_id": 93,
+        "content": "This code fetches Weibo feedback data, extracts comment info, populates a dictionary with details, and appends meta and updated feedback to \"mfeedback\" for specified key.",
+        "type": "summary"
+    },
+    "1062": {
+        "file_id": 93,
+        "content": "from pyjom.commons import *\nimport requests\nimport json\ndef weiboCheckFeedback(meta, with_user=False):\n    feedback = {\"comments\": []}\n    id_ = meta[\"id\"]\n    uid = meta[\"uid\"]\n    url = sinaWeiboApi[\"weibo_build_comments\"].format(100, id_, uid)\n    with requests.get(url) as r:# somwhow working but we usually have nothing to see.\n        mdata = r.text\n        mdata = json.loads(mdata)\n        if mdata[\"ok\"] == 1: # what is this ok?\n            for elem in mdata[\"data\"]:\n                elem0 = {}\n                elem0[\"text\"] = elem[\"text\"]\n                if with_user:\n                    userMeta = elem[\"user\"]\n                    userMeta = {k:userMeta[k] for k in [\"id\",\"name\"]}\n                    elem0[\"user\"] = userMeta\n                elem0[\"like_counts\"] = elem[\"like_counts\"]\n                elem0[\"comments\"] = []\n                for comm in elem[\n                    \"comments\"\n                ]:  # also have reply_comment, though i don't know what it really means here.\n                    comm0 = {}",
+        "type": "code",
+        "location": "/pyjom/modules/feedbackCollecting/weiboFeedback.py:1-27"
+    },
+    "1063": {
+        "file_id": 93,
+        "content": "The code is fetching feedback data from a Weibo API and extracting comment information. It makes requests to the API, parses JSON responses, and populates a dictionary with the comment details including text, user (if specified), and like counts. Comments are nested within each post and reply comments are also present, but their significance is unclear.",
+        "type": "comment"
+    },
+    "1064": {
+        "file_id": 93,
+        "content": "                    comm0[\"text\"] = comm[\"text\"]\n                    if with_user:\n                        userMeta2 = comm[\"user\"]\n                        userMeta2 = {k:userMeta2[k] for k in [\"id\",\"name\"]} # we don't fancy things here\n                        comm0[\"user\"] = userMeta2\n                    comm0[\"like_count\"] = comm[\"like_count\"]\n                    elem0[\"comments\"].append(comm0)\n                feedback[\"comments\"].append(elem0)\n        else:\n            print(json.dumps(mdata,indent=4))\n            print(\"NOT OK WITH WEIBO FEEDBACK!\")\n        return feedback\n@decorator\ndef weiboFeedback(content,with_user=False):\n    mfeedback = {}  # ordered by the blog id.\n    # it will create shit after all. debug first.\n    for key in content:\n        mfeedback[key] = []\n        print(\"feedback key:\",key)\n        print(\"feedback value:\",content[key])\n        for blog in content[key]:\n            review = blog[\"review\"] # what is this heck?\n            meta = review[\"meta\"]\n            print(\"feedback meta:\")",
+        "type": "code",
+        "location": "/pyjom/modules/feedbackCollecting/weiboFeedback.py:28-53"
+    },
+    "1065": {
+        "file_id": 93,
+        "content": "Function weiboFeedback takes content and optional with_user parameter, checks if there are feedback entries for each blog, appends comment elements to corresponding keys in mfeedback dictionary, and returns the feedback data.",
+        "type": "comment"
+    },
+    "1066": {
+        "file_id": 93,
+        "content": "            print(json.dumps(meta,indent=4))\n            feedback = review[\"feedback\"] # what is this update?\n            data = weiboCheckFeedback(meta,with_user=with_user)\n            feedback.update(data)\n            mfeedback[key].append({\"meta\": meta, \"feedback\": feedback})\n    return mfeedback",
+        "type": "code",
+        "location": "/pyjom/modules/feedbackCollecting/weiboFeedback.py:54-59"
+    },
+    "1067": {
+        "file_id": 93,
+        "content": "This code prints the JSON representation of \"meta\" with indentation, retrieves feedback from the \"review\", updates \"feedback\" with data from \"weiboCheckFeedback\", and appends meta and updated feedback to \"mfeedback\" for the specified key.",
+        "type": "comment"
+    },
+    "1068": {
+        "file_id": 94,
+        "content": "/pyjom/config/shared.py",
+        "type": "filepath"
+    },
+    "1069": {
+        "file_id": 94,
+        "content": "The code initializes a dictionary named \"pyjom_config\" with a single key-value pair. The key is \"BEZIER_PADDLE_RESNET50_IMAGE_DOG_CAT_DETECTOR_SERVER_INSTANCE\", and its value is set to False. This configuration appears to relate to various components of an image detection system, possibly including a Bezier paddle, Paddle ResNet50 model, Dog/Cat detector, and server instance.",
+        "type": "summary"
+    },
+    "1070": {
+        "file_id": 94,
+        "content": "pyjom_config=dict(BEZIER_PADDLE_RESNET50_IMAGE_DOG_CAT_DETECTOR_SERVER_INSTANCE=False)",
+        "type": "code",
+        "location": "/pyjom/config/shared.py:1-1"
+    },
+    "1071": {
+        "file_id": 94,
+        "content": "The code initializes a dictionary named \"pyjom_config\" with a single key-value pair. The key is \"BEZIER_PADDLE_RESNET50_IMAGE_DOG_CAT_DETECTOR_SERVER_INSTANCE\", and its value is set to False. This configuration appears to relate to various components of an image detection system, possibly including a Bezier paddle, Paddle ResNet50 model, Dog/Cat detector, and server instance.",
+        "type": "comment"
+    },
+    "1072": {
+        "file_id": 95,
+        "content": "/pyjom/config/__init__.py",
+        "type": "filepath"
+    },
+    "1073": {
+        "file_id": 95,
+        "content": "This code imports all functions and variables from the \"sina\" and \"medialang\" modules within the pyjom.config package. These modules may contain configurations for different components or services used in the application, potentially related to Sina Weibo and Media Language processing.",
+        "type": "summary"
+    },
+    "1074": {
+        "file_id": 95,
+        "content": "from pyjom.config.sina import *\nfrom pyjom.config.medialang import *",
+        "type": "code",
+        "location": "/pyjom/config/__init__.py:1-2"
+    },
+    "1075": {
+        "file_id": 95,
+        "content": "This code imports all functions and variables from the \"sina\" and \"medialang\" modules within the pyjom.config package. These modules may contain configurations for different components or services used in the application, potentially related to Sina Weibo and Media Language processing.",
+        "type": "comment"
+    },
+    "1076": {
+        "file_id": 96,
+        "content": "/pyjom/config/sina/sinaWeibo.py",
+        "type": "filepath"
+    },
+    "1077": {
+        "file_id": 96,
+        "content": "The code defines a dictionary named \"sinaWeiboApi\" with three API endpoints for interacting with Sina Weibo. The \"search_with_page\" endpoint performs search queries, \"weibo_status_by_blogid\" retrieves a specific weibo status by blog ID, and \"weibo_build_comments\" fetches comments for a given weibo status.",
+        "type": "summary"
+    },
+    "1078": {
+        "file_id": 96,
+        "content": "sinaWeiboApi = {\n    \"search_with_page\": \"http://sinanews.sina.cn/interface/type_of_search.d.html?callback=initFeed&keyword={}&page={}&type=siftWb&size=20&newpage=0&chwm=&imei=&token=&did=&from=&oldchwm=\",\n    \"weibo_status_by_blogid\": \"https://www.weibo.com/ajax/statuses/show?id={}\",\n    \"weibo_build_comments\": \"https://weibo.com/ajax/statuses/buildComments?flow=0&is_reload=1&count={}&id={}&is_show_bulletin=2&is_mix=0&uid={}\",\n}",
+        "type": "code",
+        "location": "/pyjom/config/sina/sinaWeibo.py:1-5"
+    },
+    "1079": {
+        "file_id": 96,
+        "content": "The code defines a dictionary named \"sinaWeiboApi\" with three API endpoints for interacting with Sina Weibo. The \"search_with_page\" endpoint performs search queries, \"weibo_status_by_blogid\" retrieves a specific weibo status by blog ID, and \"weibo_build_comments\" fetches comments for a given weibo status.",
+        "type": "comment"
+    },
+    "1080": {
+        "file_id": 97,
+        "content": "/pyjom/config/sina/__init__.py",
+        "type": "filepath"
+    },
+    "1081": {
+        "file_id": 97,
+        "content": "The code imports all the functions, classes, and variables from the \"sinaWeibo\" module in the \"pyjom.config.sina\" package.",
+        "type": "summary"
+    },
+    "1082": {
+        "file_id": 97,
+        "content": "from pyjom.config.sina.sinaWeibo import *",
+        "type": "code",
+        "location": "/pyjom/config/sina/__init__.py:1-1"
+    },
+    "1083": {
+        "file_id": 97,
+        "content": "The code imports all the functions, classes, and variables from the \"sinaWeibo\" module in the \"pyjom.config.sina\" package.",
+        "type": "comment"
+    },
+    "1084": {
+        "file_id": 98,
+        "content": "/pyjom/config/medialang/protocols.py",
+        "type": "filepath"
+    },
+    "1085": {
+        "file_id": 98,
+        "content": "The code defines a dictionary named `medialangProtocols` with two keys: \"input\" and \"output\". The \"input\" key holds an array of protocols for input data sources, while the \"output\" key holds an array of protocols for output data destinations.",
+        "type": "summary"
+    },
+    "1086": {
+        "file_id": 98,
+        "content": "medialangProtocols = {\n    \"input\": [\"http://\", \"https://\", \"text://\", \"subtitle://\", \"sinafetch://\"],\n    \"output\": [\"bilibili_post://\"],\n}",
+        "type": "code",
+        "location": "/pyjom/config/medialang/protocols.py:1-4"
+    },
+    "1087": {
+        "file_id": 98,
+        "content": "The code defines a dictionary named `medialangProtocols` with two keys: \"input\" and \"output\". The \"input\" key holds an array of protocols for input data sources, while the \"output\" key holds an array of protocols for output data destinations.",
+        "type": "comment"
+    },
+    "1088": {
+        "file_id": 99,
+        "content": "/pyjom/config/medialang/__init__.py",
+        "type": "filepath"
+    },
+    "1089": {
+        "file_id": 99,
+        "content": "This code imports all modules from the \"pyjom.config.medialang.protocols\" package into the current namespace, allowing access to various media language protocols used within the application.",
+        "type": "summary"
+    },
+    "1090": {
+        "file_id": 99,
+        "content": "from pyjom.config.medialang.protocols import *",
+        "type": "code",
+        "location": "/pyjom/config/medialang/__init__.py:1-1"
+    },
+    "1091": {
+        "file_id": 99,
+        "content": "This code imports all modules from the \"pyjom.config.medialang.protocols\" package into the current namespace, allowing access to various media language protocols used within the application.",
+        "type": "comment"
+    },
+    "1092": {
+        "file_id": 100,
+        "content": "/pyjom/platforms/bilibili/utils.py",
+        "type": "filepath"
+    },
+    "1093": {
+        "file_id": 100,
+        "content": "The code uses functions for API synchronization, error handling, and list conversions to parse BGM information and durations. It also defines cleaning functions like `clearHtmlTags` and `detectAuthorRelatedKeywords` to remove unwanted characters and author-related keywords from video titles and tags.",
+        "type": "summary"
+    },
+    "1094": {
+        "file_id": 100,
+        "content": "import types\nfrom bilibili_api import sync\n# import json\nfrom bs4 import BeautifulSoup\nfrom lazero.utils.logger import sprint\n# wtf is async generator type?\ndef bilibiliSync(func):\n    def wrapper(*args, **kwargs):\n        coroutineMaybe = func(*args, **kwargs)\n        if type(coroutineMaybe) == types.CoroutineType:\n            return sync(coroutineMaybe)\n        else:\n            return coroutineMaybe\n    return wrapper\n######## import all below functions to searchDataParser.\n# from pyjom.platforms.bilibili.utils import generatorToList, linkFixer,traceError, extractLinks,videoDurationStringToSeconds,getAuthorKeywords,clearHtmlTags,splitTitleTags,removeAuthorRelatedTags\ndef generatorToList(generator):\n    return [x for x in generator]\ndef linkFixer(link, prefix=\"http:\"):\n    if link.startswith(\"//\"):\n        return prefix + link\n    return link\ndef traceError(errorMsg: str = \"error!\", _breakpoint: bool = False):\n    import traceback\n    traceback.print_exc()\n    sprint(errorMsg)\n    if _breakpoint:\n        return breakpoint()",
+        "type": "code",
+        "location": "/pyjom/platforms/bilibili/utils.py:1-41"
+    },
+    "1095": {
+        "file_id": 100,
+        "content": "This code is related to the bilibili platform and contains functions for synchronizing API calls, converting generator to list, fixing links, handling errors with traceback, and more. It's likely part of a larger project focused on working with the bilibili API.",
+        "type": "comment"
+    },
+    "1096": {
+        "file_id": 100,
+        "content": "def extractLinks(description, extract_bgm=True):\n    \"\"\"Extract and remove links in description\"\"\"\n    import re\n    # notice, we don't need to go wild here. we just want the title and the cover, and the tags.\n    expression = r\"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\"\n    # expr = re.compile(expression)\n    links = re.findall(expression, description)\n    # if links == None:\n    #     links = []\n    desc_without_link = re.sub(expression, \"\", description)\n    desc_without_link_per_line = [\n        x.replace(\"\\n\", \"\").strip() for x in desc_without_link.split(\"\\n\")\n    ]\n    desc_without_link_per_line = [x for x in desc_without_link_per_line if len(x) > 0]\n    bgms = []\n    final_desc_list = []\n    if not extract_bgm:\n        final_desc_list = desc_without_link_per_line\n    else:\n        for line in desc_without_link_per_line:\n            bgmCandidateTemplates = [\"{}：\", \"{}:\", \"{} \"]\n            fixers = [x.format(\"\") for x in bgmCandidateTemplates]\n            bgmCandidates = [x.format(\"bgm\") + \"(.+)\" for x in bgmCandidateTemplates]",
+        "type": "code",
+        "location": "/pyjom/platforms/bilibili/utils.py:44-67"
+    },
+    "1097": {
+        "file_id": 100,
+        "content": "The code defines a function `extractLinks` that takes in a description and optionally extracts background music (BGM) links. It uses regular expressions to find and remove links from the description, then splits the description into lines. If BGM extraction is enabled, it searches for BGM candidates using templates and formats them correctly. The final result is a list of non-empty lines without links or potential BGM information if BGM extraction is disabled.",
+        "type": "comment"
+    },
+    "1098": {
+        "file_id": 100,
+        "content": "            has_bgm = False\n            for candidate in bgmCandidates:\n                bgm_parse_result = re.findall(candidate, line.lower())\n                if len(bgm_parse_result) > 0:\n                    has_bgm = True\n                    # bgm = line[len(bgmCandidates) :]\n                    bgm = bgm_parse_result[0]\n                    bgm = bgm.strip()\n                    for fixer in fixers:\n                        bgm = bgm.strip(fixer)\n                    if len(bgm) > 0:\n                        bgms.append(bgm)\n                    break\n            if not has_bgm:\n                final_desc_list.append(line)\n    desc_without_link = \"\\n\".join(final_desc_list)\n    return links, bgms, desc_without_link\nfrom typing import Literal\nimport re\nfrom typing import Union\ndef videoDurationStringToSeconds(\n    durationString:Union[str, None], method: Literal[\"vtc\", \"basic\"] = \"vtc\"\n):\n    if durationString in [\"-\", None]:\n        return None\n    if type(durationString) != str:\n        return None\n    if re.findall(r\"\\d\", durationString) == []:",
+        "type": "code",
+        "location": "/pyjom/platforms/bilibili/utils.py:68-99"
+    },
+    "1099": {
+        "file_id": 100,
+        "content": "The code is parsing a line for background music (BGM) information using regular expressions. If BGM is found, it appends to bgms list; if not, the line is added to final_desc_list. The function videoDurationStringToSeconds converts video duration string to seconds based on given method (vtc or basic). It checks for invalid input (empty string or None) and returns None in those cases.",
+        "type": "comment"
+    }
+}

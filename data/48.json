@@ -1,0 +1,540 @@
+{
+    "4800": {
+        "file_id": 617,
+        "content": "    sleep: int = BAIDU_API_SLEEP_TIME,\n    lock_file: str = BAIDU_TRANSLATOR_LOCK_FILE,\n):  # target language must be chinese.\n    import filelock\n    lock = filelock.FileLock(lock_file)\n    with lock:\n        import time\n        time.sleep(sleep)\n        language_translation_model = getBaiduLanguageTranslationModel()\n        translated_content = language_translation_model.translate(\n            content, source, target\n        )\n        return translated_content\nfrom typing import Iterable, Union\nimport random\ndef baiduParaphraserByTranslation(\n    content: str,\n    debug: bool = False,\n    paraphrase_depth: Union[\n        int, Iterable\n    ] = 1,  # only 1 intermediate language, default.\n    suggested_middle_languages: list[str] = [\n        \"zh\",\n        \"en\",\n        \"jp\",\n    ],  # english, japanese, chinese\n):\n    if issubclass(type(paraphrase_depth), Iterable):\n        paraphrase_depth = random.choice(paraphrase_depth)\n    target_language_id = baidu_lang_detect(content)\n    all_middle_languages = list(set(suggested_middle_languages + [target_language_id]))",
+        "type": "code",
+        "location": "/tests/title_rewrite_paraphrase/test_baidu_paraphrase.py:42-81"
+    },
+    "4801": {
+        "file_id": 617,
+        "content": "This code defines a function called `baiduParaphraserByTranslation` that paraphrases text using the Baidu API. It first detects the target language, then randomly selects one or more intermediate languages from a list of suggested middle languages. The function uses the getBaiduLanguageTranslationModel() to translate the content through each intermediate language, resulting in a paraphrased version of the original text. The translation is done in multiple steps with a sleep time between each step.",
+        "type": "comment"
+    },
+    "4802": {
+        "file_id": 617,
+        "content": "    assert paraphrase_depth > 0\n    if paraphrase_depth > 1:\n        assert len(all_middle_languages) >= 3\n    current_language_id = target_language_id\n    middle_content = content\n    head_tail_indexs = set([0, paraphrase_depth - 1])\n    intermediate_languages = []\n    for loop_id in range(paraphrase_depth):\n        forbid_langs = set([current_language_id])\n        if loop_id in head_tail_indexs:\n            forbid_langs.add(target_language_id)\n        non_target_middle_languages = [\n            langid for langid in all_middle_languages if langid not in forbid_langs\n        ]\n        if debug:\n            print(f\"INDEX: {loop_id} INTERMEDIATE LANGS: {non_target_middle_languages}\")\n        middle_language_id = random.choice(non_target_middle_languages)\n        middle_content = baidu_translate(\n            middle_content, source=current_language_id, target=middle_language_id\n        )\n        current_language_id = middle_language_id\n        intermediate_languages.append(middle_language_id)\n    output_content = baidu_translate(",
+        "type": "code",
+        "location": "/tests/title_rewrite_paraphrase/test_baidu_paraphrase.py:83-109"
+    },
+    "4803": {
+        "file_id": 617,
+        "content": "This code performs a paraphrasing operation by iteratively translating the content through multiple languages, excluding the target language. It checks for a minimum paraphrase depth and the number of available middle languages. The output is obtained by translating the initial content through each intermediate language, resulting in a paraphrased version of the original text.",
+        "type": "comment"
+    },
+    "4804": {
+        "file_id": 617,
+        "content": "        middle_content, source=current_language_id, target=target_language_id\n    )\n    success = output_content.strip() != content.strip()\n    if debug:\n        print(\"SOURCE LANGUAGE:\", target_language_id)\n        print(\"USING INTERMEDIATE LANGUAGES:\", intermediate_languages)\n        print(\"PARAPHRASED:\", output_content)\n        print(\"paraphrase success?\", success)\n    return output_content, success\n# content = \"世上所有小猫都是天使变的！\"\ncontent =  \"支持几十个不同类型的任务，具有较好的零样本学习能力和少样本学习能力。\"\noutput, success = baiduParaphraserByTranslation(content, paraphrase_depth=3, debug=True)",
+        "type": "code",
+        "location": "/tests/title_rewrite_paraphrase/test_baidu_paraphrase.py:110-124"
+    },
+    "4805": {
+        "file_id": 617,
+        "content": "The code is calling the baiduParaphraserByTranslation function to paraphrase a given content. It passes the content, specifies the maximum depth of paraphrasing (3), and sets the debug mode to True for printing additional information about the process. If successful, it returns the paraphrased output and a boolean success flag. The content in this case is \"支持几十个不同类型的任务，具有较好的零样本学习能力和少样本学习能力。\".",
+        "type": "comment"
+    },
+    "4806": {
+        "file_id": 618,
+        "content": "/tests/title_rewrite_paraphrase/test_api.py",
+        "type": "filepath"
+    },
+    "4807": {
+        "file_id": 618,
+        "content": "This code is a function that uses an API to paraphrase Chinese text. It takes input content, debug flag, target ID, timeout, and providers' URLs as parameters. The function sends a POST request to the selected provider's URL with the content data and retrieves the response. If the output is not equal to the original content (after removing leading/trailing spaces), it considers the paraphrasing successful. The debug flag controls whether to print the output, and the function returns the output and success status. The given code uses this function to paraphrase a specific Chinese text.",
+        "type": "summary"
+    },
+    "4808": {
+        "file_id": 618,
+        "content": "import requests\ndef chineseParaphraserAPI(    content:str,\ndebug:bool=False,\n    target_id:int =0,\n    timeout:int=10,\n    providers:list[str]=[\"http://www.wzwyc.com/api.php?key=\", \"http://ai.guiyigs.com/api.php?key=\"] # it is about to close! fuck. \"本站于2023年2月19日关站\" buy code from \"1900373358\"\n    ):\n    target = providers[\n        target_id\n    ]  # all the same?\n    data = {\"info\": content}\n    # target = \"http://www.xiaofamaoai.com/result.php\"\n    # xfm_uid = \"342206661e655450c1c37836d23dc3eb\"\n    # data = {\"contents\":content, \"xfm_uid\":xfm_uid, \"agreement\":\"on\"}\n    # nothing? fuck?\n    r = requests.post(target, data=data,timeout=timeout)\n    output = r.text\n    success = output.strip()!= content.strip()\n    if debug:\n        print(output)\n    return output, success\ncontent =  \"支持几十个不同类型的任务，具有较好的零样本学习能力和少样本学习能力。\"\n# content = \"hello world\"\n# it is clearly translation based.\n# since it did not detect source language. well that's just for fun.\noutput,success =chineseParaphraserAPI(content,debug=True)",
+        "type": "code",
+        "location": "/tests/title_rewrite_paraphrase/test_api.py:1-32"
+    },
+    "4809": {
+        "file_id": 618,
+        "content": "This code is a function that uses an API to paraphrase Chinese text. It takes input content, debug flag, target ID, timeout, and providers' URLs as parameters. The function sends a POST request to the selected provider's URL with the content data and retrieves the response. If the output is not equal to the original content (after removing leading/trailing spaces), it considers the paraphrasing successful. The debug flag controls whether to print the output, and the function returns the output and success status. The given code uses this function to paraphrase a specific Chinese text.",
+        "type": "comment"
+    },
+    "4810": {
+        "file_id": 619,
+        "content": "/tests/title_rewrite_paraphrase/test.py",
+        "type": "filepath"
+    },
+    "4811": {
+        "file_id": 619,
+        "content": "This code initializes a ClueAI client for paraphrasing, handles errors, and utilizes LRU cache. It generates paraphrased sentences using OpenAI's GPT2 model and allows configuration options. The \"clueai-base\" model is used to predict prompts and check if they are paraphrases of titles. Debug mode prints predicted text and success status, with an option to return scores.",
+        "type": "summary"
+    },
+    "4812": {
+        "file_id": 619,
+        "content": "# use our free api first. yes?\nimport yaml\nwith open(\"clueai_api.yaml\", \"r\") as f:\n    apiKey = yaml.load(f, Loader=yaml.FullLoader)[\"api_key\"]\n    print(\"Key?\", apiKey)\nimport clueai\n# initialize the Clueai Client with an API Key\n# 微调用户finetune_user=True\n# cl = clueai.Client(apiKey)\n# print(cl.check_usage(finetune_user=False))\n# shit. we are on trial.\n# {'使用量': 0, '剩余量': 5000, '用户类型': '免费用户'}\nfrom functools import lru_cache\n@lru_cache(maxsize=1)\ndef getClueAIClient(apiKey: str):\n    if apiKey == \"\":\n        return clueai.Client(\"\", check_api_key=False)\n    else:\n        return clueai.Client(apiKey)\ndef clueAIParaphraser(\n    title: str,\n    apiKey: str = \"\",\n    generate_config: dict = {\n        \"do_sample\": True,\n        \"top_p\": 0.8,\n        \"max_length\": 128,  # notice! not too long.\n        \"min_length\": 5,\n        \"length_penalty\": 1.0,\n        \"num_beams\": 1,\n    },\n    prompt_template: str = \"\"\"\n生成与下列文字相同意思的句子：\n{}\n答案：\n\"\"\",\n    debug: bool = False,\n):\n    cl = getClueAIClient(apiKey)  # good without API key\n    prompt = prompt_template.format(title)  # shit.",
+        "type": "code",
+        "location": "/tests/title_rewrite_paraphrase/test.py:1-46"
+    },
+    "4813": {
+        "file_id": 619,
+        "content": "The code initializes a ClueAI client using an API key and provides a function for generating paraphrased sentences. It also includes error handling for cases when no API key is provided or when the trial quota has been exceeded. The code uses LRU cache to store the ClueAI client instance, ensuring that subsequent calls will use the cached instance rather than creating a new one each time. The `clueAIParaphraser` function generates a paraphrased sentence using OpenAI's GPT2 model and provides options for configuring the generation process.",
+        "type": "comment"
+    },
+    "4814": {
+        "file_id": 619,
+        "content": "    # generate a prediction for a prompt\n    # 如果需要自由调整参数自由采样生成，添加额外参数信息设置方式：generate_config=generate_config\n    prediction = cl.generate(\n        model_name=\"clueai-base\", prompt=prompt, generate_config=generate_config\n    )\n    # 需要返回得分的话，指定return_likelihoods=\"GENERATION\"\n    output = prediction.generations[0].text\n    success = title.strip() != output.strip()\n    if debug:\n        # print the predicted text\n        print(\"prediction: {}\".format(output))\n        print(\"paraphrase success?\", success)\n    return output, success\n# title = \"世上所有小猫都是天使变的！\"\n# title = \"支持几十个不同类型的任务，具有较好的零样本学习能力和少样本学习能力。\"\ntitle = \"十只猫九只都拆家 ！\"\n# title = \"猫：脑子是个好东西但是我没有O.o\"\noutput, success = clueAIParaphraser(title, debug=True)",
+        "type": "code",
+        "location": "/tests/title_rewrite_paraphrase/test.py:47-67"
+    },
+    "4815": {
+        "file_id": 619,
+        "content": "This code generates a prediction for a given prompt using the \"clueai-base\" model and checks if it is a paraphrase of the provided title. It also has an optional parameter \"generate_config\" to adjust sampling and allows returning scores with \"return_likelihoods\". The code uses debug mode to print predicted text and success status.",
+        "type": "comment"
+    },
+    "4816": {
+        "file_id": 620,
+        "content": "/tests/microsoft_xiaobing_conversation_bing/xiaobing_server_keepalive.sh",
+        "type": "filepath"
+    },
+    "4817": {
+        "file_id": 620,
+        "content": "This script continuously runs the \"chat_with_session_id.js\" Node.js program in a loop, likely for testing or maintaining an active conversation state.",
+        "type": "summary"
+    },
+    "4818": {
+        "file_id": 620,
+        "content": "cd /root/Desktop/works/pyjom/tests/microsoft_xiaobing_conversation_bing\nwhile true; do\n    node chat_with_session_id.js\ndone",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/xiaobing_server_keepalive.sh:1-5"
+    },
+    "4819": {
+        "file_id": 620,
+        "content": "This script continuously runs the \"chat_with_session_id.js\" Node.js program in a loop, likely for testing or maintaining an active conversation state.",
+        "type": "comment"
+    },
+    "4820": {
+        "file_id": 621,
+        "content": "/tests/microsoft_xiaobing_conversation_bing/test_curl_bing_search_normal_conversation_chitchat.sh",
+        "type": "filepath"
+    },
+    "4821": {
+        "file_id": 621,
+        "content": "The code uses cURL to make a POST request for English chat, sets headers and cookies, and tests Bing search functionality with Python-related queries.",
+        "type": "summary"
+    },
+    "4822": {
+        "file_id": 621,
+        "content": "curl 'https://cn.bing.com/english/zochatv2?cc=cn&ensearch=0' \\\n  -H 'authority: cn.bing.com' \\\n  -H 'accept: */*' \\\n  -H 'accept-language: en-US,en;q=0.9' \\\n  -H 'content-type: text/plain;charset=UTF-8' \\\n  -H 'cookie: MUID=1B560BA4BCDC678502F21A48BDF2660B; MUIDB=1B560BA4BCDC678502F21A48BDF2660B; _EDGE_V=1; SRCHD=AF=NOFORM; SRCHUID=V=2&GUID=5F8EE8D909ED4343AF0A332575F18DCC&dmnchg=1; _UR=QS=0&TQS=0; _FP=hta=off; MMCASM=ID=EB1F15CA82AF4F2EACA836E498185727; _clck=pkzyck|1|f48|0; MicrosoftApplicationsTelemetryDeviceId=0fa0bc06-15c9-4c72-bba4-c2eb1d1d4998; MSFPC=GUID=02bec15aac9e4b00b0f093e37277467c&HASH=02be&LV=202207&V=4&LU=1658791106497; ZHCHATSTRONGATTRACT=TRUE; _ITAB=STAB=TR; imgv=flts=20220824&lodlg=2&gts=20220908; _tarLang=default=ja; _TTSS_OUT=hist=WyJlbiIsImphIl0=; _TTSS_IN=hist=WyJlcyIsInpoLUhhbnMiLCJlbiIsImF1dG8tZGV0ZWN0Il0=; ZHLASTACTIVECHAT=0; _EDGE_S=SID=1ECE53E4DFC262F3137041F9DEEC63B0; _SS=SID=1ECE53E4DFC262F3137041F9DEEC63B0&PC=U316; SRCHS=PC=U316; dsc=order=ShopOrderImagesOverS",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/test_curl_bing_search_normal_conversation_chitchat.sh:1-6"
+    },
+    "4823": {
+        "file_id": 621,
+        "content": "Making a POST request to retrieve English conversation chat using Curl with specified headers and cookies.",
+        "type": "comment"
+    },
+    "4824": {
+        "file_id": 621,
+        "content": "hop; ENSEARCH=BENVER=0; SUID=M; SRCHUSR=DOB=20220725&T=1663127833000&TPC=1663086470000; ZHCHATWEAKATTRACT=TRUE; ipv6=hit=1663131446469&t=4; ABDEF=V=13&ABDV=11&MRNB=1663128202067&MRB=0; _HPVN=CS=eyJQbiI6eyJDbiI6NTIsIlN0IjoyLCJRcyI6MCwiUHJvZCI6IlAifSwiU2MiOnsiQ24iOjUyLCJTdCI6MCwiUXMiOjAsIlByb2QiOiJIIn0sIlF6Ijp7IkNuIjo1MiwiU3QiOjEsIlFzIjowLCJQcm9kIjoiVCJ9LCJBcCI6dHJ1ZSwiTXV0ZSI6dHJ1ZSwiTGFkIjoiMjAyMi0wOS0xNFQwMDowMDowMFoiLCJJb3RkIjowLCJHd2IiOjAsIkRmdCI6bnVsbCwiTXZzIjowLCJGbHQiOjAsIkltcCI6MjM0Mn0=; RECSEARCH=SQs=[{\"q\":\"teddy%20funny\"%2C\"c\":1%2C\"ad\":false}%2C{\"q\":\"python%20download%20with%20progress%20bar\"%2C\"c\":1%2C\"ad\":false}%2C{\"q\":\"python%20download%20tqdm\"%2C\"c\":1%2C\"ad\":false}%2C{\"q\":\"python%20multithread%20download\"%2C\"c\":1%2C\"ad\":true}%2C{\"q\":\"python%20tqdm\"%2C\"c\":1%2C\"ad\":true}%2C{\"q\":\"python%20megabyte%20human%20readable\"%2C\"c\":1%2C\"ad\":false}%2C{\"q\":\"python%20request%20get%20header%20without%20download\"%2C\"c\":1%2C\"ad\":false}%2C{\"q\":\"python%20request%20get%20response%20header%20wi",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/test_curl_bing_search_normal_conversation_chitchat.sh:6-6"
+    },
+    "4825": {
+        "file_id": 621,
+        "content": "This code snippet sets various environment variables and cookies for a web request. The request includes multiple search queries related to Python, such as \"teddy funny\", \"python download with progress bar\", \"python tqdm\", etc. It appears to be testing the Bing search functionality through a series of requests.",
+        "type": "comment"
+    },
+    "4826": {
+        "file_id": 621,
+        "content": "thout%20download\"%2C\"c\":1%2C\"ad\":false}%2C{\"q\":\"aiohttp%20args%20allow%20redirect\"%2C\"c\":1%2C\"ad\":false}]; SNRHOP=I=&TS=; ZHSEARCHCHATSTATUS=STATUS=1; SRCHHPGUSR=SRCHLANG=en&BRW=NOTP&BRH=S&CW=602&CH=603&SW=1280&SH=800&DPR=2.200000047683716&UTC=480&DM=1&PV=12.5.0&BZA=0&HV=1663129340&WTS=63798724633&SCW=1164&SCH=2909&PRVCW=1163&PRVCH=603' \\\n  -H 'origin: https://cn.bing.com' \\\n  -H 'referer: https://cn.bing.com/search?q=aiohttp+args+allow+redirect&form=QBLH&sp=-1&pq=aiohttp+args+allow+redirec&sc=8-26&qs=n&sk=&cvid=44FA71281A5246FF9D0859E4146194FF&ghsh=0&ghacc=0&ghpl=' \\\n  -H 'sec-ch-ua: \"Google Chrome\";v=\"105\", \"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"105\"' \\\n  -H 'sec-ch-ua-arch: \"arm\"' \\\n  -H 'sec-ch-ua-bitness: \"64\"' \\\n  -H 'sec-ch-ua-full-version: \"105.0.5195.102\"' \\\n  -H 'sec-ch-ua-full-version-list: \"Google Chrome\";v=\"105.0.5195.102\", \"Not)A;Brand\";v=\"8.0.0.0\", \"Chromium\";v=\"105.0.5195.102\"' \\\n  -H 'sec-ch-ua-mobile: ?0' \\\n  -H 'sec-ch-ua-model: ' \\\n  -H 'sec-ch-ua-platform: \"macOS\"' \\\n  -H 'sec-ch-ua-platform-version: \"12.5.0\"' \\",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/test_curl_bing_search_normal_conversation_chitchat.sh:6-17"
+    },
+    "4827": {
+        "file_id": 621,
+        "content": "This code seems to be making a CURL request with specific headers for Bing search functionality. It is sending a GET request to the Bing search API, specifying parameters like origin, referer, user agent, and other relevant details for the search query \"aiohttp args allow redirect\".",
+        "type": "comment"
+    },
+    "4828": {
+        "file_id": 621,
+        "content": "  -H 'sec-fetch-dest: empty' \\\n  -H 'sec-fetch-mode: cors' \\\n  -H 'sec-fetch-site: same-origin' \\\n  -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36' \\\n  --data-raw '{\"zoTextResponse\":\"我在，是有什么事吗？\",\"zoIsGCSResponse\":\"true\",\"zoSearchQuery\":\"aiohttp args allow redirect\",\"zoTimestampUtc\":\"Wed, 14 Sep 2022 05:28:25 GMT\",\"zoIsStartOfSession\":\"false\",\"zoRequestId\":\"c18862bd321ea770ac1609f9b552d4bb\",\"conversationId\":\"712e7968-9607-4abc-9c51-847f15bc6620\",\"query\":{\"NormalizedQuery\":\"0xd701543d84662163ce6999\"},\"from\":\"chatbox\",\"traceId\":\"632156f9d8a842048d33001cbeb8df23\"}' \\\n  --compressed",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/test_curl_bing_search_normal_conversation_chitchat.sh:18-23"
+    },
+    "4829": {
+        "file_id": 621,
+        "content": "This code sets headers and data for a POST request using cURL, mimicking a Chrome browser on Mac OS X 10.15.7 with specific timestamps and search query. The data includes conversation details for a chatbot session.",
+        "type": "comment"
+    },
+    "4830": {
+        "file_id": 622,
+        "content": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js",
+        "type": "filepath"
+    },
+    "4831": {
+        "file_id": 622,
+        "content": "The code utilizes \"request\" library, manages IDs and delays, handles GET/POST requests with error handling, sets up a chat server, uses Microsoft Xiaoice for responses, and includes test code.",
+        "type": "summary"
+    },
+    "4832": {
+        "file_id": 622,
+        "content": "var request = require(\"request\");\n// var mysqld = require(\"./mysql\");\n// const { init: initDB, Counter, Chatid } = require(\"./db\");\nfunction getRequestId() {\n    return (ot() + ot() + ot() + ot() + ot() + ot() + ot() + ot()).toLowerCase();\n}\nconst sleep = (ms) => {\n    return new Promise(resolve => setTimeout(resolve, ms))\n}\nfunction ot() {\n    return (((1 + Math.random()) * 65536) | 0).toString(16).substring(1);\n}\nfunction i(n, i) {\n    for (\n        var s, c, e = 4, l = i.length / e - 1, r = [\n            [],\n            [],\n            [],\n            []\n        ], o = 0; o < 4 * e; o++\n    )\n        r[o % 4][Math.floor(o / 4)] = n[o];\n    for (r = t(r, i, 0, e), s = 1; s < l; s++)\n        (r = u(r, e)), (r = f(r, e)), (r = h(r, e)), (r = t(r, i, s, e));\n    for (\n        r = u(r, e), r = f(r, e), r = t(r, i, l, e), c = new Array(4 * e), o = 0; o < 4 * e; o++\n    )\n        c[o] = r[o % 4][Math.floor(o / 4)];\n    return c;\n}\nfunction u(n, t) {\n    for (var r, i = 0; i < 4; i++)\n        for (r = 0; r < t; r++) n[i][r] = o[n[i][r]];",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:1-37"
+    },
+    "4833": {
+        "file_id": 622,
+        "content": "This code imports the \"request\" library and contains functions for generating a unique request ID, sleeping for a specified time, and working with arrays. It also includes a function for string manipulation and an algorithm that performs some operations on input arrays.",
+        "type": "comment"
+    },
+    "4834": {
+        "file_id": 622,
+        "content": "    return n;\n}\nfunction f(n, t) {\n    for (var i, u = new Array(4), r = 1; r < 4; r++) {\n        for (i = 0; i < 4; i++) u[i] = n[r][(i + r) % t];\n        for (i = 0; i < 4; i++) n[r][i] = u[i];\n    }\n    return n;\n}\nfunction h(n) {\n    for (var t, r, u, i = 0; i < 4; i++) {\n        for (t = new Array(4), r = new Array(4), u = 0; u < 4; u++)\n            (t[u] = n[u][i]),\n            (r[u] = n[u][i] & 128 ? (n[u][i] << 1) ^ 283 : n[u][i] << 1);\n        n[0][i] = r[0] ^ t[1] ^ r[1] ^ t[2] ^ t[3];\n        n[1][i] = t[0] ^ r[1] ^ t[2] ^ r[2] ^ t[3];\n        n[2][i] = t[0] ^ t[1] ^ r[2] ^ t[3] ^ r[3];\n        n[3][i] = t[0] ^ r[0] ^ t[1] ^ t[2] ^ r[3];\n    }\n    return n;\n}\nfunction t(n, t, i, r) {\n    for (var f, u = 0; u < 4; u++)\n        for (f = 0; f < r; f++) n[u][f] ^= t[i * 4 + f][u];\n    return n;\n}\nfunction e(n) {\n    for (var t = 0; t < 4; t++) n[t] = o[n[t]];\n    return n;\n}\nfunction c(n) {\n    for (var i = n[0], t = 0; t < 3; t++) n[t] = n[t + 1];\n    return (n[3] = i), n;\n}\nfunction rr(n) {\n    for (\n        var h,",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:38-80"
+    },
+    "4835": {
+        "file_id": 622,
+        "content": "This code contains multiple functions that perform various operations on a 4x4 matrix. The 'g' function seems to return a value 'n'. The 'f' function rearranges the elements within each row of the 4x4 matrix. The 'h' function applies XOR operations between different elements in the matrix, resulting in modified values for each row. The 't' function performs XOR operations between the given matrix and another 4x4 matrix, affecting specific rows based on provided indices. The 'e' function replaces the values in the matrix with corresponding values from a lookup table 'o'. Lastly, the 'c' function rearranges the elements in the matrix by shifting each row one position to the left and moving the last row as the first. The function 'rr' appears to be incomplete as it lacks the closing brace '}'.",
+        "type": "comment"
+    },
+    "4836": {
+        "file_id": 622,
+        "content": "            i,\n            o = 4,\n            r = n.length / 4,\n            s = r + 6,\n            f = new Array(o * (s + 1)),\n            u = new Array(4),\n            t = 0; t < r; t++\n    )\n        (h = [n[4 * t], n[4 * t + 1], n[4 * t + 2], n[4 * t + 3]]), (f[t] = h);\n    for (t = r; t < o * (s + 1); t++) {\n        for (f[t] = new Array(4), i = 0; i < 4; i++) u[i] = f[t - 1][i];\n        if (t % r == 0)\n            for (u = e(c(u)), i = 0; i < 4; i++) u[i] ^= l[t / r][i];\n        else r > 6 && t % r == 4 && (u = e(u));\n        for (i = 0; i < 4; i++) f[t][i] = f[t - r][i] ^ u[i];\n    }\n    return f;\n}\nfunction r(n) {\n    for (\n        var h,\n            i,\n            o = 4,\n            r = n.length / 4,\n            s = r + 6,\n            f = new Array(o * (s + 1)),\n            u = new Array(4),\n            t = 0; t < r; t++\n    )\n        (h = [n[4 * t], n[4 * t + 1], n[4 * t + 2], n[4 * t + 3]]), (f[t] = h);\n    for (t = r; t < o * (s + 1); t++) {\n        for (f[t] = new Array(4), i = 0; i < 4; i++) u[i] = f[t - 1][i];",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:81-113"
+    },
+    "4837": {
+        "file_id": 622,
+        "content": "This code appears to be decrypting an input array, `n`, by manipulating its elements and storing the results in a new array, `f`. The process involves breaking down `n` into smaller chunks of 4 elements each and applying different operations based on the position within the original array. It also includes a step to XOR specific elements with values from another array, `l`, and an optional encryption/decryption operation if the current position is divisible by `r` and greater than 6. Finally, it returns the modified array `f`.",
+        "type": "comment"
+    },
+    "4838": {
+        "file_id": 622,
+        "content": "        if (t % r == 0)\n            for (u = e(c(u)), i = 0; i < 4; i++) u[i] ^= l[t / r][i];\n        else r > 6 && t % r == 4 && (u = e(u));\n        for (i = 0; i < 4; i++) f[t][i] = f[t - r][i] ^ u[i];\n    }\n    return f;\n}\nfunction a(n, t, u) {\n    var c = 16,\n        a,\n        y,\n        l,\n        w,\n        o,\n        e,\n        f,\n        nt;\n    if (!(u == 128 || u == 192 || u == 256)) return \"\";\n    for (n = s(n), t = s(t), a = u / 8, y = new Array(a), f = 0; f < a; f++)\n        y[f] = isNaN(t.charCodeAt(f)) ? 0 : t.charCodeAt(f);\n    l = i(y, rr(y));\n    l = l.concat(l.slice(0, a - 16));\n    var h = new Array(c),\n        k = new Date().getTime(),\n        tt = k % 1e3,\n        it = Math.floor(k / 1e3),\n        rt = Math.floor(Math.random() * 65535);\n    for (f = 0; f < 2; f++) h[f] = (tt >>> (f * 8)) & 255;\n    for (f = 0; f < 2; f++) h[f + 2] = (rt >>> (f * 8)) & 255;\n    for (f = 0; f < 4; f++) h[f + 4] = (it >>> (f * 8)) & 255;\n    for (w = \"\", f = 0; f < 8; f++) w += String.fromCharCode(h[f]);\n    var ut = rr(l),",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:114-146"
+    },
+    "4839": {
+        "file_id": 622,
+        "content": "This code encodes and decodes a string using a specific encryption algorithm. It takes an input string, splits it into chunks of 16 characters, then applies a series of XOR operations on each chunk before combining the results. The result is an encoded or decoded string based on the provided parameters.",
+        "type": "comment"
+    },
+    "4840": {
+        "file_id": 622,
+        "content": "        b = Math.ceil(n.length / c),\n        d = new Array(b);\n    for (o = 0; o < b; o++) {\n        for (e = 0; e < 4; e++) h[15 - e] = (o >>> (e * 8)) & 255;\n        for (e = 0; e < 4; e++) h[11 - e] = (o / 4294967296) >>> (e * 8);\n        var ft = i(h, ut),\n            g = o < b - 1 ? c : ((n.length - 1) % c) + 1,\n            p = new Array(g);\n        for (f = 0; f < g; f++)\n            (p[f] = ft[f] ^ n.charCodeAt(o * c + f)),\n            (p[f] = String.fromCharCode(p[f]));\n        d[o] = p.join(\"\");\n    }\n    return (nt = w + d.join(\"\")), v(nt);\n}\nfunction v(n) {\n    for (\n        var i = \"0x\",\n            r = [\n                \"0\",\n                \"1\",\n                \"2\",\n                \"3\",\n                \"4\",\n                \"5\",\n                \"6\",\n                \"7\",\n                \"8\",\n                \"9\",\n                \"a\",\n                \"b\",\n                \"c\",\n                \"d\",\n                \"e\",\n                \"f\",\n            ],\n            t = 0; t < n.length; t++\n    )\n        i += r[n.charCodeAt(t) >> 4] + r[n.charCodeAt(t) & 15];",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:147-186"
+    },
+    "4841": {
+        "file_id": 622,
+        "content": "This code takes a string, splits it into chunks of specific size, and encodes each chunk using a simple encoding scheme. It then joins the encoded chunks together and returns the result, which is further processed in the v() function.",
+        "type": "comment"
+    },
+    "4842": {
+        "file_id": 622,
+        "content": "    return i;\n}\nfunction s(n) {\n    var t = n.replace(/[\\u0080-\\u07ff]/g, function(n) {\n        var t = n.charCodeAt(0);\n        return String.fromCharCode(192 | (t >> 6), 128 | (t & 63));\n    });\n    return t.replace(/[\\u0800-\\uffff]/g, function(n) {\n        var t = n.charCodeAt(0);\n        return String.fromCharCode(\n            224 | (t >> 12),\n            128 | ((t >> 6) & 63),\n            128 | (t & 63)\n        );\n    });\n}\nvar o = [\n        99, 124, 119, 123, 242, 107, 111, 197, 48, 1, 103, 43, 254, 215, 171, 118,\n        202, 130, 201, 125, 250, 89, 71, 240, 173, 212, 162, 175, 156, 164, 114,\n        192, 183, 253, 147, 38, 54, 63, 247, 204, 52, 165, 229, 241, 113, 216, 49,\n        21, 4, 199, 35, 195, 24, 150, 5, 154, 7, 18, 128, 226, 235, 39, 178, 117, 9,\n        131, 44, 26, 27, 110, 90, 160, 82, 59, 214, 179, 41, 227, 47, 132, 83, 209,\n        0, 237, 32, 252, 177, 91, 106, 203, 190, 57, 74, 76, 88, 207, 208, 239, 170,\n        251, 67, 77, 51, 133, 69, 249, 2, 127, 80, 60, 159, 168, 81, 163, 64, 143,",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:187-212"
+    },
+    "4843": {
+        "file_id": 622,
+        "content": "This code snippet defines a function 's' that takes in a string 'n', and replaces any non-basic Latin characters with their respective 3-byte sequences. It then returns the modified string. Additionally, there is an array of numbers representing a sequence that is used for some purpose in the codebase.",
+        "type": "comment"
+    },
+    "4844": {
+        "file_id": 622,
+        "content": "        146, 157, 56, 245, 188, 182, 218, 33, 16, 255, 243, 210, 205, 12, 19, 236,\n        95, 151, 68, 23, 196, 167, 126, 61, 100, 93, 25, 115, 96, 129, 79, 220, 34,\n        42, 144, 136, 70, 238, 184, 20, 222, 94, 11, 219, 224, 50, 58, 10, 73, 6,\n        36, 92, 194, 211, 172, 98, 145, 149, 228, 121, 231, 200, 55, 109, 141, 213,\n        78, 169, 108, 86, 244, 234, 101, 122, 174, 8, 186, 120, 37, 46, 28, 166,\n        180, 198, 232, 221, 116, 31, 75, 189, 139, 138, 112, 62, 181, 102, 72, 3,\n        246, 14, 97, 53, 87, 185, 134, 193, 29, 158, 225, 248, 152, 17, 105, 217,\n        142, 148, 155, 30, 135, 233, 206, 85, 40, 223, 140, 161, 137, 13, 191, 230,\n        66, 104, 65, 153, 45, 15, 176, 84, 187, 22,\n    ],\n    l = [\n        [0, 0, 0, 0],\n        [1, 0, 0, 0],\n        [2, 0, 0, 0],\n        [4, 0, 0, 0],\n        [8, 0, 0, 0],\n        [16, 0, 0, 0],\n        [32, 0, 0, 0],\n        [64, 0, 0, 0],\n        [128, 0, 0, 0],\n        [27, 0, 0, 0],\n        [54, 0, 0, 0],\n    ];\n// n.encrypt = a\nasync function iceAI_word(",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:213-237"
+    },
+    "4845": {
+        "file_id": 622,
+        "content": "This code contains two arrays of numbers. The first array, `a`, seems to be encrypted or encoded data. The second array, `l`, represents a set of bitmasks. The function `iceAI_word` appears to use these arrays for encryption and decryption purposes, but the specific implementation details are not included in the provided code snippet.",
+        "type": "comment"
+    },
+    "4846": {
+        "file_id": 622,
+        "content": "    // ToUserName,\n    // FromUserName,\n    // CreateTime,\n    // MsgType,\n    Content,\n    config,\n    query\n    // MsgId,\n) {\n    await sleep(1000);\n    // for whatever reason you have to wait for this long.\n    try {\n        var wquery = a(Content, \"3d9d5f16-5df0-43d7-902e-19274eecdc41\", 256);\n        console.log(\"encrypt:\" + wquery);\n        // let config = {};\n        // if ((await mysqld.isHaveChatIdIn(fromQQ)) == true) {\n        //     console.log(\"没有chatid，获取新id\")\n        //     config = await mysqld.getChatId(fromQQ);\n        // } else {\n        //     config = await newChatId(fromQQ);\n        // }\n        if (config) {\n            console.log(\"config:\" + config);\n        } else {\n            console.log('no config for xiaoice chat.')\n            return;\n        }\n        var h = {\n            zoTextResponse: \"\",\n            zoIsGCSResponse: false,\n            zoSearchQuery: query,\n            zoTimestampUtc: \"\",\n            zoIsStartOfSession: true,\n            zoRequestId: getRequestId(),\n            conversationId: config.conversationId,",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:238-274"
+    },
+    "4847": {
+        "file_id": 622,
+        "content": "The code waits for 1 second, then encrypts the message with a specific key and prints it to the console. It also checks if there's an existing chat ID for the fromQQ parameter. If not, it gets a new one by calling `mysqld.getChatId` or `newChatId`. The code then logs the config, creating a conversation ID, and assigns it to the h object.",
+        "type": "comment"
+    },
+    "4848": {
+        "file_id": 622,
+        "content": "            query: { NormalizedQuery: wquery },\n            from: \"chatbox\",\n            traceId: config.traceId,\n        };\n        var url = \"https://cn.bing.com/english/zochatv2?cc=cn&ensearch=0\";\n        // {\"zoTextResponse\":\"\",\"zoIsGCSResponse\":\"false\",\"zoSearchQuery\":\"123\",\"zoTimestampUtc\":\"\",\"zoIsStartOfSession\":\"true\",\"zoRequestId\":\"ff90e6f70a6048d4fe5cc3c3327bbd32\",\"conversationId\":\"4a91fb33-73f7-43d4-b7b6-ba86a16e32fb\",\"query\":{\"NormalizedQuery\":\"0x23028811be44f661169365\"},\"from\":\"chatbox\",\"traceId\":\"B224B190F87941CD94AD0AC31A189D30\"}\n        let result = await getContents({\n            url: url,\n            method: \"POST\",\n            headers: {\n                \"content-type\": \"text/plain;charset=UTF-8\",\n                origin: \"https://cn.bing.com\",\n                referer: \"https://cn.bing.com/search?q=123&form=QBLH&sp=-1&pq=123&sc=6-3&qs=n&sk=&cvid=566F001FDA424EEB805E1C175363B5AE\",\n                \"user-agent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.99 Safari/537.36\",",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:275-288"
+    },
+    "4849": {
+        "file_id": 622,
+        "content": "Sending a POST request to Bing's chat API endpoint with a normalized query, specifying the from source as \"chatbox\", and including a trace ID for identification purposes. The URL is set to the Bing chat API endpoint, headers include content type, origin, referer, and user-agent, all necessary information for the API request.",
+        "type": "comment"
+    },
+    "4850": {
+        "file_id": 622,
+        "content": "                Connection: \"keep-alive\",\n            },\n            body: JSON.stringify(h),\n        });\n        if (result == null){ return}\n        // {\"content\":\"嘿 啾 嘿 啾啊\",\"type\":1,\"delayContents\":null,\"entityInfo\":[{\"Entity\":\"嘿 啾 嘿 啾啊\",\"IsEntity\":false}],\"target\":\"b\",\"history\":null,\"hasClientIdinMem\":true,\"needSayHello\":false,\"isHookStr\":false,\"showChatBox\":true,\"metadata\":{\"AnswerFeed\":\"RandomChitChatService\",\"EmotionInfo\":\"{\\\"EmotionClassificationInfo\\\":[{\\\"Category\\\":\\\"Sad\\\",\\\"Score\\\":0.0651140139},{\\\"Category\\\":\\\"Happy\\\",\\\"Score\\\":0.139467061},{\\\"Category\\\":\\\"Surprise\\\",\\\"Score\\\":0.176786855},{\\\"Category\\\":\\\"Angry\\\",\\\"Score\\\":0.358794},{\\\"Category\\\":\\\"Disgust\\\",\\\"Score\\\":0.2598381}],\\\"NeutralScore\\\":0.9992748,\\\"DomainInMatchScenario\\\":\\\"None\\\"}\"}}\n        result = JSON.parse(result);\n        if (result.content) {\n            var reply = result.content;\n            reply = reply.replace(\"小冰\", \"小姝\");\n            var message = 1;\n            var unuseless =\n                \"看的我一脸懵逼，都开始怀疑我的智商",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:289-302"
+    },
+    "4851": {
+        "file_id": 622,
+        "content": "Sends a POST request to the API with request parameters, parses the response as JSON, and replaces \"小冰\" with \"小姝\" if present in the response content.",
+        "type": "comment"
+    },
+    "4852": {
+        "file_id": 622,
+        "content": "了。哎呀，不好意思，我刚刚好像走神了,感觉你知道的挺多的呢,额，我现在也不知道该说些什么,这个…不太好说啊,我语文不太好，不确定是不是懂了你的意思,刚刚不小心溜号了，真是不好意思这个我要好好想想再说这很难说，还是让我想想吧哦哦，这样啊我怎么理解比较好呢？\";\n            if (unuseless.indexOf(reply) != -1) {\n                console.log('xiaoice is returning useless reply', reply)\n                    //   message = 2;\n                    //   Log.trace(\"iceAi have unuseless message\");\n                    //   request(\n                    //     {\n                    //       url:\n                    //         \"http://api.qingyunke.com/api.php?key=free&appid=0&msg=\" +\n                    //         encodeURIComponent(msg2),\n                    //       method: \"GET\",\n                    //     },\n                    //     function (error, response, body) {\n                    //       var result = JSON.parse(body);\n                    //       reply = result.content;\n                    //       var logtext = \"\";\n                    //       return;\n                    //     }\n                    //   );\n            } else {\n                return reply;",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:302-322"
+    },
+    "4853": {
+        "file_id": 622,
+        "content": "Code is checking if the reply is useless (stored in unnecessary array) and returning it. If not, it returns the reply. If it's useless, it makes a request to an API for a new response and returns it.",
+        "type": "comment"
+    },
+    "4854": {
+        "file_id": 622,
+        "content": "            }\n        }\n    } catch (e) {\n        console.log('ERROR FETCHING XIAOBING CHAT', e)\n            // will return nothing.\n            // sleep for 1 second?\n            // would you sleep for a while?\n    }\n}\nasync function newChatId(query) {\n    var options = options || {};\n    var httpOptions = {\n        url: \"https://cn.bing.com/search?q=\" + encodeURIComponent(query) + \"&form=QBLH&rdr=1&rdrig=E8F3C1A722454F949CCC4B98C4570A4A\",\n        method: \"get\",\n        timeout: 1000,\n        headers: {\n            accept: \"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\",\n            \"accept-language\": \"zh-CN,zh;q=0.9\",\n            \"cache-control\": \"max-age=0\",\n            \"sec-ch-ua\": '\" Not A;Brand\";v=\"99\", \"Chromium\";v=\"102\", \"Google Chrome\";v=\"102\"',\n            \"sec-ch-ua-arch\": '\"x86\"',\n            \"sec-ch-ua-bitness\": '\"64\"',\n            \"sec-ch-ua-full-version\": '\"102.0.5005.63\"',\n            \"sec-ch-ua-mobile\": \"?0\",",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:323-347"
+    },
+    "4855": {
+        "file_id": 622,
+        "content": "This code appears to be a function for fetching a new chat ID based on a given query. If an error occurs during the fetch, it logs an error and may sleep for a second before retrying. The HTTP options include various headers for language and browser information, indicating that this function likely makes a GET request to retrieve the new chat ID from a Microsoft Bing search page.",
+        "type": "comment"
+    },
+    "4856": {
+        "file_id": 622,
+        "content": "            \"sec-ch-ua-model\": '\"\"',\n            \"sec-ch-ua-platform\": '\"Windows\"',\n            \"sec-ch-ua-platform-version\": '\"10.0.0\"',\n            \"sec-fetch-dest\": \"document\",\n            \"sec-fetch-mode\": \"navigate\",\n            \"sec-fetch-site\": \"same-origin\",\n            cookie: \"MUID=005F25E7699168532D05342768F769B3; MUIDB=005F25E7699168532D05342768F769B3; _EDGE_V=1; SRCHD=AF=NOFORM; SRCHUID=V=2&GUID=31127A3BD4B84FF08E8E51EEEA34857F&dmnchg=1; _UR=QS=0&TQS=0; _HPVN=CS=eyJQbiI6eyJDbiI6MSwiU3QiOjAsIlFzIjowLCJQcm9kIjoiUCJ9LCJTYyI6eyJDbiI6MSwiU3QiOjAsIlFzIjowLCJQcm9kIjoiSCJ9LCJReiI6eyJDbiI6MSwiU3QiOjAsIlFzIjowLCJQcm9kIjoiVCJ9LCJBcCI6dHJ1ZSwiTXV0ZSI6dHJ1ZSwiTGFkIjoiMjAyMi0wNi0xMVQwMDowMDowMFoiLCJJb3RkIjowLCJHd2IiOjAsIkRmdCI6bnVsbCwiTXZzIjowLCJGbHQiOjAsIkltcCI6NH0=; SUID=M; SRCHUSR=DOB=20220611&T=1659599964000&TPC=1659599966000; ZHCHATSTRONGATTRACT=TRUE; ZHCHATWEAKATTRACT=TRUE; _EDGE_S=SID=05C5058B7100688001DB147D702E698C; _SS=SID=05C5058B7100688001DB147D702E698C; _tarLang=default=zh-Hans; ",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:348-354"
+    },
+    "4857": {
+        "file_id": 622,
+        "content": "This code sets various HTTP headers and cookies for a web request, such as user-agent information and session identifiers. It includes details about the browser model, platform, and version, as well as cookies that store user information and preferences.",
+        "type": "comment"
+    },
+    "4858": {
+        "file_id": 622,
+        "content": "_TTSS_IN=hist=WyJlbiIsImF1dG8tZGV0ZWN0Il0=; _TTSS_OUT=hist=WyJ6aC1IYW5zIl0=; ipv6=hit=1659603639345&t=4; SNRHOP=I=&TS=; SRCHHPGUSR=SRCHLANG=zh-Hans&BRW=NOTP&BRH=S&CW=599&CH=657&SW=1366&SH=768&DPR=1&UTC=480&DM=0&PV=0.3.0&BZA=0&HV=1659600073&WTS=63795196764\",\n            \"sec-fetch-user\": \"?1\",\n            accept: \"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\",\n            \"accept-language\": \"zh-CN,zh;q=0.9\",\n            \"cache-control\": \"max-age=0\",\n            \"upgrade-insecure-requests\": \"1\",\n            Referer: \"referer: https://cn.bing.com/search?q=\" + encodeURIComponent(query) + \"&form=QBLHCN&sp=-1&pq=a&sc=6-1&qs=n&sk=&cvid=A91AB41228AD45E694D5F2EEBF87FE70\",\n            \"Referrer-Policy\": \"strict-origin-when-cross-origin\",\n            \"user-agent\": \"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.63 Safari/537.36\",\n        },\n    };\n    let body = await getContents(httpOptions)",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:354-365"
+    },
+    "4859": {
+        "file_id": 622,
+        "content": "The code is setting up HTTP request options for a GET request to Bing.com, with headers including user agent, accept language, and upgrade insecure requests, and specifying the referer as the current query search term on Bing's Chinese site. It then sends the request using getContents function and stores the response body in the 'body' variable.",
+        "type": "comment"
+    },
+    "4860": {
+        "file_id": 622,
+        "content": "    //console.log(body)\n    if (body.indexOf(\"conversationId\") == -1) {\n        console.log(\"请求chatid失败\");\n        return;\n    }\n    console.log(body.indexOf(\"conversationId\"));\n    console.log(body.indexOf(\"iframeTalkStatus\"));\n    let config =\n        '{\"' +\n        body.substring(\n            body.indexOf(\"conversationId\"),\n            body.indexOf(\"iframeTalkStatus\")\n        ) +\n        '\":\"\"}';\n    config = JSON.parse(config);\n    console.log(config);\n    // mysqld.addChatId(fromQQ, config);\n    return config;\n}\nasync function getAuth(opts, redis) {\n    cookie = await post(opts);\n    //redis.set(\"ice_cookie\", cookie)\n    log.info(\"new cookie:\" + cookie);\n    return cookie;\n}\nfunction post(opts) {\n    return new Promise((resolve, reject) => {\n        request(opts, function(error, response) {\n            if (error) throw new Error(error);\n            if (response.statusCode != \"200\") {\n                console.log(\"requestCode:\" + response.statusCode);\n            }\n            console.log(\"requestCode:\" + response.statusCode);",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:367-401"
+    },
+    "4861": {
+        "file_id": 622,
+        "content": "This code appears to handle API requests, logging, and cookie management. It checks the response for specific parameters, extracts them, and parses the data into a JSON object. The `post` function makes a POST request and logs the response status code. The `getAuth` function uses this `post` function and handles the asynchronous result of the API call to set the cookie in Redis.",
+        "type": "comment"
+    },
+    "4862": {
+        "file_id": 622,
+        "content": "            var responseCookies = response.headers[\"set-cookie\"];\n            console.log(response.body);\n            var requestCookies = \"\";\n            for (var i = 0; i < responseCookies.length; i++) {\n                var oneCookie = responseCookies[i];\n                oneCookie = oneCookie.split(\";\");\n                requestCookies = requestCookies + oneCookie[0] + \";\";\n            }\n            resolve(requestCookies);\n        });\n    });\n}\nfunction getContents(opts) {\n    return new Promise((resolve, reject) => {\n        request(opts, function(error, response) {\n            try {\n                if (error) reject(error);\n                if (response.statusCode != \"200\") {\n                    console.log(\"requestCode:\" + response.statusCode);\n                }\n                console.log(\"requestCode:\" + response.statusCode);\n                var responseCookies = response.headers[\"set-cookie\"];\n                resolve(response.body);\n            } catch (e) {\n                console.log('ERROR', e)\n                console.log('request failed')",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:402-429"
+    },
+    "4863": {
+        "file_id": 622,
+        "content": "Code snippet handles HTTP requests, retrieves response cookies and body content, and handles errors. It uses the request library to make GET requests with optional headers and parameters, then processes the response status code and cookies before resolving the Promise with response body or rejecting with an error.",
+        "type": "comment"
+    },
+    "4864": {
+        "file_id": 622,
+        "content": "                resolve(null);\n            }\n        });\n    });\n}\n// module.exports = { iceAI_word };\n// let test_request = \"不会吧\"\n// let test_request = \"python\"\nconst http = require('http');\nfunction getQueryParams(reqUrl) {\n    current_url = new URL('http://localhost' + reqUrl)\n    params = current_url.searchParams\n    console.log('query parameters:', params)\n    return params\n}\nlet topic_chatId_dict = {}\nconst requestListener = function(req, res) {\n    console.log(\"________________________________________________\")\n    console.log(\"REQUEST AT:\", req.url, req.method)\n    if (req.url == \"/\") {\n        res.writeHead(200);\n        res.end('xiaoice chat server');\n    } else if (req.url.split(\"?\")[0] == '/chat') {\n        callback = (result) => {\n            res.writeHead(200);\n            content = { \"msg\": 'success', 'reply': result }\n            res.end(JSON.stringify(content))\n        }\n        params = getQueryParams(req.url)\n        message = params.get(\"message\")\n        topic = params.get(\"topic\")\n        if (message == null) {",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:430-462"
+    },
+    "4865": {
+        "file_id": 622,
+        "content": "This code sets up a chat server that listens for incoming requests and handles them. It checks if the request is for a chat, extracts the message and topic from the query parameters, and calls a callback function with the result to send back as a response. The `getQueryParams` function helps extract the query parameters from the URL.",
+        "type": "comment"
+    },
+    "4866": {
+        "file_id": 622,
+        "content": "            message = \"你好呀\"\n        }\n        if (topic == null) {\n            topic = \"hhh\"\n        }\n        message = message.split(\" \").pop()\n        console.log(\"MESSAGE:\", message)\n        console.log(\"TOPIC:\", topic)\n        if (topic_chatId_dict[topic] == null) {\n            topic_chatId_dict[topic] = newChatId(topic)\n        }\n        chatId = topic_chatId_dict[topic]\n        if (chatId != null) {\n            response = iceAI_word(message, chatId,topic)\n            response.then((content) => {\n                console.log(\"REAL RESPONSE:\", content)\n                if (content != null) {\n                    callback(content)\n                } else {\n                    res.writeHead(401);\n                    res.end(JSON.stringify({ 'msg': 'empty response from microsoft xiaoice' }))\n                }\n            })\n        } else {\n            res.writeHead(401)\n            res.end(JSON.stringify({ 'msg': 'error when getting chatid' }))\n        }\n    } else {\n        res.writeHead(400);\n        res.end('please use /chat?topic={topic}&message={message} to chat with xiaoice.')",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:463-494"
+    },
+    "4867": {
+        "file_id": 622,
+        "content": "This code handles chat requests with Microsoft Xiaoice, extracting the topic and message from the URL parameters. It assigns a unique chat ID to the topic if it doesn't exist in the dictionary, calls the iceAI_word function to get a response, and sends it back as the HTTP response body. If any step fails or returns null, an error message is sent instead.",
+        "type": "comment"
+    },
+    "4868": {
+        "file_id": 622,
+        "content": "    }\n}\nconst server = http.createServer(requestListener);\nport = 8735\nserver.listen(port);\nconsole.log('xiaoice server running on http://localhost:' + port);\n// // these code are just for test.\n// let test_request = \"你吃了没有\"\n// // let test_request2 = \"你吃了没有\"\n// query = 'python'\n// let config = newChatId(query)\n// response = iceAI_word(test_request, config) // automatically retry once. if keeping generating useless shits, we may decide to give it up?\n// // it is a promise.\n// // this is async shit.\n// // what if there's some error?\n// response.then((content) => {console.log(\"REAL RESPONSE:\", content)})\n// // REAL RESPONSE: 不想就不说了\n// // console.log(\"RESPONSE:\", response)\n// // response = iceAI_word(test_request2, config)\n// // console.log(\"RESPONSE:\", response)",
+        "type": "code",
+        "location": "/tests/microsoft_xiaobing_conversation_bing/chat_with_session_id.js:495-516"
+    },
+    "4869": {
+        "file_id": 622,
+        "content": "The code sets up a server and listens for requests. It also includes test code to send a request, retrieve the response, and log the content of the response.",
+        "type": "comment"
+    },
+    "4870": {
+        "file_id": 623,
+        "content": "/tests/split_long_image_into_video/init.sh",
+        "type": "filepath"
+    },
+    "4871": {
+        "file_id": 623,
+        "content": "The code downloads the background music (bgm) file \"the_happy_troll.mp3\" and an image file \"long_and_funny_image_about_ai_painting.jpg\". It uses curl command with -L flag for redirecting, -O flag for saving output to named file. The music source is recognized by Shazam.",
+        "type": "summary"
+    },
+    "4872": {
+        "file_id": 623,
+        "content": "# first, let's download the bgm used by many funny videos, recognized by shazam\n# curl -L -o the_happy_troll.mp3 \"https://ge-sycdn.kuwo.cn/a573fcf0d69bd0cd5912bf9a96cff3dc/63b4a35f/resource/n3/1/70/3124049952.mp3\"\ncurl -O \"https://tmpfiles.org/dl/620815/long_and_funny_image_about_ai_painting.jpg\"",
+        "type": "code",
+        "location": "/tests/split_long_image_into_video/init.sh:1-3"
+    },
+    "4873": {
+        "file_id": 623,
+        "content": "The code downloads the background music (bgm) file \"the_happy_troll.mp3\" and an image file \"long_and_funny_image_about_ai_painting.jpg\". It uses curl command with -L flag for redirecting, -O flag for saving output to named file. The music source is recognized by Shazam.",
+        "type": "comment"
+    },
+    "4874": {
+        "file_id": 624,
+        "content": "/tests/split_long_image_into_video/generate_video.py",
+        "type": "filepath"
+    },
+    "4875": {
+        "file_id": 624,
+        "content": "This code resizes an image, generates a video, and creates Editly specification files. It utilizes multiple modules for handling file operations and parameter definitions, then writes the script to a file, executes it, and removes temporary files.",
+        "type": "summary"
+    },
+    "4876": {
+        "file_id": 624,
+        "content": "# to get a proper cover, let's simply crop.\n# to find a proper title for this video, extract keywords, generate title and find the best cover by embeddings.\n# first, get picture aspect.\nimport cv2\ndef getWidthHeight(impath):\n    d = cv2.imread(impath)\n    # print(d.shape)\n    height, width, channels = d.shape\n    return width, height\nim0 = \"long_and_funny_image_about_ai_painting.jpg\"\nim1 = \"intermediate.png\"\n# very high, low width.\n# calculate actual output?\nmheight, mwidth = 1080, 1920\nwidth, height = getWidthHeight(im0)\nimport ffmpeg\nffmpeg.input(im0).filter(\"scale\", w=mwidth, h=-1).output(im1).run(overwrite_output=True)\nwidth0, height0 = getWidthHeight(im1)\npad_total =( mheight-(height0 % mheight)) % mheight\n# print(\"PAD TOTAL?\", pad_total)\n# breakpoint()\nif pad_total != 0:\n    im2 = \"intermediate_0.png\"\n    pad_above = pad_total // 2\n    pad_below = pad_total - pad_above\n    # then you must rewrite this shit.\n    ffmpeg.input(im1).filter(\n        \"pad\", w=\"iw\", h=\"ih+{}\".format(pad_total), x=0, y=pad_above, color=\"white\"",
+        "type": "code",
+        "location": "/tests/split_long_image_into_video/generate_video.py:1-36"
+    },
+    "4877": {
+        "file_id": 624,
+        "content": "This code reads an image, calculates its aspect ratio, scales it to a specific resolution (1920x1080), and saves the result. If there's still some padding needed for the new height, it pads the top with white space before saving again. The goal is to create a properly formatted image for use as video cover.",
+        "type": "comment"
+    },
+    "4878": {
+        "file_id": 624,
+        "content": "    ).output(im2).run(overwrite_output=True)\nelse:\n    im2 = im1\n# then chop it up.\nimport os\nimport shutil\nmdir = \"output\"\nfout = \"output%d.png\"\nif os.path.exists(mdir):\n    shutil.rmtree(mdir)\nos.mkdir(mdir)\nmfout = os.path.join(mdir, fout)\nimport math\nmh = math.ceil(height0 / mheight)\nmlayout = \"1x{}\".format(mh)\nffmpeg.input(im2).filter(\"untile\", layout=mlayout).output(mfout).run(\n    overwrite_output=True\n)\nmfiles = os.listdir(mdir)\nimport re\noutput_path = \"./output.mp4\"\nmfiles.sort(key=lambda x: int(re.findall(r\"[0-9]+\", x)[0]))\neditly_script = {\n    \"width\": mwidth,\n    \"height\": mheight,\n    \"fps\": 60,\n    \"outPath\": output_path,\n    \"defaults\": {\n        \"transition\": {\n            \"duration\": 0.5,\n            \"name\": \"random\",\n            \"audioOutCurve\": \"tri\",\n            \"audioInCurve\": \"tri\",\n        },\n        \"duration\": 3,\n    },\n    \"clips\": [\n        {\"layers\": [{\"type\": \"image\", \"path\": os.path.join(mdir, mfile)}]}\n        for mfile in mfiles\n    ],\n    \"audioFilePath\": \"the_happy_troll.mp3\",\n}\nimport json5\neditly_spec_file = \"spec_file.json5\"",
+        "type": "code",
+        "location": "/tests/split_long_image_into_video/generate_video.py:37-89"
+    },
+    "4879": {
+        "file_id": 624,
+        "content": "This code generates a video from a long image, chops it into parts, and then creates an editly specification file for further processing. It handles overwriting files if necessary, sorts the output image files, and defines various parameters such as layout, fps, and duration. The code also imports several modules (os, shutil, math, re) to perform operations like creating directories, removing tree structures, sorting files, and manipulating file paths.",
+        "type": "comment"
+    },
+    "4880": {
+        "file_id": 624,
+        "content": "with open(editly_spec_file, \"w+\") as fp:\n    json5.dump(editly_script, fp)\n# now execute\nimport os\nos.system(\"rm -rf editly-tmp*\")\nos.system(\"xvfb-run editly {}\".format(editly_spec_file))",
+        "type": "code",
+        "location": "/tests/split_long_image_into_video/generate_video.py:90-97"
+    },
+    "4881": {
+        "file_id": 624,
+        "content": "Writing the Editly script to a file, then executing it with temporary environment variables and removing temporary files.",
+        "type": "comment"
+    },
+    "4882": {
+        "file_id": 625,
+        "content": "/tests/split_long_image_into_video/cleanup.sh",
+        "type": "filepath"
+    },
+    "4883": {
+        "file_id": 625,
+        "content": "This code is deleting the 'output' and 'editly-tmp\\*' folders to clean up after a process, ensuring no leftover files are present.",
+        "type": "summary"
+    },
+    "4884": {
+        "file_id": 625,
+        "content": "rm -rf output\nrm -rf editly-tmp*",
+        "type": "code",
+        "location": "/tests/split_long_image_into_video/cleanup.sh:1-2"
+    },
+    "4885": {
+        "file_id": 625,
+        "content": "This code is deleting the 'output' and 'editly-tmp\\*' folders to clean up after a process, ensuring no leftover files are present.",
+        "type": "comment"
+    },
+    "4886": {
+        "file_id": 626,
+        "content": "/tests/soundhound_houndify_midomi_sound_recognize_music/test.py",
+        "type": "filepath"
+    },
+    "4887": {
+        "file_id": 626,
+        "content": "This code aims to recognize a song using the Shazam library and the Houndify API. It imports necessary libraries, sets up an event loop, connects to the API, sends song recognition information, and prints the recognized song's output. The author also mentions that this code works for SoundHound and plans to test it on other platforms like Shazam and Netease. The code filters out parts of the audio without singing voice and considers converting traditional Chinese to simplified Chinese for better searching experience.",
+        "type": "summary"
+    },
+    "4888": {
+        "file_id": 626,
+        "content": "# url = \"wss://houndify.midomi.com/\"\n# import asyncio\n# import websockets\n# async def hello():\n#     async with websockets.connect(url) as websocket:\n#         await websocket.send({ \"version\": \"1.0\" })\n#         await websocket.recv()\n# asyncio.run(hello())\n# the nodejs works for soundhound right now.\n# move upon other platforms: shazam (2 tools), netease.\n# shazam works for our chinese songs. one problem: it has traditional chinese.\n# better convert traditional chinese to simplified chinese, for better searching experience.\n# or you bet it. maybe another way of censorship circumvention?\n# apt-get install opencc\n# you need to filter out those parts without singing voice, if download music from kugou/qq music\naudioFile = \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3\"\nimport asyncio\nfrom shazamio import Shazam\nasync def main():\n    shazam = Shazam()\n    out = await shazam.recognize_song(audioFile)\n    print(out)\nloop = asyncio.get_event_loop()\nloop.run_until_complete(main())",
+        "type": "code",
+        "location": "/tests/soundhound_houndify_midomi_sound_recognize_music/test.py:1-34"
+    },
+    "4889": {
+        "file_id": 626,
+        "content": "This code aims to recognize a song using the Shazam library and the Houndify API. It imports necessary libraries, sets up an event loop, connects to the API, sends song recognition information, and prints the recognized song's output. The author also mentions that this code works for SoundHound and plans to test it on other platforms like Shazam and Netease. The code filters out parts of the audio without singing voice and considers converting traditional Chinese to simplified Chinese for better searching experience.",
+        "type": "comment"
+    },
+    "4890": {
+        "file_id": 627,
+        "content": "/tests/soundhound_houndify_midomi_sound_recognize_music/shazamio_recognize_music.py",
+        "type": "filepath"
+    },
+    "4891": {
+        "file_id": 627,
+        "content": "The code imports necessary modules, sets up an argument parser for the input file, and then utilizes the Shazam library to recognize music. It then formats and prints the recognition output as a JSON string. The async function is run in an event loop for approximately 12-20 seconds.",
+        "type": "summary"
+    },
+    "4892": {
+        "file_id": 627,
+        "content": "import argparse\nparser = argparse.ArgumentParser()\nparser.add_argument('-f','--file', type=str, default=None,required=True, help='music file to be recognized')\narguments = parser.parse_args()\n# audioFile = \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3\"\naudioFile = arguments.file\nimport os\nassert os.path.exists(audioFile)\nimport asyncio\nfrom shazamio import Shazam\nimport json\nasync def main():\n    shazam = Shazam()\n    out = await shazam.recognize_song(audioFile)\n    jsonString = json.dumps(out, ensure_ascii=False,indent=4)\n    print(jsonString)\nloop = asyncio.get_event_loop()\nloop.run_until_complete(main()) # 12 seconds or something. 20 secs most?\n# suggest to use songrec. the quickest.",
+        "type": "code",
+        "location": "/tests/soundhound_houndify_midomi_sound_recognize_music/shazamio_recognize_music.py:1-22"
+    },
+    "4893": {
+        "file_id": 627,
+        "content": "The code imports necessary modules, sets up an argument parser for the input file, and then utilizes the Shazam library to recognize music. It then formats and prints the recognition output as a JSON string. The async function is run in an event loop for approximately 12-20 seconds.",
+        "type": "comment"
+    },
+    "4894": {
+        "file_id": 628,
+        "content": "/tests/soundhound_houndify_midomi_sound_recognize_music/mixed_to_simplified_chinese.py",
+        "type": "filepath"
+    },
+    "4895": {
+        "file_id": 628,
+        "content": "The code imports the OpenCC library for Chinese-to-Chinese language conversion and demonstrates the conversion from Simplified to Traditional Chinese using the 't2s' conversion. The test data, \"testData\", contains mixed content in both languages. After converting the text with OpenCC, the converted text is printed as \"CONVERTED: \" followed by the converted text.",
+        "type": "summary"
+    },
+    "4896": {
+        "file_id": 628,
+        "content": "testData = \"\"\"mixed content 我 從來沒想過我\n這放蕩的靈魂\n不經意間傷了你的心\n如果 我們還有可 简体中文在这里 绝对是简体\"\"\"\n# pip3 install opencc-python-reimplemented\n# pip3 install opencc (if you want to)\n# import opencc\nfrom opencc import OpenCC # all the same.\ncc = OpenCC('t2s')  # convert from Simplified Chinese to Traditional Chinese\n# you can also try s2t\n# can also set conversion by calling set_conversion\n# cc.set_conversion('s2tw')\nto_convert = testData\nconverted = cc.convert(to_convert)\nprint(\"CONVERTED: \", converted) # great.\n# similar song/bgm label in video/audio -> song fullname -> music platform -> download song with lyrics",
+        "type": "code",
+        "location": "/tests/soundhound_houndify_midomi_sound_recognize_music/mixed_to_simplified_chinese.py:1-17"
+    },
+    "4897": {
+        "file_id": 628,
+        "content": "The code imports the OpenCC library for Chinese-to-Chinese language conversion and demonstrates the conversion from Simplified to Traditional Chinese using the 't2s' conversion. The test data, \"testData\", contains mixed content in both languages. After converting the text with OpenCC, the converted text is printed as \"CONVERTED: \" followed by the converted text.",
+        "type": "comment"
+    },
+    "4898": {
+        "file_id": 629,
+        "content": "/tests/soundhound_houndify_midomi_sound_recognize_music/test_shazamio_recognize_music.sh",
+        "type": "filepath"
+    },
+    "4899": {
+        "file_id": 629,
+        "content": "Running ShazamIO music recognition using a specified audio file, potentially for testing purposes. This command could be taking longer than expected due to various factors such as network latency or slow processing time in the program.",
+        "type": "summary"
+    }
+}

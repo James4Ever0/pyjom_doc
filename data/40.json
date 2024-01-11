@@ -1,0 +1,535 @@
+{
+    "4000": {
+        "file_id": 502,
+        "content": "import argparse\nimport glob\nimport os\nfrom PIL import Image\nfrom pyiqa.models.inference_model import InferenceModel\nmetric_name = None\ndef main():\n    global metric_name\n    \"\"\"Inference demo for pyiqa.\n    \"\"\"\n    parser = argparse.ArgumentParser()\n    parser.add_argument('-i', '--input', type=str, default=None, help='input image/folder path.')\n    parser.add_argument('-r', '--ref', type=str, default=None, help='reference image/folder path if needed.')\n    parser.add_argument(\n        '-m',\n        '--metric_mode',\n        type=str,\n        default='FR',\n        help='metric mode Full Reference or No Reference. options: FR|NR.')\n    parser.add_argument('-n', '--metric_name', type=str, default='PSNR', help='IQA metric name, case sensitive.')\n    parser.add_argument('--model_path', type=str, default=None, help='Weight path for CNN based models.')\n    parser.add_argument('--img_range', type=float, default=1.0, help='Max value of image tensor.')\n    parser.add_argument(\n        '--input_size', type=int, nargs='+', default=None, help='size of input image. (H, W) for tuple input.')",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pyiqa_inference.py:1-26"
+    },
+    "4001": {
+        "file_id": 502,
+        "content": "This code defines a main function for inference demo of the pyiqa library. It takes input, reference image or folder paths as arguments, and allows selection of metric mode (Full Reference or No Reference) and metric name (IQA metric). It also accepts optional parameters like model path, maximum value of image tensor, and input size.",
+        "type": "comment"
+    },
+    "4002": {
+        "file_id": 502,
+        "content": "    parser.add_argument(\n        '--mean', type=float, nargs='+', default=None, metavar='MEAN', help='Override mean pixel value of dataset')\n    parser.add_argument(\n        '--std', type=float, nargs='+', default=None, metavar='STD', help='Override std deviation of of dataset')\n    parser.add_argument('--save_file', type=str, default=None, help='path to save results.')\n    args = parser.parse_args()\n    metric_name = args.metric_name.lower()\n    # set up IQA model\n    iqa_model = InferenceModel(metric_name, args.metric_mode, args.model_path, args.img_range, args.input_size,\n                               args.mean, args.std)\n    metric_mode = iqa_model.metric_mode\n    if os.path.isfile(args.input):\n        input_paths = [args.input]\n        if args.ref is not None:\n            ref_paths = [args.ref]\n    else:\n        input_paths = sorted(glob.glob(os.path.join(args.input, '*')))\n        if args.ref is not None:\n            ref_paths = sorted(glob.glob(os.path.join(args.ref, '*')))\n    if args.save_file:\n        sf = open(args.save_file, 'w')",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pyiqa_inference.py:27-53"
+    },
+    "4003": {
+        "file_id": 502,
+        "content": "This code sets up an IQA (Image Quality Assessment) model for image quality evaluation. It takes in arguments such as the metric name, input and reference file paths, model path, image range, input size, mean, and std deviation values. If any file is missing, it throws an error. Finally, if a save file is specified, it opens the file for writing.",
+        "type": "comment"
+    },
+    "4004": {
+        "file_id": 502,
+        "content": "    avg_score = 0\n    test_img_num = len(input_paths)\n    for idx, img_path in enumerate(input_paths):\n        img_name = os.path.basename(img_path)\n        tar_img = Image.open(img_path)\n        if metric_mode == 'FR':\n            ref_img_path = ref_paths[idx]\n            ref_img = Image.open(ref_img_path)\n        else:\n            ref_img = None\n        score = iqa_model.test(tar_img, ref_img)\n        avg_score += score\n        print(f'{metric_name} score of {img_name} is: {score}')\n        if args.save_file:\n            sf.write(f'{img_name}\\t{score}\\n')\n    avg_score /= test_img_num\n    if test_img_num > 1:\n        print(f'Average {metric_name} score of {args.input} with {test_img_num} images is: {avg_score}')\n    if args.save_file:\n        sf.close()\n    if args.save_file:\n        print(f'Done! Results are in {args.save_file}.')\n    else:\n        print(f'Done!')\nimport timeit\nif __name__ == '__main__':\n    main() # to eliminate first time error.\n    repeatTime = 10 # just test\n    taketime = timeit.timeit(main,number=repeatTime)",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pyiqa_inference.py:55-85"
+    },
+    "4005": {
+        "file_id": 502,
+        "content": "This code calculates the image quality score using a pre-trained model. It takes input images and optionally references images, then averages the scores for each image if there are multiple inputs. The results can be saved to a file or simply printed out. It also times how long the process took.",
+        "type": "comment"
+    },
+    "4006": {
+        "file_id": 502,
+        "content": "    print(\"{} taking time:\".format(metric_name),taketime)\n###########SCOREBOARD##############\n# niqe taking time: 0.24909197200031485\n# brisque taking time: 0.1862209509999957\n# nrqm taking time: 18.15363560300466\n# pi taking time: 18.80046885000047\n# musiq taking time: 2.963457034995372\n# musiq-ava taking time: 2.9661162160045933\n# musiq-koniq taking time: 3.0705577400003676\n# musiq-paq2piq taking time: 2.957391322001058\n# musiq-spaq taking time: 2.948993805999635\n# paq2piq taking time: 1.4981017659956706\n# dbcnn taking time: 16.063134230993455",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pyiqa_inference.py:86-99"
+    },
+    "4007": {
+        "file_id": 502,
+        "content": "This code snippet measures the time taken by various image quality assessment algorithms. The output shows the names and respective times for each algorithm in descending order. It can be used to compare the efficiency of these algorithms when evaluating image quality.",
+        "type": "comment"
+    },
+    "4008": {
+        "file_id": 503,
+        "content": "/tests/image_quality_tests/pybrisque_test.py",
+        "type": "filepath"
+    },
+    "4009": {
+        "file_id": 503,
+        "content": "This code imports the BRISQUE class from the brisque module, integrates svmutil.py and svm.py files, initializes an instance of BRISQUE as brisq, gets a feature from an image path using brisq.get_feature(), assigns an image path to 'image_path' variable, retrieves a quality score for the image using brisq.get_score(image_path), and prints the obtained score which is very fast.",
+        "type": "summary"
+    },
+    "4010": {
+        "file_id": 503,
+        "content": "from brisque import BRISQUE\n# integrated svmutil.py and svm.py from that git repo.\n# really strange.\nbrisq = BRISQUE()\n# brisq.get_feature('/path')\nimage_path = \"/root/Desktop/works/pyjom/tests/image_quality_tests/sample.bmp\"\nscore = brisq.get_score(image_path)\nprint(\"score:\",score)\n# this is damn fast.",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pybrisque_test.py:1-12"
+    },
+    "4011": {
+        "file_id": 503,
+        "content": "This code imports the BRISQUE class from the brisque module, integrates svmutil.py and svm.py files, initializes an instance of BRISQUE as brisq, gets a feature from an image path using brisq.get_feature(), assigns an image path to 'image_path' variable, retrieves a quality score for the image using brisq.get_score(image_path), and prints the obtained score which is very fast.",
+        "type": "comment"
+    },
+    "4012": {
+        "file_id": 504,
+        "content": "/tests/image_quality_tests/pybrisque_init.sh",
+        "type": "filepath"
+    },
+    "4013": {
+        "file_id": 504,
+        "content": "Installing required dependencies and libraries for pybrisque Python package, including libsvm-dev, pip3 installing pybrisque, alternative options provided for faster installation.",
+        "type": "summary"
+    },
+    "4014": {
+        "file_id": 504,
+        "content": "apt-get install libsvm-dev\npip3 install pybrisque\n# pip3 install --process-dependency-links pybrisque\npip3 install git+https://github.com/Salinger/libsvm-python.git\n# which is faster?",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pybrisque_init.sh:1-6"
+    },
+    "4015": {
+        "file_id": 504,
+        "content": "Installing required dependencies and libraries for pybrisque Python package, including libsvm-dev, pip3 installing pybrisque, alternative options provided for faster installation.",
+        "type": "comment"
+    },
+    "4016": {
+        "file_id": 505,
+        "content": "/tests/idlefish_闲鱼_xianyu_spider_scraper_taobao_video_guangguang/README.md",
+        "type": "filepath"
+    },
+    "4017": {
+        "file_id": 505,
+        "content": "This code snippet is a warning about potentially malicious files from a QQ group and the challenge of safely running a specific software (Wine). The comment suggests caution when dealing with such files.",
+        "type": "summary"
+    },
+    "4018": {
+        "file_id": 505,
+        "content": "the file from qq group might be virus. be careful!\ndamn wine. how to run this shit safely?",
+        "type": "code",
+        "location": "/tests/idlefish_闲鱼_xianyu_spider_scraper_taobao_video_guangguang/README.md:1-3"
+    },
+    "4019": {
+        "file_id": 505,
+        "content": "This code snippet is a warning about potentially malicious files from a QQ group and the challenge of safely running a specific software (Wine). The comment suggests caution when dealing with such files.",
+        "type": "comment"
+    },
+    "4020": {
+        "file_id": 506,
+        "content": "/tests/nearly_duplicate_frames_detection_removal/test.py",
+        "type": "filepath"
+    },
+    "4021": {
+        "file_id": 506,
+        "content": "The code imports libraries, checks for still images, and uses scene detection with the scenedetect library. It retrieves video duration, sets adaptive detector, and stores results in an output file. Another code reads a CSV file into a DataFrame, prints first 5 rows, and pauses execution at breakpoint.",
+        "type": "summary"
+    },
+    "4022": {
+        "file_id": 506,
+        "content": "# source = \"/root/Desktop/works/pyjom/samples/video/nearly_duplicate_frames_detection.gif\"  # this is evil. it defeats my shit.\nsource = \"/root/Desktop/works/pyjom/samples/video/nearly_duplicate_frames_detection_30fps_blend.mp4\"  # this is evil. it defeats my shit.\n# source = \"/root/Desktop/works/pyjom/samples/video/nearly_duplicate_frames_detection_30fps.gif\"  # this is evil. it defeats my shit.\n# is it still image?\n# we can also detect more shits. right?\nimport sys\nimport os\nos.chdir(\"../../\")\nsys.path.append(\".\")\nfrom pyjom.commons import extract_span\nimport scenedetect\nfrom caer.video.frames_and_fps import get_duration\nstats_file_path = \"/media/root/parrot/pyjom/tests/nearly_duplicate_frames_detection_removal/output.csv\"\nduration = get_duration(source)\nprint(\"DURATION:\", duration)\ncuts = scenedetect.detect(\n    video_path=source, stats_file_path=stats_file_path, show_progress=True, \n    # detector=scenedetect.ContentDetector()\n    detector=scenedetect.AdaptiveDetector(),\n) # no fucking cuts???\nimport pandas",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/test.py:1-28"
+    },
+    "4023": {
+        "file_id": 506,
+        "content": "Code imports necessary libraries, checks if the source is a still image, and uses scenedetect library for scene detection. It gets video duration, sets adaptive detector, and stores results in output.csv file. No cuts are found in the video.",
+        "type": "comment"
+    },
+    "4024": {
+        "file_id": 506,
+        "content": "df = pandas.read_csv(stats_file_path)\nprint(df.head())\nbreakpoint()",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/test.py:30-32"
+    },
+    "4025": {
+        "file_id": 506,
+        "content": "This code reads a CSV file (stats_file_path) into a pandas DataFrame named 'df', then prints the first 5 rows of the DataFrame, and finally pauses execution at this breakpoint.",
+        "type": "comment"
+    },
+    "4026": {
+        "file_id": 507,
+        "content": "/tests/nearly_duplicate_frames_detection_removal/pyav_effective_fps.py",
+        "type": "filepath"
+    },
+    "4027": {
+        "file_id": 507,
+        "content": "This code measures the keyframe percentage in a video file using Python and the AV library. It opens a video source, iterates over each frame, appends the keyframes to a list, calculates the percentage of keyframes relative to total frames, and prints the result.",
+        "type": "summary"
+    },
+    "4028": {
+        "file_id": 507,
+        "content": "import av\n# source = \"/root/Desktop/works/pyjom/samples/video/nearly_duplicate_frames_detection_30fps_blend.mp4\"  # this is evil. it defeats my shit.\n# KEYFRAME PERCENT: 1.36 %\n# source = \"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\"  # this is evil. it defeats my shit.\n# KEYFRAME PERCENT: 0.76 %\n# wtf?\n# even smaller.\nsource = \"/root/Desktop/works/pyjom/samples/video/karaoke_effects_source.mp4\"\ncontainer = av.open(source)\nmList = []\nfor frame in container.decode(video=0):\n    mList.append(frame.key_frame)\nprint(\"KEYFRAME PERCENT: {:.2f} %\".format(100*sum(mList)/len(mList)))",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/pyav_effective_fps.py:1-18"
+    },
+    "4029": {
+        "file_id": 507,
+        "content": "This code measures the keyframe percentage in a video file using Python and the AV library. It opens a video source, iterates over each frame, appends the keyframes to a list, calculates the percentage of keyframes relative to total frames, and prints the result.",
+        "type": "comment"
+    },
+    "4030": {
+        "file_id": 508,
+        "content": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py",
+        "type": "filepath"
+    },
+    "4031": {
+        "file_id": 508,
+        "content": "The code tests centrality thresholds for nearly duplicate frames using OpenCV and numpy, addresses issues like double centers and incorrect percentages, and performs clustering with MiniBatchKMeans.",
+        "type": "summary"
+    },
+    "4032": {
+        "file_id": 508,
+        "content": "# i'd say i want centrality below 6 percent. what's the catch?\n# we'd like to adjust the shift.\n# another tip: you have forgot the spatial coordinates.\n# fuck!\nsrc = \"/root/Desktop/works/pyjom/samples/image/cute_cat.bmp\"\n# CENTRALITY: 0.00 %\n# single not go beyond 4 percent.\n# total not go beyond 6 percent.\n# is that right? fuck?\n# src = \"/root/Desktop/works/pyjom/samples/image/dog_with_text.png\"\n# and yet this does not look right.\n# NEARBY CENTER PERCENTAGE: 0.84 %\n# CENTRALITY: 2.57 %\n# src = \"/root/Desktop/works/pyjom/samples/image/miku_on_green.png\"\n# for this one we have double centers. fuck.\n# CENTRALITY: 181.80 %\n# it is off the charge!\n# with text. a meme.\n# src = \"/root/Desktop/works/pyjom/samples/image/dog_saturday_night.bmp\"\n# CENTRALITY: 1.26 %\n# src = \"/root/Desktop/works/pyjom/samples/image/similar_color_extraction.bmp\"  # use some filter first, or rather not to?\n# CENTER: [254.62436869 254.63794192 254.79734848]\n# POSITIVE COUNT: 188772\n# SUM: 566316.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 81.93 %",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py:1-35"
+    },
+    "4033": {
+        "file_id": 508,
+        "content": "The code appears to be testing and adjusting the centrality threshold for detecting nearly duplicate frames. The author is experimenting with different image file sources, and discussing various issues encountered during the process, such as double centers and incorrect centrality percentages. They also mention using filters for certain images.",
+        "type": "comment"
+    },
+    "4034": {
+        "file_id": 508,
+        "content": "# CENTRALITY: 82.33 %\n# let's try some cats.\n# the filter: removegrain\n# src = \"/root/Desktop/works/pyjom/samples/image/kitty_flash.bmp\"  # use some filter first, or rather not to?\n# CENTER: [1.37254902 2.34313725 9.46078431]\n# POSITIVE COUNT: 2600\n# SUM: 7800.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 3.91 %\n# CENTRALITY: 3.91 %\n# now the 八点半配音\n# src = \"/root/Desktop/works/pyjom/samples/image/is_this_duck.bmp\"\n# CENTER: [252.66293811 177.62005966 126.37844892]\n# POSITIVE COUNT: 222893\n# SUM: 668679.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 36.49 %\n# CENTRALITY: 36.55 %\n# likely to be the blue.\n# src = \"/root/Desktop/works/pyjom/samples/image/pig_really.bmp\"\n# multiple centers.\n# CENTER: [246.76865924 226.40763256 216.41472476]\n# POSITIVE COUNT: 95497\n# SUM: 286491.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 6.74 %\n# CENTRALITY: 7.32 %\nimport numpy as np\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nuse_spatial=True\nimport cv2\nimage = cv2.imread(src)\nshape = image.shape\nif len(shape) != 3:",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py:36-76"
+    },
+    "4035": {
+        "file_id": 508,
+        "content": "This code reads an image from a specified source and checks if it's in the correct format (RGB). It then calculates the centrality and nearby center percentage, likely for duplicate frame detection. The code uses OpenCV to load images and numpy for data manipulation. The code has three different examples with different results: one cat image with high centrality and nearby center percentage, a duck image with very high centrality and nearby center percentage, and a pig image with multiple centers and lower centrality.",
+        "type": "comment"
+    },
+    "4036": {
+        "file_id": 508,
+        "content": "    print(\"weird shit.\")\nif shape[2] != 3:\n    print(\"depth not right.\")\n# for i in range(3):\n#     image[:,:,i] = i\nif use_spatial:\n    col_0, col_1 = shape[:2]\n    coords = []\n    bias_0 = 2\n    bias_1 = 2\n    for c0 in range(col_0):\n        for c1 in range(col_1):\n            coords.append((bias_0*c0/col_0,bias_1*c1/col_1))\n    coords = np.array(coords)\n# print(image.reshape(-1,3))\nreshapedImage = image.reshape(-1, 3)  # are you sure about this?\nlength, depth = reshapedImage.shape\nsample_size_limit = 5000\nreshapedImageIndexs = np.arange(0, length)\n# so now it is good.\nsampleIndexs = np.random.choice(reshapedImageIndexs, size=min(sample_size_limit, length))\nprint(sampleIndexs)\nprint(sampleIndexs.shape)\nsample_size = len(sampleIndexs)\nsample = reshapedImageIndexs[sampleIndexs]\nsample = reshapedImage[sample, :]\nprint(sample)\nprint(sample.shape)\n# breakpoint()\nif use_spatial:\n    sampleCoords = coords[sampleIndexs]\n    sample = np.hstack([sample, sampleCoords])\n    print(sample)\n    print(sample.shape)\n# breakpoint()\n# warning: OOM?",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py:77-123"
+    },
+    "4037": {
+        "file_id": 508,
+        "content": "This code checks if the image depth is correct, then it reshapes and extracts samples from an image for further processing. The code also includes an option to use spatial coordinates, which are added as additional features to the sample data.",
+        "type": "comment"
+    },
+    "4038": {
+        "file_id": 508,
+        "content": "# now cluster shit shall we?\n# from sklearn.neighbors import NearestNeighbors\n# neigh = NearestNeighbors(n_neighbors=5)\n# X = sample\n# neigh.fit(X)\n# A = neigh.kneighbors_graph(X)\n# A.toarray()\n# print(A)\n# print(A.shape) # sparse matrix? wtf?\nfrom sklearn.cluster import MiniBatchKMeans  # better?\n# from sklearn.cluster import KMeans\nX = sample\nbatch_size = 45\n# kmeans = KMeans(n_clusters=5).fit(X) # not deterministic please?\nn_clusters = 5\nkmeans = MiniBatchKMeans(\n    init=\"k-means++\",\n    n_clusters=n_clusters,\n    batch_size=batch_size,\n    # n_init=10,\n    max_no_improvement=10,\n    verbose=0,\n).fit(X)\n# from lazero.utils import inspectObject\n# inspectObject(kmeans)\n# breakpoint()\nlabels = kmeans.labels_\ncluster_centers = kmeans.cluster_centers_\nprint(labels)\nprint(cluster_centers)\nlabel_percentage = {\n    x: np.count_nonzero(labels == x) / sample_size for x in range(n_clusters)\n}\nflagged_image = image.copy()\nflagged_image[:,:,:] = 1 # every element is 1 now.\nepsilon = 0.01 # shit man.\npercents = []\nshift=2\nfor center5 in cluster_centers:",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py:124-165"
+    },
+    "4039": {
+        "file_id": 508,
+        "content": "Code is performing clustering using MiniBatchKMeans from sklearn.cluster, with n_clusters=5 and batch_size=45 to handle larger datasets. After fitting the data, it prints labels and cluster centers. Then, it calculates label percentages based on the labels assigned by KMeans, initializes a flagged image with all elements set to 1, and starts iterating through each cluster center to perform further operations (not shown in code snippet).",
+        "type": "comment"
+    },
+    "4040": {
+        "file_id": 508,
+        "content": "    # fetch area nearby given center\n    if use_spatial:\n        center = center5[:3]\n    else:\n        center = center5\n    # center_int = center.astype(np.uint8)\n    # i just don't know what the fuck is going on here.\n    upper = center + shift\n    lower = center - shift\n    mask = cv2.inRange(image, lower, upper)\n    # not image.\n    output = cv2.bitwise_and(flagged_image, flagged_image, mask=mask)\n    # print(output)\n    # print(output.shape)\n    mOutput = output.reshape(-1, 3)\n    mOutput = np.sum(mOutput, axis=1)\n    mSum = sum(mOutput)\n    # breakpoint()\n    positive_count = np.count_nonzero(abs(mOutput - 3) < epsilon)\n    percent = positive_count/len(mOutput)\n    # print(mOutput)\n    # print(mOutput.shape)\n    # breakpoint()\n    print(\"CENTER:\",center)\n    print('POSITIVE COUNT:', positive_count)\n    print(\"SUM:\", mSum, \"MIN:\", min(mOutput), 'MAX:', max(mOutput))\n    print(\"NEARBY CENTER PERCENTAGE: {:.2f} %\".format(percent*100))\n    percents.append(percent)\nprint(\"CENTRALITY: {:.2f} %\".format(sum(percents)*100))",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py:166-195"
+    },
+    "4041": {
+        "file_id": 508,
+        "content": "The code calculates the centrality of a center by extracting nearby pixel values and checking if they are within a specified epsilon threshold. It uses image processing functions from OpenCV (cv2) and numpy for masking, reshaping, and summing operations. The code then prints various metrics related to the center's centrality, such as positive count, sum of pixel values, minimum and maximum values, and finally calculates the overall centrality percentage.",
+        "type": "comment"
+    },
+    "4042": {
+        "file_id": 509,
+        "content": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py",
+        "type": "filepath"
+    },
+    "4043": {
+        "file_id": 509,
+        "content": "The user is experiencing issues with image centrality and nearby center percentages when using OpenCV (cv2) and MiniBatchKMeans for clustering in numpy. The code extracts similar color frames, calculates percentages of nearby centers, and prints related statistics to calculate overall centrality.",
+        "type": "summary"
+    },
+    "4044": {
+        "file_id": 509,
+        "content": "# i'd say i want centrality below 6 percent. what's the catch?\n# we'd like to adjust the shift.\n# another tip: you have forgot the spatial coordinates.\n# fuck!\n# src = \"/root/Desktop/works/pyjom/samples/image/cute_cat.bmp\"\n# CENTRALITY: 0.00 %\n# single not go beyond 4 percent.\n# total not go beyond 6 percent.\n# is that right? fuck?\n# src = \"/root/Desktop/works/pyjom/samples/image/dog_with_text.png\"\n# and yet this does not look right.\n# NEARBY CENTER PERCENTAGE: 0.84 %\n# CENTRALITY: 2.57 %\n# src = \"/root/Desktop/works/pyjom/samples/image/miku_on_green.png\"\n# for this one we have double centers. fuck.\n# CENTRALITY: 181.80 %\n# it is off the charge!\n# with text. a meme.\n# src = \"/root/Desktop/works/pyjom/samples/image/dog_saturday_night.bmp\"\n# CENTRALITY: 1.26 %\n# src = \"/root/Desktop/works/pyjom/samples/image/similar_color_extraction.bmp\"  # use some filter first, or rather not to?\n# CENTER: [254.62436869 254.63794192 254.79734848]\n# POSITIVE COUNT: 188772\n# SUM: 566316.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 81.93 %",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:1-35"
+    },
+    "4045": {
+        "file_id": 509,
+        "content": "The code snippet is displaying image centrality, nearby center percentage, and other related information for several images. The user seems to be adjusting the shift and working with spatial coordinates. However, they are encountering issues like double centers and results that do not look right. They seem to be unsure about some parameters and considering using a filter on an image.",
+        "type": "comment"
+    },
+    "4046": {
+        "file_id": 509,
+        "content": "# CENTRALITY: 82.33 %\n# let's try some cats.\n# the filter: removegrain\n# src = \"/root/Desktop/works/pyjom/samples/image/kitty_flash.bmp\"  # use some filter first, or rather not to?\n# CENTER: [1.37254902 2.34313725 9.46078431]\n# POSITIVE COUNT: 2600\n# SUM: 7800.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 3.91 %\n# CENTRALITY: 3.91 %\n# now the 八点半配音\n# src = \"/root/Desktop/works/pyjom/samples/image/is_this_duck.bmp\"\n# CENTER: [252.66293811 177.62005966 126.37844892]\n# POSITIVE COUNT: 222893\n# SUM: 668679.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 36.49 %\n# CENTRALITY: 36.55 %\n# likely to be the blue.\nsrc = \"/root/Desktop/works/pyjom/samples/image/pig_really.bmp\"\n# multiple centers.\n# CENTER: [246.76865924 226.40763256 216.41472476]\n# POSITIVE COUNT: 95497\n# SUM: 286491.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 6.74 %\n# CENTRALITY: 7.32 %\nimport numpy as np\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\nimage = cv2.imread(src)\nshape = image.shape\nif len(shape) != 3:\n    print(\"weird shit.\")",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:36-75"
+    },
+    "4047": {
+        "file_id": 509,
+        "content": "This code reads an image from a specific file and applies filters to detect and remove duplicate frames. The results include information about centrality, positive counts, nearby center percentages, and more. The code uses OpenCV (cv2) for image processing and numpy for array manipulation.",
+        "type": "comment"
+    },
+    "4048": {
+        "file_id": 509,
+        "content": "if shape[2] != 3:\n    print(\"depth not right.\")\n# for i in range(3):\n#     image[:,:,i] = i\n# col_0, col_1 = shape[:2]\n# coords = []\n# for c0 in range(col_0):\n#     for c1 in range(col_1):\n#         coords.append((c0,c1))\n# coords = np.array(coords)\n# print(image.reshape(-1,3))\nreshapedImage = image.reshape(-1, 3)  # are you sure about this?\nlength, depth = reshapedImage.shape\nsample_size_limit = 5000\nreshapedImageIndexs = np.arange(0, length)\n# so now it is good.\nsampleIndexs = np.random.choice(reshapedImageIndexs, size=min(sample_size_limit, length))\nprint(sampleIndexs)\nprint(sampleIndexs.shape)\nsample_size = len(sampleIndexs)\nsample = reshapedImageIndexs[sampleIndexs]\nsample = reshapedImage[sample, :]\nprint(sample)\nprint(sample.shape)\n# breakpoint()\n# sampleCoords = coords[sampleIndexs]\n# sample = np.hstack([sample, sampleCoords])\n# print(sample)\n# print(sample.shape)\n# breakpoint()\n# warning: OOM?\n# now cluster shit shall we?\n# from sklearn.neighbors import NearestNeighbors\n# neigh = NearestNeighbors(n_neighbors=5)",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:76-119"
+    },
+    "4049": {
+        "file_id": 509,
+        "content": "The code extracts color samples from an image and selects a random sample of up to 5000 indices. It then reshapes the image into a 1D array, creates new sample indices, retrieves the sample data, and prepares for clustering.",
+        "type": "comment"
+    },
+    "4050": {
+        "file_id": 509,
+        "content": "# X = sample\n# neigh.fit(X)\n# A = neigh.kneighbors_graph(X)\n# A.toarray()\n# print(A)\n# print(A.shape) # sparse matrix? wtf?\nfrom sklearn.cluster import MiniBatchKMeans  # better?\n# from sklearn.cluster import KMeans\nX = sample\nbatch_size = 45\n# kmeans = KMeans(n_clusters=5).fit(X) # not deterministic please?\nn_clusters = 5\nkmeans = MiniBatchKMeans(\n    init=\"k-means++\",\n    n_clusters=n_clusters,\n    batch_size=batch_size,\n    # n_init=10,\n    max_no_improvement=10,\n    verbose=0,\n).fit(X)\n# from lazero.utils import inspectObject\n# inspectObject(kmeans)\n# breakpoint()\nlabels = kmeans.labels_\ncluster_centers = kmeans.cluster_centers_\nprint(labels)\nprint(cluster_centers)\nlabel_percentage = {\n    x: np.count_nonzero(labels == x) / sample_size for x in range(n_clusters)\n}\nflagged_image = image.copy()\nflagged_image[:,:,:] = 1 # every element is 1 now.\nepsilon = 0.01 # shit man.\npercents = []\nshift=2\nfor center in cluster_centers:\n    # fetch area nearby given center\n    # center = center5[:3]\n    # center_int = center.astype(np.uint8)",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:120-161"
+    },
+    "4051": {
+        "file_id": 509,
+        "content": "This code performs clustering using MiniBatchKMeans to find clusters in a dataset, extracts cluster centers, calculates label percentages for each cluster, and then sets the entire flagged image to 1 before iterating through cluster centers and performing an unknown operation on nearby areas.",
+        "type": "comment"
+    },
+    "4052": {
+        "file_id": 509,
+        "content": "    # i just don't know what the fuck is going on here.\n    upper = center + shift\n    lower = center - shift\n    mask = cv2.inRange(image, lower, upper)\n    # not image.\n    output = cv2.bitwise_and(flagged_image, flagged_image, mask=mask)\n    # print(output)\n    # print(output.shape)\n    mOutput = output.reshape(-1, 3)\n    mOutput = np.sum(mOutput, axis=1)\n    mSum = sum(mOutput)\n    # breakpoint()\n    positive_count = np.count_nonzero(abs(mOutput - 3) < epsilon)\n    percent = positive_count/len(mOutput)\n    # print(mOutput)\n    # print(mOutput.shape)\n    # breakpoint()\n    print(\"CENTER:\",center)\n    print('POSITIVE COUNT:', positive_count)\n    print(\"SUM:\", mSum, \"MIN:\", min(mOutput), 'MAX:', max(mOutput))\n    print(\"NEARBY CENTER PERCENTAGE: {:.2f} %\".format(percent*100))\n    percents.append(percent)\nprint(\"CENTRALITY: {:.2f} %\".format(sum(percents)*100))",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:162-185"
+    },
+    "4053": {
+        "file_id": 509,
+        "content": "This code extracts similar color frames and calculates the percentage of nearby centers. It reshapes the output, sums values, counts non-zero absolute differences, and calculates the percentage of nearby centers. The code then appends the percentages to a list for later calculation of centrality. Finally, it prints various statistics about the image and calculates the overall centrality based on the accumulated percentages.",
+        "type": "comment"
+    },
+    "4054": {
+        "file_id": 510,
+        "content": "/tests/nearly_duplicate_frames_detection_removal/fast_vqa_test.sh",
+        "type": "filepath"
+    },
+    "4055": {
+        "file_id": 510,
+        "content": "Code changes the video file being tested, mentions quality scores and potential issues with large white areas, suggests using k-NN (k=5), and runs the VQA script on a CPU.",
+        "type": "summary"
+    },
+    "4056": {
+        "file_id": 510,
+        "content": "cd FAST-VQA\n# VIDEO=\"/root/Desktop/works/pyjom/samples/video/nearly_duplicate_frames_detection_30fps.mp4\"\n# The quality score of the video is 0.11833.\nVIDEO=\"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.mp4\"\n# The quality score of the video is 0.12778.\n# nothing serious. it does not produce significant shits.\npython3 vqa.py -o ./options/fast/f3dvqa-b.yml -v $VIDEO -d cpu\n# another feature is that this video produces a large area in white, which is not what we really want.\n# use knn?\n# k=5",
+        "type": "code",
+        "location": "/tests/nearly_duplicate_frames_detection_removal/fast_vqa_test.sh:1-13"
+    },
+    "4057": {
+        "file_id": 510,
+        "content": "Code changes the video file being tested, mentions quality scores and potential issues with large white areas, suggests using k-NN (k=5), and runs the VQA script on a CPU.",
+        "type": "comment"
+    },
+    "4058": {
+        "file_id": 511,
+        "content": "/tests/aiohttp_python_clash_delay_proxy_set_proxy/test.py",
+        "type": "filepath"
+    },
+    "4059": {
+        "file_id": 511,
+        "content": "This code fetches and tests proxies, sets up a connection gateway, makes a GET request to \"https://deepl.com\" using the valid proxy, prints first 100 bytes and status code, and displays \"deepl response\".",
+        "type": "summary"
+    },
+    "4060": {
+        "file_id": 511,
+        "content": "# from download_from_multiple_websites_at_once import concurrentGet\nfrom lazero.network.proxy.clash import (\n    getProxyList,\n    testProxyList,\n    getConnectionGateway,\n    setProxyConfig,\n    setProxyWithSelector,\n)\nimport requests\nif __name__ == \"__main__\":\n    # validProxyDelayList = []\n    proxyList = getProxyList(debug=True)\n    # pprint.pprint(result)\n    validProxyDelayList = testProxyList(proxyList, timeout=5000)\n    #     pprint(gateway)\n    #     {'allow-lan': True,\n    #  'authentication': [],\n    #  'bind-address': '*',\n    #  'ipv6': False,\n    #  'log-level': 'info',\n    #  'mixed-port': 0,\n    #  'mode': 'rule',\n    #  'port': 8381,\n    #  'redir-port': 0,\n    #  'socks-port': 0,\n    #  'tproxy-port': 0}\n    gateway = getConnectionGateway()\n    print(\"valid proxies:\", len(validProxyDelayList))\n    validProxyName = validProxyDelayList[0][\"name\"]\n    # if no valid proxy, better do another run.\n    setProxyConfig(mode=\"Global\")\n    # you can switch to 'Rule' if you want the baidu translation\n    setProxyWithSelector(validProxyName, debug=True)",
+        "type": "code",
+        "location": "/tests/aiohttp_python_clash_delay_proxy_set_proxy/test.py:1-34"
+    },
+    "4061": {
+        "file_id": 511,
+        "content": "This code fetches the proxy list from Clash, tests the proxies for validity, sets up a connection gateway, and configures the global proxy using Clash's functions. It prints the number of valid proxies found and sets a specific valid proxy for further use.",
+        "type": "comment"
+    },
+    "4062": {
+        "file_id": 511,
+        "content": "    # now use the proxy!\n    r = requests.get(\"https://deepl.com\", proxies={\"http\": gateway, \"https\": gateway})\n    print()\n    print(r.content[:100])\n    print(r.status_code)\n    print(\"deepl response\")",
+        "type": "code",
+        "location": "/tests/aiohttp_python_clash_delay_proxy_set_proxy/test.py:35-40"
+    },
+    "4063": {
+        "file_id": 511,
+        "content": "Using the proxy, make a GET request to \"https://deepl.com\", print the first 100 bytes of response content and status code, then display \"deepl response\".",
+        "type": "comment"
+    },
+    "4064": {
+        "file_id": 512,
+        "content": "/tests/aiohttp_python_clash_delay_proxy_set_proxy/download_from_multiple_websites_at_once.py",
+        "type": "filepath"
+    },
+    "4065": {
+        "file_id": 512,
+        "content": "This code imports the \"concurrentGet\" function from the \"lzero.network.asyncio\" module, which allows for making concurrent HTTP GET requests asynchronously.",
+        "type": "summary"
+    },
+    "4066": {
+        "file_id": 512,
+        "content": "from lazero.network.asyncio import concurrentGet",
+        "type": "code",
+        "location": "/tests/aiohttp_python_clash_delay_proxy_set_proxy/download_from_multiple_websites_at_once.py:1-1"
+    },
+    "4067": {
+        "file_id": 512,
+        "content": "This code imports the \"concurrentGet\" function from the \"lzero.network.asyncio\" module, which allows for making concurrent HTTP GET requests asynchronously.",
+        "type": "comment"
+    },
+    "4068": {
+        "file_id": 513,
+        "content": "/tests/hyper_param_optimization/test.py",
+        "type": "filepath"
+    },
+    "4069": {
+        "file_id": 513,
+        "content": "This code uses Hyperopt library for parameter optimization, chooses hyperparameters from different cases via choice function, and samples 10 times for each search space.",
+        "type": "summary"
+    },
+    "4070": {
+        "file_id": 513,
+        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nfrom hyperopt import hp\n# usually this hyper parameter optimization is done regularlly, and the optimized parameters will be used for a while till next update.\n# but can we optimize these parameters offline?\n# if not offline then we can only use traditional machine learning instead...\n# or this trial and error process is actually a kind of offline machine learning, like random search and graph inference...\n# better use hyperopt with a discriminator ML algorithm.\n# space = hp.choice(\n#     \"a\",\n#     [(\"case 1\", 1 + hp.lognormal(\"c1\", 0, 1)), (\"case 2\", hp.uniform(\"c2\", -10, 10))],\n# )\nimport hyperopt.pyll.stochastic as stochastic\nspace = hp.choice(\"lambda\",[lambda :1, lambda:2]) # if it is lambda, function will not resolve. however, after passing this thing into the main criterion function, it will utilize the lambda function.\nfor _ in range(10):\n    sample = stochastic.sample(space)\n    print(\"SAMPLE:\", sample) # this will return the tuple. can we put some custom functions here?",
+        "type": "code",
+        "location": "/tests/hyper_param_optimization/test.py:1-24"
+    },
+    "4071": {
+        "file_id": 513,
+        "content": "This code uses the hyperopt library for parameter optimization. The hyperparameters are chosen from different cases using a choice function, including lambda functions. The space is sampled 10 times using stochastic sampling, and each sample is printed to the console.",
+        "type": "comment"
+    },
+    "4072": {
+        "file_id": 513,
+        "content": "    # there must be some integrations with custom functions. for example: scikit-learn\nprint(\"_______________________________\") # splited.\nfrom hyperopt.pyll import scope\n@scope.define # this is how we sample the \"LAMBDA\".\ndef my_func(a,b=1):\n    print(\"running function my_func\", a,b)\n    return a*b\nspace_0 = scope.my_func(hp.choice(\"myChoice\",[1,2]))\nspace_1 = scope.my_func(hp.choice(\"myChoice\",[1,2]), hp.choice(\"myChoice2\",[2,3,4]))\nfor _ in range(10):\n    print(stochastic.sample(space_0), stochastic.sample(space_1))",
+        "type": "code",
+        "location": "/tests/hyper_param_optimization/test.py:25-40"
+    },
+    "4073": {
+        "file_id": 513,
+        "content": "This code defines and samples two hyperparameter search spaces using the Hyperopt library's Pyll module. The \"my_func\" function is defined within a scope, allowing for easy integration with custom functions like Scikit-Learn. It then prints and samples from these search spaces 10 times.",
+        "type": "comment"
+    },
+    "4074": {
+        "file_id": 514,
+        "content": "/tests/hyper_param_optimization/README.md",
+        "type": "filepath"
+    },
+    "4075": {
+        "file_id": 514,
+        "content": "This code provides a reference to the tutorials section and official documentation of the hyperopt library, found on its GitHub repository.",
+        "type": "summary"
+    },
+    "4076": {
+        "file_id": 514,
+        "content": "[tutorials](https://github.com/hyperopt/hyperopt/wiki/FMin) found from [official documentation](http://hyperopt.github.io/hyperopt/) of [hyperopt](https://github.com/hyperopt/hyperopt).",
+        "type": "code",
+        "location": "/tests/hyper_param_optimization/README.md:1-1"
+    },
+    "4077": {
+        "file_id": 514,
+        "content": "This code provides a reference to the tutorials section and official documentation of the hyperopt library, found on its GitHub repository.",
+        "type": "comment"
+    },
+    "4078": {
+        "file_id": 515,
+        "content": "/tests/hyper_param_optimization/optimize_suggest.py",
+        "type": "filepath"
+    },
+    "4079": {
+        "file_id": 515,
+        "content": "Code defines a function and uses Hyperopt's Tree-structured Parzen Estimators (TPE) algorithm to optimize the given function. It sets the hyperparameter space using hp.uniform and runs 100 trials, printing the result of the best trial.",
+        "type": "summary"
+    },
+    "4080": {
+        "file_id": 515,
+        "content": "from hyperopt import tpe, fmin, hp, STATUS_OK, STATUS_FAIL\nimport requests\ndef function(x):\n    print(\"trying timeout:\",x)\n    # result = x**2\n    status = STATUS_FAIL\n    try:\n        r = requests.get('https://www.baidu.com/', timeout=x)\n        if r.status_code == 200:\n            status = STATUS_OK\n    except:\n        print(\"FAILED WITH TIMEOUT:\", x) # this will rule out the unwanted ones.\n    return {\"loss\":x, \"status\":status}\nspace = hp.uniform(\"param\",0,2)\nresult = fmin(fn=function, space=space, algo=tpe.suggest, max_evals=100)\nprint(result)\n# {'param': 0.10165862536290635}\n# really working? 100ms could be so damn short...\n# by using `Trials` we could inspect results of every trial.",
+        "type": "code",
+        "location": "/tests/hyper_param_optimization/optimize_suggest.py:1-21"
+    },
+    "4081": {
+        "file_id": 515,
+        "content": "Code defines a function and uses Hyperopt's Tree-structured Parzen Estimators (TPE) algorithm to optimize the given function. It sets the hyperparameter space using hp.uniform and runs 100 trials, printing the result of the best trial.",
+        "type": "comment"
+    },
+    "4082": {
+        "file_id": 516,
+        "content": "/tests/hmm_test_speech_recognization_time_series/test.py",
+        "type": "filepath"
+    },
+    "4083": {
+        "file_id": 516,
+        "content": "The code utilizes numpy and hmmlearn libraries for unsupervised learning. It creates a GaussianHMM model with 3 components, generates random dataset X for training, fits the model, predicts states Z, and calculates score, where lower score implies better performance.",
+        "type": "summary"
+    },
+    "4084": {
+        "file_id": 516,
+        "content": "import numpy as np\nfrom hmmlearn import hmm\n# np.random.seed(42)\n# hmmlearn is simply unsupervised learning.\n# for supervised sequence learning use seqlearn instead\n# pomegranate also supports labeled sequence learning.\n# you may feed the sequence into unsupervised learning, output with supervised learning.\n# wtf?\n# we can use the 'score' to identify 'trained' sequences and 'alien' sequences, thus get the 'supervised' effect.\n# https://github.com/wblgers/hmm_speech_recognition_demo/blob/master/demo.py\nmodel = hmm.GaussianHMM(n_components=3, covariance_type=\"full\")\n# model.startprob_ = np.array([0.6, 0.3, 0.1])\n# model.transmat_ = np.array([[0.7, 0.2, 0.1],\n#                             [0.3, 0.5, 0.2],\n#                             [0.3, 0.3, 0.4]])\n# model.means_ = np.array([[0.0, 0.0], [3.0, -3.0], [5.0, 10.0]])\n# model.covars_ = np.tile(np.identity(2), (3, 1, 1))\n# not fitteed since we do not manually specify all the parameters.\nX = np.random.random((100,8)) # it can be anything. the Z contains three labels.",
+        "type": "code",
+        "location": "/tests/hmm_test_speech_recognization_time_series/test.py:1-24"
+    },
+    "4085": {
+        "file_id": 516,
+        "content": "Code is importing numpy and hmmlearn libraries for unsupervised learning. It then creates a GaussianHMM model with 3 components, but leaves its parameters unspecified as it will be fitted later. A random dataset X of size (100,8) is generated for training.",
+        "type": "comment"
+    },
+    "4086": {
+        "file_id": 516,
+        "content": "# X, Z = model.sample(100)\n# print(X) # the observations.\nmodel.fit(X)\n# # (100, 2)\nZ_predicted = model.predict(X)\n# print(Z) # the states.\nprint(X.shape, Z_predicted.shape)\n# # (100,)\nscore = model.score(X)\nprint('score:', score)\n# score: -32.50027336204506\n# it must mean something? man?\n# simply use another model and fit it again, get the best score!\nbreakpoint()",
+        "type": "code",
+        "location": "/tests/hmm_test_speech_recognization_time_series/test.py:25-38"
+    },
+    "4087": {
+        "file_id": 516,
+        "content": "This code fits a model to some observations (X) and predicts states (Z) using the fitted model. It then calculates a score (score) for the model's performance on the observations. The code suggests that the lower the score, the better the model's performance, but further analysis might be needed.",
+        "type": "comment"
+    },
+    "4088": {
+        "file_id": 517,
+        "content": "/tests/hmm_test_speech_recognization_time_series/seqlearn_test.py",
+        "type": "filepath"
+    },
+    "4089": {
+        "file_id": 517,
+        "content": "This code is training a Structured Perceptron on one-hot encoded features with varying sequence lengths. The classifier is then evaluated using whole sequence accuracy.",
+        "type": "summary"
+    },
+    "4090": {
+        "file_id": 517,
+        "content": "from seqlearn.perceptron import StructuredPerceptron  # it's like mini neural network.\n# the lengths_train marked each individual sequence's length as an array.\nimport numpy as np\nX_train = np.random.random((5, 4))  # one-hot encoded? not? features=4\ny_train = np.random.randint(0, 5, (5,))  # the freaking label.\nlengths_train = [1, 1, 2, 1]  # may i apologize. sum=5\nclassifier = StructuredPerceptron()\nclassifier.fit(X_train, y_train, lengths_train)\n# from seqlearn.evaluation import bio_f_score\nfrom seqlearn.evaluation import whole_sequence_accuracy\ny_pred = classifier.predict(X_train, lengths_train)\nprint(\"TRAINED ACCURACY: {:.2f} %\".format(100*whole_sequence_accuracy(y_train, y_pred, lengths_train)))\n# breakpoint()",
+        "type": "code",
+        "location": "/tests/hmm_test_speech_recognization_time_series/seqlearn_test.py:1-19"
+    },
+    "4091": {
+        "file_id": 517,
+        "content": "This code is training a Structured Perceptron on one-hot encoded features with varying sequence lengths. The classifier is then evaluated using whole sequence accuracy.",
+        "type": "comment"
+    },
+    "4092": {
+        "file_id": 518,
+        "content": "/tests/hmm_test_speech_recognization_time_series/pomegranate_test.py",
+        "type": "filepath"
+    },
+    "4093": {
+        "file_id": 518,
+        "content": "This code snippet introduces the Pomegranate library, which offers advanced features for Hidden Markov Model (HMM) training and prediction with a variety of models available.",
+        "type": "summary"
+    },
+    "4094": {
+        "file_id": 518,
+        "content": "# this library goes way advanced than hmmlearn/seqlearn\n# it provides convenient methods for training and prediction.\n# also lots of different models\n# https://pomegranate.readthedocs.io/en/latest/HiddenMarkovModel.html",
+        "type": "code",
+        "location": "/tests/hmm_test_speech_recognization_time_series/pomegranate_test.py:1-5"
+    },
+    "4095": {
+        "file_id": 518,
+        "content": "This code snippet introduces the Pomegranate library, which offers advanced features for Hidden Markov Model (HMM) training and prediction with a variety of models available.",
+        "type": "comment"
+    },
+    "4096": {
+        "file_id": 519,
+        "content": "/tests/jina_multimodal_cross_modal_search_examples_apps/get_jina_hub_list.sh",
+        "type": "filepath"
+    },
+    "4097": {
+        "file_id": 519,
+        "content": "This script uses curl to send an authenticated GET request to 'https://api.hubble.jina.ai/v2/rpc/executor.list' for retrieving the list of executors on Jina Hub. The request includes necessary headers and data parameters in a compressed format.",
+        "type": "summary"
+    },
+    "4098": {
+        "file_id": 519,
+        "content": "# curl 'https://api.hubble.jina.ai/v2/rpc/executor.list' \\\n#   -H 'authority: api.hubble.jina.ai' \\\n#   -H 'accept: */*' \\\n#   -H 'accept-language: en-US,en;q=0.9' \\\n#   -H 'content-type: application/json' \\\n#   -H 'cookie: _ga=GA1.1.1157816225.1662091624; _ga_48WE9V68SD=GS1.1.1662457192.4.0.1662457192.0.0.0; _ga_K8DQ8TXQJH=GS1.1.1663058102.2.1.1663059426.0.0.0; _ga_E63SXVNDXZ=GS1.1.1663061381.1.1.1663063158.0.0.0; _ga_48ZDWC8GT6=GS1.1.1663064195.8.1.1663064235.0.0.0; _ga_1ESRNDCK35=GS1.1.1663064288.3.0.1663064288.0.0.0; _ga_MMEXL9VXBJ=GS1.1.1663058298.5.1.1663065624.0.0.0' \\\n#   -H 'origin: https://hub.jina.ai' \\\n#   -H 'referer: https://hub.jina.ai/' \\\n#   -H 'sec-ch-ua: \"Google Chrome\";v=\"105\", \"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"105\"' \\\n#   -H 'sec-ch-ua-mobile: ?0' \\\n#   -H 'sec-ch-ua-platform: \"macOS\"' \\\n#   -H 'sec-fetch-dest: empty' \\\n#   -H 'sec-fetch-mode: cors' \\\n#   -H 'sec-fetch-site: same-site' \\\n#   -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36' \\",
+        "type": "code",
+        "location": "/tests/jina_multimodal_cross_modal_search_examples_apps/get_jina_hub_list.sh:1-15"
+    },
+    "4099": {
+        "file_id": 519,
+        "content": "This script is using curl to send a GET request to 'https://api.hubble.jina.ai/v2/rpc/executor.list' API endpoint, retrieving the list of executors available on Jina Hub. The request includes various headers for authorization, language, content type, cookies, origin, referer, user-agent, and browser details to authenticate and fetch the required information.",
+        "type": "comment"
+    }
+}

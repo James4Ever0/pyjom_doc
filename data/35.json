@@ -1,0 +1,538 @@
+{
+    "3500": {
+        "file_id": 429,
+        "content": "        this.parseRGBA();\n    }\n    parseHeader() {\n        this.fileSize = this.readUInt32LE();\n        this.reserved1 = this.buffer.readUInt16LE(this.pos);\n        this.pos += 2;\n        this.reserved2 = this.buffer.readUInt16LE(this.pos);\n        this.pos += 2;\n        this.offset = this.readUInt32LE();\n        // End of BITMAP_FILE_HEADER\n        this.headerSize = this.readUInt32LE();\n        if (!(this.headerSize in HeaderTypes)) {\n            throw new Error(`Unsupported BMP header size ${this.headerSize}`);\n        }\n        this.width = this.readUInt32LE();\n        this.height = this.readUInt32LE();\n        this.planes = this.buffer.readUInt16LE(this.pos);\n        this.pos += 2;\n        this.bitPP = this.buffer.readUInt16LE(this.pos);\n        this.pos += 2;\n        this.compression = this.readUInt32LE();\n        this.rawSize = this.readUInt32LE();\n        this.hr = this.readUInt32LE();\n        this.vr = this.readUInt32LE();\n        this.colors = this.readUInt32LE();\n        this.importantColors = this.readUInt32LE();",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:49-74"
+    },
+    "3501": {
+        "file_id": 429,
+        "content": "The code reads and parses the BMP file header information. It begins by reading and setting values for file size, reserved bytes, and offset. Then it checks the header size to ensure compatibility before proceeding to read and set values for width, height, planes, bits per pixel, compression type, raw data size, and color depth.",
+        "type": "comment"
+    },
+    "3502": {
+        "file_id": 429,
+        "content": "        // De facto defaults\n        if (this.bitPP === 32) {\n            this.maskAlpha = 0;\n            this.maskRed = 0x00ff0000;\n            this.maskGreen = 0x0000ff00;\n            this.maskBlue = 0x000000ff;\n        } else if (this.bitPP === 16) {\n            this.maskAlpha = 0;\n            this.maskRed = 0x7c00;\n            this.maskGreen = 0x03e0;\n            this.maskBlue = 0x001f;\n        }\n        // End of BITMAP_INFO_HEADER\n        if (this.headerSize > HeaderTypes.BITMAP_INFO_HEADER ||\n            this.compression === 3 /* BI_BIT_FIELDS */ ||\n            this.compression === 6 /* BI_ALPHA_BIT_FIELDS */ ) {\n            this.maskRed = this.readUInt32LE();\n            this.maskGreen = this.readUInt32LE();\n            this.maskBlue = this.readUInt32LE();\n        }\n        // End of BITMAP_V2_INFO_HEADER\n        if (this.headerSize > HeaderTypes.BITMAP_V2_INFO_HEADER ||\n            this.compression === 6 /* BI_ALPHA_BIT_FIELDS */ ) {\n            this.maskAlpha = this.readUInt32LE();\n        }\n        // End of BITMAP_V3_INFO_HEADER",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:75-100"
+    },
+    "3503": {
+        "file_id": 429,
+        "content": "The code checks the bitPP value and sets default mask values accordingly. It then verifies if the headerSize exceeds specific limits or if the compression type is BI_BIT_FIELDS or BI_ALPHA_BIT_FIELDS, in which case it reads and assigns mask values. This code handles different header types and compression types to set appropriate mask values for image processing.",
+        "type": "comment"
+    },
+    "3504": {
+        "file_id": 429,
+        "content": "        if (this.headerSize > HeaderTypes.BITMAP_V3_INFO_HEADER) {\n            this.pos +=\n                HeaderTypes.BITMAP_V4_HEADER - HeaderTypes.BITMAP_V3_INFO_HEADER;\n        }\n        // End of BITMAP_V4_HEADER\n        if (this.headerSize > HeaderTypes.BITMAP_V4_HEADER) {\n            this.pos += HeaderTypes.BITMAP_V5_HEADER - HeaderTypes.BITMAP_V4_HEADER;\n        }\n        // End of BITMAP_V5_HEADER\n        if (this.bitPP <= 8 || this.colors > 0) {\n            const len = this.colors === 0 ? 1 << this.bitPP : this.colors;\n            this.palette = new Array(len);\n            for (let i = 0; i < len; i++) {\n                const blue = this.buffer.readUInt8(this.pos++);\n                const green = this.buffer.readUInt8(this.pos++);\n                const red = this.buffer.readUInt8(this.pos++);\n                const quad = this.buffer.readUInt8(this.pos++);\n                this.palette[i] = {\n                    red,\n                    green,\n                    blue,\n                    quad\n                };",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:101-123"
+    },
+    "3505": {
+        "file_id": 429,
+        "content": "This code handles different header types in a file format. It checks the header size and adjusts the position accordingly for BITMAP_V4_HEADER and BITMAP_V5_HEADER. If bitPP is less than or equal to 8 or colors are 0, it creates a palette array by reading RGB values and quad value from the buffer.",
+        "type": "comment"
+    },
+    "3506": {
+        "file_id": 429,
+        "content": "            }\n        }\n        // End of color table\n        // Can the height ever be negative?\n        if (this.height < 0) {\n            this.height *= -1;\n            this.bottomUp = false;\n        }\n        const coloShift = maskColor(this.maskRed, this.maskGreen, this.maskBlue, this.maskAlpha);\n        this.shiftRed = coloShift.shiftRed;\n        this.shiftGreen = coloShift.shiftGreen;\n        this.shiftBlue = coloShift.shiftBlue;\n        this.shiftAlpha = coloShift.shiftAlpha;\n    }\n    parseRGBA() {\n        this.data = Buffer.alloc(this.width * this.height * 4);\n        switch (this.bitPP) {\n            case 1:\n                this.bit1();\n                break;\n            case 4:\n                this.bit4();\n                break;\n            case 8:\n                this.bit8();\n                break;\n            case 16:\n                this.bit16();\n                break;\n            case 24:\n                this.bit24();\n                break;\n            default:\n                this.bit32();\n        }\n    }",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:124-159"
+    },
+    "3507": {
+        "file_id": 429,
+        "content": "The code initializes variables based on the given color table, checks if the height is negative and adjusts accordingly. It then calculates RGBA shift values for subsequent image parsing based on the bit-per-pixel value provided.",
+        "type": "comment"
+    },
+    "3508": {
+        "file_id": 429,
+        "content": "    bit1() {\n        const xLen = Math.ceil(this.width / 8);\n        const mode = xLen % 4;\n        const padding = mode !== 0 ? 4 - mode : 0;\n        let lastLine;\n        this.scanImage(padding, xLen, (x, line) => {\n            if (line !== lastLine) {\n                lastLine = line;\n            }\n            const b = this.buffer.readUInt8(this.pos++);\n            const location = line * this.width * 4 + x * 8 * 4;\n            for (let i = 0; i < 8; i++) {\n                if (x * 8 + i < this.width) {\n                    const rgb = this.palette[(b >> (7 - i)) & 0x1];\n                    this.data[location + i * this.locAlpha] = 0;\n                    this.data[location + i * 4 + this.locBlue] = rgb.blue;\n                    this.data[location + i * 4 + this.locGreen] = rgb.green;\n                    this.data[location + i * 4 + this.locRed] = rgb.red;\n                } else {\n                    break;\n                }\n            }\n        });\n    }\n    bit4() {\n        if (this.compression === 2 /* BI_RLE4 */ ) {",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:160-185"
+    },
+    "3509": {
+        "file_id": 429,
+        "content": "This function reads the image data in 8-bit chunks (bit1) and converts it into RGBA format. The width of the image is divided into segments of 8 bits, and based on the mode (remainder when width is divided by 4), padding is applied. The scanImage method reads the bits in lines and processes each bit using a for loop to extract red, green, and blue values from the palette and assign them to their respective locations in the data array. If the compression type is BI_RLE4 (bit4 function), it indicates that the image uses RLE4 compression.",
+        "type": "comment"
+    },
+    "3510": {
+        "file_id": 429,
+        "content": "            this.data.fill(0);\n            let lowNibble = false; //for all count of pixel\n            let lines = this.bottomUp ? this.height - 1 : 0;\n            let location = 0;\n            while (location < this.data.length) {\n                const a = this.buffer.readUInt8(this.pos++);\n                const b = this.buffer.readUInt8(this.pos++);\n                //absolute mode\n                if (a === 0) {\n                    if (b === 0) {\n                        //line end\n                        lines += this.bottomUp ? -1 : 1;\n                        location = lines * this.width * 4;\n                        lowNibble = false;\n                        continue;\n                    }\n                    if (b === 1) {\n                        // image end\n                        break;\n                    }\n                    if (b === 2) {\n                        // offset x, y\n                        const x = this.buffer.readUInt8(this.pos++);\n                        const y = this.buffer.readUInt8(this.pos++);",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:186-209"
+    },
+    "3511": {
+        "file_id": 429,
+        "content": "This code reads an image file's metadata and processes it. It initializes the data array with zeros, handles absolute mode for lines and pixel positions, checks for line end and image end conditions, and reads offset values for x and y coordinates.",
+        "type": "comment"
+    },
+    "3512": {
+        "file_id": 429,
+        "content": "                        lines += this.bottomUp ? -y : y;\n                        location += y * this.width * 4 + x * 4;\n                    } else {\n                        let c = this.buffer.readUInt8(this.pos++);\n                        for (let i = 0; i < b; i++) {\n                            location = this.setPixelData(location, lowNibble ? c & 0x0f : (c & 0xf0) >> 4);\n                            if (i & 1 && i + 1 < b) {\n                                c = this.buffer.readUInt8(this.pos++);\n                            }\n                            lowNibble = !lowNibble;\n                        }\n                        if ((((b + 1) >> 1) & 1) === 1) {\n                            this.pos++;\n                        }\n                    }\n                } else {\n                    //encoded mode\n                    for (let i = 0; i < a; i++) {\n                        location = this.setPixelData(location, lowNibble ? b & 0x0f : (b & 0xf0) >> 4);\n                        lowNibble = !lowNibble;\n                    }",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:210-230"
+    },
+    "3513": {
+        "file_id": 429,
+        "content": "This code handles image data encoding and decoding. It checks the mode (encoded or not) to determine how to process the pixel data. For unencoded mode, it calculates coordinates and updates location by reading bytes from the buffer. In encoded mode, it processes blocks of pixels using low nibble bit manipulation. The code also handles odd-sized blocks by incrementing the position in the buffer.",
+        "type": "comment"
+    },
+    "3514": {
+        "file_id": 429,
+        "content": "                }\n            }\n        } else {\n            const xLen = Math.ceil(this.width / 2);\n            const mode = xLen % 4;\n            const padding = mode !== 0 ? 4 - mode : 0;\n            this.scanImage(padding, xLen, (x, line) => {\n                const b = this.buffer.readUInt8(this.pos++);\n                const location = line * this.width * 4 + x * 2 * 4;\n                const first4 = b >> 4;\n                let rgb = this.palette[first4];\n                this.data[location] = 0;\n                this.data[location + 1] = rgb.blue;\n                this.data[location + 2] = rgb.green;\n                this.data[location + 3] = rgb.red;\n                if (x * 2 + 1 >= this.width) {\n                    // throw new Error('Something');\n                    return false;\n                }\n                const last4 = b & 0x0f;\n                rgb = this.palette[last4];\n                this.data[location + 4] = 0;\n                this.data[location + 4 + 1] = rgb.blue;\n                this.data[location + 4 + 2] = rgb.green;",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:231-254"
+    },
+    "3515": {
+        "file_id": 429,
+        "content": "This code initializes the image scanning process for a specific region, reading and setting pixel colors based on their respective nibbles. The padding is determined by the mode of the width divided by 2, and the image data is updated accordingly.",
+        "type": "comment"
+    },
+    "3516": {
+        "file_id": 429,
+        "content": "                this.data[location + 4 + 3] = rgb.red;\n            });\n        }\n    }\n    bit8() {\n        if (this.compression === 1 /* BI_RLE8 */ ) {\n            this.data.fill(0);\n            let lines = this.bottomUp ? this.height - 1 : 0;\n            let location = 0;\n            while (location < this.data.length) {\n                const a = this.buffer.readUInt8(this.pos++);\n                const b = this.buffer.readUInt8(this.pos++);\n                //absolute mode\n                if (a === 0) {\n                    if (b === 0) {\n                        //line end\n                        lines += this.bottomUp ? -1 : 1;\n                        location = lines * this.width * 4;\n                        continue;\n                    }\n                    if (b === 1) {\n                        //image end\n                        break;\n                    }\n                    if (b === 2) {\n                        //offset x,y\n                        const x = this.buffer.readUInt8(this.pos++);\n                        const y = this.buffer.readUInt8(this.pos++);",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:255-282"
+    },
+    "3517": {
+        "file_id": 429,
+        "content": "This code implements a RLE8 compression for image data. It iterates through the compressed data, decoding absolute mode values to populate an array with pixel values (RGB). When it encounters line end or image end markers, it adjusts the location accordingly.",
+        "type": "comment"
+    },
+    "3518": {
+        "file_id": 429,
+        "content": "                        lines += this.bottomUp ? -y : y;\n                        location += y * this.width * 4 + x * 4;\n                    } else {\n                        for (let i = 0; i < b; i++) {\n                            const c = this.buffer.readUInt8(this.pos++);\n                            location = this.setPixelData(location, c);\n                        }\n                        // @ts-ignore\n                        const shouldIncrement = b & (1 === 1);\n                        if (shouldIncrement) {\n                            this.pos++;\n                        }\n                    }\n                } else {\n                    //encoded mode\n                    for (let i = 0; i < a; i++) {\n                        location = this.setPixelData(location, b);\n                    }\n                }\n            }\n        } else {\n            const mode = this.width % 4;\n            const padding = mode !== 0 ? 4 - mode : 0;\n            this.scanImage(padding, this.width, (x, line) => {\n                const b = this.buffer.readUInt8(this.pos++);",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:283-307"
+    },
+    "3519": {
+        "file_id": 429,
+        "content": "This code processes image pixel data based on its mode and other conditions. It updates the location and buffer positions accordingly, applies specific functions to set pixel data depending on mode, and increments pos if necessary.",
+        "type": "comment"
+    },
+    "3520": {
+        "file_id": 429,
+        "content": "                const location = line * this.width * 4 + x * 4;\n                if (b < this.palette.length) {\n                    const rgb = this.palette[b];\n                    this.data[location] = 0;\n                    this.data[location + 1] = rgb.blue;\n                    this.data[location + 2] = rgb.green;\n                    this.data[location + 3] = rgb.red;\n                } else {\n                    this.data[location] = 0;\n                    this.data[location + 1] = 0xff;\n                    this.data[location + 2] = 0xff;\n                    this.data[location + 3] = 0xff;\n                }\n            });\n        }\n    }\n    bit16() {\n        const padding = (this.width % 2) * 2;\n        this.scanImage(padding, this.width, (x, line) => {\n            const loc = line * this.width * 4 + x * 4;\n            const px = this.buffer.readUInt16LE(this.pos);\n            this.pos += 2;\n            this.data[loc + this.locRed] = this.shiftRed(px);\n            this.data[loc + this.locGreen] = this.shiftGreen(px);",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:308-331"
+    },
+    "3521": {
+        "file_id": 429,
+        "content": "Calculates the pixel location in the image data based on x and y coordinates. If the pixel index is within the palette range, sets RGB values from the palette; otherwise, sets all values to 255. Utilizes bit16 method for processing pixels in groups of two.",
+        "type": "comment"
+    },
+    "3522": {
+        "file_id": 429,
+        "content": "            this.data[loc + this.locBlue] = this.shiftBlue(px);\n            this.data[loc + this.locAlpha] = this.shiftAlpha(px);\n        });\n    }\n    bit24() {\n        const padding = this.width % 4;\n        this.scanImage(padding, this.width, (x, line) => {\n            const loc = line * this.width * 4 + x * 4;\n            const blue = this.buffer.readUInt8(this.pos++);\n            const green = this.buffer.readUInt8(this.pos++);\n            const red = this.buffer.readUInt8(this.pos++);\n            this.data[loc + this.locRed] = red;\n            this.data[loc + this.locGreen] = green;\n            this.data[loc + this.locBlue] = blue;\n            this.data[loc + this.locAlpha] = 0;\n        });\n    }\n    bit32() {\n        this.scanImage(0, this.width, (x, line) => {\n            const loc = line * this.width * 4 + x * 4;\n            const px = this.readUInt32LE();\n            this.data[loc + this.locRed] = this.shiftRed(px);\n            this.data[loc + this.locGreen] = this.shiftGreen(px);\n            this.data[loc + this.locBlue] = this.shiftBlue(px);",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:332-355"
+    },
+    "3523": {
+        "file_id": 429,
+        "content": "This code snippet is part of an image processing library that supports various color formats (bit24, bit32). The bit24 function processes pixels in a 24-bit RGB format and sets the alpha channel to 0. The bit32 function reads pixel values in a 32-bit RGBA format and directly assigns the RGB values while setting the alpha channel to an undefined value. These functions iterate through each pixel of the image and store their respective color data in the \"data\" array.",
+        "type": "comment"
+    },
+    "3524": {
+        "file_id": 429,
+        "content": "            this.data[loc + this.locAlpha] = this.shiftAlpha(px);\n        });\n    }\n    scanImage(padding = 0, width = this.width, processPixel) {\n        for (let y = this.height - 1; y >= 0; y--) {\n            const line = this.bottomUp ? y : this.height - 1 - y;\n            for (let x = 0; x < width; x++) {\n                const result = processPixel.call(this, x, line);\n                if (result === false) {\n                    return;\n                }\n            }\n            this.pos += padding;\n        }\n    }\n    readUInt32LE() {\n        const value = this.buffer.readUInt32LE(this.pos);\n        this.pos += 4;\n        return value;\n    }\n    setPixelData(location, rgbIndex) {\n        const { blue, green, red } = this.palette[rgbIndex];\n        this.data[location + this.locAlpha] = 0;\n        this.data[location + 1 + this.locBlue] = blue;\n        this.data[location + 2 + this.locGreen] = green;\n        this.data[location + 3 + this.locRed] = red;\n        return location + 4;\n    }\n}\nconst express = require('express')",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:356-386"
+    },
+    "3525": {
+        "file_id": 429,
+        "content": "This code defines a class with methods for image processing, including scanning an image line by line and setting pixel data. The class uses a buffer to store data, and has properties such as locAlpha, locBlue, locGreen, and locRed for organizing the data in the buffer. It also utilizes the express module from the Node.js framework.",
+        "type": "comment"
+    },
+    "3526": {
+        "file_id": 429,
+        "content": "const multer = require('multer')\nconst jpeg = require('jpeg-js')\n    // const bmp = require('bmp-js')\n    // const bmp = require('bmp-ts').default;\n    // const bmpBuffer = fs.readFileSync('bit24.bmp');\nconst { PNG } = require('pngjs')\nconst tf = require('@tensorflow/tfjs-node')\nconst nsfw = require('nsfwjs')\nconst app = express()\nconst upload = multer()\nlet _model\n// this even works for gif!\n// it will normalize and resize the image if needed.\n// shall we check for gif?\nconst convert = async(img, type) => {\n    // Decoded image in UInt8 Byte array\n    let image\n    if (type == 'image/jpeg') {\n        image = await jpeg.decode(img, true)\n            // RGBA\n    } //wtf?\n    // order: rgba\n    else if (type == 'image/png') {\n        image = PNG.sync.read(img)\n    } else if (type == 'image/bmp') {\n        // image = await bmp.decode(img, true)\n        image = new BmpDecoder(img, { toRGBA: true });\n    }\n    const numChannels = 3\n    const numPixels = image.width * image.height // will raise an error if image is not acquired.",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:387-423"
+    },
+    "3527": {
+        "file_id": 429,
+        "content": "The code imports necessary libraries for image processing and model loading. It defines an asynchronous function \"convert\" to handle different image types (JPEG, PNG, BMP) and convert them into a standard RGBA format. The function reads the image using appropriate libraries based on its MIME type, determines the number of color channels and total pixels in the image.",
+        "type": "comment"
+    },
+    "3528": {
+        "file_id": 429,
+        "content": "    const values = new Int32Array(numPixels * numChannels)\n        // are you sure about the width?\n    // can you make this faster? shit?\n    // this shit is no numpy. fuck.\n    for (let i = 0; i < numPixels; i++)\n        for (let c = 0; c < numChannels; ++c)\n        // if (type == 'bmp') {\n        //     // ABGR?\n        //     // values[i * numChannels + c] = image.data[i * 4+c]\n        //     values[i * numChannels + c] = image.data[i * 4 + 3 - c]\n        // } else {\n            values[i * numChannels + c] = image.data[i * 4 + c]\n            // }\n    return tf.tensor3d(values, [image.height, image.width, numChannels], 'int32')\n}\napp.get('/', async(req, res) => {\n    res.send('nsfw nodejs server')\n})\napp.post('/nsfw', upload.single('image'), async(req, res) => {\n    if (!req.file) res.status(400).send('Missing image multipart/form-data')\n    else {\n        try {\n            console.log('file uploaded:', req.file)\n            if (req.file.fieldname == 'image') {\n                type = req.file.mimetype // deal with it later.",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:424-452"
+    },
+    "3529": {
+        "file_id": 429,
+        "content": "This code defines a function that converts an image into a TensorFlow tensor3d array. It takes the number of pixels and channels as inputs, iterates over each pixel and channel, and assigns values from the image data to the tensor3d array based on the image's format (BMP or other). The function returns the resulting tensor3d array. The app also has two routes: a GET route that returns \"nsfw nodejs server\" and a POST route for handling image uploads, which logs the file information if it is an image.",
+        "type": "comment"
+    },
+    "3530": {
+        "file_id": 429,
+        "content": "                extension = req.file.originalname.split(\".\").slice(-1)[0].toLowerCase()\n                if (extension == 'gif' || type == 'image/gif') {\n                    let image = req.file.buffer\n                    let predictions = await _model.classifyGif(image, { topk: 3, fps: 1 })\n                        // image.dispose()\n                    predictions.message = 'success'\n                    res.json(predictions)\n                } else {\n                    if (extension == 'bmp') {\n                        type = 'image/bmp'\n                    }\n                    let image = await convert(req.file.buffer, type) // here we have buffer.\n                    let predictions = await _model.classify(image)\n                    predictions.message = 'success'\n                        // image.dispose()\n                    res.json(predictions)\n                }\n            }\n            // we need some file format hints.\n        } catch (e) {\n            console.log(e)\n            res.json({ message: 'error' })",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:453-475"
+    },
+    "3531": {
+        "file_id": 429,
+        "content": "This code handles file uploads and classifies images based on their format. It checks if the image is a GIF, in which case it uses a specialized function for classification, otherwise it converts non-GIF images to a specified type and performs classification. The code catches any errors that occur during this process and sends an appropriate response.",
+        "type": "comment"
+    },
+    "3532": {
+        "file_id": 429,
+        "content": "        }\n    }\n})\nconst load_model = async() => {\n    _model = await nsfw.load()\n}\n// Keep the model in memory, make sure it's loaded only once\nload_model().then(() => {\n    console.log('server ready')\n    app.listen(8511)\n})\n// curl --request POST localhost:8080/nsfw --header 'Content-Type: multipart/form-data' --data-binary 'image=@/full/path/to/picture.jpg'",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:476-491"
+    },
+    "3533": {
+        "file_id": 429,
+        "content": "The code loads an NSFW content detection model and keeps it in memory. It ensures the model is loaded only once and starts the server on port 8511. When a POST request with an image is received, the model classifies the content as NSFW or not.",
+        "type": "comment"
+    },
+    "3534": {
+        "file_id": 430,
+        "content": "/tests/nsfw_violence_drug_detection/nsfwjs_gif.js",
+        "type": "filepath"
+    },
+    "3535": {
+        "file_id": 430,
+        "content": "This code imports TensorFlow and nsfwjs libraries, processes GIF frames at 1fps, loads a model for classification using predictions, and sets up a file stream to read data in chunks for partial processing.",
+        "type": "summary"
+    },
+    "3536": {
+        "file_id": 430,
+        "content": "const tf = require('@tensorflow/tfjs-node')\nconst nsfw = require('nsfwjs')\n// predictions [\n//     [\n//       { className: 'Neutral', probability: 0.9845383167266846 },\n//       { className: 'Porn', probability: 0.009829860180616379 },\n//       { className: 'Drawing', probability: 0.003906613681465387 }\n//     ],\n//     [\n//       { className: 'Neutral', probability: 0.9763429760932922 },\n//       { className: 'Porn', probability: 0.014182578772306442 },\n//       { className: 'Drawing', probability: 0.007088858168572187 }\n//     ],\n//     [\n//       { className: 'Neutral', probability: 0.9598317742347717 },\n//       { className: 'Drawing', probability: 0.03286046162247658 },\n//       { className: 'Porn', probability: 0.003989457152783871 }\n//     ]\n//   ]\nfilepath = \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.gif\"\n// mechanism: choose three most likely categories per chosen frame, process at 1fps.\n// no other classes?\n// filepath = \"/root/Desktop/works/pyjom/samples/video/cat_invalid_eye_rolling.gif\"",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_gif.js:1-27"
+    },
+    "3537": {
+        "file_id": 430,
+        "content": "Code imports TensorFlow and nsfwjs libraries, and defines an array of prediction results for three frames. The filepath is set to \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.gif\". The code chooses the top three categories from each frame, processes them at 1fps, and does not consider other classes.",
+        "type": "comment"
+    },
+    "3538": {
+        "file_id": 430,
+        "content": "const fs = require('fs');\n// Store file data chunks in this array\nlet chunks = [];\n// We can use this variable to store the final data\nlet fileBuffer;\n// Read file into stream.Readable\nlet fileStream = fs.createReadStream(filepath);\n// An error occurred with the stream\nfileStream.once('error', (err) => {\n    // Be sure to handle this properly!\n    console.error(err);\n});\nlet _model\nconst load_model = async() => {\n    _model = await nsfw.load()\n    console.log('model ready')\n}\n// Keep the model in memory, make sure it's loaded only once\n// File is done being read\nfileStream.once('end', () => {\n    // create the final data Buffer from data chunks;\n    fileBuffer = Buffer.concat(chunks);\n    // do shit here.\n    console.log(\"filebuffer ready\")\n    load_model().then(() => {\n        _model.classifyGif(fileBuffer, { topk: 3, fps: 1 })\n            .then(predictions => console.log('predictions', predictions))\n            .catch(error => console.log('model error', error))\n    })\n    // Of course, you can do anything else you need to here, like emit an event!",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_gif.js:29-64"
+    },
+    "3539": {
+        "file_id": 430,
+        "content": "The code reads a file into a stream, stores it in chunks, combines the chunks into a final data buffer, and then loads a model to classify the GIF using its predictions. This allows for efficient processing of large files and accurate detection of content.",
+        "type": "comment"
+    },
+    "3540": {
+        "file_id": 430,
+        "content": "});\n// Data is flushed from fileStream in chunks,\n// this callback will be executed for each chunk\nfileStream.on('data', (chunk) => {\n    chunks.push(chunk); // push data chunk to array\n    // We can perform actions on the partial data we have so far!\n});",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_gif.js:65-73"
+    },
+    "3541": {
+        "file_id": 430,
+        "content": "This code snippet sets up a file stream that reads data in chunks. The 'data' event triggers for each chunk, and pushes the chunk into an array (chunks). This allows performing actions on partial data as it arrives.",
+        "type": "comment"
+    },
+    "3542": {
+        "file_id": 431,
+        "content": "/tests/nsfw_violence_drug_detection/launch_nodejs_server.sh",
+        "type": "filepath"
+    },
+    "3543": {
+        "file_id": 431,
+        "content": "This line of code runs a JavaScript file named \"nsfwjs_test.js\" using the Node.js runtime environment. The purpose could be to execute tests or perform specific operations related to nsfw (not safe for work) detection, specifically for violence and drug-related content.",
+        "type": "summary"
+    },
+    "3544": {
+        "file_id": 431,
+        "content": "node nsfwjs_test.js",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/launch_nodejs_server.sh:1-1"
+    },
+    "3545": {
+        "file_id": 431,
+        "content": "This line of code runs a JavaScript file named \"nsfwjs_test.js\" using the Node.js runtime environment. The purpose could be to execute tests or perform specific operations related to nsfw (not safe for work) detection, specifically for violence and drug-related content.",
+        "type": "comment"
+    },
+    "3546": {
+        "file_id": 432,
+        "content": "/tests/nsfw_violence_drug_detection/init_nsfwjs.sh",
+        "type": "filepath"
+    },
+    "3547": {
+        "file_id": 432,
+        "content": "Installing global dependencies for TF.js, nsfwjs, jpeg-js, express, and multer in the codebase.",
+        "type": "summary"
+    },
+    "3548": {
+        "file_id": 432,
+        "content": "npm i -g @tensorflow/tfjs-node nsfwjs jpeg-js express multer",
+        "type": "code",
+        "location": "/tests/nsfw_violence_drug_detection/init_nsfwjs.sh:1-1"
+    },
+    "3549": {
+        "file_id": 432,
+        "content": "Installing global dependencies for TF.js, nsfwjs, jpeg-js, express, and multer in the codebase.",
+        "type": "comment"
+    },
+    "3550": {
+        "file_id": 433,
+        "content": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/thread_based_program.py",
+        "type": "filepath"
+    },
+    "3551": {
+        "file_id": 433,
+        "content": "This Python code creates a multithreaded, event-driven program using threading. It starts two threads for main execution and event handling, checking if the event breaks the loop. This basic approach demonstrates multithreading with event-based communication in Python.\n\nSummary in 30 words: Python code utilizes multithreading and event-driven programming to create a program with two threads, one for main execution and another for event handling, checking if an event breaks the loop, showcasing basic approach for multithreading communication.",
+        "type": "summary"
+    },
+    "3552": {
+        "file_id": 433,
+        "content": "import threading\nevent = threading.Event()\nevent.clear()\n# is it event driven? can we launch repl after this?\ndef program(*args): # in elixir/erlang this is simpler.\n    print('running program')\n    while True:\n        if event.wait(0.00000001):\n            break # this is blocking. fuck. not like elixir in any kind.\n        else:\n            event.set()\n    event.clear()\n    print('begin execution')\n    print(\"arguments:\", args)\n    raise Exception('shit man')\n    event.set()\n    result = 'myresult'\ndef mainThread():\n    threading.Thread(target=program, args=(1,2), daemon=True).start()\n    print('waiting output? probably never.')\n    while True:\n        if event.wait(0.00000001):\n            break # are you sure this is the event you want?\n        else:\n            event.set()\n    print('result:',result) # another thread? are you sharing things?\n    print('main thread execution succeed')\nprint('starting main thread')\nthreading.Thread(target=mainThread, daemon=True).run()\nprint('starting repl')\n# be ready to re-execute the program?",
+        "type": "code",
+        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/thread_based_program.py:1-35"
+    },
+    "3553": {
+        "file_id": 433,
+        "content": "This code creates an event-driven, multithreaded program using Python's threading module. It starts two threads: one for the main program execution and another for handling events. The main program runs indefinitely, checking if the event is set to break out of the loop. The main thread also sets the result variable. This code demonstrates a basic approach to multithreaded programming in Python with event-driven communication between threads.",
+        "type": "comment"
+    },
+    "3554": {
+        "file_id": 433,
+        "content": "# do you want something like nodejs promises?\n# how to reload foreign files? fuck?",
+        "type": "code",
+        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/thread_based_program.py:36-37"
+    },
+    "3555": {
+        "file_id": 433,
+        "content": "This code snippet seems to express frustration about handling promises in Node.js and the difficulty of reloading foreign files.",
+        "type": "comment"
+    },
+    "3556": {
+        "file_id": 434,
+        "content": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/sql_inline.py",
+        "type": "filepath"
+    },
+    "3557": {
+        "file_id": 434,
+        "content": "The code is attempting to utilize the chalk library for creating SQL queries. It first defines a string \"a\" as a SELECT query and \"b\" as a CREATE query in Cypher format. Then, it imports the required modules from JavaScript and initializes the chalk library using \"./cypher_inline.js\". The code then creates an instance of chalk's Query class (q) and calls its myfunc method with some arguments. Finally, it prints the VALUE and type of both 'a' and 'b'.",
+        "type": "summary"
+    },
+    "3558": {
+        "file_id": 434,
+        "content": "a = \"select * from user\"\nb = \"create (n:person)\"  # cypher # not working!\nfrom javascript import require, globalThis\nchalk = require(\n    \"./cypher_inline.js\"chr\n)  # that might be some drop-in replacement for jinja? should they work together?\n# print(dir(chalk))\n# what the fuck?\nq = chalk.Query # use static method this time?\n# q = chalk.Query(1,2)\nval = q.myfunc(dict(somearg=1)) # this is similar to the original shit.\n# myfunc args: [ { somearg: 1 } ]\n# good?\n# val = chalk.myfunc()\nprint(\"VALUE\", list(val), type(val))  # it can be converted.\nval = q.otherfunc()\n# val = chalk.otherfunc()\nprint(\"VALUE\", val, type(val))  # it can be converted.",
+        "type": "code",
+        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/sql_inline.py:1-22"
+    },
+    "3559": {
+        "file_id": 434,
+        "content": "The code is attempting to utilize the chalk library for creating SQL queries. It first defines a string \"a\" as a SELECT query and \"b\" as a CREATE query in Cypher format. Then, it imports the required modules from JavaScript and initializes the chalk library using \"./cypher_inline.js\". The code then creates an instance of chalk's Query class (q) and calls its myfunc method with some arguments. Finally, it prints the VALUE and type of both 'a' and 'b'.",
+        "type": "comment"
+    },
+    "3560": {
+        "file_id": 435,
+        "content": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/mtest.py",
+        "type": "filepath"
+    },
+    "3561": {
+        "file_id": 435,
+        "content": "The code defines an exception named \"my exception\" and lists the available attributes and methods for this exception class. It also defines a function named \"shit\" that raises an Exception with the message 'shit' and returns the string \"value\".",
+        "type": "summary"
+    },
+    "3562": {
+        "file_id": 435,
+        "content": "e = Exception(\"my exception\")\n# print(dir(e))\n# ['__cause__', '__class__', '__context__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setstate__', '__sizeof__', '__str__', '__subclasshook__', '__suppress_context__', '__traceback__', 'args', 'with_traceback']\ndef shit():\n    raise Exception('shit')\n    return \"value\"",
+        "type": "code",
+        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/mtest.py:1-7"
+    },
+    "3563": {
+        "file_id": 435,
+        "content": "The code defines an exception named \"my exception\" and lists the available attributes and methods for this exception class. It also defines a function named \"shit\" that raises an Exception with the message 'shit' and returns the string \"value\".",
+        "type": "comment"
+    },
+    "3564": {
+        "file_id": 436,
+        "content": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/hy_repl_normal.py",
+        "type": "filepath"
+    },
+    "3565": {
+        "file_id": 436,
+        "content": "The code imports the HyREPL module from hy.cmdline and initializes an instance of it called \"repl\". It prints a message before running the REPL, then runs the REPL using the repl.run() method. After that, it prints another message after the REPL. The code aims to demonstrate a normal usage of HyREPL.",
+        "type": "summary"
+    },
+    "3566": {
+        "file_id": 436,
+        "content": "import hy.cmdline\n# this is different. no access to hidden member.\nprint('message before repl')\nrepl = hy.cmdline.HyREPL() # this is not reliable. exit will exit this shit for good.\nrepl.run()\nprint('message after repl')\n# no message after repl?",
+        "type": "code",
+        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/hy_repl_normal.py:1-7"
+    },
+    "3567": {
+        "file_id": 436,
+        "content": "The code imports the HyREPL module from hy.cmdline and initializes an instance of it called \"repl\". It prints a message before running the REPL, then runs the REPL using the repl.run() method. After that, it prints another message after the REPL. The code aims to demonstrate a normal usage of HyREPL.",
+        "type": "comment"
+    },
+    "3568": {
+        "file_id": 437,
+        "content": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/cypher_inline.js",
+        "type": "filepath"
+    },
+    "3569": {
+        "file_id": 437,
+        "content": "This code defines two functions for creating SQL statements and a Query class with unclear inline function usage, potentially due to JavaScript's inconsistent behavior. It also logs undefined variables to the console.",
+        "type": "summary"
+    },
+    "3570": {
+        "file_id": 437,
+        "content": "// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals\n// official javascript driver\n// https://neo4j.com/developer/javascript/\nvar cypher = function(strArray, ...opts) { // this is bad.\n    console.log('input:', strArray, opts) // here we've got the thing.\n    // passed here. good.\n    // this will be good.\n    // suppose we put string, object into this thing.\n    // suppose we quote the thing.\n    return strArray;\n}\nvar sql = function(str) { return str; }\nvar myexpression = {obj:2}; // not supplied to cypher?\n// create (n)-[:married]->(r) [object Object]\n// wtf?\nvar myexpression2 = '3';\nvar b = `create (n)-[:married]->(r) ${myexpression}`\nconsole.log(b) // create (n)-[:married]->(r) 2\n    // this will format the thing.\nvar a = cypher `create (n:person{name:${myexpression}})-[:married]->(r) ${myexpression2}`; // well that's good.\nconsole.log(a);\nconst query = sql `SELECT * FROM users`;\nconsole.log(query);\n// function otherfunc(){\n//     console.log('calling otherfunc')\n//     return 'other func'",
+        "type": "code",
+        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/cypher_inline.js:2-28"
+    },
+    "3571": {
+        "file_id": 437,
+        "content": "The code defines two functions, `cypher` and `sql`, which create SQL statements using template literals. The `cypher` function takes a string array and optional parameters, while the `sql` function only takes a single string parameter. The code demonstrates how to use these functions by creating a Cypher query with placeholders for dynamic values and executing a SELECT query.",
+        "type": "comment"
+    },
+    "3572": {
+        "file_id": 437,
+        "content": "// }\n// function myfunc() {\n//     otherfunc()\n//     return query;\n// }\n// // __export__\n// // console.log(module.loaded) // false\n// // export all functions?\n// module.exports = {otherfunc, myfunc} // also some bloated shit.\n// which one you want? damn...\n// you want some object?\n// what if they are interdependent?\n// this is some other strange shit.\n// exports = {\n//         otherfunc: () => {\n//             console.log('calling otherfunc');\n//             return 'otherfunc'\n//         },\n//         myfunc: () => {\n//             exports.otherfunc() // strange shit.\n//             return query;\n//         }\n//     }\n//     // console.log(module)\n// module.exports = exports // must use this to export things.\n// this is self-reference.\nclass Query {\n    constructor(a, b) {\n        this.a = a\n        this.b = b\n    }\n    static otherfunc() {\n        // otherfunc() {\n        console.log('calling otherfunc');\n        return 'otherfunc'\n    }\n    static myfunc(...args) {\n        // static myfunc() {\n            console.log('myfunc args:',args)",
+        "type": "code",
+        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/cypher_inline.js:29-71"
+    },
+    "3573": {
+        "file_id": 437,
+        "content": "The code defines a class \"Query\" with two static methods: \"otherfunc\" and \"myfunc\". \"otherfunc\" is called within \"myfunc\", creating an interdependence between the two functions. The code exports the entire class, using self-reference for the static methods.",
+        "type": "comment"
+    },
+    "3574": {
+        "file_id": 437,
+        "content": "        Query.otherfunc() // strange shit.\n            // this.otherfunc() // still working for static functions.\n            // javascript is a beast.\n        return query;\n    }\n}\nmodule.exports = { Query }\n    // console.log(.cypher)\n    // console.log('QUERY?',globalThis.Query, this.sql) // all undefinded.",
+        "type": "code",
+        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/cypher_inline.js:72-80"
+    },
+    "3575": {
+        "file_id": 437,
+        "content": "This code defines a Query class with a strange inline function call and exports it. The otherfunc() is called inside the Query class, but its purpose is unclear. JavaScript's behavior for static functions versus instance methods seems inconsistent here. The code also logs variables to the console, but they are all undefined.",
+        "type": "comment"
+    },
+    "3576": {
+        "file_id": 438,
+        "content": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/babel_decorator.js",
+        "type": "filepath"
+    },
+    "3577": {
+        "file_id": 438,
+        "content": "This code defines a decorator function using Babel's plugin for JavaScript syntax decorators. It wraps a function, logs the arguments passed to it, and then calls the original function. The decorated function, `myfunc`, is called with 'myval', and its return value is logged to the console.",
+        "type": "summary"
+    },
+    "3578": {
+        "file_id": 438,
+        "content": "// require(\"@babel/core\").transformSync(\"code\", {\n//     plugins: [\"@babel/plugin-syntax-decorators\"]\n//   });\nfunction dec(func){\n    function innerfunc(...args){\n        console.log('calling func with args:', args)\n        func(...args)\n    }\n    return innerfunc\n}\n@dec\nfunction myfunc(val){\n    return val\n}\nval = myfunc('myval')\nconsole.log('val:', val)",
+        "type": "code",
+        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/babel_decorator.js:2-19"
+    },
+    "3579": {
+        "file_id": 438,
+        "content": "This code defines a decorator function using Babel's plugin for JavaScript syntax decorators. It wraps a function, logs the arguments passed to it, and then calls the original function. The decorated function, `myfunc`, is called with 'myval', and its return value is logged to the console.",
+        "type": "comment"
+    },
+    "3580": {
+        "file_id": 439,
+        "content": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/my_module/some_module.py",
+        "type": "filepath"
+    },
+    "3581": {
+        "file_id": 439,
+        "content": "The code defines a function 'program' within the module 'some_module' that raises an exception. If the file is run directly, it enters a loop that attempts to execute the 'program' function repeatedly, reloading the module after each failure in order to hot fix issues and apply edits while continuing execution.",
+        "type": "summary"
+    },
+    "3582": {
+        "file_id": 439,
+        "content": "# inside some_module.py\ndef program():\n    raise Exception(\"Exception in program\")\n    # return \"VALUE\"\nif __name__ == \"__main__\":\n    while True:\n        try:\n            import some_module # will it even succeed? doubt this.\n            val = some_module.program()\n            print(\"returned value:\", val)\n            break\n        except:\n            import traceback\n            traceback.print_exc()\n            input('are you done yet?')\n            import importlib\n            importlib.reload(some_module)",
+        "type": "code",
+        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/my_module/some_module.py:1-19"
+    },
+    "3583": {
+        "file_id": 439,
+        "content": "The code defines a function 'program' within the module 'some_module' that raises an exception. If the file is run directly, it enters a loop that attempts to execute the 'program' function repeatedly, reloading the module after each failure in order to hot fix issues and apply edits while continuing execution.",
+        "type": "comment"
+    },
+    "3584": {
+        "file_id": 440,
+        "content": "/tests/bilibili_video_recommendation_server/zbar_detect_qrcode.py",
+        "type": "filepath"
+    },
+    "3585": {
+        "file_id": 440,
+        "content": "This code defines 'detect_qr' function to detect and decode QR codes using pyzbar library. It prints information about each detected QR code, returns True if found. The code attempts to read a QR code from an image, resizes it for visibility, and calls the \"detect_qr\" function.",
+        "type": "summary"
+    },
+    "3586": {
+        "file_id": 440,
+        "content": "# import sys\nimport cv2\n# import imutils\nfrom PIL import Image\nfrom pyzbar.pyzbar import decode, ZBarSymbol\n# @function 'detect_qr' detect and decode qrcode from frame using pyzbar lib\n# @param 'inputFrame' type <class 'numpy.ndarray'>\n# @return if detected type 'bool'\ndef detect_qr(inputFrame):\n    img = Image.fromarray(inputFrame)\n    decodedImg = decode(img, symbols=[ZBarSymbol.QRCODE])\n    # it reads the content. but where is the code?\n    print('total %d qrcode detected' % len(decodedImg))\n    # breakpoint()\n    # length: 2\n    if len(decodedImg) > 0:\n        for code in decodedImg:\n            decodedBytes = code.data\n            stringData = decodedBytes.decode(\"utf-8\")\n            print(\"QRCode content:\")\n            print(stringData)\n            polygon = code.polygon\n            print('POLYGON CONTENT:')\n            print(polygon)\n            for point in polygon:\n                print('POINT:',point.x,point.y)\n        return True\n    else:\n        return False\nimage = \"output_qrcode2.png\"\n# image = \"test_image_with_qr_code.png\" # what about this?",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/zbar_detect_qrcode.py:2-36"
+    },
+    "3587": {
+        "file_id": 440,
+        "content": "This code defines a function named 'detect_qr' that detects and decodes QR codes from a given input frame. It utilizes the pyzbar library to decode QR codes, converts the input frame to an Image object using PIL, and then prints information about each detected QR code such as its content and polygon coordinates. The function returns True if any QR codes are detected, otherwise it returns False. The image variable is set to \"output_qrcode2.png\", but there's a commented-out line suggesting using \"test_image_with_qr_code.png\" instead.",
+        "type": "comment"
+    },
+    "3588": {
+        "file_id": 440,
+        "content": "# it fails. so we better have some other way to get the barcode.\n# if resolution is low, resize the image and make sure it will contain the qrcode, make it readable.\ninputImage = cv2.imread(image)\n# frame = imutils.resize(inputImage, width=400)\nprint(detect_qr(inputImage))\n# fantastic.\n# usually there should be no more than 1 qrcode in image to allow user to scan the code in qq.",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/zbar_detect_qrcode.py:37-46"
+    },
+    "3589": {
+        "file_id": 440,
+        "content": "This code attempts to read a QR code from an image. If the resolution is low, it resizes the image to ensure the QR code is visible and then calls the \"detect_qr\" function. The code assumes there's usually only one QR code per image for scanning in QQ.",
+        "type": "comment"
+    },
+    "3590": {
+        "file_id": 441,
+        "content": "/tests/bilibili_video_recommendation_server/test_fastapi.sh",
+        "type": "filepath"
+    },
+    "3591": {
+        "file_id": 441,
+        "content": "The code sends a HTTP GET request to the localhost server running on port 7341 and checks the response.",
+        "type": "summary"
+    },
+    "3592": {
+        "file_id": 441,
+        "content": "echo 'checking server hello'\ncurl http://localhost:7341",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/test_fastapi.sh:1-2"
+    },
+    "3593": {
+        "file_id": 441,
+        "content": "The code sends a HTTP GET request to the localhost server running on port 7341 and checks the response.",
+        "type": "comment"
+    },
+    "3594": {
+        "file_id": 442,
+        "content": "/tests/bilibili_video_recommendation_server/test.sh",
+        "type": "filepath"
+    },
+    "3595": {
+        "file_id": 442,
+        "content": "This code is running a Python script named \"test.py\" using the Python 3 interpreter. The script is likely being executed as part of a test or validation process for the \"bilibili_video_recommendation_server\" project.",
+        "type": "summary"
+    },
+    "3596": {
+        "file_id": 442,
+        "content": "python3 test.py ",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/test.sh:1-1"
+    },
+    "3597": {
+        "file_id": 442,
+        "content": "This code is running a Python script named \"test.py\" using the Python 3 interpreter. The script is likely being executed as part of a test or validation process for the \"bilibili_video_recommendation_server\" project.",
+        "type": "comment"
+    },
+    "3598": {
+        "file_id": 443,
+        "content": "/tests/bilibili_video_recommendation_server/test.py",
+        "type": "filepath"
+    },
+    "3599": {
+        "file_id": 443,
+        "content": "This code defines functions for a Bilibili recommendation server, performs preprocessing and searches, uses bm25 method, includes debugging breakpoints, and tests the `checkPublishedVideo` function with different video states.",
+        "type": "summary"
+    }
+}

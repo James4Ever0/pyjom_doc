@@ -1,0 +1,20 @@
+{
+    "summary": "This code detects blackouts in media by calculating scores per frame block and storing results. It works for videos and images, using OpenCV or videoFrameIterator. The code updates metadata dictionaries and appends updated results to a list before returning the final list of results.",
+    "details": [
+        {
+            "comment": "blackoutIdentifier function: Calculates blackout score per block of a frame using average, max, or min method; accepts cut, threshold, and method parameters.\n\nblackoutDetector function: Detects blackouts across multiple media paths by calling blackoutIdentifier; stores results in 'data_key' for further use.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/pyjom/medialang/functions/detectors/blackoutDetector.py\":0-29",
+            "content": "from .mediaDetector import *\ndef blackoutIdentifier(frame_a, cut=3, threshold=30, method=\"average\"):\n    assert cut >= 1\n    methods = {\"average\": np.average, \"max\": np.max, \"min\": np.min}\n    mshape = frame_a.shape\n    width, height = mshape[:2]\n    mcut = int(min(width, height) / cut)\n    if len(mshape) == 3:\n        result = methods[method](result, axis=2)\n        shape0 = int(width / mcut)\n    shape1 = int(height / mcut)\n    diff = np.zeros((shape0, shape1)).tolist()\n    # mapping = {}\n    for x in range(shape0):\n        for y in range(shape1):\n            area = result[x * mcut : (x + 1) * mcut, y * mcut : (y + 1) * mcut]\n            score = (area < threshold).astype(int)\n            diff[x][y] = score.sum() / score.size\n    return {\n        \"blackout\": diff,\n        \"blocksize\": mcut,\n    }  # required for recovering center points.\ndef blackoutDetector(mediapaths, cut=3, threshold=30, method=\"average\", timestep=0.2):\n    # any better detectors? deeplearning?\n    results = []\n    data_key = \"blackout_score\""
+        },
+        {
+            "comment": "This code iterates over mediapaths, detects media type (video or image), applies blackout detection configuration, and stores the result in a dictionary. For images, it uses OpenCV to read image data and apply keyword decorator for blackout identification. For videos, it uses videoFrameIterator with keyword decorator as data producer for frame-by-frame blackout detection.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/pyjom/medialang/functions/detectors/blackoutDetector.py\":30-53",
+            "content": "    for mediapath in mediapaths:\n        print(\"mediapath:\", mediapath)\n        mediatype = getFileType(mediapath)\n        print(\"subtitle of mediatype:\", mediatype)\n        assert mediatype in [\"video\", \"image\"]  # gif? anything like that?\n        result = {\"type\": mediatype, data_key: {}}\n        config = {\"cut\": cut, \"threshold\": threshold, \"method\": method}\n        if mediatype == \"image\":\n            data = cv2.imread(mediapath)\n            data = keywordDecorator(blackoutIdentifier, **config)(data)\n            result[data_key].update({\"blackout_detector\": data})\n            result[data_key].update({\"config\": config})\n        else:\n            keyword = \"blackout_detector\"\n            mdata, metadata = videoFrameIterator(\n                mediapath,\n                data_producer=keywordDecorator(blackoutIdentifier, **config),\n                framebatch=1,\n                timestep=timestep,\n                keyword=keyword,\n            )\n            metadata.update({\"config\": config})\n            result[data_key][keyword] = mdata"
+        },
+        {
+            "comment": "This code block takes a metadata dictionary and updates it to an existing data key in the result dictionary. After updating, it appends the updated result dictionary to the results list and returns the final list of results.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/pyjom/medialang/functions/detectors/blackoutDetector.py\":54-56",
+            "content": "            result[data_key].update(metadata)\n        results.append(result)\n    return results"
+        }
+    ]
+}

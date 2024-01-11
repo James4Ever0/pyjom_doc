@@ -1,0 +1,544 @@
+{
+    "900": {
+        "file_id": 74,
+        "content": "/pyjom/modules/contentPosting/bilibiliPoster.py",
+        "type": "filepath"
+    },
+    "901": {
+        "file_id": 74,
+        "content": "This code defines functions for sending POST requests to Bilibili, handling metadata and exceptions in content posting operations. It also generates a Bilibili URL for input content with optional iterative processing.",
+        "type": "summary"
+    },
+    "902": {
+        "file_id": 74,
+        "content": "from types import FunctionType\nfrom pyjom.commons import *\nfrom pyjom.platforms.bilibili.uploader import uploadVideo\nfrom lazero.filesystem.temp import (\n    tmpdir,\n    getRandomFileNameUnderDirectoryWithExtension,\n    tmpfile,\n)\n# that generator you must put beforehand.\nimport cv2\nimport requests\ndef registerBilibiliUserVideo(\n    bvid: str,\n    dedeuserid: str,\n    is_mine: bool = True,\n    visible: bool = False,\n    server_domain: str = \"localhost\",\n    server_endpoint: str = \"registerUserVideo\",\n    server_port: int = 7341,\n    success_codes: list[int] = [200, 201],\n):\n    data = {\n        \"bvid\": bvid,\n        \"dedeuserid\": dedeuserid,\n        \"is_mine\": is_mine,\n        \"visible\": visible,\n    }\n    r = requests.post(\n        \"http://{}:{}/{}\".format(server_domain, server_port, server_endpoint), json=data\n    )\n    register_success = r.status_code in success_codes\n    return register_success\n# why you have decorator? so OnlinePoster will not have decorator.\n@decorator\ndef BilibiliPoster(\n    content,\n    iterate=False,",
+        "type": "code",
+        "location": "/pyjom/modules/contentPosting/bilibiliPoster.py:1-44"
+    },
+    "903": {
+        "file_id": 74,
+        "content": "This code defines a function `registerBilibiliUserVideo` which sends a POST request to a server, passing Bilibili video details and returns the success status based on received response. The `BilibiliPoster` decorator is applied to another function `content`, likely for handling content posting operations in the context of Bilibili platform. It seems to involve file manipulation using `cv2` and `requests` library, as well as external dependencies from `pyjom` and `lazero`. The code also uses a generator, but its purpose is not clear from the provided snippet.",
+        "type": "comment"
+    },
+    "904": {
+        "file_id": 74,
+        "content": "    getPostMetadata=...,  # some lambda calling generator.__next__()\n    contentType=\"video\",\n    dedeuserid: str = \"397424026\",\n    tempdir=\"/dev/shm/medialang/bilibiliPoster\",\n    afterPosting: FunctionType = ...,\n):\n    # are you sure this 'postMetadataGenerator' will generate valid data for us?\n    # anyway let's write for video.\n    # there are two generators. what do you want?\n    # getPostMetadata = lambda: postMetadataGenerator.__next__()\n    from retry import retry\n    @retry(tries=3, delay=5)  # if causing trouble\n    def postContent(elem):  # what is this elem? please check for video producer.\n        with tmpdir(path=tempdir):\n            postMetadata = getPostMetadata()\n            print(\n                \"READY TO POST CONTENT FROM:\", elem\n            )  # this elem is video location for me.\n            if contentType == \"video\":  # single video upload without grouping.\n                videoPath = elem\n                cover_path = getRandomFileNameUnderDirectoryWithExtension(\n                    \"png\", tempdir",
+        "type": "code",
+        "location": "/pyjom/modules/contentPosting/bilibiliPoster.py:45-67"
+    },
+    "905": {
+        "file_id": 74,
+        "content": "This code is defining a function `postContent` that takes an element (elem) as input. The function uses a retry decorator to attempt the post operation three times with a 5-second delay between retries. It also defines the content type as video and a temporary directory for storage. The `getPostMetadata` seems to be used to retrieve metadata for posting, but its validity is questioned. The elem is likely a video location for uploading.",
+        "type": "comment"
+    },
+    "906": {
+        "file_id": 74,
+        "content": "                )\n                (\n                    cover_target,\n                    mTagSeries,  # are you sure this is a list of tags?\n                    mTitle,\n                    mBgm,  # what is the bgm here used for?\n                    mDescription,\n                    dog_or_cat_original,  # what again is this dog/cat label?\n                    search_tid,\n                ) = postMetadata  # assumptions on video type.\n                # you can fetch this from database. you can pickle this thing.\n                tagString = \",\".join(mTagSeries)\n                # will have exceptions when having name clash. handle it!\n                with tmpfile(cover_path):\n                    cv2.imwrite(cover_path, cover_target)\n                    # you need to save this 'cover_target' to file.\n                    contentId = uploadVideo(\n                        dedeuserid=dedeuserid,  # by decorator.\n                        description=mDescription,\n                        dynamic=mDescription,\n                        tagString=tagString,",
+        "type": "code",
+        "location": "/pyjom/modules/contentPosting/bilibiliPoster.py:68-88"
+    },
+    "907": {
+        "file_id": 74,
+        "content": "The code is responsible for extracting metadata from a tuple called `postMetadata` and storing it into relevant variables. It then joins the tags in the `mTagSeries` list with commas and writes the cover image to a file using OpenCV's imwrite function. Finally, it calls the `uploadVideo` function to upload the video content. The code assumes the video type and has potential exceptions if there is a name clash while joining tags into a string.",
+        "type": "comment"
+    },
+    "908": {
+        "file_id": 74,
+        "content": "                        tagId=search_tid,\n                        cover_path=cover_path,\n                        videoPath=videoPath,\n                        title=mTitle,\n                    )  # choose to upload and get bvid.\n            else:\n                raise Exception(\n                    \"unknown content type to upload for bilibiliPoster:\", contentType\n                )\n            afterPosting()  # execute no matter what. after posting the content.\n            # now register the uploaded video.\n            if contentType == \"video\":\n                video_bvid = (\n                        contentId\n                        if type(contentId) == str\n                        else contentId.get(\"bvid\", contentId.get(\"BVID\"))\n                    )\n                register_success = registerBilibiliUserVideo(\n                    video_bvid,\n                    str(dedeuserid),\n                )\n                print(\"VIDEO REGISTRATION STATUS?\", register_success)\n                if not register_success:\n                    print(\"VIDEO REGISTRATION ERROR\")",
+        "type": "code",
+        "location": "/pyjom/modules/contentPosting/bilibiliPoster.py:89-112"
+    },
+    "909": {
+        "file_id": 74,
+        "content": "Code chooses to upload and gets bvid based on the content type. If the content type is unknown, it raises an exception. It executes afterPosting() regardless of success or failure. For video content, it registers the uploaded video using registerBilibiliUserVideo and prints the registration status.",
+        "type": "comment"
+    },
+    "910": {
+        "file_id": 74,
+        "content": "                    breakpoint()\n            if type(contentId) == str:\n                video_identifier = \"bvid_{}\".format(contentId)\n            else:\n                video_identifier = \"aid_{}_bvid_{}\".format(\n                    contentId.get(\"aid\"), contentId.get(\"bvid\")\n                )\n            return \"bilibili://{}/{}/{}\".format(\n                dedeuserid, contentType, video_identifier\n            )  # this content id is fucked.\n    def postContentIterate(content):\n        for elem in content:\n            yield postContent(elem)\n    if iterate:\n        return postContentIterate(content)\n    else:\n        return postContent(content)\n    # content id?",
+        "type": "code",
+        "location": "/pyjom/modules/contentPosting/bilibiliPoster.py:113-132"
+    },
+    "911": {
+        "file_id": 74,
+        "content": "This code is a function to generate a Bilibili-specific URL for content, handling different content ID formats. It also includes an optional iterative processing option for the input content list.",
+        "type": "comment"
+    },
+    "912": {
+        "file_id": 75,
+        "content": "/pyjom/modules/contentPosting/__init__.py",
+        "type": "filepath"
+    },
+    "913": {
+        "file_id": 75,
+        "content": "Importing necessary modules for dummy and online posters to prevent circular import issues.",
+        "type": "summary"
+    },
+    "914": {
+        "file_id": 75,
+        "content": "from pyjom.modules.contentPosting.dummyPoster import *\nfrom pyjom.modules.contentPosting.onlinePoster import * # prevent circular import",
+        "type": "code",
+        "location": "/pyjom/modules/contentPosting/__init__.py:1-2"
+    },
+    "915": {
+        "file_id": 75,
+        "content": "Importing necessary modules for dummy and online posters to prevent circular import issues.",
+        "type": "comment"
+    },
+    "916": {
+        "file_id": 76,
+        "content": "/pyjom/modules/contentProducing/localProducer.py",
+        "type": "filepath"
+    },
+    "917": {
+        "file_id": 76,
+        "content": "The function checks and verifies required filters, detects hits or \"yolov5\" filter, updates cuts dictionary, applies filter to information, and combines filtered info with meta info. Issues exist in handling titles and other elements.",
+        "type": "summary"
+    },
+    "918": {
+        "file_id": 76,
+        "content": "from pyjom.commons import *\nfrom pyjom.modules.contentProducing.producerTemplates import getProducerTemplate\ndef FilesystemInfoFilter(processed_info, filters={}):\n    # this is just standard filter logic...\n    filtered_info = {}\n    # print(processed_info)\n    # print(\"PROCESSED_INFO\")\n    # breakpoint()\n    for file_path, file_info in processed_info.items():\n        # abandon_flag = False\n        # ensure all filter names must be inside\n        abandon_flag = [\n            filter_name in file_info.keys() for filter_name in filters.keys()\n        ]\n        # print(file_info.keys(), filters.keys(), abandon_flag)\n        # breakpoint()\n        abandon_flag = not all(abandon_flag)  # what is this?\n        metadata = file_info[\n            \"meta\"\n        ]  # is that necessary? do we want to make any filter with it?\n        if abandon_flag:\n            continue  # abandon those without qualificaton info.\n        cuts = {}\n        for filter_name, filter_content in filters.items():\n            if filter_name == \"meta\":",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/localProducer.py:1-27"
+    },
+    "919": {
+        "file_id": 76,
+        "content": "Filtering function iterates over processed info, checks if each filter is present for the file. If any filter is missing, it will abandon that item. It uses a generator expression to check if all filter names exist in file_info keys and then negates it. Extracts metadata from file_info and continues if all filters are present.",
+        "type": "comment"
+    },
+    "920": {
+        "file_id": 76,
+        "content": "                required_type = filter_content.get(\"type\")\n                media_type = metadata[\"type\"]\n                abandon_flag = not required_type == media_type\n                # breakpoint()\n                if abandon_flag:\n                    break\n            elif filter_name == \"labels\":\n                required, at_leasts = filter_content.get(\n                    \"required\", []\n                ), filter_content.get(\"at_leasts\", [])\n                required_flag = all([x in file_info[filter_name] for x in required])\n                if required_flag:\n                    # check all at_leasts.\n                    for at_least_number, elements in at_leasts:\n                        assert at_least_number > 0\n                        assert type(at_least_number) == int\n                        assert type(elements) == list\n                        assert len(elements) > 0\n                        hit_count = sum(\n                            [int(x in file_info[filter_name]) for x in elements]\n                        )",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/localProducer.py:28-48"
+    },
+    "921": {
+        "file_id": 76,
+        "content": "This code snippet filters content based on the provided filter name and filter content. It checks if the media type matches the required type, and also verifies if all required labels are present and ensures the number of elements in at_leasts is met. If any condition fails, a breakpoint will be hit.",
+        "type": "comment"
+    },
+    "922": {
+        "file_id": 76,
+        "content": "                        if hit_count < at_least_number:\n                            abandon_flag = True\n                            break\n                    if abandon_flag:\n                        break\n                else:\n                    abandon_flag = True\n                    break\n            elif filter_name == \"yolov5\":\n                # if type(filter_content) == list:\n                #     breakpoint()\n                objects, min_time = filter_content.get(\n                    \"objects\", None\n                ), filter_content.get(\"min_time\", 2)\n                assert objects != None\n                assert min_time > 0\n                DOT = file_info[filter_name][\"detected_objects_timespan\"]\n                detected_objects = list(DOT.keys())\n                abandon_flag = any([x in objects for x in detected_objects])\n                # what is this?\n                # breakpoint()\n                if not abandon_flag:\n                    break\n                avaliable_cuts = {}\n                for detected_object, timespans in DOT.items():",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/localProducer.py:49-73"
+    },
+    "923": {
+        "file_id": 76,
+        "content": "This code checks if a specific number of hits are detected or if a filter named \"yolov5\" is applied. If either condition is met, it sets the abandon_flag and breaks out of the loop. If abandon_flag is True, it retrieves objects and min_time from the filter content, checks if they are not None and greater than 0 respectively. Then, it compares the detected objects with the ones in the \"yolov5\" filter, setting abandon_flag to True if any match is found. If abandon_flag is still False after this check, it proceeds to iterate through the DOT dictionary to populate avaliable_cuts dictionary.",
+        "type": "comment"
+    },
+    "924": {
+        "file_id": 76,
+        "content": "                    if detected_object not in objects:\n                        continue\n                    for timespan in timespans:\n                        stop, start = timespan[1], timespan[0]\n                        if stop == \"FINAL\":\n                            stop = metadata[\n                                \"duration\"\n                            ]  # do we need to modify the \"FINAL\" into acturally digits?\n                            timespan = (start, stop)  # do this anyway.\n                        timespan_length = stop - start\n                        if timespan_length < min_time:\n                            continue\n                        avaliable_cuts.update(\n                            {\n                                detected_object: avaliable_cuts.get(detected_object, [])\n                                + [timespan]\n                            }\n                        )\n                # collect avaliable cuts.\n                cuts.update({filter_name: avaliable_cuts})\n                # filter out required durations.",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/localProducer.py:74-94"
+    },
+    "925": {
+        "file_id": 76,
+        "content": "This code collects available cuts from detected objects and timespans, filters out required durations, and stores the results in a cuts dictionary for later use.",
+        "type": "comment"
+    },
+    "926": {
+        "file_id": 76,
+        "content": "            elif filter_name == \"framedifference_talib_detector\":\n                size_limit, ratio_limit, duration_limit = (\n                    filter_content.get(\"size_limit\", 0.2),\n                    filter_content.get(\"ratio_limit\", 0.3),\n                    filter_content.get(\"duration_limit\", 3),\n                )\n                avaliable_cuts = []\n                for framework in file_info[filter_name]:\n                    [[up_x, up_y], [down_x, down_y]] = framework[\"coords\"]\n                    frame_width, frame_height = down_x - up_x, down_y - up_y\n                    area = (down_x - up_x) * (down_y - up_y)\n                    height, width = (\n                        metadata[\"resolution\"][\"height\"],\n                        metadata[\"resolution\"][\"width\"],\n                    )\n                    total_area = height * width\n                    size = area / total_area\n                    if size < size_limit:\n                        continue\n                    ratio = min(frame_width, frame_height) / max(",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/localProducer.py:95-114"
+    },
+    "927": {
+        "file_id": 76,
+        "content": "This code checks if the filter name is \"framedifference_talib_detector\". If so, it retrieves size_limit, ratio_limit, and duration_limit from filter content. It then iterates over each framework in file_info for this specific filter and extracts its coordinates. It calculates the frame's area and its size relative to the total video size. If the frame's size is less than the size_limit, it continues to the next iteration; otherwise, it calculates the ratio between the frame's width and height and checks if it meets the filter's requirements.",
+        "type": "comment"
+    },
+    "928": {
+        "file_id": 76,
+        "content": "                        frame_width, frame_height\n                    )\n                    if ratio < ratio_limit:\n                        continue\n                    start, end = framework[\"start\"], framework[\"end\"]\n                    if end == \"FINAL\":\n                        end = metadata[\"duration\"]\n                    duration = end - start\n                    if duration < duration_limit:\n                        continue\n                    # now append your cuts. are they overlapping?\n                    framework2 = {\n                        \"coords\": framework[\"coords\"],\n                        \"timespan\": (start, end),\n                    }\n                    avaliable_cuts.append(framework2)\n                cuts.update({filter_name: avaliable_cuts})\n            if abandon_flag: # is this duplicated?\n                break\n        # print(cuts)\n        # print(\"CUTS:\")\n        filtered_info.update({file_path: cuts})\n        # breakpoint()\n        # # what the fuck? # #\n        # if abandon_flag:\n        #     continue  # abandon those without qualification info.",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/localProducer.py:115-140"
+    },
+    "929": {
+        "file_id": 76,
+        "content": "This code filters and stores video cuts based on their dimensions, ratio, duration, and if they overlap. It updates the \"cuts\" dictionary with available cuts for each filter name and stores the information in \"filtered_info\" dictionary under file path. If abandon_flag is set, it breaks or continues to the next iteration.",
+        "type": "comment"
+    },
+    "930": {
+        "file_id": 76,
+        "content": "        # # what the fuck? # #\n        # breakpoint()\n    return filtered_info\n@decorator\ndef FilesystemProducer(\n    processed_info,\n    filters={},\n    template=None,\n    template_config={},\n):\n    # print(processed_info) # why we only have one single goddamn path?\n    # breakpoint()\n    filtered_info = FilesystemInfoFilter(processed_info, filters=filters)\n    template_function = getProducerTemplate(template)\n    meta_info = {\n        k: processed_info[k][\"meta\"] for k in processed_info.keys()\n    }  # so there is no additional \"meta\" key.\n    # print(filtered_info)  # empty! shit.\n    # print(meta_info)\n    # breakpoint()\n    output = template_function(filtered_info, meta_info, config=template_config)\n    # you need to handle the title and something all over this freaking place.\n    # must be ready for posting.\n    return output",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/localProducer.py:141-169"
+    },
+    "931": {
+        "file_id": 76,
+        "content": "This function, FilesystemProducer, takes in processed_info and applies the FilesystemInfoFilter. It then gets a template_function and uses it to combine filtered_info with meta_info. The output is returned, but it seems there are issues with handling titles and other elements throughout the code.",
+        "type": "comment"
+    },
+    "932": {
+        "file_id": 77,
+        "content": "/pyjom/modules/contentProducing/dummyProducer.py",
+        "type": "filepath"
+    },
+    "933": {
+        "file_id": 77,
+        "content": "The code imports necessary modules and defines a dummyProducer function using a decorator. It returns a dictionary with information related to \"husky\" including title, article, video, and summary.",
+        "type": "summary"
+    },
+    "934": {
+        "file_id": 77,
+        "content": "from pyjom.commons import *\n@decorator\ndef dummyProducer(processed_info):\n    return {\n        \"husky\": {\n            \"title\": \"<a million husky videos>\",\n            \"article\": \"husky is so darn cute\",\n            \"video\": \"<myvideo>\",\n            \"summary\": \"this is my husky\",\n        }\n    }",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/dummyProducer.py:1-13"
+    },
+    "935": {
+        "file_id": 77,
+        "content": "The code imports necessary modules and defines a dummyProducer function using a decorator. It returns a dictionary with information related to \"husky\" including title, article, video, and summary.",
+        "type": "comment"
+    },
+    "936": {
+        "file_id": 78,
+        "content": "/pyjom/modules/contentProducing/__init__.py",
+        "type": "filepath"
+    },
+    "937": {
+        "file_id": 78,
+        "content": "This code is importing modules from the \"pyjom\" library, specifically for content production. It includes three different types of producers: dummy, local, and online.",
+        "type": "summary"
+    },
+    "938": {
+        "file_id": 78,
+        "content": "from pyjom.modules.contentProducing.dummyProducer import *\nfrom pyjom.modules.contentProducing.localProducer import *\nfrom pyjom.modules.contentProducing.onlineProducer import *",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/__init__.py:1-3"
+    },
+    "939": {
+        "file_id": 78,
+        "content": "This code is importing modules from the \"pyjom\" library, specifically for content production. It includes three different types of producers: dummy, local, and online.",
+        "type": "comment"
+    },
+    "940": {
+        "file_id": 79,
+        "content": "/pyjom/modules/contentProducing/producerTemplates.py",
+        "type": "filepath"
+    },
+    "941": {
+        "file_id": 79,
+        "content": "The code introduces a function, getFileCuts, to process media files and generate cuts using scene detection or specified cuts. It supports audio synthesis, ensures non-overlapping cuts, creates render lists for specific parameters, and includes optional debug mode with breakpoints. The program utilizes FFmpeg filters for audio normalization and video filtering, handles \"ass\" subtitle font selection in a media processing program.",
+        "type": "summary"
+    },
+    "942": {
+        "file_id": 79,
+        "content": "from pyjom.commons import *\n# from pyjom.modules.contentProducing.videoProcessing import *\n# it is like a game designed by you, played by everyone.\n# maybe you need to render this into ffmpeg arguments or mltframework arguments.\nimport random\nfrom pyjom.audiotoolbox import adjustVolumeInMedia\nfrom pyjom.musictoolbox import getMusicInfoParsed\n# from MediaInfo import MediaInfo\nfrom pyjom.medialang.core import *\n# local\ndef getFileCuts(\n    filtered_info, meta_info, standard_bpm_spans, policy_names, mbeat_time_tolerance=0.8\n):\n    total_cuts_dict = {}\n    for (\n        file_path,\n        cuts,\n    ) in (\n        filtered_info.items()\n    ):  # sample these cuts, shuffle these samples. order these samples.\n        file_cuts = []  # only for this single file.\n        modifiers = {}\n        if cuts == {}:  # no cuts specified. require metadata.\n            # what is this synthed cuts? do you want to use some framedelta/audio volume based cutting methods, or not? or some scenedetect cuts?\n            # we use scenedetect cuts here. maybe later you would sort these cuts with framedelta/audio based methods.",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:1-30"
+    },
+    "943": {
+        "file_id": 79,
+        "content": "This code imports various modules for audio, video processing, and metadata analysis. It defines a function getFileCuts that takes in filtered information about media files and meta-information. It creates a dictionary of total cuts for each file and iterates through the files, considering if there are any specified cuts or not. If there are no specified cuts, it uses scene detection to generate cuts and may potentially sort them using other methods like frame delta or audio volume. The code also mentions shuffling and ordering these cuts for some unspecified purpose.",
+        "type": "comment"
+    },
+    "944": {
+        "file_id": 79,
+        "content": "            # or you implement this in the reviewer. none of the freaking business.\n            # synthed_cuts = scenedetect_cut(file_path)\n            # we use evenly spaced cuts.\n            duration = meta_info[\"duration\"]\n            if duration < standard_bpm_spans[0]:\n                synthed_cuts = [(0, duration)]\n            else:\n                synthed_cuts = []\n                start_time = 0\n                while True:\n                    remained_time = duration - start_time\n                    mcandidates = [x for x in standard_bpm_spans if x < remained_time]\n                    if len(mcandidates) > 0:\n                        mc = random.choice(mcandidates)\n                        synthed_cuts.append((start_time, mc))\n                        start_time += mc\n                    else:\n                        break\n            file_cuts = synthed_cuts\n        else:  # get cuts from those keys.\n            for key, content in cuts.items():\n                # if key == \"labels\": continue # this cannot happen!",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:31-52"
+    },
+    "945": {
+        "file_id": 79,
+        "content": "Code generates synthesized cuts for audio file based on duration and a list of standard bpm spans. If the duration is less than the smallest standard bpm span, it creates one cut from start to end. Otherwise, it iteratively selects random standard bpm spans until remaining time is exhausted or no more spans are available.",
+        "type": "comment"
+    },
+    "946": {
+        "file_id": 79,
+        "content": "                if key == \"yolov5\":\n                    for object_name, object_cuts in content.items():\n                        file_cuts += [\n                            x\n                            for x in object_cuts\n                            if (x[1] - x[0])\n                            >= standard_bpm_spans[0] * mbeat_time_tolerance\n                        ]  # we may choose only non-overlapping cuts.\n                elif (\n                    key == \"framedifference_talib_detector\"\n                ):  # this is a modifier. modify all things in avaliable cuts. but it cannot work alone. is it?\n                    modifiers.update({\"framedifference_talib_detector\": content})\n        # rearrange all things.\n        # after this is done, add this to the end.\n        if \"non_overlapping\" in policy_names:\n            file_cuts.sort()\n            new_file_cuts = [file_cuts[0]]\n            for cut in file_cuts[1:]:  # deterministic\n                if cut[0] >= new_file_cuts[-1][1]:\n                    new_file_cuts.append(cut)",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:53-72"
+    },
+    "947": {
+        "file_id": 79,
+        "content": "The code handles different template keys and their associated content, ensuring non-overlapping cuts for \"yolov5\" key and updating modifiers for the \"framedifference_talib_detector\" key. It then sorts the file cuts to ensure non-overlapping order and appends them into a new list if they don't overlap with the previous cut. This ensures deterministic results for further processing.",
+        "type": "comment"
+    },
+    "948": {
+        "file_id": 79,
+        "content": "            file_cuts = new_file_cuts\n        compiled_file_cuts = []\n        for cut in file_cuts:\n            new_cut = {\"span\": cut, \"modifiers\": {}}\n            for key, content in modifiers.items():\n                if (\n                    key == \"framedifference_talib_detector\"\n                ):  # get the biggest span. best contain this range. no random selection.\n                    framework_candidates = []\n                    for framework2 in content:\n                        coords = framework2[\"coords\"]\n                        f_timespan = framework2[\"timespan\"]\n                        mOverlapRange = overlapRange(cut, f_timespan)\n                        if mOverlapRange:\n                            framework_candidates.append((framework2, mOverlapRange))\n                    framework_candidates.sort(key=lambda x: -(x[1][1] - x[1][0]))\n                    if len(framework_candidates) > 0:\n                        framework_candidate = framework_candidates[0]\n                        modifiers.update(framework_candidate)",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:73-91"
+    },
+    "949": {
+        "file_id": 79,
+        "content": "This code iterates through `file_cuts` and creates a new dictionary for each cut with span key and empty modifiers. It then checks if the modifier is \"framedifference_talib_detector\" and finds the best matching framework candidate based on overlap range with the current cut, sorting them by the overlap range in descending order. If there are framework candidates, it updates the modifiers with the best candidate and continues to the next iteration.",
+        "type": "comment"
+    },
+    "950": {
+        "file_id": 79,
+        "content": "                        # add that modifier.\n            compiled_file_cuts.append(new_cut)\n        total_cuts_dict.update({file_path: compiled_file_cuts.copy()})\n    return total_cuts_dict\n# local\ndef getRenderList(\n    total_cuts,\n    demanded_cut_spans,\n    noRepeat=False,\n    noRepeatFileName=False,\n    total_trials=100000,\n):\n    trial_count = 0\n    file_access_list = [x for x in total_cuts.keys()]\n    FAL_generator = infiniteShuffle(\n        file_access_list\n    )  # infinite generator! may cause serious problems.\n    TC_generators = {\n        key: infiniteShuffle(total_cuts[key]) for key in total_cuts.keys()\n    }  # again infinite generator!\n    render_list = []\n    if noRepeat:\n        usedCuts = []\n    for span in demanded_cut_spans:\n        start, end = span\n        span_length = end - start\n        tolerance = 0.8\n        tolerance_decrease = lambda x: max(0.1, x - 0.1)\n        for filename in FAL_generator:\n            if filename is None:\n                tolerance = tolerance_decrease(tolerance)\n                continue",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:92-125"
+    },
+    "951": {
+        "file_id": 79,
+        "content": "This function takes a dictionary of file paths and their associated cut lists, as well as demanded cut spans. It shuffles the file access list and generates infinite shuffled cut generators for each file path. Then, it iterates over the demanded cut spans, adjusting tolerance based on infinite generator progress, and selects a rendered file accordingly. If 'noRepeat' is True, used cuts are kept track of to avoid repetition.",
+        "type": "comment"
+    },
+    "952": {
+        "file_id": 79,
+        "content": "            file_cuts = TC_generators[filename]\n            # random.shuffle(file_cuts)\n            selected_cut = None\n            for cut in file_cuts:\n                trial_count += 1\n                if trial_count % 1000 == 0 and trial_count > 0:\n                    print(\n                        \"%d trial quota used remaining: %d\"\n                        % (trial_count, total_trials - trial_count)\n                    )\n                if trial_count > total_trials:\n                    raise Exception(\n                        \"Trial Limit Reached.\\nCurrent RenderList: %s\\nCurrent Limit: %d trials\\nCurrent Config: noRepeat=%s noRepeatFileName=%s\"\n                        % (\n                            str(render_list),\n                            total_trials,\n                            str(noRepeat),\n                            str(noRepeatFileName),\n                        )\n                    )\n                if cut is None:  # break if the infinite generator is taking a break.\n                    break",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:126-147"
+    },
+    "953": {
+        "file_id": 79,
+        "content": "This code segment shuffles a list of file cuts, iterates through them, and tracks the trial count to handle trial limits. It prints progress and raises an exception if the trial limit is exceeded or if the generator takes a break.",
+        "type": "comment"
+    },
+    "954": {
+        "file_id": 79,
+        "content": "                    # continue # really continue?\n                cut_span = cut[\"span\"]\n                cut_duration = cut_span[1] - cut_span[0]\n                if inRange(\n                    cut_duration, [span_length, span_length * 1.5], tolerance=tolerance\n                ):  # increase this tolerance gradually.\n                    if noRepeat:\n                        cut_str = str(cut) + filename\n                        if noRepeatFileName:\n                            sameSourceOfLastClip = False\n                            if len(usedCuts) > 1:\n                                lastClip = usedCuts[\n                                    -1\n                                ]  # this was wrong. usedCuts could have length == 1\n                                if filename in lastClip:\n                                    sameSourceOfLastClip = True  # this will detect if the next clip is of the same source of last clip\n                            isRepeat = (cut_str in usedCuts) or sameSourceOfLastClip\n                        else:",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:148-165"
+    },
+    "955": {
+        "file_id": 79,
+        "content": "The code snippet checks if a cut is within the desired span length and, if so, determines whether it's a repeat or not by comparing its filename with existing used cuts. It also checks if the source of the clip matches the previous one. The tolerance for determining whether a cut is in range can be gradually increased.",
+        "type": "comment"
+    },
+    "956": {
+        "file_id": 79,
+        "content": "                            isRepeat = cut_str in usedCuts\n                        if isRepeat:\n                            continue  # repeated cuts!\n                        usedCuts.append(cut_str)\n                    selected_cut = cut\n                    break\n            if not selected_cut is None:\n                # append the data right here.\n                render_list.append({\"span\": span, \"cut\": cut, \"source\": filename})\n                break\n    return render_list\n# local\ndef renderList2MediaLang(\n    renderList,\n    slient=True,\n    fast: bool = True,\n    bgm=None,\n    backend=\"ffmpeg\",  # wtf is this ffmpeg?\n    medialangTmpdir=\"/dev/shm/medialang\",\n):  # this is just a primitive. need to improve in many ways.\n    # producer = \"\"\n    scriptBase = [\n        '(\".mp4\",backend = \"%s\", bgm = \"%s\", fast=%s)'\n        % (backend, bgm, str(fast).lower())\n    ]  # set default resolution to 1920x1080\n    def getSpanDuration(span):\n        return span[1] - span[0]\n    for item in renderList:\n        # print(\"ITEM:\", item)",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:166-198"
+    },
+    "957": {
+        "file_id": 79,
+        "content": "The code is iterating over a list of cuts and selecting one that has not been used before. It appends the selected cut, span, and source file name to render_list if a valid cut is found. The function then returns the rendered list. Additionally, there's another function called renderList2MediaLang which takes the render list and uses it to create media files with specific parameters like backend, bgm, fast, and resolution. This function also requires improvement in many ways according to the comments.",
+        "type": "comment"
+    },
+    "958": {
+        "file_id": 79,
+        "content": "        span = item[\"span\"]\n        cut_span = item[\"cut\"][\"span\"]\n        source = item[\"source\"]\n        span_duration = getSpanDuration(span)\n        cut_span_duration = getSpanDuration(cut_span)\n        speed = cut_span_duration / span_duration\n        # breakpoint()\n        name = source\n        line = '(\"%s\", video=true, slient=%s, speed=%f, cutFrom=%f,cutTo=%f)' % (\n            name,\n            str(slient).lower(),\n            speed,\n            cut_span[0],\n            cut_span[1],\n        )\n        scriptBase.append(line)\n    # print(scriptBase)\n    # now return the medialang object.\n    medialangScript = \"\\n\\n\".join(scriptBase)  # forced to double return. is it?\n    medialangObject = Medialang(script=medialangScript, medialangTmpdir=medialangTmpdir)\n    return medialangObject\n# local\ndef petsWithMusicProducer(filtered_info, meta_info, config={}, fast=False):\n    # what is this config? how the fuck we can arrange it?\n    # config = {\"music\":{\"filepath\":\"\",\"lyric_path\":\"\"},\"font\":{\"filepath\":\"\",\"fontsize\":30}, \"policy\":{\"some_policy_name\":{}},\"meta\":{\"maxtime\":3, \"mintime\":1}}",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:199-225"
+    },
+    "959": {
+        "file_id": 79,
+        "content": "The code defines a function that takes in information and creates a Medialang object. It calculates the speed of cutting from one point to another, adds details to the scriptBase list, and joins them into medialangScript. The config parameter is a dictionary containing options for music filepath, lyric path, font settings, policy settings, and meta settings like max and min time. The function returns a Medialang object with the script and tmpdir.",
+        "type": "comment"
+    },
+    "960": {
+        "file_id": 79,
+        "content": "    # how to auto-warp the AAS subtitle?\n    # musicPath = config.get('music',\"\")\n    musicPath = config.get(\"music\", {}).get(\"filepath\", \"\")\n    debug = config.get(\"debug\", False)\n    report = corruptMediaFilter(musicPath)\n    if not report:\n        return False\n    (\n        music,\n        font,\n        policy,\n        policy_names,\n        music_metadata,\n        music_duration,\n        maxtime,\n        mintime,\n        lyric_path,\n        demanded_cut_spans,\n        standard_bpm_spans,\n    ) = getMusicInfoParsed(config)\n    # do you fill timegap with a loop?\n    total_cuts = {}\n    # print(\"DEMANDED CUT SPANS: \" , demanded_cut_spans) # test passed.\n    # breakpoint()\n    # demanded_cut_spans is empty!\n    # total_cuts\n    total_cuts = getFileCuts(\n        filtered_info, meta_info, standard_bpm_spans, policy_names\n    )  # is this shit empty?\n    # this can be infinity loop.\n    # sample: [{'span': (0, 3.9300226757369616), 'cut': {'span': (13.4, 18.0), 'modifiers': {}}, 'source': '/root/Desktop/works/pyjom/samples/video/LiGGLhv4E.mp4'}]",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:226-257"
+    },
+    "961": {
+        "file_id": 79,
+        "content": "This code retrieves music file information and parses it using various functions. It checks if the demanded_cut_spans are not empty and retrieves the total_cuts from another function. The code also includes debugging features and may potentially create an infinite loop if certain conditions aren't met.",
+        "type": "comment"
+    },
+    "962": {
+        "file_id": 79,
+        "content": "    # print(total_cuts)\n    # breakpoint()\n    # now generate the freaking video.\n    # if \"one_clip_per_file\" in policy_names:\n    #     used_files = [] # may raise exception.\n    # total_cuts {} and demanded_cut_spans [] are both empty\n    render_list = getRenderList(\n        total_cuts, demanded_cut_spans\n    )  # this might be an infinity loop.\n    # but why the fuck we got 10 minutes long of the freaking video?\n    if debug:\n        print(render_list)  # empty render list! wtf?\n    # why the fuck we have duplicated clips? why the fuck?\n    # breakpoint()  # WTF IS GOING ON? LEADING TO 10 MINS OF CRAP?\n    medialangObject = renderList2MediaLang(\n        render_list,\n        slient=True,\n        bgm=music[\"filepath\"],\n        backend=\"editly\",  # 在这里你可以分离人声 如果想热闹的话 原视频的音乐就不需要了 可能吧\n        fast=fast,\n    )  # what is the backend?\n    # print(medialangObject)\n    # breakpoint()\n    medialangCode = medialangObject.prettify()\n    # print(\"_________________MEDIALANG CODE_________________\")\n    # print(medialangCode) # should you write it to somewhere?",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:258-285"
+    },
+    "963": {
+        "file_id": 79,
+        "content": "This code block is generating a video based on provided cuts and cut spans. It checks for specific policy names, creates a render list, and then passes it to the `renderList2MediaLang` function to generate the video using the Editly backend. The developer is experiencing issues with an empty render list and duplicated clips which may lead to 10 minutes of undesired footage in the final video. They are also questioning what the Editly backend is and whether they should write the medialang code somewhere.",
+        "type": "comment"
+    },
+    "964": {
+        "file_id": 79,
+        "content": "    if debug:\n        import uuid\n        randomName = str(uuid.uuid4())\n        # or just use some temporary file instead?\n        medialangCodeSavePath = os.path.join(\n            \"/root/Desktop/works/pyjom/tests/medialang_tests\",\n            \"{}.mdl\".format(randomName),\n        )\n        with open(medialangCodeSavePath, \"w+\") as f:\n            f.write(medialangCode)\n        print(\"MEDIALANG CODE SAVED TO:\", medialangCodeSavePath)\n    # why use medialang? probably because these render language are not \"fully automated\" or \"automated enough\" to express some abstract ideas? or just to leave some blanks for redundent low-level implementations?\n    # print(\"_________________MEDIALANG CODE_________________\")\n    (\n        editly_outputPath,\n        medialang_item_list,\n    ) = medialangObject.execute()  ## shit will happen.\n    # next time you could test medialang directly.\n    # medialangObject.eval() # is something like that?\n    return editly_outputPath\n    # slient all things? despite its config.\n    # now render the file. how to make it happen?",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:286-310"
+    },
+    "965": {
+        "file_id": 79,
+        "content": "The code is creating a temporary file with a random name using UUID, writing medialangCode to it, and saving it on the desktop. It then executes the medialangObject and returns the editly_outputPath.",
+        "type": "comment"
+    },
+    "966": {
+        "file_id": 79,
+        "content": "# first, we state the format of the input.\n# [{'span': (296.4719954648526, 302.915), 'cut': {'span': (50.8, 57.2), 'modifiers': {}}, 'source': '/root/Desktop/works/pyjom/samples/video/LiGfl6lvf.mp4'}, {..},...]\n# avaliable_cuts = content\n# shall we generate medialang for it?\nfrom pyjom.commons import checkMinMaxDict\nfrom pyjom.lyrictoolbox import lrcToAnimatedAss\nfrom lazero.filesystem import tmpdir\nfrom lazero.network.progressbar.client import netProgressbar\n# local\ndef petsWithMusicOnlineProducer(\n    dataGenerator,\n    configs,\n    tempdir=\"/dev/shm/medialang/pets_with_music_online\",\n    remove_unused=True,\n    fast: bool = True,\n    medialangTmpdir=\"/dev/shm/medialang\",\n):\n    import uuid\n    NetProgressbar = netProgressbar()\n    with tmpdir(path=tempdir) as TD:\n        getRandomFileName = lambda extension: os.path.join(\n            tempdir, \".\".join([str(uuid.uuid4()), extension])\n        )\n        for config in configs:\n            try:\n                debug = config.get(\"debug\", False)  # in config.\n                musicPath = config.get(\"music\", {}).get(\"filepath\", \"\")",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:313-343"
+    },
+    "967": {
+        "file_id": 79,
+        "content": "This function, petsWithMusicOnlineProducer, generates medialang for a list of configs with associated music files. It takes dataGenerator, configs, tempdir, remove_unused, and fast as inputs. It uses temporary directories and UUIDs for file names. The debug flag indicates whether to include debugging information in the generated output.",
+        "type": "comment"
+    },
+    "968": {
+        "file_id": 79,
+        "content": "                translate = config.get(\"translate\", False)\n                # also how to translate?\n                translate_method = config.get(\"translate_method\", \"baidu\")\n                # from pyjom.commons import corruptMediaFilter\n                report = corruptMediaFilter(musicPath)\n                if not report:\n                    continue\n                render_ass = config.get(\"render_ass\", False)\n                ass_template_configs = config.get(\"ass_template_configs\", {})\n                assStyleConfig = config.get(\"assStyleConfig\", {})\n                parsed_result = getMusicInfoParsed(config) # will raise exception. what to do?\n                # print(parsed_result)\n                # breakpoint()\n                # we only have one song here. you fucking know that?\n                (\n                    music,\n                    font,\n                    policy,\n                    policy_names,\n                    music_metadata,\n                    music_duration,\n                    maxtime,",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:344-367"
+    },
+    "969": {
+        "file_id": 79,
+        "content": "This code block is configuring the settings for processing a music file. It sets whether to translate, the translation method, and checks if there are any corrupt media issues. It also determines if ASS (Advanced Substation Alpha) subtitles should be rendered, retrieves configuration settings for the ASS style and templates, and fetches the parsed music information that may raise an exception.",
+        "type": "comment"
+    },
+    "970": {
+        "file_id": 79,
+        "content": "                    mintime,\n                    lyric_path,\n                    demanded_cut_spans,\n                    standard_bpm_spans,\n                ) = parsed_result  # this is taking long time.\n                # check for 'demanded_cut_spans' now!\n                from pyjom.lyrictoolbox import remergeDemandedCutSpans\n                demanded_cut_spans = remergeDemandedCutSpans(demanded_cut_spans)\n                render_list = []  # what is this freaking render_list?\n                # [{'span':(start,end),'cut':{'span':(start,end)},'source':videoSource},...]\n                # if lyric_path:\n                render_ass = render_ass and (lyric_path is not None)\n                if render_ass:\n                    ass_file_path = getRandomFileName(\"ass\")\n                    # print(\"lrc path:\", lyric_path)\n                    # print('ass file path:',ass_file_path)\n                    # breakpoint()\n                    lrcToAnimatedAss(\n                        music[\"filepath\"],\n                        lyric_path,",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:368-389"
+    },
+    "971": {
+        "file_id": 79,
+        "content": "The code is unpacking the 'parsed_result' into separate variables such as 'mintime', 'lyric_path', 'demanded_cut_spans', and 'standard_bpm_spans'. It then checks for 'demanded_cut_spans' and remerges them using 'remergeDemandedCutSpans'. The code initializes an empty list called 'render_list', which may contain dictionaries with {'span':(start,end), 'cut':{'span':(start,end)}, 'source':videoSource} elements. If 'lyric_path' is provided and 'render_ass' (a combination of 'render_ass' flag and 'lyric_path' condition) is True, it generates a random file name for an 'ass' file and calls the 'lrcToAnimatedAss' function with music file path, lyric path as input.",
+        "type": "comment"
+    },
+    "972": {
+        "file_id": 79,
+        "content": "                        ass_file_path,\n                        translate=translate,\n                        translate_method=translate_method,\n                        ass_template_configs=ass_template_configs,\n                        assStyleConfig=assStyleConfig,\n                    )  # here's the 'no translation' flag.\n                data_ids = []\n                # from tqdm.gui import tqdm\n                total_pops = len(demanded_cut_spans)\n                # for _ in tqdm(range(total_pops)):\n                NetProgressbar.reset(total=total_pops)\n                for data in dataGenerator:\n                    # what is the format of the data?\n                    data_id = data[\"item_id\"]\n                    if data_id not in data_ids:\n                        dataDuration = data[\"meta\"][\"duration\"]\n                        videoSource = data[\"location\"]\n                        data_ids.append(data_id)\n                        demanded_cut_spans.sort(\n                            key=lambda span: abs((span[1] - span[0]) - dataDuration)",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:390-411"
+    },
+    "973": {
+        "file_id": 79,
+        "content": "This code snippet generates subtitles for videos and processes them in batches. It uses a data generator to iterate over demanded cuts, sorts them based on the difference between their duration and video duration, and appends unique data IDs to the list. The progress bar is updated using NetProgressbar.",
+        "type": "comment"
+    },
+    "974": {
+        "file_id": 79,
+        "content": "                        )\n                        closest_span = demanded_cut_spans[0]\n                        closest_span_duration = closest_span[1] - closest_span[0]\n                        speed_delta = dataDuration / closest_span_duration\n                        # for time duration of 0.6 seconds, how the fuck you can fit in?\n                        span = closest_span\n                        candidate = {\n                            \"span\": span,\n                            \"cut\": {\"span\": (0, dataDuration)},\n                            \"source\": videoSource,\n                        }\n                        append_render_list = False\n                        case = None\n                        if checkMinMaxDict(speed_delta, {\"min\": 0.8, \"max\": 1.2}):\n                            case = \"nearby\"\n                            append_render_list = True\n                            # break\n                        elif checkMinMaxDict(speed_delta, {\"min\": 1.2, \"max\": 5}):\n                            case = \"trim\"",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:412-431"
+    },
+    "975": {
+        "file_id": 79,
+        "content": "This code is finding the closest cut span for a given data duration and calculating the speed delta between them. It then determines if the speed delta falls within certain predefined thresholds, assigning the appropriate case (\"nearby\" or \"trim\") and whether to append to the render list. The speed delta ranges from 0.8 to 1.2 for nearby cuts and from 1.2 to 5 for trim cuts.",
+        "type": "comment"
+    },
+    "976": {
+        "file_id": 79,
+        "content": "                            append_render_list = True\n                            from pyjom.videotoolbox import motionVectorEstimation\n                            dataDict = motionVectorEstimation(videoSource)\n                            referenceData = dataDict[\n                                \"average_global_weighted_motion_vectors_filtered_cartesian_distance\"\n                            ]\n                            from pyjom.mathlib import getCursorOfMaxAverageInWindow\n                            cursor = getCursorOfMaxAverageInWindow(\n                                referenceData, closest_span_duration * 1.2, dataDuration\n                            )\n                            # cursor = random.uniform(0,dataDuration-closest_span_duration*1.2) # this is not exactly right. not even good.\n                            # you should utilize the 'motion vector' stuff.\n                            mStart, mEnd = 0 + cursor, min(\n                                closest_span_duration * 1.2 + cursor, dataDuration",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:432-447"
+    },
+    "977": {
+        "file_id": 79,
+        "content": "Code fetches average motion vectors from video source using motionVectorEstimation, selects cursor based on max average in window function from mathlib. Uses obtained cursor to calculate mStart and mEnd for clip segmentation.",
+        "type": "comment"
+    },
+    "978": {
+        "file_id": 79,
+        "content": "                            )\n                            candidate[\"cut\"][\"span\"] = (mStart, mEnd)\n                        if not append_render_list:\n                            print(f'fail to match. source: {dataDuration} target: {closest_span_duration}')\n                            if remove_unused:\n                                videoPath = videoSource\n                                if os.path.exists(videoPath):\n                                    os.remove(videoPath)\n                        else:\n                            demanded_cut_spans.pop(0)\n                            NetProgressbar.update(\n                                info={\n                                    \"remainings\": len(demanded_cut_spans),\n                                    \"case\": case,\n                                    \"data\": candidate,\n                                    'last_5_spans_time':[x[1]-x[0] for x in demanded_cut_spans[:5]]\n                                } # this last cut must be seriously wrong.\n                            )",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:448-465"
+    },
+    "979": {
+        "file_id": 79,
+        "content": "This code attempts to match a data duration with a target duration, and if unsuccessful, it removes the corresponding video segment. If successful, it updates the progress bar with information about remaining cuts, the current case, and the candidate cut details. It also checks if the last 5 spans' durations indicate a serious error.",
+        "type": "comment"
+    },
+    "980": {
+        "file_id": 79,
+        "content": "                            render_list.append(candidate)\n                    complete = len(demanded_cut_spans) == 0\n                    if complete:\n                        break\n                # the main shit will fuck up again, maybe.\n                # so i wrapped it a little bit.\n                try:\n                    medialangObject = renderList2MediaLang(\n                        render_list,\n                        slient=True,\n                        fast=fast,\n                        bgm=music[\"filepath\"],\n                        backend=\"editly\",  # 在这里你可以分离人声 如果想热闹的话 原视频的音乐就不需要了 可能吧\n                        medialangTmpdir=medialangTmpdir,\n                    )  # what is the backend?\n                    # we first create a backup for this medialang script, please?\n                    medialangScript = medialangObject.prettify()\n                    if debug:\n                        medialangScript_savedPath = getRandomFileName(\"mdl\")\n                        with open(\n                            medialangScript_savedPath, \"w+\"",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:466-486"
+    },
+    "981": {
+        "file_id": 79,
+        "content": "Code tries to render a list of objects using a function, and if the demanded cut spans are empty, it breaks the loop. It then attempts to wrap this process inside a try-except block, and if successful, prettifies the resulting medialang script and saves a backup if debug mode is enabled. The backend option allows separating voices for a noisy environment.",
+        "type": "comment"
+    },
+    "982": {
+        "file_id": 79,
+        "content": "                        ) as f:  # will this shit work?\n                            f.write(medialangScript)\n                        print(\"MEDIALANG SCRIPT SAVED TO:\", medialangScript_savedPath)\n                    (\n                        editly_outputPath,\n                        medialang_item_list,\n                    ) = medialangObject.execute()  # how to control its 'fast' parameter?\n                    # maybe we need render the lyric file separately.\n                    # normalization starts here.\n                    rendered_media_location = getRandomFileName(\n                        \"mp4\"\n                    )  # so where exactly is the file?\n                    print(\"___adjusting volume in media___\")\n                    adjustVolumeInMedia(editly_outputPath, rendered_media_location)\n                    # using a ffmpeg filter.\n                    print(\"RENDERED MEDIA LOCATION:\", rendered_media_location)\n                    if debug:  # where is this debug??\n                        breakpoint()",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:487-505"
+    },
+    "983": {
+        "file_id": 79,
+        "content": "This code appears to be a part of a larger program that involves media processing. It saves a medialang script, executes a medialang object, adjusts volume in the media, and renders the output. It uses a ffmpeg filter and has an optional debug mode with a breakpoint function.",
+        "type": "comment"
+    },
+    "984": {
+        "file_id": 79,
+        "content": "                    # following process is non-destructive for audio.\n                    # you need audio normalization before these process.\n                    final_output_location = getRandomFileName(\"mp4\")\n                    if render_ass:\n                        import ffmpeg\n                        # [Parsed_ass_0 @ 0x5568c7a266c0] fontselect: (Migu 1P, 700, 0) -> /usr/share/fonts/truetype/ttf-bitstream-vera/VeraBd.ttf, 0, BitstreamVeraSans-Bold\n                        # [Parsed_ass_0 @ 0x5568c7a266c0] Glyph 0x665A not found, selecting one more font for (Migu 1P, 700, 0)\n                        # [Parsed_ass_0 @ 0x5568c7a266c0] fontselect: (Migu 1P, 700, 0) -> /usr/share/fonts/truetype/wqy/wqy-zenhei.ttc, 0, WenQuanYiZenHei\n                        videoInput = ffmpeg.input(rendered_media_location).video\n                        audioInput = ffmpeg.input(rendered_media_location).audio\n                        videoInput = videoInput.filter(\n                            \"ass\", ass_file_path\n                        )",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:506-519"
+    },
+    "985": {
+        "file_id": 79,
+        "content": "This code snippet normalizes audio before applying further processes. It generates a random file name with \".mp4\" extension and performs video filtering using \"ass\" subtitles, handling font selection if necessary.",
+        "type": "comment"
+    },
+    "986": {
+        "file_id": 79,
+        "content": "                        ffmpeg.output(videoInput,audioInput,final_output_location,acodec='copy').run(overwrite_output=True)\n                    else:\n                        import shutil\n                        shutil.move(rendered_media_location, final_output_location)\n                    yield final_output_location  # another generator?\n                except:\n                    from lazero.utils.logger import traceError\n                    traceError(\"error while rendering medialang script\")\n                    try:\n                        print(\"MEDIALANG SCRIPT SAVED TO:\", medialangScript_savedPath)\n                    except:\n                        pass\n                    # if debug:\n                    breakpoint()\n                    # continue? let's see if you can post it?\n            except:\n                import traceback\n                traceback.print_exc()\n                # well it could be \"unanalyzable\" BGM, unable to retrieve 'standardBPM' or so on.\n                print('Unknown error during production. Skipping.')",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:520-541"
+    },
+    "987": {
+        "file_id": 79,
+        "content": "This code handles rendering videos from a medialang script. It uses FFmpeg to merge audio and video inputs into the final output location, or moves the rendered media file if it already exists. If an error occurs during rendering, it logs the traceback and skips the production. The code also supports debugging with breakpoints.",
+        "type": "comment"
+    },
+    "988": {
+        "file_id": 79,
+        "content": "                continue\n# local\ndef getProducerTemplate(template: str):\n    producer_mapping = {\n        \"pets_with_music\": petsWithMusicProducer,\n        \"pets_with_music_online\": petsWithMusicOnlineProducer,\n    }\n    return producer_mapping[template]",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/producerTemplates.py:542-551"
+    },
+    "989": {
+        "file_id": 79,
+        "content": "This function retrieves a producer template based on the given string argument and returns the corresponding producer function from the producer_mapping dictionary.",
+        "type": "comment"
+    },
+    "990": {
+        "file_id": 80,
+        "content": "/pyjom/modules/contentProducing/onlineProducer.py",
+        "type": "filepath"
+    },
+    "991": {
+        "file_id": 80,
+        "content": "The OnlineProducer function generates media by processing information with a generator and using templates. It creates a unique temporary directory per usage, acquiring a template function if the source is \"giphy\". The code also enables debug mode for breaking after merging ASS files.",
+        "type": "summary"
+    },
+    "992": {
+        "file_id": 80,
+        "content": "from pyjom.commons import decorator,os\nfrom pyjom.modules.contentProducing.producerTemplates import getProducerTemplate\nfrom lazero.filesystem.temp import tmpdir\n@decorator\ndef OnlineProducer(\n    processed_info_generator,\n    source=\"giphy\",\n    template=None,\n    template_configs=None,\n    fast: bool = True,\n    medialangTmpdirBase=\"/dev/shm/medialang\",\n    debug=False,\n):\n    # template_configs is a generator, it generate configs.\n    # print(\"PROCESSED_INFO_GENERATOR: \", processed_info_generator)\n    # breakpoint()\n    import uuid\n    medialangTmpdir = os.path.join(medialangTmpdirBase, str(uuid.uuid4()))\n    with tmpdir(path=medialangTmpdir) as TD:  # must use another level of abstraction\n        if source == \"giphy\":\n            template_function = getProducerTemplate(template)\n            # print(\"TEMPLATE FUNCTION ACQUIRED %s\" % template_function)\n            # breakpoint()\n            exported_media_locations = template_function(\n                processed_info_generator,\n                configs=template_configs,",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/onlineProducer.py:1-30"
+    },
+    "993": {
+        "file_id": 80,
+        "content": "The code defines the OnlineProducer function which is a content producer that uses a generator to process information and generate media. It takes in parameters such as processed_info_generator, source, template, template_configs, fast, medialangTmpdirBase, and debug. The function generates a unique temporary directory for each usage, creating a level of abstraction. If the source is set to \"giphy\", it acquires a template function from getProducerTemplate and uses it to process the generator's data.",
+        "type": "comment"
+    },
+    "994": {
+        "file_id": 80,
+        "content": "                fast=fast,\n                medialangTmpdir=TD,\n            )  # a generator!\n            # i guess the title/tags/cover are actually belongs to the poster, not producer.\n            for exported_media_location in exported_media_locations:\n                print(\"exported media location:\", exported_media_location)\n                if debug:\n                    breakpoint() # another breakpoint. after merging aegisub ass file.\n                yield exported_media_location",
+        "type": "code",
+        "location": "/pyjom/modules/contentProducing/onlineProducer.py:31-39"
+    },
+    "995": {
+        "file_id": 80,
+        "content": "This code is creating an online producer object with fast parameter and temporary directory for media files, then yields the exported media locations. The title/tags/cover might belong to the poster rather than the producer. Debug mode includes a breakpoint after merging Aegisub ASS file.",
+        "type": "comment"
+    },
+    "996": {
+        "file_id": 81,
+        "content": "/pyjom/modules/globalOptimizer/__init__.py",
+        "type": "filepath"
+    },
+    "997": {
+        "file_id": 81,
+        "content": "The code imports all functions and classes from the \"dummyOptimizer\" module in the \"pyjom.modules.globalOptimizer\" package.",
+        "type": "summary"
+    },
+    "998": {
+        "file_id": 81,
+        "content": "from pyjom.modules.globalOptimizer.dummyOptimizer import *",
+        "type": "code",
+        "location": "/pyjom/modules/globalOptimizer/__init__.py:1-1"
+    },
+    "999": {
+        "file_id": 81,
+        "content": "The code imports all functions and classes from the \"dummyOptimizer\" module in the \"pyjom.modules.globalOptimizer\" package.",
+        "type": "comment"
+    }
+}

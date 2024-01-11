@@ -1,0 +1,544 @@
+{
+    "5100": {
+        "file_id": 657,
+        "content": "    global proxyList, refreshProxyCounter\n    useProxy(False)\n    import random\n    if (\n        refreshProxyCounter % mod == 0\n    ):  # make sure it will be launched at the first request.\n        proxyList = getTestedProxyList()\n        refreshProxyCounter %= mod\n    refreshProxyCounter += 1\n    proxyName = random.choice([proxy[\"name\"] for proxy in proxyList] + [\"DIRECT\"])\n    setProxyWithSelector(proxyName)\n    # better use proxy instead. you need to config it here, and make sure the deepl adaptor uses the proxy.\n    import requests\n    import time\n    import filelock\n    lock = filelock.FileLock(\n        \"/root/Desktop/works/pyjom/tests/karaoke_effects/deepl_translator.lock\"\n    )\n    with clashProxyStateManager(\"Global\", \"Rule\"):\n        with lock:\n            time.sleep(sleep)\n            port = 8281\n            # env ROCKET_PORT=8281 ./executable_deepl\n            url = \"http://127.0.0.1:{}/translate\".format(port)\n            data = {\"text\": text, \"source_lang\": \"auto\", \"target_lang\": \"ZH\"}\n            r = requests.post(url, json=data, timeout=timeout)",
+        "type": "code",
+        "location": "/tests/karaoke_effects/fastapi_translator.py:84-111"
+    },
+    "5101": {
+        "file_id": 657,
+        "content": "Sets a random proxy from the list or skips proxy usage. Updates the proxy list and counter modulo. Uses a file lock for access control. Makes a POST request to a local DeepL translator service using the selected proxy, if any.",
+        "type": "comment"
+    },
+    "5102": {
+        "file_id": 657,
+        "content": "            response = r.json()\n            code = response[\"code\"]\n            if code == 200:\n                translatedText = response[\"data\"]\n                return translatedText\n            else:\n                print(\"DEEPL RESPONSE ERROR. PLEASE CHECK\")\n                print(response)\n                proxyList = getTestedProxyList()\n                refreshProxyCounter = 1\n                # breakpoint()\n                return None\n# use suggest mechanism\nworkingProxies = set()\ndef checkWorkingProxies():\n    global workingProxies\n    useProxy(False)\n    url = \"http://127.0.0.1:8677/checkProxy\"\n    import requests\n    for proxy in list(workingProxies):\n        # proxy could be None.\n        # print([proxy])\n        # breakpoint()\n        r = requests.get(url, params={\"proxy\": proxy})\n        response = r.json()\n        if not response[\"exists\"]:\n            print(\"REMOVING PROXY %s NOW\" % useProxy)\n            workingProxies.remove(proxy)\ndef changeProxy(useDirect=False, suggestSingleElemProbability=0.1):\n    useProxy(False)",
+        "type": "code",
+        "location": "/tests/karaoke_effects/fastapi_translator.py:112-148"
+    },
+    "5103": {
+        "file_id": 657,
+        "content": "The code snippet is responsible for making requests to a Deepl API and handling the response. If the response has a 200 status code, the translated text is returned; otherwise, it prints an error message and checks the working proxies. The workingProxies set stores valid proxies for making requests, and functions checkWorkingProxies() and changeProxy() manage proxy usage.",
+        "type": "comment"
+    },
+    "5104": {
+        "file_id": 657,
+        "content": "    global workingProxies\n    checkWorkingProxies()\n    import requests\n    if useDirect:\n        path = \"useDirect\"\n    else:\n        path = \"refreshProxy\"\n    print(\"PATH\", path)\n    if path == \"refreshProxy\":\n        import random\n        prob = random.random() < len(workingProxies) * suggestSingleElemProbability\n        if prob:\n            suggestedProxy = random.choice(list(workingProxies))\n            params = {\"suggest\": suggestedProxy}\n            print(\"SUGGESGING PROXY:\", suggestedProxy)\n        else:\n            params = {}\n            # params = {\"suggest\": None}\n        r = requests.get(\"http://127.0.0.1:8677/{}\".format(path), params=params)\n    else:\n        r = requests.get(\"http://127.0.0.1:8677/{}\".format(path))\n    print(\"RESPONSE:\", r.text)\n    import parse\n    proxyName = parse.parse(\"refresh proxy to {text}\", r.text)\n    if proxyName == None:\n        # using suggested proxy here.\n        print(\"USING SUGGESTED PROXY\")\n    else:\n        proxyName = proxyName[\"text\"]\n    print(\"PROXY REFRESHED\")",
+        "type": "code",
+        "location": "/tests/karaoke_effects/fastapi_translator.py:149-181"
+    },
+    "5105": {
+        "file_id": 657,
+        "content": "This code checks if a working proxy is available, then randomly selects one to use or suggests a new one. It makes a request to the server to update the proxy and handles the response. If no proxy name is found in the response, it uses the previously suggested proxy. Finally, it updates the proxy and prints a success message.",
+        "type": "comment"
+    },
+    "5106": {
+        "file_id": 657,
+        "content": "    return proxyName\ndef metaTranslator(text, backend=\"baidu\", max_tries: int = 3):\n    global workingProxies\n    backendList = [\"baidu\", \"deepl\"]\n    assert backend in backendList\n    # translator = None\n    import random\n    getUseDirect = lambda: False\n    backends = {\n        \"baidu\": (baiduTranslator, lambda: True),\n        # \"deepl\": (deeplTranslator, lambda: False), # use direct? no proxy?\n        \"deepl\": (\n            deeplTranslator,\n            lambda: True,\n        ),  # the proxy is used by deepl client, not here!\n    }\n    translator, getUseDirect = backends[backend]\n    proxyName = None\n    firstTime = True\n    for _ in range(max_tries):\n        try:\n            if not firstTime:  # after first 'failed' trial we will change the strategy.\n                key = random.choice(backendList)\n                translator, getUseDirect = backends[key]\n                proxyName = changeProxy(useDirect=getUseDirect())\n            else:\n                firstTime = False\n            result = translator(text)\n            if result:",
+        "type": "code",
+        "location": "/tests/karaoke_effects/fastapi_translator.py:182-213"
+    },
+    "5107": {
+        "file_id": 657,
+        "content": "This code is a function that translates text using different backends (Baidu and DeepL) with the option to use a proxy. It uses a max number of tries for translation attempts, randomly selects a backend if previous attempts failed, and handles direct connections or proxies based on backend settings.",
+        "type": "comment"
+    },
+    "5108": {
+        "file_id": 657,
+        "content": "                if proxyName:\n                    workingProxies.add(proxyName)\n                return result\n            else:\n                if proxyName in workingProxies:\n                    workingProxies.remove(proxyName)\n                print(\"SOME ERROR DURING FETCHING TRANSLATION\")\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"ERROR FETCHING TRANSLATION\")\n# def waitForServerUp(port, message, timeout=1):\n#     import requests\n#     while True:\n#         try:\n#             url = \"http://localhost:{}\".format(port)\n#             r = requests.get(url, timeout=timeout)\n#             text = r.text.strip('\"').strip(\"'\")\n#             print(\"SERVER AT PORT %d RESPONDS:\" % port, [text])\n#             assert text == message\n#             print(\"SERVER AT PORT %d IS UP\" % port)\n#             break\n#         except:\n#             import traceback\n#             traceback.print_exc()\n#             print(\"SERVER AT PORT %d MIGHT NOT BE UP\")\n#             print(\"EXPECTED MESSAGE:\", [message])",
+        "type": "code",
+        "location": "/tests/karaoke_effects/fastapi_translator.py:214-245"
+    },
+    "5109": {
+        "file_id": 657,
+        "content": "This code checks if a given proxy name is present in the working proxies list and performs actions accordingly. If there's an error during fetching translation, it prints an error message. The \"waitForServerUp\" function tests if a server at a specific port is up by sending requests and checking its response.",
+        "type": "comment"
+    },
+    "5110": {
+        "file_id": 657,
+        "content": "#             import time\n#             time.sleep(1)\n@app.get(\"/\")\ndef read_root():\n    # waitForServerUp(8677, \"clash update controller\")  # probe the clash updator\n    return \"unified translator hooked on some clash server\"\ntranslatedDict = {}\ntranslatedDictCacheLimit = 100\n@app.get(\"/translate\")\ndef read_item(backend: str, text: str):\n    global translatedDict\n    if len(list(translatedDict.keys())) > translatedDictCacheLimit:\n        mkeys = list(translatedDict.keys())\n        import random\n        random.shuffle(mkeys)\n        for key in mkeys[:translatedDictCacheLimit]:\n            del translatedDict[key]\n    code = 200\n    if not backend in [\"deepl\", \"baidu\"]:\n        code = 400\n        result = \"INVALID BACKEND\"\n    else:\n        if len(text) < 30 and text in translatedDict.keys():\n            result = translatedDict[text]\n        else:\n            result = metaTranslator(text, backend=backend)\n            if type(result) == str:\n                if len(result) < 30 and len(text) < 30:\n                    translatedDict.update({text: result})",
+        "type": "code",
+        "location": "/tests/karaoke_effects/fastapi_translator.py:246-283"
+    },
+    "5111": {
+        "file_id": 657,
+        "content": "The code defines two API endpoints: a root endpoint returning \"unified translator hooked on some clash server\" and a \"/translate\" endpoint accepting a \"backend\" parameter (\"deepl\" or \"baidu\") and text to be translated. It caches up to 100 translations in a global dictionary, deleting the least recently used if exceeding cache limit. If the backend is invalid, it returns status code 400 with message \"INVALID BACKEND\". If the input text length is less than 30 and already translated, it returns that translation from cache; otherwise, it uses `metaTranslator` function to translate the text, storing the result in cache if valid.",
+        "type": "comment"
+    },
+    "5112": {
+        "file_id": 657,
+        "content": "    return {\n        \"code\": (code if result not in [None, False, True, \"\"] else 400),\n        \"result\": (result if type(result) == str and result != \"\" else None),\n    }",
+        "type": "code",
+        "location": "/tests/karaoke_effects/fastapi_translator.py:284-287"
+    },
+    "5113": {
+        "file_id": 657,
+        "content": "This code snippet returns a dictionary containing the \"code\" and \"result\" keys. If the \"result\" is not None, False, True, or an empty string, it will be included in the result dictionary; otherwise, the code will be 400.",
+        "type": "comment"
+    },
+    "5114": {
+        "file_id": 658,
+        "content": "/tests/karaoke_effects/clash_auto_update.py",
+        "type": "filepath"
+    },
+    "5115": {
+        "file_id": 658,
+        "content": "This Flask application serves as a Clash proxy list server, updating every 30 minutes with two APIs. It includes three routes to manage proxies and runs on port 8677.",
+        "type": "summary"
+    },
+    "5116": {
+        "file_id": 658,
+        "content": "import yaml\n# you know this source is gone for good.\n# target = \"https://openit.ml/Clash.yaml\"\n# import yaml\n# import requests\nimport os\n# yes visit this site without any proxy.\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# CLASH_CONFIG_DOWNLOAD_URL=\"https://raw.kgithub.com/yu-steven/openit/main/Clash.yaml\" # it is down!\n# ALL_PROXIES_LOCATION=[\"proxies\", \"✋ 手动选择\", \"all\"]\n# PROXY_GROUP_EXCEPTIONS = [\"👉 例外网站\"]\n# PROXY_GROUP_SPECIALS =[\"☁️ 全球直连\", \"🌐 节点选择\"]\n# CLASH_CONFIG_DOWNLOAD_URL = \"https://subconverter.speedupvpn.com/sub?target=clash&url=https%3A%2F%2Fjsd.cdn.zzko.cn%2Fgh%2FPawdroid%2FFree-servers%40main%2Fsub&insert=false&emoji=true&list=false&tfo=false&scv=false&fdn=false&sort=false&new_name=true\" # change this to the direct link you sucker.\nimport urllib.parse\n# DIRECT_LINK = \"https://github.com/Pawdroid/Free-servers\"\nDIRECT_LINK = \"https://github.com/Pawdroid/Free-servers/raw/main/sub\"\n## looking for a clash file merger.\n## merge multiple clash files into one.\n## evil!\nCLASH_CONFIG",
+        "type": "code",
+        "location": "/tests/karaoke_effects/clash_auto_update.py:1-30"
+    },
+    "5117": {
+        "file_id": 658,
+        "content": "This code is importing necessary libraries and environment variables to download a Clash configuration file from the internet. It updates the URL to a new direct link, removes proxy restrictions, and aims to merge multiple Clash files into one configuration.",
+        "type": "comment"
+    },
+    "5118": {
+        "file_id": 658,
+        "content": "_DOWNLOAD_URL = f\"https://subconverter.speedupvpn.com/sub?target=clash&url={urllib.parse.quote_plus(DIRECT_LINK)}&insert=false&emoji=true&list=false&tfo=false&scv=false&fdn=false&sort=false&new_name=true\" # use quote_plus since the slash is not welcomed.\nALL_PROXIES_LOCATION = [\"proxies\", \"🔰 节点选择\", \"all\"]\nPROXY_GROUP_EXCEPTIONS = [\"🐟 漏网之鱼\"]\nPROXY_GROUP_SPECIALS = [\"🎯 全球直连\", \"🔰 节点选择\", \"♻️ 自动选择\"]\n# r = requests.get(target)\n# text = r.text\n# json_obj = yaml.safe_load(text)\n# port: 7890\n# socks5 port: 7891\n# controller: http://localhost:9090\n# PUT http://localhost:9090/providers/proxies/default\n# all_proxies_url = \"http://localhost:9090/proxies/\"\n# one_proxy_url = \"http://localhost:9090/proxies/{}\".format(proxy_name)\n# delay test url: http://localhost:9090/proxies/%F0%9F%87%A8%F0%9F%87%B3%20CN%2014%EF%BD%9Copenit.ml/delay?timeout=2000&url=https://www.baidu.com\nfrom loadSomeCustomClashYaml import goYamlToPyYaml, pyYamlToGoYaml\ndef jsonLocate(jsonObj, location=[]):\n    try:\n        if location != []:\n            return jsonLocate(jsonObj[location[0]], location[1:])",
+        "type": "code",
+        "location": "/tests/karaoke_effects/clash_auto_update.py:30-56"
+    },
+    "5119": {
+        "file_id": 658,
+        "content": "Code fetches clash configuration data from a URL, extracts necessary information like controller URL and proxy port numbers, and handles exceptions for non-matching group names. The code also defines URLs for accessing the proxy list or specific proxies, and includes a delay test URL to check connection speed. A function `jsonLocate` is used for locating values within a JSON object using a given location path.",
+        "type": "comment"
+    },
+    "5120": {
+        "file_id": 658,
+        "content": "        return jsonObj\n    except:\n        print(\"KEY %s DOES NOT EXIST!\", \".\".join(location))\n        return None\ndef find_proxy_names(\n    test_url=\"http://localhost:9911/proxies/\", location=ALL_PROXIES_LOCATION\n):\n    import requests\n    r = requests.get(test_url)\n    import json\n    data = json.loads(r.text)\n    proxy_names = jsonLocate(data, location=location)\n    if proxy_names == None:\n        print(\"SOMEHOW WE FAILED TO FETCH THE PROXY LIST\")\n        return []\n    else:\n        return proxy_names\n## FIND DELAY ##\ndef find_tested_proxy_names(\n    timeout=3000,\n    urltest=\"https://m.tujia.com\",\n    test_url=\"http://localhost:9911/proxies/\",\n    location=ALL_PROXIES_LOCATION,\n    forbidden_names=[\"DIRECT\", \"REJECT\", \"GLOBAL\"],\n):\n    import requests\n    import json\n    proxy_names = find_proxy_names(test_url, location)\n    if proxy_names == []:\n        return []\n    def get_delay(name):\n        url = \"{}{}/delay?timeout={}&url={}\".format(test_url, name, timeout, urltest)\n        r = requests.get(url)\n        response_json = r.text",
+        "type": "code",
+        "location": "/tests/karaoke_effects/clash_auto_update.py:57-98"
+    },
+    "5121": {
+        "file_id": 658,
+        "content": "The code defines a function to find tested proxy names, utilizes the requests library for API calls, and uses JSON to locate data. The find_proxy_names function retrieves a list of proxy names from a specific URL and location. If unsuccessful, it returns an empty list. The find_tested_proxy_names function finds tested proxy names by calling find_proxy_names and then checks delays for each proxy name using the 'get_delay' function.",
+        "type": "comment"
+    },
+    "5122": {
+        "file_id": 658,
+        "content": "        response_json = json.loads(response_json)\n        if \"delay\" in response_json.keys():\n            delay = response_json[\"delay\"]\n        else:\n            delay = None\n        return delay\n    direct_delay = get_delay(\"DIRECT\")\n    if direct_delay is None:\n        direct_delay = 300  # approximate delay 300ms\n    candidates = []\n    import progressbar  # 3 minutes.\n    for name in progressbar.progressbar(\n        [x for x in proxy_names if x not in forbidden_names]\n    ):\n        # if name in forbidden_names: continue\n        # delay = get_delay(name)\n        # if delay is not None:\n        candidates.append((name, 3))\n    print(\"PROXY CANDIDATES: %d\" % len(candidates))\n    for elem in candidates:\n        print(elem)\n    return candidates\ndef setClashProxy(proxy_name, control_port=9911):\n    import requests\n    import json\n    selector = \"GLOBAL\"\n    try:\n        r = requests.put(\n            \"http://localhost:{}/proxies/{}\".format(control_port, selector),\n            data=json.dumps({\"name\": proxy_name}, ensure_ascii=False).encode(),",
+        "type": "code",
+        "location": "/tests/karaoke_effects/clash_auto_update.py:99-133"
+    },
+    "5123": {
+        "file_id": 658,
+        "content": "Function to get proxy delay and return a list of candidates for setting the Clash proxy. First, it retrieves the delay for each proxy name from direct or API response, then creates a list of candidate proxies with a default delay of 300ms if not available. Finally, prints the number of candidate proxies and their names, returning the list.",
+        "type": "comment"
+    },
+    "5124": {
+        "file_id": 658,
+        "content": "        )\n        assert r.status_code == 204\n        # assert r.status_code =\n    except:\n        import traceback\n        traceback.print_exc()\n        breakpoint()\n# with open(\"ClashBaseOpenIt.yaml\", 'r') as f:\n#     cachedDNSConfig = yaml.load(f,yaml.FullLoader)\ndef refineClashYaml(clashYamlPath=\"Clash3.yaml\", advanced=True):\n    with open(clashYamlPath, \"r\") as f:\n        data = f.read()\n    from loadSomeCustomClashYaml import goYamlToPyYaml, pyYamlToGoYaml\n    import yaml\n    data = goYamlToPyYaml(data)\n    data = yaml.safe_load(data)\n    data[\"port\"] = 8381\n    base_url = \"127.0.0.1:9911\"\n    data[\"external-controller\"] = base_url\n    if \"socks-port\" in data.keys():\n        del data[\"socks-port\"]\n    # breakpoint()\n    if advanced:\n        # print(data['proxies'])\n        key = \"proxy-groups\"\n        updatedProxy = []\n        updateIndex = 0\n        for index, proxy in enumerate(data[key]):\n            # breakpoint()\n            if proxy[\"name\"] in PROXY_GROUP_EXCEPTIONS:\n                # print(proxy)\n                # breakpoint()",
+        "type": "code",
+        "location": "/tests/karaoke_effects/clash_auto_update.py:134-173"
+    },
+    "5125": {
+        "file_id": 658,
+        "content": "This code defines a function `refineClashYaml` that takes a path to a Clash YAML configuration file and an optional \"advanced\" parameter. It opens the file, converts its contents from Go-style YAML to Python-friendly YAML, loads it using the `yaml.safe_load()` function, then modifies some fields (e.g., sets a new port and specifies a base URL). If \"advanced\" is True, it iterates through the \"proxy-groups\" section, removing certain proxies if they match a list of exceptions.",
+        "type": "comment"
+    },
+    "5126": {
+        "file_id": 658,
+        "content": "                updateIndex = index\n                updatedProxy = proxy.copy()\n                updatedProxy[\"proxies\"] = [\n                    elem\n                    for elem in proxy[\"proxies\"]\n                    if elem not in PROXY_GROUP_SPECIALS\n                ]\n                updatedProxy[\"url\"] = \"https://media4.giphy.com\"\n                updatedProxy[\"interval\"] = 300\n                updatedProxy[\"tolerance\"] = 50\n                break\n        data[key][updateIndex] = updatedProxy\n        # for item in data['proxies']:\n        #     print(item)\n        # del data[\"rules\"]\n        # data[\"mode\"] = \"global\"\n    # data[\"dns\"] = cachedDNSConfig\n    data[\"dns\"] = {\n        \"enable\": True,\n        \"enhanced-mode\": \"redir-host\",\n        \"fake-ip-filter\": [\"*.lan\", \"localhost.ptlogin2.qq.com\"],\n        \"fake-ip-range\": \"198.18.0.1/16\",\n        \"fallback\": [\n            \"8.8.8.8\",\n            \"1.1.1.1\",\n            \"tls://dns.rubyfish.cn:853\",\n            \"tls://1.0.0.1:853\",\n            \"tls://dns.google:853\",",
+        "type": "code",
+        "location": "/tests/karaoke_effects/clash_auto_update.py:174-202"
+    },
+    "5127": {
+        "file_id": 658,
+        "content": "This code updates the proxy settings and DNS configuration for a program. It removes special proxies, sets new URL, interval, and tolerance values, and enables DNS with specific configurations like enhanced mode and fake IP range.",
+        "type": "comment"
+    },
+    "5128": {
+        "file_id": 658,
+        "content": "            \"https://dns.rubyfish.cn/dns-query\",\n            \"https://cloudflare-dns.com/dns-query\",\n            \"https://dns.google/dns-query\",\n        ],\n        \"fallback-filter\": {\"geoip\": True, \"ipcidr\": [\"240.0.0.0/4\"]},\n        \"ipv6\": False,\n        \"listen\": \"0.0.0.0:61\",  # key?\n        \"nameserver\": [\n            \"223.5.5.5\",\n            \"180.76.76.76\",\n            \"119.29.29.29\",\n            \"117.50.10.10\",\n            \"114.114.114.114\",\n        ],\n    }\n    # data = pyYamlToGoYaml(data)\n    data_dump = yaml.safe_dump(data, allow_unicode=True)\n    data_dump = pyYamlToGoYaml(data_dump)\n    with open(clashYamlPath, \"w\") as f:\n        f.write(data_dump)\n    \"\"\"\n    import requests\n    import json\n    base_url =  \"http://127.0.0.1:9022\"\n    url = \"/proxies/\"\n    r = requests.put(base_url+url+\"GLOBAL\",data=json.dumps({\"name\":name},ensure_ascii=False).encode())\n    assert r.status_code == 204\n    \"\"\"\ndef getClashYaml(clashYamlPath=\"Clash3.yaml\", url: str = CLASH_CONFIG_DOWNLOAD_URL):\n    import requests\n    #",
+        "type": "code",
+        "location": "/tests/karaoke_effects/clash_auto_update.py:203-240"
+    },
+    "5129": {
+        "file_id": 658,
+        "content": "This code sets up a DNS server for Clash, a proxy tool. It provides a list of DNS servers and fallback filters to be used by the program. The data is converted to YAML format and written into a file named \"Clash3.yaml\". Then, it sends an HTTP PUT request to the Clash API endpoint to update the configuration.",
+        "type": "comment"
+    },
+    "5130": {
+        "file_id": 658,
+        "content": " url = \"https://raw.githubusercontents.com/yu-steven/openit/main/Clash.yaml\" # some subtle difference!\n    # url = 'https://cdn.staticaly.com/gh/yu-steven/openit/main/Clash.yaml'\n    # url = \"https://raw.kgithub.com/yu-steven/openit/main/Clash.yaml\"\n    r = requests.get(url)\n    with open(clashYamlPath, \"w+\") as f:\n        f.write(r.text)\n    print(\"FETCHING CLASH YAML DONE.\")\n    print(\"SAVED AT %s\" % clashYamlPath)\nfrom lazero.program import asyncThread\n@asyncThread\ndef updateClashYaml(clashYamlPath=\"Clash3.yaml\", control_port=9911, advanced=True):\n    getClashYaml(clashYamlPath=clashYamlPath)\n    # if refine:\n    refineClashYaml(clashYamlPath=clashYamlPath, advanced=advanced)\n    import requests\n    import json\n    full_config_path = os.path.abspath(clashYamlPath)\n    try:\n        r = requests.put(\n            \"http://localhost:{}/configs\".format(control_port),\n            data=json.dumps({\"path\": full_config_path}, ensure_ascii=False).encode(),\n        )\n        # print('REPLY CONTENT:',r.content)\n        # breakpoint()",
+        "type": "code",
+        "location": "/tests/karaoke_effects/clash_auto_update.py:240-269"
+    },
+    "5131": {
+        "file_id": 658,
+        "content": "This code fetches the latest Clash YAML configuration file from a specified URL and saves it to a local file. It then updates the Clash configuration by sending the updated file path to the Clash control port. The function can be called asynchronously with optional arguments for the Clash YAML file name, control port, and advanced settings refinement.",
+        "type": "comment"
+    },
+    "5132": {
+        "file_id": 658,
+        "content": "        assert r.status_code == 204\n        # might be the problem.\n        # TODO: check why the fuck clash server cannot decode the config in utf-8 'unexpected end of data'\n        print(\"SUCCESSFULLY UPDATED THIS PROXY LIST\")\n        return True\n    except:\n        import traceback\n        traceback.print_exc()\n        # breakpoint()\n        print(\"SOME ERROR WHILE FETCHING CLASH OPENIT SCRIPT\")\n        return False\n# this can act as a server as well?\n# simplicity in mind.\nimport schedule\nschedule.every(30).minutes.do(updateClashYaml)\nupdateClashYaml()\nfrom flask import Flask, request\nport = 8677\napp = Flask(__name__)\ndef checkProxyExists(proxy):\n    return proxy in find_proxy_names()\n# from typing import Union\n@app.route(\"/\", methods=[\"GET\"])\ndef serverHello():\n    try:\n        schedule.run_pending()\n    except:\n        pass\n    return \"clash update controller\"\n@app.route(\"/checkProxy\", methods=[\"GET\"])\ndef checkProxyAPI():\n    proxy = request.args[\"proxy\"]\n    print(\"CHECKING PROXY:\", proxy)\n    exists = checkProxyExists(proxy)",
+        "type": "code",
+        "location": "/tests/karaoke_effects/clash_auto_update.py:270-318"
+    },
+    "5133": {
+        "file_id": 658,
+        "content": "The code is a Flask application that acts as a server, updates the Clash proxy list every 30 minutes, and provides two APIs: one to check if a proxy exists in the list and another for fetching the Clash OpenIT script. An error message is displayed when there's an issue while fetching the script, and it prints the exception stack trace using traceback. The application runs on port 8677.",
+        "type": "comment"
+    },
+    "5134": {
+        "file_id": 658,
+        "content": "    return {\"exists\": exists}\n@app.route(\"/useDirect\", methods=[\"GET\"])\ndef useDirectAPI():\n    proxy_name = \"DIRECT\"\n    schedule.run_pending()\n    setClashProxy(proxy_name)\n    return \"refresh proxy to %s\" % proxy_name\n@app.route(\"/refreshProxy\", methods=[\"GET\"])\ndef refreshProxyAPI():\n    suggest = None\n    if \"suggest\" in request.args.keys():\n        suggest = request.args[\"suggest\"]\n        print(\"SUGGESTED PROXY:\", suggest)\n    schedule.run_pending()\n    if suggest:\n        if checkProxyExists(suggest):\n            setClashProxy(suggest)\n            return \"refresh suggested proxy to %s\" % suggest\n    proxy_names = find_proxy_names()\n    if proxy_names == []:\n        return \"failed to find a proxy\"\n    import random\n    proxy_name = random.choice(proxy_names)\n    setClashProxy(proxy_name)\n    return \"refresh proxy to %s\" % proxy_name\nif __name__ == \"__main__\":\n    app.run(port=port, threaded=True, use_reloader=False)",
+        "type": "code",
+        "location": "/tests/karaoke_effects/clash_auto_update.py:319-353"
+    },
+    "5135": {
+        "file_id": 658,
+        "content": "The code defines three routes (\"/useDirect\", \"/refreshProxy\") and a function to set the Clash proxy. The \"/useDirect\" route sets the proxy directly to DIRECT. The \"/refreshProxy\" route, if a suggested proxy is provided in the request, sets it as the current proxy. If not, it randomly selects one from available proxies. The code also runs pending tasks and checks if a proxy exists before setting it.",
+        "type": "comment"
+    },
+    "5136": {
+        "file_id": 659,
+        "content": "/tests/karaoke_effects/loadLingua_jpype.py",
+        "type": "filepath"
+    },
+    "5137": {
+        "file_id": 659,
+        "content": "This code uses Jpype and Lingua to detect languages from Python, interacting with Java classes via a JVM. It prints language detection results and performs math operations. The code may not shut down the JVM properly, but context is missing.",
+        "type": "summary"
+    },
+    "5138": {
+        "file_id": 659,
+        "content": "from jpype import *\nimport jpype.imports  # this is needed! shit.\naddClassPath(\"/root/Desktop/works/pyjom/tests/karaoke_effects/classpath/lingua.jar\")\nstartJVM(getDefaultJVMPath())\njava.lang.System.out.println(\"Calling Java Print from Python using Jpype!\")\nfrom com.github.pemistahl.lingua.api import *\n# detector = LanguageDetectorBuilder.fromAllLanguages().withLowAccuracyMode().build()\nlinguaDetector = (\n    LanguageDetectorBuilder.fromAllLanguages().build()\n)  # 3.5GB just for detecting language! it is somehow crazy.\ndef getLinguaDetectedLanguageLabel(sample):\n    result = linguaDetector.detectLanguageOf(sample)\n    # print(result, type(result)) # <java class 'com.github.pemistahl.lingua.api.Language'>\n    # but we can convert it into string.\n    strResult = str(result)\n    return strResult\nif __name__ == \"__main__\":\n    sample = \"hello world\"\n    # sample = 'lina你吃早饭了没有'\n    result = linguaDetector.detectLanguageOf(sample)\n    print(\n        result, type(result)\n    )  # <java class 'com.github.pemistahl.lingua.api.Language'>",
+        "type": "code",
+        "location": "/tests/karaoke_effects/loadLingua_jpype.py:1-34"
+    },
+    "5139": {
+        "file_id": 659,
+        "content": "This code uses the Jpype library to interact with Java classes from Python. It sets up a Java Virtual Machine (JVM), imports necessary packages, and uses a large language detection library called Lingua to identify the language of text samples. The function getLinguaDetectedLanguageLabel takes an input sample, detects its language using Lingua's detector, and returns the detected language as a string.",
+        "type": "comment"
+    },
+    "5140": {
+        "file_id": 659,
+        "content": "    # but we can convert it into string.\n    strResult = str(result)\n    print(strResult, type(strResult))\n    import math\n    print(\"CALLING MATH: %d\" % math.sqrt(4))\n    # shutdownJVM()\n    # what if we do not shut this down?",
+        "type": "code",
+        "location": "/tests/karaoke_effects/loadLingua_jpype.py:35-42"
+    },
+    "5141": {
+        "file_id": 659,
+        "content": "Code converts a result into a string and prints it along with its type. Then, the math module is imported and used to calculate the square root of 4, also printed. The code comments mention potentially not shutting down JVM but does not explain further or provide context.",
+        "type": "comment"
+    },
+    "5142": {
+        "file_id": 660,
+        "content": "/tests/karaoke_effects/translator.yml",
+        "type": "filepath"
+    },
+    "5143": {
+        "file_id": 660,
+        "content": "This code sets up a session with online translators and uses Uvicorn for FastAPI apps on different ports, while managing Clash operations through a bash script. It also updates Clash automatically via a Python script.",
+        "type": "summary"
+    },
+    "5144": {
+        "file_id": 660,
+        "content": "# all online translators, with retry automatically.\nsession_name: translator\nwindows:\n  - window_name: dev window\n    layout: tiled\n    panes:\n    # for main translator gateway\n      - shell_command:\n        - cd /root/Desktop/works/pyjom/tests/karaoke_effects\n        - python3 -m uvicorn --port 8974 fastapi_translator:app\n    # for lingua api\n      - shell_command:\n        - cd /root/Desktop/works/pyjom/tests/karaoke_effects\n        - python3 -m uvicorn --port 8978 loadLingua_jpype_fastapi:app\n    # the deepl hacked api\n      - shell_command:\n        - cd /root/Desktop/works/pyjom/tests/deepl_free_translator/deepl-api-rs\n        # - env ROCKET_PORT=8281 http_proxy=\"\" https_proxy=\"\" ./executable_deepl\n        # what is the fucking use of that clash shit?\n        - env ROCKET_PORT=8281 http_proxy=http://localhost:8381 https_proxy=http://localhost:8381 ./executable_deepl\n    # for clash\n      - shell_command:\n        - cd /root/Desktop/works/pyjom/tests/karaoke_effects\n        - bash launch_clash.sh # clash command",
+        "type": "code",
+        "location": "/tests/karaoke_effects/translator.yml:1-24"
+    },
+    "5145": {
+        "file_id": 660,
+        "content": "This code defines a session with multiple panes for online translators, lingua API, deepl hacked API, and clash. It uses Uvicorn to run FastAPI applications on different ports, with environment variables set for the deepl hacked API to connect through Clash using the Clash proxy. The code also mentions a bash script (launch_clash.sh) for managing Clash operations.",
+        "type": "comment"
+    },
+    "5146": {
+        "file_id": 660,
+        "content": "    # clash auto updates\n      - shell_command:\n        - cd /root/Desktop/works/pyjom/tests/karaoke_effects\n        - sleep 3 # wait for clash to be ready?\n        - python3 clash_auto_update.py",
+        "type": "code",
+        "location": "/tests/karaoke_effects/translator.yml:25-29"
+    },
+    "5147": {
+        "file_id": 660,
+        "content": "This code triggers an automatic update for the Clash software by executing a Python script. It changes directory to the project's location, waits 3 seconds for the program to be ready, and then runs the update script.",
+        "type": "comment"
+    },
+    "5148": {
+        "file_id": 661,
+        "content": "/tests/karaoke_effects/test_split_different_lang.py",
+        "type": "filepath"
+    },
+    "5149": {
+        "file_id": 661,
+        "content": "The code imports libraries, defines a list of multilingual test cases, and uses `getTextListTranslated` to translate them. It prints the translated results for demonstration purposes.",
+        "type": "summary"
+    },
+    "5150": {
+        "file_id": 661,
+        "content": "# example of TDD.\nimport os\n# os.environ['http_proxy'] = \"\"\n# os.environ['https_proxy'] = \"\"\n# os.environ['all_proxy'] = \"\"\ntests = [\n    [\"リンの麺は終わった\", \"リンの麺は終わった\"],\n    # only japanese\n    [\n        \"リンの麺は終わった Lina的面吃完了没有\",\n        \"リンの麺は終わった Lina的面吃完了没有\",\n    ],  # japanese with chinese containing english\n    [\n        \"Lina I miss you Lina我想你了\",\n        \"Lina I miss you Lina我想你了\",\n    ],  # english with chinese containing english\n    [\"向前冲 冲 冲\", \"向前冲 冲 冲\"],  # only chinese\n    [\"go go go\", \"go go go\"],  # chinese containing english (overall)\n]\n# build a classifier for this? wtf?\n# whatlang?\nfrom lyrictoolbox import getTextListTranslated\nif __name__ == \"__main__\":\n    # result = translate('hello world')\n    # print(\"RESULT:\", result)\n    # result = translate('hello world', backend='baidu')\n    # print(\"RESULT:\", result)\n    # exit()\n    for test in tests:\n        # we need to demostrate this workflow.\n        newLyricArray = getTextListTranslated(test)\n        print(\"_________RESULT_________\")\n        for elem in newLyricArray:",
+        "type": "code",
+        "location": "/tests/karaoke_effects/test_split_different_lang.py:1-38"
+    },
+    "5151": {
+        "file_id": 661,
+        "content": "This code imports necessary libraries, defines a list of test cases containing text in different languages, and uses the `getTextListTranslated` function from the `lyrictoolbox` module to translate the texts. The translated results are then printed for demonstration purposes.",
+        "type": "comment"
+    },
+    "5152": {
+        "file_id": 661,
+        "content": "            print(elem)\n        print(\"_________RESULT_________\")",
+        "type": "code",
+        "location": "/tests/karaoke_effects/test_split_different_lang.py:39-40"
+    },
+    "5153": {
+        "file_id": 661,
+        "content": "Testing function by printing each element and a separator line to indicate the end of the input.",
+        "type": "comment"
+    },
+    "5154": {
+        "file_id": 662,
+        "content": "/tests/karaoke_effects/test_pylrc.py",
+        "type": "filepath"
+    },
+    "5155": {
+        "file_id": 662,
+        "content": "The code retrieves music file duration, parses LRC file for lyrics and their start times, sorts and filters them, calculates end times based on durations, and prints the final output.",
+        "type": "summary"
+    },
+    "5156": {
+        "file_id": 662,
+        "content": "import pylrc\nfrom MediaInfo import MediaInfo\ndef getMusicDuration(musicPath):\n    info = MediaInfo(filename=musicPath)\n    info = info.getInfo()\n    # print(info)\n    # breakpoint()\n    length = info[\"duration\"]\n    length = float(length)\n    return length\nmusicPath = \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3\"\nmusicDuration = getMusicDuration(musicPath)\nlrc_file = open(\"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.lrc\")\nlrc_string = \"\".join(lrc_file.readlines())\nlrc_file.close()\nsubs = pylrc.parse(lrc_string)\nlyricDurationThresholds = (0.5, 4)\ntextArray = []\nfor sub in subs:\n    startTime = sub.time\n    text = sub.text\n    textArray.append((startTime, text))\ntextArray.sort(key=lambda x: x[0])\nlastStartTime = textArray[0][0]\nnewTextArray = [{\"start\": textArray[0][0], \"text\": textArray[0][1]}]\nfor startTime, text in textArray[1:]:\n    if startTime - lastStartTime < lyricDurationThresholds[0]:\n        continue\n    else:\n        lastStartTime = startTime\n        newTextArray.append({\"text\": text, \"start\": startTime})",
+        "type": "code",
+        "location": "/tests/karaoke_effects/test_pylrc.py:1-43"
+    },
+    "5157": {
+        "file_id": 662,
+        "content": "This code retrieves the duration of a music file, reads its associated LRC file, parses it to extract lyrics and their start times, sorts them, filters out consecutive lyric lines within threshold time intervals, and stores the result in a new list of dictionaries containing \"text\" and \"start\" keys.",
+        "type": "comment"
+    },
+    "5158": {
+        "file_id": 662,
+        "content": "# now calculate the end time, please?\n# you may want to translate this if you have to.\n# when it does not contains anything in chinese.\n# using deepl?\n# put that aside please? focus on this shit...\nimport numpy as np\nlyricDurations = [np.mean(lyricDurationThresholds)]\nfor index, elem in enumerate(newTextArray):\n    text = elem[\"text\"]\n    start = elem[\"start\"]\n    nextIndex = index + 1\n    if nextIndex < len(newTextArray):\n        nextElem = newTextArray[nextIndex]\n        nextStart = nextElem[\"start\"]\n        end = nextStart - start\n        if end > lyricDurationThresholds[0] and end < lyricDurationThresholds[1]:\n            lyricDurations.append(end)\n        end = min(end, lyricDurationThresholds[1], musicDuration - start) + start\n    else:\n        end = np.mean(lyricDurations) + start\n        end = min(musicDuration, end)\n    newTextArray[index].update({\"end\": end})\nfor elem in newTextArray:\n    print(elem)\n# great. now let's do the freaking work?",
+        "type": "code",
+        "location": "/tests/karaoke_effects/test_pylrc.py:45-73"
+    },
+    "5159": {
+        "file_id": 662,
+        "content": "This code calculates the end time of each lyric element in a newTextArray based on its start time and the given lyricDurationThresholds. It appends the calculated end times to the lyricDurations list, updates the end time for each element in newTextArray, and then prints all elements with their start and end times.",
+        "type": "comment"
+    },
+    "5160": {
+        "file_id": 663,
+        "content": "/tests/karaoke_effects/test_detect_different_language.py",
+        "type": "filepath"
+    },
+    "5161": {
+        "file_id": 663,
+        "content": "The code uses three libraries to detect language in sample text, but faces challenges due to unstable vector tools and unreliable language detection. Testing shows it fails to correctly identify Chinese in the example \"你好\".",
+        "type": "summary"
+    },
+    "5162": {
+        "file_id": 663,
+        "content": "sample = \"Last Friday night. 影響包含\"\nimport pycld2 as cld2\ntext_content = sample\n_, _, _, detected_language = cld2.detect(text_content, returnVectors=True)\nprint(detected_language)  # unknown! fucking shit\n# ((0, 323, 'FRENCH', 'fr'), (323, 64, 'ENGLISH', 'en'))\n# this vector tool is very unstable. so as the freaking cld3 'get_frequent_language' shit\n# ((0, 30, 'Unknown', 'un'),)\nimport cld3\nresult = cld3.get_frequent_languages(sample, num_langs=3)\nprint(result)\n# what the fuck?\n# [LanguagePrediction(language='uz', probability=0.44310665130615234, is_reliable=False, proportion=0.5757575631141663), LanguagePrediction(language='zh', probability=0.9812981486320496, is_reliable=True, proportion=0.42424243688583374)]\nprint(cld3.get_language(\"last friday night do it all again this friday night\"))\n# not very freaking reliable.\nimport whatlang\nresult = whatlang.detect_language(\"last friday night\")\nprint(result)\nprint(whatlang.detect_language(\"你好\"))\n# from loadLingua_jpype import getLinguaDetectedLanguageLabel\n# print(getLinguaDetectedLanguageLabel('你好'))",
+        "type": "code",
+        "location": "/tests/karaoke_effects/test_detect_different_language.py:1-36"
+    },
+    "5163": {
+        "file_id": 663,
+        "content": "The code attempts to detect the language of a given sample text using different libraries: `pycld2`, `cld3`, and `whatlang`. However, it encounters issues with instability in vector tools, unpredictable results, and lack of reliability in detected languages.",
+        "type": "comment"
+    },
+    "5164": {
+        "file_id": 663,
+        "content": "from loadLingua_pyjnius import pyjniusLinguaDetectLanguageLabel\nprint(pyjniusLinguaDetectLanguageLabel(\"你好\"))",
+        "type": "code",
+        "location": "/tests/karaoke_effects/test_detect_different_language.py:37-39"
+    },
+    "5165": {
+        "file_id": 663,
+        "content": "Testing if the code detects Chinese language correctly. It prints the detected language for the input \"你好\".",
+        "type": "comment"
+    },
+    "5166": {
+        "file_id": 664,
+        "content": "/tests/karaoke_effects/test_baidu_language_recognize.py",
+        "type": "filepath"
+    },
+    "5167": {
+        "file_id": 664,
+        "content": "This code imports the PaddleHub library and initializes two modules, \"baidu_translate\" for language translation and \"baidu_language_recognition\" for language recognition. It then defines a text to be recognized as \"私は日本人です\", sets the expected language code as the output of the language recognition model's recognize function, and prints the resulting language code.",
+        "type": "summary"
+    },
+    "5168": {
+        "file_id": 664,
+        "content": "import paddlehub as hub\nlanguage_translation_model = hub.Module(name=\"baidu_translate\")\nlanguage_recognition_model = hub.Module(name=\"baidu_language_recognition\")\n# text = \"hello world\"\n# \"zh\", 'en', 'jp'\n# text = \"請輸入要轉換簡繁體的中文漢字\" # zh\ntext = \"私は日本人です\"\nlanguage_code = language_recognition_model.recognize(text)\nprint(\"language_code: %s\" % language_code)",
+        "type": "code",
+        "location": "/tests/karaoke_effects/test_baidu_language_recognize.py:1-11"
+    },
+    "5169": {
+        "file_id": 664,
+        "content": "This code imports the PaddleHub library and initializes two modules, \"baidu_translate\" for language translation and \"baidu_language_recognition\" for language recognition. It then defines a text to be recognized as \"私は日本人です\", sets the expected language code as the output of the language recognition model's recognize function, and prints the resulting language code.",
+        "type": "comment"
+    },
+    "5170": {
+        "file_id": 665,
+        "content": "/tests/karaoke_effects/starJumping.py",
+        "type": "filepath"
+    },
+    "5171": {
+        "file_id": 665,
+        "content": "The code creates a karaoke-style animation by calculating syllable positions, applying colors and effects, and using alpha blending and timing utilities for playback.",
+        "type": "summary"
+    },
+    "5172": {
+        "file_id": 665,
+        "content": "\"\"\"\nInline effects is a method to define exclusive effects for syllables.\nFields \"Actor\" and \"Effect\" can also be used to define exclusive effects, but you will define them for the whole line.\nIn this example, romajis are looking for inline effects\n\"m1\" and \"m2\" to choose a main effect to apply to syls' text.\nKanjis are looking for lines' field \"Effect\", to choose what kind of effect we want to apply.\nIn addition, for romaji there's a star jumping over syls by frame-per-frame positioning.\nIn this example we can also see in action another utility provided by PyonFX: ColorUtility.\nIt is used to extract color changes from some lines and interpolate them for each generated line without effort.\nColors will add a really nice touch to your KFXs, so it is important to have a comfy way to set up them and use them in your effects.\nIn the translation lines we will create some clipped text colorated as an example of the application.\nYou can also make some simpler usage, like just applying color changes to the whole line, which is what karaokers normally do.",
+        "type": "code",
+        "location": "/tests/karaoke_effects/starJumping.py:1-14"
+    },
+    "5173": {
+        "file_id": 665,
+        "content": "This code defines a method for inline effects, allowing exclusive effects to be applied to syllables. It uses the \"Actor\" and \"Effect\" fields to define effects for whole lines. Romajis look for \"m1\" and \"m2\" to choose main effects, while kanjis search for line's field \"Effect\". Star jumping is applied using frame-per-frame positioning. The code also demonstrates the use of ColorUtility for extracting color changes and interpolating them for each generated line.",
+        "type": "comment"
+    },
+    "5174": {
+        "file_id": 665,
+        "content": "It could look like much code for such a simple effect, but it's needed and an easy method with much potential for extensions.\n\"\"\"\n### THIS VARIANT IS GREAT. ###\n# from tkinter import CENTER\nfrom pyonfx import *\nimport random\nimport math\nio = Ass(\n    \"/root/Desktop/works/pyjom/tests/karaoke_effects/in2.ass\",\n    path_output=\"starJumping.ass\",\n)\nmeta, styles, lines = io.get_data()\n# Creating the star and extracting all the color changes from the input file\nstar = Shape.star(5, 4, 10)\nCU = ColorUtility(lines)\ndef romaji(line, l):\n    # Setting up a delay, we will use it as duration time of the leadin and leadout effects\n    delay = 100\n    # Setting up offset variables, we will use them for the \\move in leadin and leadout effects\n    off_x = 35\n    off_y = 15\n    # Leadin Effect\n    mDelay = 0\n    # lastStartTime = line.start_time\n    for syl in Utils.all_non_empty(line.syls):\n        l.layer = 0\n        # l.start_time = syl.end_time\n        l.start_time = line.start_time\n        # l.start_time = (\n        #     line.start_time + 25 * syl.i - delay - 80",
+        "type": "code",
+        "location": "/tests/karaoke_effects/starJumping.py:16-53"
+    },
+    "5175": {
+        "file_id": 665,
+        "content": "Creating a star shape and extracting color changes from an input file, setting up delay and offset variables for leadin and leadout effects.",
+        "type": "comment"
+    },
+    "5176": {
+        "file_id": 665,
+        "content": "        # )  # Remove 80 to start_time to let leadin finish a little bit earlier than the main effect of the first syllable\n        # l.end_time = lastStartTime # wtf?\n        # lastStartTime = syl.start_time\n        l.end_time = syl.start_time\n        # l.end_time = line.start_time + syl.start_time # wtf?\n        l.dur = l.end_time - l.start_time\n        if l.dur <= 0:\n            continue\n        l.text = (\n            \"{\\\\an5\\\\move(%.3f,%.3f,%.3f,%.3f,0,%d)\\\\blur2\\\\t(0,%d,\\\\blur0)\\\\fad(%d,0)}%s\"\n            % (\n                syl.center + math.cos(syl.i / 2) * off_x,\n                syl.middle + math.sin(syl.i / 4) * off_y,\n                syl.center,\n                syl.middle,\n                delay,\n                delay,\n                delay,\n                syl.text,\n            )\n        )\n        io.write_line(l)\n    # Main Effect\n    for syl in Utils.all_non_empty(line.syls):\n        l.layer = 1\n        l.start_time = syl.start_time\n        # l.start_time = line.start_time + syl.start_time\n        l.end_time = syl.end_time + 100",
+        "type": "code",
+        "location": "/tests/karaoke_effects/starJumping.py:54-85"
+    },
+    "5177": {
+        "file_id": 665,
+        "content": "This code defines a karaoke effect for star jumping animation. It calculates the layer position, duration, and text formatting for each syllable in a line of lyrics. The main effect starts after the lead-in, with an optional delay, and continues for an additional 100 milliseconds after the end of each syllable.",
+        "type": "comment"
+    },
+    "5178": {
+        "file_id": 665,
+        "content": "        l.dur = l.end_time - l.start_time\n        c1 = \"&H81F4FF&\"\n        c3 = \"&H199AAA&\"\n        # Change color if inline_fx is m1\n        if syl.inline_fx == \"m1\":\n            c1 = \"&H8282FF&\"\n            c3 = \"&H191AAA&\"\n        on_inline_effect_2 = \"\"\n        # Apply rotation if inline_fx is m2\n        if syl.inline_fx == \"m2\":\n            on_inline_effect_2 = \"\\\\t(0,%d,\\\\frz%.3f)\\\\t(%d,%d,\\\\frz0)\" % (\n                l.dur / 4,\n                random.uniform(-40, 40),\n                l.dur / 4,\n                l.dur,\n            )\n        l.text = (\n            \"{\\\\an5\\\\pos(%.3f,%.3f)%s\\\\t(0,80,\\\\fscx105\\\\fscy105\\\\1c%s\\\\3c%s)\\\\t(80,%d,\\\\fscx100\\\\fscy100\\\\1c%s\\\\3c%s)}%s\"\n            % (\n                syl.center,\n                syl.middle,\n                on_inline_effect_2,\n                c1,\n                c3,\n                l.dur - 80,\n                line.styleref.color1,\n                line.styleref.color3,\n                syl.text,\n            )\n        )\n        io.write_line(l)\n        # Animating star shape that jumps over the syllables",
+        "type": "code",
+        "location": "/tests/karaoke_effects/starJumping.py:86-122"
+    },
+    "5179": {
+        "file_id": 665,
+        "content": "This code applies colors and rotation to a star shape that jumps over syllables based on the inline_fx value. If inline_fx is \"m1\", it changes the colors; if inline_fx is \"m2,\" it applies rotation. The resulting star shape is then written to a file.",
+        "type": "comment"
+    },
+    "5180": {
+        "file_id": 665,
+        "content": "        # Jump-in to the first syl\n        jump_height = 18\n        if syl.i == 0:\n            FU = FrameUtility(line.start_time - line.leadin / 2, line.start_time)\n            for s, e, i, n in FU:\n                l.start_time = s\n                l.end_time = e\n                frame_pct = i / n\n                x = syl.center - syl.width * (1 - frame_pct)\n                y = syl.top - math.sin(frame_pct * math.pi) * jump_height\n                alpha = 255\n                alpha += FU.add(0, syl.duration, -255)\n                alpha = Convert.alpha_dec_to_ass(int(alpha))\n                l.text = (\n                    \"{\\\\alpha%s\\\\pos(%.3f,%.3f)\\\\bord1\\\\blur1\\\\1c%s\\\\3c%s\\\\p1}%s\"\n                    % (alpha, x, y, c1, c3, star)\n                )\n                io.write_line(l)\n        # Jump to the next syl or to the end of line\n        jump_width = (\n            line.syls[syl.i + 1].center - syl.center\n            if syl.i != len(line.syls) - 1\n            else syl.width\n        )\n        # FU = FrameUtility(\n        #     line.start_time + syl.start_time, line.start_time + syl.end_time",
+        "type": "code",
+        "location": "/tests/karaoke_effects/starJumping.py:123-152"
+    },
+    "5181": {
+        "file_id": 665,
+        "content": "Code snippet performs the following:\n1. Jumps into first syllable, with jump height determined by variable `jump_height`.\n2. Uses `FrameUtility` for timing calculations based on line's start time minus lead-in time divided by 2 to start frame.\n3. Loops through each segment of `FrameUtility`, adjusting start and end times, and positioning the text accordingly.\n4. Calculates alpha value, which is then converted using `Convert.alpha_dec_to_ass` for blending effect.\n5. Writes each line to `io` (presumably an output stream).",
+        "type": "comment"
+    },
+    "5182": {
+        "file_id": 665,
+        "content": "        # )\n        FU = FrameUtility(syl.start_time, syl.end_time)\n        for s, e, i, n in FU:\n            l.start_time = s\n            l.end_time = e\n            frame_pct = i / n\n            x = syl.center + frame_pct * jump_width\n            y = syl.top - math.sin(frame_pct * math.pi) * jump_height\n            alpha = 0\n            # Last jump should fade-out\n            if syl.i == len(line.syls) - 1:\n                alpha += FU.add(0, syl.duration, 255)\n            alpha = Convert.alpha_dec_to_ass(int(alpha))\n            l.text = \"{\\\\alpha%s\\\\pos(%.3f,%.3f)\\\\bord1\\\\blur1\\\\1c%s\\\\3c%s\\\\p1}%s\" % (\n                alpha,\n                x,\n                y,\n                c1,\n                c3,\n                star,\n            )\n            io.write_line(l)\n    # Leadout Effect\n    for syl in Utils.all_non_empty(line.syls):\n        l.layer = 0\n        l.start_time = syl.end_time\n        # l.start_time = line.start_time + syl.end_time + 100\n        l.end_time = line.end_time\n        # l.end_time = line.end_time - 25 * (len(line.syls) - syl.i) + delay + 100",
+        "type": "code",
+        "location": "/tests/karaoke_effects/starJumping.py:153-186"
+    },
+    "5183": {
+        "file_id": 665,
+        "content": "Code snippet applies a star jumping effect to the text of each syllable in a line, and adds a leadout effect at the end. The star jumping effect adjusts the position and fades out the last jump, while the leadout effect is triggered after all syllables have been processed.",
+        "type": "comment"
+    },
+    "5184": {
+        "file_id": 665,
+        "content": "        # l.end_time = line.end_time - 25 * (len(line.syls) - syl.i) + delay + 100\n        l.dur = l.end_time - l.start_time\n        if l.dur <= 0:\n            continue\n        l.text = (\n            \"{\\\\an5\\\\move(%.3f,%.3f,%.3f,%.3f,%d,%d)\\\\t(%d,%d,\\\\blur2)\\\\fad(0,%d)}%s\"\n            % (\n                syl.center,\n                syl.middle,\n                syl.center + math.cos(syl.i / 2) * off_x,\n                syl.middle + math.sin(syl.i / 4) * off_y,\n                l.dur - delay,\n                l.dur,\n                l.dur - delay,\n                l.dur,\n                delay,\n                syl.text,\n            )\n        )\n        io.write_line(l)\ndef kanji(line, l):\n    # Setting up a delay, we will use it as duration time of the leadin and leadout effects\n    delay = 300\n    # Setting up offset variables, we will use them for the \\move in leadin and leadout effects\n    off_x = 35\n    off_y = 15\n    # Leadin Effect\n    for syl in Utils.all_non_empty(line.syls):\n        l.layer = 0\n        l.start_time = line.start_time",
+        "type": "code",
+        "location": "/tests/karaoke_effects/starJumping.py:187-221"
+    },
+    "5185": {
+        "file_id": 665,
+        "content": "This code snippet is adding leadin effects to a line of text. It calculates the start time and duration for each syllable in the line, adjusting the position of the \\move effect based on the syllable index. The delay value is used as the duration for leadin and leadout effects.",
+        "type": "comment"
+    },
+    "5186": {
+        "file_id": 665,
+        "content": "        # l.start_time = (\n        #     line.start_time + 25 * syl.i - delay - 80\n        # )  # Remove 80 to start_time to let leadin finish a little bit earlier than the main effect of the first syllable\n        l.end_time = syl.start_time\n        # l.end_time = line.start_time + syl.start_time\n        l.dur = l.end_time - l.start_time\n        if l.dur <= 0:\n            continue\n        l.text = (\n            \"{\\\\an5\\\\move(%.3f,%.3f,%.3f,%.3f,0,%d)\\\\blur2\\\\t(0,%d,\\\\blur0)\\\\fad(%d,0)}%s\"\n            % (\n                syl.center + math.cos(syl.i / 2) * off_x,\n                syl.middle + math.sin(syl.i / 4) * off_y,\n                syl.center,\n                syl.middle,\n                delay,\n                delay,\n                delay,\n                syl.text,\n            )\n        )\n        io.write_line(l)\n    # Main Effect\n    for syl in Utils.all_non_empty(line.syls):\n        l.layer = 1\n        l.start_time = syl.start_time\n        # l.start_time = line.start_time + syl.start_time\n        l.end_time = syl.end_time + 100",
+        "type": "code",
+        "location": "/tests/karaoke_effects/starJumping.py:223-254"
+    },
+    "5187": {
+        "file_id": 665,
+        "content": "Code snippet is defining a star jumping animation effect for syllables in a line of karaoke lyrics. It calculates start and end times, layer, and text positioning based on syllable index and other variables. The main effect is applied to all non-empty syllables with a duration of 100ms extra to ensure it finishes properly.",
+        "type": "comment"
+    },
+    "5188": {
+        "file_id": 665,
+        "content": "        l.dur = l.end_time - l.start_time\n        c1 = \"&H81F4FF&\"\n        c3 = \"&H199AAA&\"\n        # Change color if effect field is m1\n        if line.effect == \"m1\":\n            c1 = \"&H8282FF&\"\n            c3 = \"&H191AAA&\"\n        on_inline_effect_2 = \"\"\n        # Apply rotation if effect field is m2\n        if line.effect == \"m2\":\n            on_inline_effect_2 = \"\\\\t(0,%d,\\\\frz%.3f)\\\\t(%d,%d,\\\\frz0)\" % (\n                l.dur / 4,\n                random.uniform(-40, 40),\n                l.dur / 4,\n                l.dur,\n            )\n        l.text = (\n            \"{\\\\an5\\\\pos(%.3f,%.3f)%s\\\\t(0,80,\\\\fscx105\\\\fscy105\\\\1c%s\\\\3c%s)\\\\t(80,%d,\\\\fscx100\\\\fscy100\\\\1c%s\\\\3c%s)}%s\"\n            % (\n                syl.center,\n                syl.middle,\n                on_inline_effect_2,\n                c1,\n                c3,\n                l.dur - 80,\n                line.styleref.color1,\n                line.styleref.color3,\n                syl.text,\n            )\n        )\n        io.write_line(l)\n    # Leadout Effect",
+        "type": "code",
+        "location": "/tests/karaoke_effects/starJumping.py:255-291"
+    },
+    "5189": {
+        "file_id": 665,
+        "content": "This code dynamically sets the colors and applies rotation based on an \"effect\" field. If \"m1\", it changes colors, if \"m2\", applies rotation using a random angle within -40 to 40 degrees. The applied effects are combined with other formatting attributes to create the final line of text which is then written out.",
+        "type": "comment"
+    },
+    "5190": {
+        "file_id": 665,
+        "content": "    for syl in Utils.all_non_empty(line.syls):\n        l.layer = 0\n        l.start_time = syl.end_time + 100\n        # l.start_time = line.start_time + syl.end_time + 100\n        l.end_time = line.end_time\n        # l.end_time = line.end_time - 25 * (len(line.syls) - syl.i) + delay + 100\n        l.dur = l.end_time - l.start_time\n        if l.dur <= 0:\n            continue\n        l.text = (\n            \"{\\\\an5\\\\move(%.3f,%.3f,%.3f,%.3f,%d,%d)\\\\t(%d,%d,\\\\blur2)\\\\fad(0,%d)}%s\"\n            % (\n                syl.center,\n                syl.middle,\n                syl.center + math.cos(syl.i / 2) * off_x,\n                syl.middle + math.sin(syl.i / 4) * off_y,\n                l.dur - delay,\n                l.dur,\n                l.dur - delay,\n                l.dur,\n                delay,\n                syl.text,\n            )\n        )\n        io.write_line(l)\ndef sub(line, l):\n    # Translation Effect\n    l.layer = 0\n    l.start_time = line.start_time - line.leadin / 2\n    l.end_time = line.end_time + line.leadout / 2",
+        "type": "code",
+        "location": "/tests/karaoke_effects/starJumping.py:292-327"
+    },
+    "5191": {
+        "file_id": 665,
+        "content": "The code iterates through non-empty syllables in a line, sets the layer and start time for each, calculates end time and duration, then creates a translation effect by writing it to the output.",
+        "type": "comment"
+    },
+    "5192": {
+        "file_id": 665,
+        "content": "    l.dur = l.end_time - l.start_time\n    # Getting interpolated color changes (notice that we do that only after having set up all the times, that's important)\n    colors = CU.get_color_change(l)\n    # Base text\n    l.text = \"{\\\\an5\\\\pos(%.3f,%.3f)\\\\fad(%d,%d)}%s\" % (\n        line.center,\n        line.middle,\n        line.leadin / 2,\n        line.leadout / 2,\n        line.text,\n    )\n    io.write_line(l)\n    # Random clipped text colorated\n    l.layer = 1\n    for i in range(1, int(line.width / 80)):\n        x_clip = line.left + random.uniform(0, line.width)\n        y_clip = line.top - 5\n        clip = (\n            x_clip,\n            y_clip,\n            x_clip + random.uniform(10, 30),\n            y_clip + line.height + 10,\n        )\n        l.text = \"{\\\\an5\\\\pos(%.3f,%.3f)\\\\fad(%d,%d)\\\\clip(%d,%d,%d,%d)%s}%s\" % (\n            line.center,\n            line.middle,\n            line.leadin / 2,\n            line.leadout / 2,\n            clip[0],\n            clip[1],\n            clip[2],\n            clip[3],\n            colors,",
+        "type": "code",
+        "location": "/tests/karaoke_effects/starJumping.py:328-365"
+    },
+    "5193": {
+        "file_id": 665,
+        "content": "This code is creating a line of text with interpolated color changes and random clipped, colored text for karaoke effects. It sets the duration, gets color change values, defines the text's position and fade-in/out duration, writes the base text, and generates multiple lines with randomly clipped, colored text based on the line width.",
+        "type": "comment"
+    },
+    "5194": {
+        "file_id": 665,
+        "content": "            line.text,\n        )\n        io.write_line(l)\nfor line in lines:\n    # Generating lines\n    if line.styleref.alignment >= 7:\n        lineModSource = line.copy()\n        break\n    elif line.styleref.alignment >= 4:\n        lineModSource = line.copy()\n        break\nfrom test_pylrc import *\n# just a test.\nshiftAdjust = 600\nfor elem in newTextArray:\n    lineMod = lineModSource.copy()\n    lineMod.start_time = max(0, elem[\"start\"] * 1000 - shiftAdjust)\n    lineMod.end_time = elem[\"end\"] * 1000 - shiftAdjust\n    lineMod.duration = lineMod.end_time - lineMod.start_time\n    lineMod.text = elem[\"text\"].strip().replace(\"  \", \"\")\n    # print(lineMod)\n    lineMod.words = lineMod.text.split(\" \")\n    # lineMod.syls =\n    # print(dir(lineMod))\n    # breakpoint()\n    sylList = []\n    wordCount = len(lineMod.words)\n    sylDuration = (lineMod.end_time - lineMod.start_time) / wordCount\n    textLength = len(lineMod.text)\n    charShift = 30\n    absWordCenterShiftList = []\n    prevWordShift = 0\n    CENTER = 1600 / 2\n    wordWidthList = []",
+        "type": "code",
+        "location": "/tests/karaoke_effects/starJumping.py:366-403"
+    },
+    "5195": {
+        "file_id": 665,
+        "content": "The code is generating lines and applying modifications to them based on alignment values. It then creates new line objects with adjusted start and end times, duration, text content, and splits the text into words. The code also calculates word position shifts and other variables for further processing.",
+        "type": "comment"
+    },
+    "5196": {
+        "file_id": 665,
+        "content": "    for word in lineMod.words:\n        wordWidth = len(word) * charShift\n        wordWidthList.append(wordWidth)\n        wordLength = len(word) + 1\n        wordCenterShift = (charShift * wordLength) / 2\n        wordShift = charShift * wordLength\n        absWordCenterShift = (\n            CENTER - (textLength * charShift) / 2 + prevWordShift + wordCenterShift\n        )\n        absWordCenterShiftList.append(absWordCenterShift)\n        prevWordShift += wordShift\n    # CENTER + centerShift*charShift\n    getCenter = lambda index: absWordCenterShiftList[index]\n    getWidth = lambda index: wordWidthList[index]\n    mSylYShift = 700\n    for index, word in enumerate(lineMod.words):\n        syl = Syllable()\n        syl.text = word\n        syl.i = index\n        syl.center = getCenter(index)\n        syl.width = getWidth(index)\n        syl.top = 25 + mSylYShift\n        syl.inline_fx = \"m2\"\n        syl.middle = 49.0 + mSylYShift\n        syl.bottom = 73.0 + mSylYShift\n        syl.start_time = lineMod.start_time + index * sylDuration",
+        "type": "code",
+        "location": "/tests/karaoke_effects/starJumping.py:404-429"
+    },
+    "5197": {
+        "file_id": 665,
+        "content": "This code calculates word positions and dimensions for a karaoke effect. It iterates through each word in a line, determines the width of each word based on character shift, and then calculates the center position and overall position of the word. Finally, it creates an instance of the Syllable class for each word with the calculated properties and sets the start time based on the word index and duration.",
+        "type": "comment"
+    },
+    "5198": {
+        "file_id": 665,
+        "content": "        syl.end_time = syl.start_time + sylDuration\n        syl.duration = sylDuration\n        sylList.append(syl)\n    lineMod.syls = sylList\n    # print(lineMod.syls)\n    # breakpoint()\n    # pyonfx.ass_core.Syllable\n    source = lineMod.copy()\n    target = lineMod.copy()\n    romaji(source, target)\n    lineMod2 = lineMod.copy()\n    translateShift = -200\n    for i in range(len(lineMod2.syls)):\n        lineMod2.syls[i].top += translateShift\n        lineMod2.syls[i].middle += translateShift\n        lineMod2.syls[i].bottom += translateShift\n    source = lineMod2.copy()\n    target = lineMod2.copy()\n    # elif line.styleref.alignment >= 4:\n    kanji(source, target)\n    # else:\n    #     sub(line, line.copy())\n# how to deal with the tra\nio.save()\n# io.open_aegisub()\nsample_video = \"/root/Desktop/works/pyjom/samples/video/karaoke_effects_source.mp4\"\nio.open_mpv(video_path=sample_video)  # ain't see shit...",
+        "type": "code",
+        "location": "/tests/karaoke_effects/starJumping.py:430-460"
+    },
+    "5199": {
+        "file_id": 665,
+        "content": "This code is manipulating and modifying a line of karaoke lyrics by adding a translation shift, updating the syllable positions, and applying kanji (Chinese characters) to specific alignments. It then saves the changes and opens an associated video file for playback.",
+        "type": "comment"
+    }
+}

@@ -1,0 +1,541 @@
+{
+    "200": {
+        "file_id": 22,
+        "content": "/tasks/qq/qq_red_packet_collect/deprecated_botoy_redpacket_collect_account_2.py",
+        "type": "filepath"
+    },
+    "201": {
+        "file_id": 22,
+        "content": "This code is for the arm64 version of opqbot, disabling a 复读机 plugin and using the same config. It listens for group messages and processes red packet information, starting a daemon thread if a red packet is received.",
+        "type": "summary"
+    },
+    "202": {
+        "file_id": 22,
+        "content": "# for arm64 version of opqbot\n# disable that 复读机 plugin.\n# disable this shit. we use the same config.\nfrom base_opq import *\n@bot.on_group_msg\ndef group(ctx: GroupMsg):\n    # print('收到群消息，群号为', ctx.FromGroupId)\n    data_dict = ctx.data  # recommend to use this json object. or not?\n    group_id = data_dict[\"FromGroupId\"]\n    RedBaginfo = data_dict[\"RedBaginfo\"]\n    if RedBaginfo is not None:\n        print(\"RECEIVED RED PACKET\")\n        startDaemonThread(openRedBag, (RedBaginfo, group_id))\n    # breakpoint()\nif __name__ == \"__main__\":\n    bot.run()\n# do not send porn shits or you need to relogin.",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/deprecated_botoy_redpacket_collect_account_2.py:1-26"
+    },
+    "203": {
+        "file_id": 22,
+        "content": "This code is for the arm64 version of opqbot, disabling a 复读机 plugin and using the same config. It listens for group messages and processes red packet information, starting a daemon thread if a red packet is received.",
+        "type": "comment"
+    },
+    "204": {
+        "file_id": 23,
+        "content": "/tasks/qq/qq_red_packet_collect/commons.py",
+        "type": "filepath"
+    },
+    "205": {
+        "file_id": 23,
+        "content": "The code has functions for replacing consecutive characters, checking a \"trace_source\" key, and improving sentence processing. It also handles text manipulation, generates weighted random yields, and shuffles elements if desired.",
+        "type": "summary"
+    },
+    "206": {
+        "file_id": 23,
+        "content": "import random\nimport re\nfrom string import punctuation\nfrom base_opq import stderrPrint\ndef keywordDecorator(func, **kwargs2):\n    def mytarget(*margs, **kwargs):\n        if \"trace_source\" in kwargs.keys():\n            if kwargs2[\"trace_source\"]:\n                return func(*margs, **kwargs, **kwargs2), \".\".join(\n                    [__name__, func.__name__]\n                )\n        return func(*margs, **kwargs, **kwargs2)\n    return mytarget\ndef replaceDuplicateChar(sentence: str, char=\" \", maxRepeat: int = 3):\n    assert maxRepeat >= 0\n    source = char * (maxRepeat + 1)\n    target = char * maxRepeat\n    # c=0\n    while True:\n        # c+=1\n        # stderrPrint(\"RETRYING\",c)\n        if source in sentence:\n            # stderrPrint(len(source), len(target))\n            sentence = sentence.replace(source, target)\n        else:\n            break  # freaking important!\n    return sentence\ndef replaceDuplicateChars(sentence: str, maxRepeat: int = 3):\n    chars = set(list(sentence))\n    for char in chars:\n        sentence = replaceDuplicateChar(sentence, char, maxRepeat=maxRepeat)",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/commons.py:1-38"
+    },
+    "207": {
+        "file_id": 23,
+        "content": "This code defines a function `replaceDuplicateChar` that replaces consecutive characters with the specified character and maximum repeats, and a function `replaceDuplicateChars` that applies this operation to all characters in the sentence. The code also includes a decorator `keywordDecorator` which checks if a \"trace_source\" key exists in the kwargs dictionary and performs an action accordingly.",
+        "type": "comment"
+    },
+    "208": {
+        "file_id": 23,
+        "content": "    return sentence\n# this is not replaceDuplicateWords. this is removeDuplicateWords\n# don't know how to implement replaceDuplicateWords yet... use markov network? use CPM?\ndef removeDuplicateWords(sentence: str, removeWordLengthThreshold: int = 2):\n    # TODO: remove duplicate words inside, using jieba.\n    import jieba\n    wordList = jieba.lcut(sentence)\n    newWordList = []\n    for word in wordList:\n        if len(word) >= removeWordLengthThreshold:\n            if word in newWordList:\n                continue\n        newWordList.append(word)\n    # TODO: collect the candidateWordList from chat history.\n    # TODO: force replace mode: at least replace (n) words inside sentence\n    # TODO: mark words as replaceble by word type.\n    return \"\".join(newWordList)\ndef cutIncompleteSentenceTail(\n    sentence: str, threshold: int = len(\"这个群是我老公，你要是让我管管你老公\")\n):  # wtf?\n    if len(sentence) > threshold:\n        pun = \"，。……——“”‘’！； \" + punctuation  # with english space and puncs.\n        punList = list(set(list(pun)))",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/commons.py:39-66"
+    },
+    "209": {
+        "file_id": 23,
+        "content": "This code contains two functions: `removeDuplicateWords` and `cutIncompleteSentenceTail`. The first function aims to remove duplicate words from a sentence using the jieba library. It also mentions potential future improvements like collecting candidate word lists from chat history, replacing words based on their type, and enforcing a minimum number of replacements in the sentence. The second function is for cutting incomplete sentences that exceed a certain length threshold. It utilizes punctuation to separate the sentence into potentially complete segments. There are also mentions of potential improvements like collecting candidate word lists from chat history and replacing words based on their type.",
+        "type": "comment"
+    },
+    "210": {
+        "file_id": 23,
+        "content": "        pattern = re.compile(\n            \"|\".join([re.escape(punctualChar) for punctualChar in punList])\n        )\n        resultList = re.split(pattern, sentence)\n        resultList = [x for x in resultList if len(x) > 0]\n        for index in range(\n            1, len(resultList)\n        ):  # will return first sentence nevertheless.\n            if pattern.match(resultList[-index]):  # suspected punctual element.\n                sentence = \"\".join(resultList)[:-index]\n                return sentence\n        sentence = resultList[0]  # failsafe.\n    return sentence\ndef generatedSentenceFixer(sentence, threshold=len(\"这个群是我老公，你要是让我管管你老公\"), maxRepeat=3):\n    sentence = replaceDuplicateChars(sentence, maxRepeat=maxRepeat)\n    sentence = cutIncompleteSentenceTail(sentence, threshold=threshold)\n    return sentence\ndef weightedRandomYielder(\n    elemList: list, elemWeights: list, shuffle=True, no_repeat=True, single=False\n):\n    assert len(elemList) >= 2\n    assert len(elemWeights) == len(elemList)\n    baseList = []",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/commons.py:67-93"
+    },
+    "211": {
+        "file_id": 23,
+        "content": "The code contains functions for manipulating text, specifically for cutting incomplete sentences and fixing generated sentences. It also includes a function to generate a weighted random yield from two lists of equal length.",
+        "type": "comment"
+    },
+    "212": {
+        "file_id": 23,
+        "content": "    for elem, weight in zip(elemList, elemWeights):\n        assert weight > 0\n        assert type(weight) == int\n        baseList += [elem] * weight\n    if shuffle:\n        random.shuffle(baseList)\n    usedElem = []\n    for elem in baseList:\n        if single:\n            return elem\n        if not no_repeat:\n            yield elem\n        elif elem in usedElem:\n            continue\n        else:\n            usedElem.append(elem)\n            yield elem",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/commons.py:94-110"
+    },
+    "213": {
+        "file_id": 23,
+        "content": "Iterates through elements and their weights, adds elements to base list accordingly. If shuffle is True, randomizes the order of baseList. Iterates through baseList, yielding elements one at a time while handling non-repeating elements and avoiding repeats.",
+        "type": "comment"
+    },
+    "214": {
+        "file_id": 24,
+        "content": "/tasks/qq/qq_red_packet_collect/chatApis.py",
+        "type": "filepath"
+    },
+    "215": {
+        "file_id": 24,
+        "content": "The code utilizes libraries, chat functions for various APIs, and a function named `getChatApiReply` that selects an API, handles exceptions, logs errors, and returns responses.",
+        "type": "summary"
+    },
+    "216": {
+        "file_id": 24,
+        "content": "import random\nimport urllib.parse\nimport requests\nfrom base_opq import getGroupNameFromDict\n# disable all proxies.\nimport os\nimport time\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# do not use freaking proxy, otherwise QingYunKe will not respond.\ndef checkApi(func, message, name):\n    response_message = func(message)\n    if response_message != None:\n        print(\"{} RESPONSE:\".format(name), response_message)\ndef chatAtri(\n    msg: str, group_id, retryFlag=False, timeout=5, BASE=\"http://api.nekomimi.icu/v1/\"\n):\n    url = BASE + \"chat?msg=%s\" % urllib.parse.quote(msg)\n    response = requests.get(url, timeout=timeout)\n    if response.status_code == 200:\n        data = response.json()\n        if data[\"status\"] == \"success\":\n            return data[\"message\"]\n    # return None\n    # nothing is returned if have error.\n    print(\"ATRI ERROR:\", response.status_code, response.json())\ndef chatGPT2Local(\n    msg: str, group_id, retryFlag=False, timeout=5, BASE=\"http://127.0.0.1:8729/\"\n):\n    # url = BASE + '?text=%s' % urllib.parse.quote(msg)",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/chatApis.py:1-39"
+    },
+    "217": {
+        "file_id": 24,
+        "content": "Code imports required libraries, disables proxies, and includes two chat functions (chatAtri and chatGPT2Local) for interacting with different APIs. chatAtri sends a message to the Atri API, while chatGPT2Local communicates with a local GPT-2 model through HTTP requests. Both return the response message if successful; otherwise, they print an error message.",
+        "type": "comment"
+    },
+    "218": {
+        "file_id": 24,
+        "content": "    url = BASE\n    params = {\"text\": msg, \"retry\": retryFlag, \"group_id\": group_id}\n    response = requests.get(url, params=params)  # simply ignore timeout.\n    # response = requests.get(url, timeout=timeout, params = params)\n    if response.status_code == 200:\n        data = response.text\n        if len(data) > 0:\n            return data\n    # return None\n    # nothing is returned if have error.\n    print(\"GPT2LOCAL NO RESPONSE ERROR\")  # unknown error.\n# import subprocess\n# import json\ndef chatQingKeYun(\n    msg: str,\n    group_id,\n    retryFlag=False,\n    timeout=5,\n    url=\"http://api.qingyunke.com/api.php?key=free&appid=0&msg=\",\n):\n    msg = urllib.parse.quote(msg)\n    myUrl = url + msg\n    # print(myUrl)\n    # output = subprocess.check_output([\"curl\", myUrl])\n    # data = json.loads(output.decode(\"utf-8\"))\n    # import requests\n    data = requests.get(myUrl, timeout=timeout)\n    data = data.json()\n    print(data)\n    result = data[\"result\"]\n    assert result == 0  # 202 -> busy\n    content = data[\"content\"]\n    return content",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/chatApis.py:40-76"
+    },
+    "219": {
+        "file_id": 24,
+        "content": "This function uses the QingKeYun API to process and return responses for a given message. It takes in parameters including the message text, group ID, retry flag, and timeout duration. The code handles potential errors, prints \"GPT2LOCAL NO RESPONSE ERROR\" when there is no response or an unknown error occurs.",
+        "type": "comment"
+    },
+    "220": {
+        "file_id": 24,
+        "content": "    # breakpoint()\ndef chatOwnThink(msg: str, group_id, retryFlag=False, timeout=5):\n    url = \"https://api.ownthink.com/bot?appid=xiaosi&userid=user&spoken=\"\n    msg = urllib.parse.quote(msg)\n    myUrl = url + msg\n    data = requests.get(myUrl, timeout=timeout)\n    data = data.json()\n    # output = subprocess.check_output([\"curl\", myUrl])\n    # data = json.loads(output.decode(\"utf-8\"))\n    if data[\"message\"] == \"success\":\n        if data[\"data\"][\"type\"] == 5000:\n            return data[\"data\"][\"info\"][\"text\"]\n    # print(data)\n    # breakpoint()\n    # result = data['result']\n    # assert result == 0  # 202 -> busy\n    # content = data['content']\n    # return content\ndef chatXiaoIce(msg, group_id, retryFlag=False, timeout=5):\n    import requests\n    topic = getGroupNameFromDict(group_id)\n    if topic is None:\n        topic = \"aaa\"  # default topic. nothing.\n    r = requests.get(\n        \"http://localhost:8735/chat\",\n        params={\"topic\": topic, \"message\": msg},\n        timeout=timeout,\n    )\n    if r.status_code == 200:",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/chatApis.py:77-111"
+    },
+    "221": {
+        "file_id": 24,
+        "content": "chatOwnThink and chatXiaoIce are two functions used to communicate with the ownthink.com API and local XiaoIce API, respectively. They both take a message as input, along with a group ID and optional retry flag and timeout values. If the request is successful, the function returns the text response from the API. The code also contains comments for potential future implementation of error handling, assertion checks, and content retrieval.",
+        "type": "comment"
+    },
+    "222": {
+        "file_id": 24,
+        "content": "        try:\n            content = r.json()\n            assert content[\"msg\"] == \"success\"\n            reply = content[\"reply\"]\n            return reply\n        except:\n            from lazero.utils.logger import traceError\n            traceError(\"xiaoice client error\")\n    else:\n        print(\"xiaoice client got abnormal response code:\", r.status_code)\n# changed. non_standard.\ndef getChatApiReply(\n    msg: str, group_id, chatApiIndex=0, retryFlag=False, timeout=15\n):  # 15 seconds of grace time.\n    # chatApis = [chatQingKeYun, chatAtri]\n    # blacklist chatOwnThink.\n    chatApis = [chatAtri, chatGPT2Local, chatXiaoIce]  # no random shit!\n    # chatApi = random.choice(chatApis)\n    chatApi = chatApis[chatApiIndex]\n    try:\n        reply = chatApi(msg, group_id, retryFlag=retryFlag, timeout=timeout)\n        # will be None anyway.\n        return reply\n    except:\n        pass",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/chatApis.py:112-139"
+    },
+    "223": {
+        "file_id": 24,
+        "content": "This code defines a function `getChatApiReply` that selects a chat API from a list and tries to retrieve a response for the input message. If an exception occurs, it logs an error or returns None if the retry flag is set. The code also includes a try-except block to handle potential exceptions during the API request.",
+        "type": "comment"
+    },
+    "224": {
+        "file_id": 25,
+        "content": "/tasks/qq/qq_red_packet_collect/chat_local.py",
+        "type": "filepath"
+    },
+    "225": {
+        "file_id": 25,
+        "content": "The code uses the Jiagu library for sentiment analysis, stack management, and string comparison to handle duplicates in chat stacks, calculating differences between strings, and ranking messages based on Levenshtein distance and sentiment before either releasing or removing the selected message.",
+        "type": "summary"
+    },
+    "226": {
+        "file_id": 25,
+        "content": "# local chatbot implemetation.\n# first, we need experimental data.\n# a unified stack for every group.\n# import this shit ahead of everything.\nimport Levenshtein\nimport jiagu\nimport random\nfrom base_opq import stderrPrint\ndef update_stack(stack, elem, stackSize=300, no_duplicate=True):\n    if no_duplicate:\n        # check for duplicates.\n        if stack == []:\n            duplicate = False\n        else:\n            duplicate = stack[-1] == elem\n        if duplicate:\n            return stack\n    stack += [elem]\n    length = len(stack)\n    return stack[max(0, length - stackSize) :]\ndef getSentiment(sentence):\n    flag, probability = jiagu.sentiment(sentence)\n    # the probability that flag is true.\n    return flag, probability\ndef getAbsSentiment(sentence):  # ignore positive or negative.\n    flag, probability = getSentiment(sentence)\n    return probability\ndef getLinearSentiment(sentence):\n    flag, probability = getSentiment(sentence)\n    if flag == \"negative\":\n        probability = -probability\n    return probability",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:1-41"
+    },
+    "227": {
+        "file_id": 25,
+        "content": "This code contains various functions for sentiment analysis and managing a stack. It imports necessary libraries, updates a stack without duplicates (if specified), determines the sentiment of a sentence using Jiagu, and calculates linear sentiment by reversing negative sentiment probability.",
+        "type": "comment"
+    },
+    "228": {
+        "file_id": 25,
+        "content": "def compareDifference(sent_0, sent_1):\n    distance = Levenshtein.distance(sent_0, sent_1)\n    return distance\ndef getRatioDifference(sent_0, sent_1, reverse=False):\n    if reverse:\n        base_length = len(sent_1)\n    else:\n        base_length = len(sent_0)\n    distance = compareDifference(sent_0, sent_1)\n    return min(1, distance / base_length)\ndef getMinDifference(sent_0, sent_1):\n    reverse = False\n    if len(sent_0) < len(sent_1):\n        reverse = True\n    return getRatioDifference(sent_0, sent_1, reverse=reverse)\nchat_stack = {}\nhistoricalReplies = []  # should also be a stack.\nchat_stack_lock = False\ndef updateChatStack(group_id, message, stackSize=300, no_duplicate=True):\n    chat_stack[group_id] = update_stack(\n        chat_stack.get(group_id, []),\n        message,\n        stackSize=stackSize,\n        no_duplicate=no_duplicate,\n    )\ndef sampleChatStack(\n    originGroup: int, msg: str, min_corpus_size=100, sample_size=2000, originGroupCut=50\n):  # must exclude sent messages.\n    # assert min_corpus_size >= sample_size",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:44-84"
+    },
+    "229": {
+        "file_id": 25,
+        "content": "This code contains three functions: `compareDifference`, `getRatioDifference`, and `getMinDifference`. These functions calculate the difference between two strings by comparing their characters. The `updateChatStack` function updates a chat stack, ensuring no duplicate messages are included. The `sampleChatStack` function samples messages from the chat stack, excluding sent messages, for text generation.",
+        "type": "comment"
+    },
+    "230": {
+        "file_id": 25,
+        "content": "    # do not do this\n    population = [\n        (group_id, max(0, len(chat_stack[group_id]) - 1))\n        for group_id in chat_stack.keys()\n        if group_id != originGroup\n    ]\n    # population_size = sum([x[1] for x in population]) # wrong.\n    population = [  # no need to check against the original group here.\n        # if (chat_stack[group_id][index] != msg or group_id != originGroup)\n        [\n            (group_id, index)\n            for index in range(group_msg_size)\n            if chat_stack[group_id][index + 1] not in historicalReplies\n        ]\n        for group_id, group_msg_size in population\n    ]  # allow other group with same message or same group with other message\n    originGroupLength = len(chat_stack[originGroup]) - 1\n    if originGroupLength > originGroupCut:\n        # THIS WAS BLOODY WRONG\n        # WAS MISPLACED.\n        population.append(\n            [\n                (originGroup, index)\n                for index in range(0, originGroupLength - originGroupCut)\n                if chat_stack[originGroup][index] != msg",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:85-110"
+    },
+    "231": {
+        "file_id": 25,
+        "content": "Creates a list of group IDs and corresponding message indexes excluding the original group and message. Excludes groups with same messages or other messages from the same group. Retrieves number of messages in the original group and if more than the cutoff, adds original group's messages except the current one to the population list.",
+        "type": "comment"
+    },
+    "232": {
+        "file_id": 25,
+        "content": "            ]\n        )\n    population = [x for y in population for x in y]\n    population_size = len(population)\n    if population_size < min_corpus_size:\n        return []\n    sample_size = min(population_size, sample_size)\n    # it must equal.\n    sample = random.sample(population, sample_size)\n    return sample\ndef sentimentFilter(sentiment, threshold=0.85):\n    assert threshold > 0 and threshold < 1\n    # for too negative ones, we value it as 0.\n    if sentiment < -threshold or sentiment > threshold:\n        return 0\n    return abs(sentiment)\ndef getChatLocalResponse(\n    originGroup: int,\n    msg: str,\n    min_corpus_size=100,\n    sample_size=2000,\n    k_top=30,\n    originGroupCut=50,\n):\n    global chat_stack_lock\n    # assert min_corpus_size >= sample_size\n    if chat_stack_lock:\n        return  # do nothing. maybe another thread is holding the lock.\n    # must set a global lock.\n    chat_stack_lock = True\n    sample = sampleChatStack(\n        originGroup,\n        msg,\n        min_corpus_size=min_corpus_size,\n        sample_size=sample_size,",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:111-150"
+    },
+    "233": {
+        "file_id": 25,
+        "content": "This function, getChatLocalResponse, samples recent chat messages from a local stack for the given originGroup and message. It takes in parameters like min_corpus_size, sample_size, k_top, and originGroupCut. The function first checks if the global lock is set before proceeding to sample recent chat messages. If the lock is held by another thread, it returns without doing anything. Otherwise, it sets the global lock and calls the sampleChatStack function to get a list of recent chat messages that can be used for further analysis or processing.",
+        "type": "comment"
+    },
+    "234": {
+        "file_id": 25,
+        "content": "        originGroupCut=originGroupCut,\n    )\n    if len(sample) == 0 or len(sample) != sample_size:  # no sample received.\n        chat_stack_lock = False  # release lock\n        return\n    # this sample must not be empty.\n    # rank by Levenshtein distance.\n    ranks = [\n        (getMinDifference(msg, chat_stack[group_id][gm_index]), index)\n        for index, (group_id, gm_index) in enumerate(sample)\n    ]\n    ranks.sort(key=lambda x: x[0])\n    selected_ranks = ranks[:k_top]\n    selected_ranks = [sample[index] for difference_score, index in selected_ranks]\n    # do we have to match the mood? like positive/negative -> positive/negative?\n    # increase the negativity?\n    # sentiment shall be next sentence.\n    selected_emotional_ranks = [\n        (getLinearSentiment(chat_stack[group_id][gm_index + 1]), index)\n        for index, (group_id, gm_index) in enumerate(selected_ranks)\n    ]\n    selected_emotional_ranks.sort(\n        key=lambda x: -sentimentFilter(x[0])\n    )  # select the extremes. do not select too extreme ones.",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:151-176"
+    },
+    "235": {
+        "file_id": 25,
+        "content": "This code is sampling messages from a chat stack, ranking them by Levenshtein distance, and then selecting the top k ranks based on that distance. It also considers the sentiment of the next message in the selection process. If there's no valid sample or if the sample size doesn't match the expected value, it releases the lock and returns without any action.",
+        "type": "comment"
+    },
+    "236": {
+        "file_id": 25,
+        "content": "    mReplySentiment, mReplyIndex = selected_emotional_ranks[0]\n    mReply_group_id, mReply_gm_index = selected_ranks[mReplyIndex]\n    mReply = chat_stack[mReply_group_id][mReply_gm_index + 1]  # must plus one.\n    # before release lock we need to remove things from chat_stack and append things into historicalReplies(stack)\n    update_stack(historicalReplies, mReply)\n    # for _ in range(2):\n    #     del chat_stack[mReply_group_id][mReply_gm_index] # may cause problems. we might not delete this.\n    # discontinuality of message replies.\n    # you can somehow make the selected list immutable, into tuple.\n    chat_stack_lock = False\n    return mReply\n# must detect emotion level.\n# maybe do sampling on those stacks will help?\n# sample size must smaller tha population.",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:177-194"
+    },
+    "237": {
+        "file_id": 25,
+        "content": "This code snippet selects a reply message from a chat_stack list, deletes the selected message from the stack, and updates a historicalReplies stack. The code intends to ensure message replies are immutable by removing them from the original list after selection, but this approach may cause issues.",
+        "type": "comment"
+    },
+    "238": {
+        "file_id": 26,
+        "content": "/tasks/qq/qq_red_packet_collect/paddletts/test.sh",
+        "type": "filepath"
+    },
+    "239": {
+        "file_id": 26,
+        "content": "The code uses the PaddleSpeech TTS (Text-to-Speech) model to convert text \"你好\" into speech and saves it as hello.wav using CPU device. The model is located at ~/.paddlespeech in a drive named Toshiba3000, with possible English-Chinese splitting tests. Pyjom is related to these tests and possibly offers other server interactions.",
+        "type": "summary"
+    },
+    "240": {
+        "file_id": 26,
+        "content": "paddlespeech tts --input \"你好\" --output hello.wav --voc hifigan_csmsc --device cpu\n# model location ~/.paddlespeech -> /media/root/Toshiba3000/paddlespeech_models\n# check out pyjom about english-chinese spliting tests. we have model server other than cli interactions.",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/paddletts/test.sh:1-4"
+    },
+    "241": {
+        "file_id": 26,
+        "content": "The code uses the PaddleSpeech TTS (Text-to-Speech) model to convert text \"你好\" into speech and saves it as hello.wav using CPU device. The model is located at ~/.paddlespeech in a drive named Toshiba3000, with possible English-Chinese splitting tests. Pyjom is related to these tests and possibly offers other server interactions.",
+        "type": "comment"
+    },
+    "242": {
+        "file_id": 27,
+        "content": "/tasks/qq/qq_red_packet_collect/fill_mask_model/test.py",
+        "type": "filepath"
+    },
+    "243": {
+        "file_id": 27,
+        "content": "The code uses 'hfl/chinese-macbert-base' for masked language modeling, removes [] or [MASK] values, tokenizes input, gets logits, iterates over mask token indices, predicts next tokens, decodes to strings, and prints without gradients.",
+        "type": "summary"
+    },
+    "244": {
+        "file_id": 27,
+        "content": "import os\nimport torch\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\nfrom transformers import BertTokenizer, BertForMaskedLM\nmodel_name = \"hfl/chinese-macbert-base\"\ntokenizer = BertTokenizer.from_pretrained(model_name)\nmodel = BertForMaskedLM.from_pretrained(model_name) # where the heck is the model?\n#location:\n# resolved_archive_file = cached_path(...)\n# already outsourced this shit.\n# /root/.cache/huggingface/transformers/f350d12c99d2a8d00f4299b8e292c2248422676424702a2c45a8a3d65646f738.749c1a543002a65141e104ba5e040263fd8eabc9d2dcfb537bf681345565ef45\n# first ensure there is no [MASK] or [] surrounded values. otherwise, remove these shits.\n# split them using re.split and filter these shits out with re.match\ninputs = tokenizer(\"如果今天天气[MASK][MASK]\", return_tensors=\"pt\")\nwith torch.no_grad():\n    logits = model(**inputs).logits\n# retrieve index of [MASK]\nmask_token_indexs = (inputs.input_ids == tokenizer.mask_token_id)[0].nonzero(as_tuple=True)[0] # (tensor([5, 6]),) without [0]\n# print(mask_token_indexs) #5 and 6.",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/fill_mask_model/test.py:1-27"
+    },
+    "245": {
+        "file_id": 27,
+        "content": "The code is using the 'hfl/chinese-macbert-base' model for masked language modeling. It first checks if there are any [MASK] or [] surrounded values and removes them. Then, it tokenizes the input text using the BertTokenizer from transformers library. After that, it passes the input to the BertForMaskedLM model and retrieves the logits corresponding to the mask tokens. The mask token indices are obtained from the input tensors.",
+        "type": "comment"
+    },
+    "246": {
+        "file_id": 27,
+        "content": "for mask_token_index in mask_token_indexs:\n    predicted_token_id = logits[0, mask_token_index].argmax(axis=-1)\n    result = tokenizer.decode(predicted_token_id)\n    print(mask_token_index,result)\n# with torch.no_grad():\n#     outputs = model(**inputs)\n# print(dir(outputs))",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/fill_mask_model/test.py:28-35"
+    },
+    "247": {
+        "file_id": 27,
+        "content": "Iterates over each mask token index in the list, predicts the next token, decodes the predicted token ID to string using tokenizer, and prints the mask token index and result. This process is done without gradients for computational efficiency.",
+        "type": "comment"
+    },
+    "248": {
+        "file_id": 28,
+        "content": "/tasks/qq/qq_red_packet_collect/fill_mask_model/init.sh",
+        "type": "filepath"
+    },
+    "249": {
+        "file_id": 28,
+        "content": "The code installs git LFS, runs a Python script named \"test.py\" with specified environment variables, and clones the \"chinese-macbert-base\" model from Hugging Face Co.",
+        "type": "summary"
+    },
+    "250": {
+        "file_id": 28,
+        "content": "# git lfs install\nenv http_proxy=\"\" https_proxy=\"\" python3 test.py\n# env http_proxy=\"\" https_proxy=\"\" git clone https://huggingface.co/hfl/chinese-macbert-base",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/fill_mask_model/init.sh:1-3"
+    },
+    "251": {
+        "file_id": 28,
+        "content": "The code installs git LFS, runs a Python script named \"test.py\" with specified environment variables, and clones the \"chinese-macbert-base\" model from Hugging Face Co.",
+        "type": "comment"
+    },
+    "252": {
+        "file_id": 29,
+        "content": "/tasks/qq/qq_red_packet_collect/fill_mask_model/test_macbert.sh",
+        "type": "filepath"
+    },
+    "253": {
+        "file_id": 29,
+        "content": "The code makes a POST request to the Hugging Face API's inference endpoint for the \"hfl/chinese-macbert-base\" model, sending input text with a masked token and an access token as authorization.",
+        "type": "summary"
+    },
+    "254": {
+        "file_id": 29,
+        "content": "curl https://api-inference.huggingface.co/models/hfl/chinese-macbert-base \\\n\t-X POST \\\n\t-d '{\"inputs\": \"我感冒了，今天天气[MASK]\"}' \\\n\t-H \"Authorization: Bearer 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\"",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/fill_mask_model/test_macbert.sh:1-4"
+    },
+    "255": {
+        "file_id": 29,
+        "content": "The code makes a POST request to the Hugging Face API's inference endpoint for the \"hfl/chinese-macbert-base\" model, sending input text with a masked token and an access token as authorization.",
+        "type": "comment"
+    },
+    "256": {
+        "file_id": 30,
+        "content": "/tasks/qq/qq_red_packet_collect/textfilter/launch.sh",
+        "type": "filepath"
+    },
+    "257": {
+        "file_id": 30,
+        "content": "Launches the FastAPI application using uvicorn, listens on port 8932, and provides an option for auto-reloading with --reload. However, the comment suggests not to use the reload feature.",
+        "type": "summary"
+    },
+    "258": {
+        "file_id": 30,
+        "content": "python3 -m uvicorn filter_py3_fastapi:app --port 8932 \n# python3 -m uvicorn filter_py3_fastapi:app --reload --port 8932 \n# do not use reload!",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/textfilter/launch.sh:1-3"
+    },
+    "259": {
+        "file_id": 30,
+        "content": "Launches the FastAPI application using uvicorn, listens on port 8932, and provides an option for auto-reloading with --reload. However, the comment suggests not to use the reload feature.",
+        "type": "comment"
+    },
+    "260": {
+        "file_id": 31,
+        "content": "/tasks/qq/qq_red_packet_collect/textfilter/filter_py3_fastapi.py",
+        "type": "filepath"
+    },
+    "261": {
+        "file_id": 31,
+        "content": "The code offers text filtering through classes like NaiveFilter and BSFilter for keyword removal and regex processing, plus a DFAFilter for performance boost. It checks characters, translates Chinese to Pinyin, and returns moderated text via FastAPI endpoint.",
+        "type": "summary"
+    },
+    "262": {
+        "file_id": 31,
+        "content": "#!/usr/bin/env python\n# -*- coding:utf-8 -*-\nfrom collections import defaultdict\nimport re\n__all__ = ['NaiveFilter', 'BSFilter', 'DFAFilter']\n__author__ = 'observer'\n__date__ = '2012.01.05'\nclass NaiveFilter():\n    '''Filter Messages from keywords\n    very simple filter implementation\n    >>> f = NaiveFilter()\n    >>> f.add(\"sexy\")\n    >>> f.filter(\"hello sexy baby\")\n    hello **** baby\n    '''\n    def __init__(self):\n        self.keywords = set([])\n    def parse(self, path):\n        for keyword in open(path):\n            self.keywords.add(keyword.strip().decode('utf-8').lower())\n    def filter(self, message, repl=\"*\"):\n        message = str(message).lower()\n        for kw in self.keywords:\n            message = message.replace(kw, repl)\n        return message\nclass BSFilter:\n    '''Filter Messages from keywords\n    Use Back Sorted Mapping to reduce replacement times\n    >>> f = BSFilter()\n    >>> f.add(\"sexy\")\n    >>> f.filter(\"hello sexy baby\")\n    hello **** baby\n    '''\n    def __init__(self):\n        self.keywords = []",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/textfilter/filter_py3_fastapi.py:1-48"
+    },
+    "263": {
+        "file_id": 31,
+        "content": "This code is for creating a filter to remove specific keywords from a given message. It provides three classes: NaiveFilter, BSFilter, and DFAFilter. NaiveFilter is the simplest implementation using set data structure, while BSFilter uses Back Sorted Mapping to improve performance by reducing replacement times. The code also includes parsing functionality to add keywords from a file.",
+        "type": "comment"
+    },
+    "264": {
+        "file_id": 31,
+        "content": "        self.kwsets = set([])\n        self.bsdict = defaultdict(set)\n        self.pat_en = re.compile(r'^[0-9a-zA-Z]+$')  # english phrase or not\n    def add(self, keyword):\n        if not isinstance(keyword, str):\n            keyword = keyword.decode('utf-8')\n        keyword = keyword.lower()\n        if keyword not in self.kwsets:\n            self.keywords.append(keyword)\n            self.kwsets.add(keyword)\n            index = len(self.keywords) - 1\n            for word in keyword.split():\n                if self.pat_en.search(word):\n                    self.bsdict[word].add(index)\n                else:\n                    for char in word:\n                        self.bsdict[char].add(index)\n    def parse(self, path):\n        with open(path, \"r\") as f:\n            for keyword in f:\n                self.add(keyword.strip())\n    def filter(self, message, repl=\"*\"):\n        if not isinstance(message, str):\n            message = message.decode('utf-8')\n        message = message.lower()\n        for word in message.split():",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/textfilter/filter_py3_fastapi.py:49-77"
+    },
+    "265": {
+        "file_id": 31,
+        "content": "This code defines a class with methods for adding keywords, parsing from a file, and filtering text. It uses regular expressions to identify English words and stores them in dictionaries based on their characters or full words. The parse method reads a file of keywords and the filter method processes input messages by replacing non-keyword parts with \"*\".",
+        "type": "comment"
+    },
+    "266": {
+        "file_id": 31,
+        "content": "            if self.pat_en.search(word):\n                for index in self.bsdict[word]:\n                    message = message.replace(self.keywords[index], repl)\n            else:\n                for char in word:\n                    for index in self.bsdict[char]:\n                        message = message.replace(self.keywords[index], repl)\n        return message\nclass DFAFilter():\n    '''Filter Messages from keywords\n    Use DFA to keep algorithm perform constantly\n    >>> f = DFAFilter()\n    >>> f.add(\"sexy\")\n    >>> f.filter(\"hello sexy baby\")\n    hello **** baby\n    '''\n    def __init__(self):\n        self.keyword_chains = {}\n        self.delimit = '\\x00'\n    def add(self, keyword):\n        if not isinstance(keyword, str):\n            keyword = keyword.decode('utf-8')\n        keyword = keyword.lower()\n        chars = keyword.strip()\n        if not chars:\n            return\n        level = self.keyword_chains\n        for i in range(len(chars)):\n            if chars[i] in level:\n                level = level[chars[i]]",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/textfilter/filter_py3_fastapi.py:78-113"
+    },
+    "267": {
+        "file_id": 31,
+        "content": "This code defines a DFAFilter class to filter messages from keywords. It uses DFA (Deterministic Finite Automaton) to improve algorithm performance. The add method adds a keyword and the filter method replaces keywords with asterisks (*). If the keyword is already in the DFA, it updates the level of the DFA accordingly.",
+        "type": "comment"
+    },
+    "268": {
+        "file_id": 31,
+        "content": "            else:\n                if not isinstance(level, dict):\n                    break\n                for j in range(i, len(chars)):\n                    level[chars[j]] = {}\n                    last_level, last_char = level, chars[j]\n                    level = level[chars[j]]\n                last_level[last_char] = {self.delimit: 0}\n                break\n        if i == len(chars) - 1:\n            level[self.delimit] = 0\n    def parse(self, path):\n        with open(path) as f:\n            for keyword in f:\n                self.add(keyword.strip())\n    def filter(self, message, repl=\"*\"):  # what is this repl?\n        if not isinstance(message, str):\n            message = message.decode('utf-8')\n        message = message.lower()\n        ret = []\n        start = 0\n        while start < len(message):\n            level = self.keyword_chains\n            step_ins = 0\n            for char in message[start:]:\n                if char in level:\n                    step_ins += 1\n                    if self.delimit not in level[char]:",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/textfilter/filter_py3_fastapi.py:114-143"
+    },
+    "269": {
+        "file_id": 31,
+        "content": "This code is parsing a text file of keywords and their corresponding chains. It then filters a given message by replacing instances of the keyword chains with a placeholder (\"*\"). The \"repl\" argument in filter() function seems to be optional and represents the placeholder character used for replacement. If the input message is not a string, it's decoded from its original format (like bytes) to a string. The code maintains a nested dictionary structure representing keyword chains, and if a delimiter is found missing in a chain, it's set to 0.",
+        "type": "comment"
+    },
+    "270": {
+        "file_id": 31,
+        "content": "                        level = level[char]\n                    else:\n                        # print(\"STEPINS\", step_ins)\n                        # print(\"CHAR\", char)\n                        # print(level[char])\n                        ret.append(repl * step_ins)\n                        start += step_ins - 1\n                        break\n                else:\n                    ret.append(message[start])\n                    break\n            else:\n                ret.append(message[start])\n            start += 1\n        return ''.join(ret)\ndef test_first_character():\n    gfw = DFAFilter()\n    gfw.add(\"1989年\")\n    assert gfw.filter(\"1989\", \"*\") == \"1989\"\ngfw = DFAFilter()\ngfw.parse(\"keywords\")\nfrom typing import Union\nfrom fastapi import FastAPI\napp = FastAPI()\nfrom snownlp import SnowNLP\nfrom snownlp.normal import pin, re_zh\n# import re\ndef getPinyin(originalText,\n              filteredText,\n              whitelistChars=[\"的\"],\n              whitelistNonChinese=True):  # any repl will do.\n    blocks = [x for x in re_zh.split(originalText) if len(x) > 0]",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/textfilter/filter_py3_fastapi.py:144-186"
+    },
+    "271": {
+        "file_id": 31,
+        "content": "This function takes a message and filters it based on a DFA (Deterministic Finite Automaton) filter. It checks each character in the message, appending replacements if necessary or keeping the original character if not. If a keyword is found, it replaces it with '*'. The function returns the filtered text as a string.\n\nThe code also includes a test case for checking if the first character of the filter result matches the expected output for the given input. Additionally, there are import statements and function definitions for other functionalities like getting pinyin and handling Chinese text.",
+        "type": "comment"
+    },
+    "272": {
+        "file_id": 31,
+        "content": "    # words = result.words\n    translate_list = []\n    for block in blocks:\n        if re_zh.match(block):\n            block_pinyin = pin.get(block)\n            for index, pinyin in enumerate(block_pinyin):\n                character = block[index]\n                translate_list.append((character, pinyin[0]))\n        else:\n            for index, character in enumerate(block):\n                translate_list.append((character, character))\n    moderatedText = \"\"\n    for index, (originalCharacter, pinyin) in enumerate(translate_list):\n        filteredCharacter = filteredText[index]\n        if filteredCharacter == originalCharacter or originalCharacter in whitelistChars or (\n                whitelistNonChinese and (not re_zh.match(originalCharacter))): # changed the moderator logic.\n            moderatedText += originalCharacter\n        elif pinyin != originalCharacter:\n            moderatedText += pinyin\n        else:\n            moderatedText += filteredCharacter\n    return moderatedText\n@app.get(\"/\")\ndef read_root():",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/textfilter/filter_py3_fastapi.py:187-213"
+    },
+    "273": {
+        "file_id": 31,
+        "content": "This code filters text by translating Chinese characters into their corresponding Pinyin while preserving non-Chinese characters or whitelisted characters. It creates a list of translated characters and applies the filter logic to generate a moderated text output, which is returned as the result. Additionally, there's an API endpoint (\"/\") defined for accessing this functionality through a FastAPI server.",
+        "type": "comment"
+    },
+    "274": {
+        "file_id": 31,
+        "content": "    return {\"response\": \"DFAFilter based Chinese text filter(censor)\"}\n@app.get(\"/filter\")\ndef read_item(text: Union[str, None] = None, moderate: bool = True):\n    originalText = text\n    filteredText = gfw.filter(text, \"*\")\n    if moderate:\n        moderatedText = getPinyin(originalText, filteredText)\n        return {\"response\": moderatedText}\n    else:\n        return {\"response\": filteredText}",
+        "type": "code",
+        "location": "/tasks/qq/qq_red_packet_collect/textfilter/filter_py3_fastapi.py:214-225"
+    },
+    "275": {
+        "file_id": 31,
+        "content": "This code defines a FastAPI route (\"/filter\") that takes in a text input and applies GFW filtering. If the \"moderate\" parameter is True, it generates a moderated text by replacing Chinese characters with their corresponding pinyin. Otherwise, it returns the filtered text.",
+        "type": "comment"
+    },
+    "276": {
+        "file_id": 32,
+        "content": "/samples/medialang/dog_cat_test_nofast.mdl",
+        "type": "filepath"
+    },
+    "277": {
+        "file_id": 32,
+        "content": "The code manages multiple videos, sets properties like silence and speed, and cuts specific durations for multimedia projects using a specific directory. It specifies video file paths with properties like muting, speed control, and timed cuts for sequenced or simultaneous playback within an application.",
+        "type": "summary"
+    },
+    "278": {
+        "file_id": 32,
+        "content": "(\".mp4\", backend=\"editly\",\n    bgm=\"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3\",\n    fast=false\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_gWkCsQZ4YlU1a]_[300x214].gif\",\n    video=true, slient=true, speed=1.043468,\n    cutFrom=0.0, cutTo=2.4\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_2tNwXMxMpUAsiSbyck]_[480x270].gif\",\n    video=true, slient=true, speed=1.2,\n    cutFrom=0.0, cutTo=0.564027\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_dTYI2Cu25gsTK]_[242x250].gif\",\n    video=true, slient=true, speed=1.006185,\n    cutFrom=0.0, cutTo=6.5\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_5Y8xYjHG9AcjWlz23h]_[480x480].gif\",\n    video=true, slient=true, speed=0.997826,\n    cutFrom=0.0, cutTo=4.6\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_iOGRWFLgGBRTxz7i22]_[270x480].gif\",\n    video=true, slient=true, speed=1.050456,\n    cutFrom=0.0, cutTo=10.2\n)\n(\"/r",
+        "type": "code",
+        "location": "/samples/medialang/dog_cat_test_nofast.mdl:1-31"
+    },
+    "279": {
+        "file_id": 32,
+        "content": "This code defines multiple video sources and their properties, including the video file path, duration, and speed. The videos are set to be silent (slient=true) and played at specified speeds with specific time intervals cut from the original video (cutFrom and cutTo). It is used in a media project likely for creating a montage or sequence of videos with background music.",
+        "type": "comment"
+    },
+    "280": {
+        "file_id": 32,
+        "content": "oot/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_MB7AnGuoZ0ruqsFM1G]_[480x400].gif\",\n    video=true, slient=true, speed=0.934218,\n    cutFrom=0.0, cutTo=3.017544\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_UuebWyG4pts3rboawU]_[480x480].gif\",\n    video=true, slient=true, speed=0.976488,\n    cutFrom=0.0, cutTo=5.4\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_kOEYOwSaKbFra]_[350x197].gif\",\n    video=true, slient=true, speed=1.006486,\n    cutFrom=0.0, cutTo=9.3\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_QGSEGsTr04bPW]_[450x254].gif\",\n    video=true, slient=true, speed=0.833326,\n    cutFrom=0.0, cutTo=2.3\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_23kXtcba8igBvs8DQ1]_[400x225].gif\",\n    video=true, slient=true, speed=1.2,\n    cutFrom=0.0, cutTo=11.076082\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_ANWIS2HYfROI8]_[250x250].gif\",\n    video=true, slient=true, speed=1.04277,",
+        "type": "code",
+        "location": "/samples/medialang/dog_cat_test_nofast.mdl:31-57"
+    },
+    "281": {
+        "file_id": 32,
+        "content": "The code defines a series of video files with their respective paths, each associated with the \"video\" and \"silent\" parameters, and has a specific speed and cut duration.",
+        "type": "comment"
+    },
+    "282": {
+        "file_id": 32,
+        "content": "    cutFrom=0.0, cutTo=5.297297\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_3oEduYITQ7uOYLPZjq]_[480x270].gif\",\n    video=true, slient=true, speed=0.981427,\n    cutFrom=0.0, cutTo=4.985673\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_26BRGvcRTuqWhoLzW]_[320x320].gif\",\n    video=true, slient=true, speed=0.937354,\n    cutFrom=0.0, cutTo=5.192982\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_S3KIhtDGjLKWbnwtrQ]_[480x270].gif\",\n    video=true, slient=true, speed=0.990204,\n    cutFrom=0.0, cutTo=7.08\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_JPayEyQPRCUTe]_[245x177].gif\",\n    video=true, slient=true, speed=0.93862,\n    cutFrom=0.0, cutTo=2.6\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_TGKnLbfAzkk3DDNt8K]_[320x480].gif\",\n    video=true, slient=true, speed=1.096676,\n    cutFrom=0.0, cutTo=5.066667\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_3boPPdHk2ueo8]_[480x270].gif\",",
+        "type": "code",
+        "location": "/samples/medialang/dog_cat_test_nofast.mdl:58-86"
+    },
+    "283": {
+        "file_id": 32,
+        "content": "This code represents a list of video files and their associated properties. Each item in the list contains the file path, whether it's a video (video=true), if it's silent (silent=true), its speed, and specific cutFrom/cutTo timestamps for each clip.",
+        "type": "comment"
+    },
+    "284": {
+        "file_id": 32,
+        "content": "    video=true, slient=true, speed=1.079128,\n    cutFrom=0.0, cutTo=3.0\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_UvvK8rOSHPxgjo9ryD]_[728x728].gif\",\n    video=true, slient=true, speed=0.999996,\n    cutFrom=0.0, cutTo=6.0\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_3o6fJ9cQXux6wfA2BO]_[480x264].gif\",\n    video=true, slient=true, speed=0.987647,\n    cutFrom=0.0, cutTo=3.2\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_OOTtmh8oXrFK5ccNU7]_[460x460].gif\",\n    video=true, slient=true, speed=1.018824,\n    cutFrom=0.0, cutTo=4.004\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_Dcf2hNSaAiLV6]_[400x300].gif\",\n    video=true, slient=true, speed=0.987007,\n    cutFrom=0.0, cutTo=6.84\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_yXBqba0Zx8S4]_[480x324].gif\",\n    video=true, slient=true, speed=0.976134,\n    cutFrom=0.0, cutTo=4.5\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_bhSi84uFsp66s]_[354x306].gif\",",
+        "type": "code",
+        "location": "/samples/medialang/dog_cat_test_nofast.mdl:87-116"
+    },
+    "285": {
+        "file_id": 32,
+        "content": "The code is a list of video files and their corresponding parameters for use in the media language model. The videos are located on the desktop under the \"pyjom/samples/medialang/source/video\" directory, with each file having properties such as being silent, specific speeds, and cut durations.",
+        "type": "comment"
+    },
+    "286": {
+        "file_id": 32,
+        "content": "    video=true, slient=true, speed=1.026876,\n    cutFrom=0.0, cutTo=4.733945\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_NmGbJwLl7Y4lG]_[480x270].gif\",\n    video=true, slient=true, speed=0.96385,\n    cutFrom=0.0, cutTo=4.0\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_FOL5mK0tXUmXe]_[450x254].gif\",\n    video=true, slient=true, speed=0.830318,\n    cutFrom=0.0, cutTo=2.3\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_77vjJEy9IRqJW]_[303x476].gif\",\n    video=true, slient=true, speed=1.192301,\n    cutFrom=0.0, cutTo=4.96\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_T7nRl5WHw7Yru]_[320x240].gif\",\n    video=true, slient=true, speed=0.883147,\n    cutFrom=0.0, cutTo=3.25\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_37R1oJeXReoJW]_[291x294].gif\",\n    video=true, slient=true, speed=1.010094,\n    cutFrom=0.0, cutTo=7.0\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_3oz8xEFHNzQE3VIRCE]_[480x490].gif\",",
+        "type": "code",
+        "location": "/samples/medialang/dog_cat_test_nofast.mdl:117-146"
+    },
+    "287": {
+        "file_id": 32,
+        "content": "This code represents a series of video clips with their respective file paths, along with information about each clip such as its speed, duration, and whether it is silent or not. The code seems to be part of a larger program that likely involves processing or playing these videos in a specific sequence or context.",
+        "type": "comment"
+    },
+    "288": {
+        "file_id": 32,
+        "content": "    video=true, slient=true, speed=1.010619,\n    cutFrom=0.0, cutTo=4.2042\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_Bkcls2eA8Fc6A]_[480x480].gif\",\n    video=true, slient=true, speed=1.2,\n    cutFrom=0.0, cutTo=10.692054\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_11kgieHVYW53lC]_[480x360].gif\",\n    video=true, slient=true, speed=1.2,\n    cutFrom=0.0, cutTo=0.564027\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_Ev17f0KeO9qkE]_[300x169].gif\",\n    video=true, slient=true, speed=0.817758,\n    cutFrom=0.0, cutTo=3.017544\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_U7969wTwwtn6KBvEdA]_[384x480].gif\",\n    video=true, slient=true, speed=1.009003,\n    cutFrom=0.0, cutTo=3.733333\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_IPUFTmRYZqG2s]_[480x270].gif\",\n    video=true, slient=true, speed=0.973326,\n    cutFrom=0.0, cutTo=5.84\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_hNRA4W7qJnbpK]_[389x415].gif\",",
+        "type": "code",
+        "location": "/samples/medialang/dog_cat_test_nofast.mdl:147-176"
+    },
+    "289": {
+        "file_id": 32,
+        "content": "The code represents a list of video files with their corresponding properties such as file path, if the video is silent and muted, and the speed at which it should play. The cutFrom and cutTo values define the specific time intervals for each video file within the media language script.",
+        "type": "comment"
+    },
+    "290": {
+        "file_id": 32,
+        "content": "    video=true, slient=true, speed=1.15384,\n    cutFrom=0.0, cutTo=4.8\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_Ul2rAQJqNXp9S]_[400x225].gif\",\n    video=true, slient=true, speed=0.963845,\n    cutFrom=0.0, cutTo=4.0\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_4MXO2o9MbPBi6M79G6]_[480x270].gif\",\n    video=true, slient=true, speed=0.99367,\n    cutFrom=0.0, cutTo=3.666667\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_HC995u2L4I7mg]_[300x169].gif\",\n    video=true, slient=true, speed=0.817758,\n    cutFrom=0.0, cutTo=3.017544\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_i0lkOcXmpcE92]_[400x225].gif\",\n    video=true, slient=true, speed=1.054048,\n    cutFrom=0.0, cutTo=3.9\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_QxqqwXQuSWufNazWWU]_[448x450].gif\",\n    video=true, slient=true, speed=0.86666,\n    cutFrom=0.0, cutTo=5.2\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_XlNkepH9WJO3C]_[245x160].gif\",",
+        "type": "code",
+        "location": "/samples/medialang/dog_cat_test_nofast.mdl:177-206"
+    },
+    "291": {
+        "file_id": 32,
+        "content": "This code contains a list of video files with their corresponding paths, and each video has properties like \"video=true\", \"slient=true\", speed, cutFrom, and cutTo. The videos are likely being used in a media processing or editing program where the specified parameters determine how the video will be displayed or edited.",
+        "type": "comment"
+    },
+    "292": {
+        "file_id": 32,
+        "content": "    video=true, slient=true, speed=0.975598,\n    cutFrom=0.0, cutTo=3.6\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_cEPFSJokR4hzi]_[480x270].gif\",\n    video=true, slient=true, speed=1.031923,\n    cutFrom=0.0, cutTo=8.08\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_ghHZVf7kK9379nbcuh]_[442x468].gif\",\n    video=true, slient=true, speed=0.969893,\n    cutFrom=0.0, cutTo=3.578947\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_5t7AJfJQnmsP5Tm1QS]_[480x480].gif\",\n    video=true, slient=true, speed=1.042304,\n    cutFrom=0.0, cutTo=6.733333\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_x42zjj678Sr6M]_[420x241].gif\",\n    video=true, slient=true, speed=1.071709,\n    cutFrom=0.0, cutTo=7.92\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_wBQa0CjlSySUE]_[320x180].gif\",\n    video=true, slient=true, speed=1.005696,\n    cutFrom=0.0, cutTo=8.82\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_fJdpdS5jaDje8]_[361x194].gif\",",
+        "type": "code",
+        "location": "/samples/medialang/dog_cat_test_nofast.mdl:207-236"
+    },
+    "293": {
+        "file_id": 32,
+        "content": "These code snippets define media files and their properties for the \"medialang\" project. Each entry consists of a file path, video=true (indicating it's a video), silent=true, speed value, and cutFrom/cutTo time values. These media files are likely being used in a multimedia presentation or production.",
+        "type": "comment"
+    },
+    "294": {
+        "file_id": 32,
+        "content": "    video=true, slient=true, speed=0.882244,\n    cutFrom=0.0, cutTo=5.302326\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_IT4fLZjxyDu24]_[720x540].gif\",\n    video=true, slient=true, speed=0.83194,\n    cutFrom=0.0, cutTo=5.0\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_q9ETKoMaBMsNy]_[300x300].gif\",\n    video=true, slient=true, speed=0.956076,\n    cutFrom=0.0, cutTo=6.16\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_lQI2sf2qserJsrixfw]_[270x480].gif\",\n    video=true, slient=true, speed=0.992241,\n    cutFrom=0.0, cutTo=6.4\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_MOgAd5Z2LZRHW]_[338x254].gif\",\n    video=true, slient=true, speed=1.2,\n    cutFrom=0.0, cutTo=0.564\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_GSsTZNQjPvl1m]_[500x377].gif\",\n    video=true, slient=true, speed=1.2,\n    cutFrom=0.0, cutTo=0.564\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_pCyN4mn4MbGCY]_[306x215].gif\",",
+        "type": "code",
+        "location": "/samples/medialang/dog_cat_test_nofast.mdl:237-266"
+    },
+    "295": {
+        "file_id": 32,
+        "content": "This code represents a series of video file paths along with their properties, such as being muted, having specific speeds and cut durations. It is likely used for playing multiple videos in sequence or simultaneously within a larger application.",
+        "type": "comment"
+    },
+    "296": {
+        "file_id": 32,
+        "content": "    video=true, slient=true, speed=0.984554,\n    cutFrom=0.0, cutTo=7.266055\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_czpet1H4pnyAE]_[208x296].gif\",\n    video=true, slient=true, speed=1.074398,\n    cutFrom=0.0, cutTo=7.93985\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_WhCYptDg5hgIg]_[181x180].gif\",\n    video=true, slient=true, speed=1.017585,\n    cutFrom=0.0, cutTo=7.52\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_pytb6SgEJuPGE]_[250x246].gif\",\n    video=true, slient=true, speed=1.2,\n    cutFrom=0.0, cutTo=10.512054\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_zUdFehNEYEMFi]_[406x293].gif\",\n    video=true, slient=true, speed=1.2,\n    cutFrom=0.0, cutTo=10.500082\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_1xl9CXjjK64iFItin7]_[480x480].gif\",\n    video=true, slient=true, speed=1.2,\n    cutFrom=0.0, cutTo=0.552\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_1WbITXJruDYLgYPPgy]_[400x480].gif\",",
+        "type": "code",
+        "location": "/samples/medialang/dog_cat_test_nofast.mdl:267-296"
+    },
+    "297": {
+        "file_id": 32,
+        "content": "This code is defining multiple video file paths along with their attributes such as whether it's silent or not and the speed at which it should play. Each video has a specified start (cutFrom) and end (cutTo) time, suggesting that these videos are being used in a timed sequence.",
+        "type": "comment"
+    },
+    "298": {
+        "file_id": 32,
+        "content": "    video=true, slient=true, speed=1.174338,\n    cutFrom=0.0, cutTo=8.666667\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_l1Joh6GmLESwGYjmw]_[480x352].gif\",\n    video=true, slient=true, speed=1.2,\n    cutFrom=0.0, cutTo=0.552\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_9EcYmq8ofAAkbIlooc]_[480x480].gif\",\n    video=true, slient=true, speed=1.2,\n    cutFrom=0.0, cutTo=0.552\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_PdSfuPb8ZGV9P2w5IP]_[384x480].gif\",\n    video=true, slient=true, speed=1.2,\n    cutFrom=0.0, cutTo=0.552\n)\n(\"/root/Desktop/works/pyjom/samples/medialang/source/video/video_[giphy_JQL87nbjGPYL52tCvF]_[270x480].gif\",\n    video=true, slient=true, speed=1.2,\n    cutFrom=0.0, cutTo=0.54\n)",
+        "type": "code",
+        "location": "/samples/medialang/dog_cat_test_nofast.mdl:297-319"
+    },
+    "299": {
+        "file_id": 32,
+        "content": "Multiple media files are defined with the same attributes: video=true, slient=true, speed=1.2, cutFrom=0.0, cutTo=0.552",
+        "type": "comment"
+    }
+}

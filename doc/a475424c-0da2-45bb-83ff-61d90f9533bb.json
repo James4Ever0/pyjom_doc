@@ -1,0 +1,15 @@
+{
+    "summary": "This function removes 'reloading' decorators from code, adds if missing, and preserves 'lru_cache'. It differentiates between FunctionDef and AsyncFunctionDef. The modified tree is dumped and the input code is recovered and rewritten before printing.",
+    "details": [
+        {
+            "comment": "This function removes 'reloading' decorators from function definitions within the given code and retains 'lru_cache' decorators. It also adds a 'reloading' import if it was not present initially, unless specified otherwise.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/codemod_redbaron/pasta_test.py\":0-27",
+            "content": "import pasta\nimport ast\ndef recover_and_rewrite(c,no_rewrite=False):\n    c = c.replace(\"from reloading import reloading\\n\", \"\")\n    if not no_rewrite:\n        c = \"from reloading import reloading\\n\" + c\n    tree = pasta.parse(c)\n    # print(dir(tree))\n    for i in range(len(tree.body)):\n        f = tree.body[i]\n        if type(f) == ast.FunctionDef:\n            cached = False\n            removeList = []\n            for index, elem in enumerate(f.decorator_list):\n                if type(elem) == ast.Name:\n                    if elem.id == \"reloading\":\n                        removeList.append(index)\n                    elif \"lru_cache\" in elem.id: # are you sure you won't call that again?\n                        cached = True\n                elif type(elem) == ast.Call:\n                    # breakpoint()\n                    if type(elem.func) == ast.Name:\n                        if \"lru_cache\" in elem.func.id:\n                            cached = True\n            for index in removeList:\n                del f.decorator_list[index]"
+        },
+        {
+            "comment": "The code checks if the decorator list is empty and if not, adds a \"reloading\" decorator. It differentiates between FunctionDef and AsyncFunctionDef. It then dumps the modified tree, recovers, and rewrites the input code before printing it.",
+            "location": "\"/media/root/Toshiba XG3/works/pyjom_doc/src/tests/skipexception_code_and_continue_resurrection_time_travel_debugging/codemod_redbaron/pasta_test.py\":28-40",
+            "content": "            # if len(f.decorator_list) == 0: # are you sure this will be ok?\n            if not no_rewrite:\n                if not cached:\n                    f.decorator_list.append(ast.Name(\"reloading\"))  # seems good?\n        # ast.FunctionDef and ast.AsyncFunctionDef are different.\n    c0 = pasta.dump(tree)\n    return c0\nif __name__ == \"__main__\":\n    c = open(\"test2.py\", \"r\").read()\n    c0 = recover_and_rewrite(c)\n    print(c0)"
+        }
+    ]
+}

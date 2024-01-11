@@ -1,0 +1,535 @@
+{
+    "5000": {
+        "file_id": 640,
+        "content": "    for source_sentences, target_sentences in mydataset(batchsize=batchsize):\n        # targetSentence = [\"今天天气不错\",\"你吃了没有\"]\n        batchsize = len(source_sentences)\n        if batchsize >0:\n        # print([source_sentence,target_sentence])\n            input_ids = tokenizer.batch_encode_plus(source_sentences,max_length=max_length,padding=True,truncation=True, return_tensors=\"pt\").input_ids.to(device)\n            labels = tokenizer.batch_encode_plus(target_sentences,return_tensors=\"pt\",padding=True,truncation=True,max_length=max_length,).input_ids.to(device) # what is the freaking max_length?\n            yield input_ids, labels\n# from torch.optim import SGD\n# from torch.optim import ASGD as SGD\nfrom torch.optim import RMSprop as SGD\nbatchsize = 2\n# optimizer = SGD(model.parameters(), momentum=0.9, lr=0.000001*batchsize, weight_decay=0.0001)\noptimizer = SGD(model.parameters(), lr=0.00001*batchsize, weight_decay=0.0001)\nloss_mean = []\nmean_loss_period = 100\nepochs = 1000\nmsaveperiod = 5000 # wtf is 30000\nupdate_period = 1 # hell man.",
+        "type": "code",
+        "location": "/tests/title_cover_generator/pegasus_trainer.py:28-49"
+    },
+    "5001": {
+        "file_id": 640,
+        "content": "This code is training a model with batch size 2. The maximum length of input sentences is not defined. The optimizer is using RMSprop algorithm, with a learning rate adjusted by the batch size. The mean loss over the last 100 batches is stored in 'loss_mean' list. Training continues for 1000 epochs and model weights are saved every 5000 updates. Updates to the model occur once per iteration.",
+        "type": "comment"
+    },
+    "5002": {
+        "file_id": 640,
+        "content": "#setting up the model\n# def get_response(input_text):\n#   batch = tokenizer.encode(input_text, return_tensors=\"pt\").to(torch_device)\n#   translated = model.generate(batch,decoder_start_token_id=tokenizer.cls_token_id,eos_token_id=tokenizer.sep_token_id,max_length=30).cpu().numpy()[0]\n#   tgt_text = ''.join(tokenizer.decode(translated[1:])).replace(' ', '')\n#   return tgt_text\n# not so bad?\n# can you train this shit?\n# print(get_response(\"你吃了没有\"))\nfor epoch in range(epochs):\n    print(\"STARTING EPOCH {} TOTAL {}\".format(epoch,epochs))\n    for index, (input_ids, labels) in enumerate(get_train_data(batchsize=batchsize)):\n        try:\n            if index%update_period == 0:\n                optimizer.zero_grad()\n            # print([input_ids, labels])\n            outputs = model(input_ids=input_ids, labels=labels)\n            loss = outputs.loss\n            floss = loss.tolist()\n            loss_mean.append(floss)\n            if len(loss_mean) == mean_loss_period:\n                mloss = sum(loss_mean)/mean_loss_period",
+        "type": "code",
+        "location": "/tests/title_cover_generator/pegasus_trainer.py:52-77"
+    },
+    "5003": {
+        "file_id": 640,
+        "content": "This code sets up a model for generating translations, trains it using train data, and calculates the loss. It uses a tokenizer to encode input texts and generate translations, then calculates the mean loss over a specified period.",
+        "type": "comment"
+    },
+    "5004": {
+        "file_id": 640,
+        "content": "                print(\"EPOCH {} TOTAL {}\".format(epoch,epochs))\n                print(\"MEAN LOSS OVER {} SAMPLES: {}\".format(mean_loss_period,str(mloss)[:5]))\n                loss_mean = []\n            loss.backward()\n            # logits = outputs.logits\n            if index % update_period == 0:\n                optimizer.step() # this is shit. i should run this shit in kaggle.\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"POSSIBLY OOM\")\n        if index > (msaveperiod - 1) and index%msaveperiod == 0:\n            print(\"SAVING MODEL AT {} SAMPLES\".format(index))\n            model.save_pretrained(model_name_or_path)\n            # shutil.copy(model_name_or_path,model_name_or_path+\"-backup\")\n            model.save_pretrained(model_name_or_path+\"-backup\")\n            ## it is working.",
+        "type": "code",
+        "location": "/tests/title_cover_generator/pegasus_trainer.py:78-94"
+    },
+    "5005": {
+        "file_id": 640,
+        "content": "This code appears to be part of a training loop for a machine learning model. It keeps track of the mean loss over a certain period and saves the model after a set number of samples. The code includes an optimization step, error handling, and backup saving functionality. The trainer seems frustrated with the line \"this is shit. i should run this shit in kaggle.\"",
+        "type": "comment"
+    },
+    "5006": {
+        "file_id": 641,
+        "content": "/tests/title_cover_generator/paddlenlp_word_label.py",
+        "type": "filepath"
+    },
+    "5007": {
+        "file_id": 641,
+        "content": "This code imports Taskflow from paddlenlp and commons.sample_data. It iterates through sample data, applying various tasks (word segmentation, NER, POS tagging, etc.) to each element using Taskflow. If the flow is information extraction, it uses a schema for processing. After processing, it deletes the Taskflow object and prints the task name along with the processed data.",
+        "type": "summary"
+    },
+    "5008": {
+        "file_id": 641,
+        "content": "from paddlenlp import  Taskflow\nfrom commons import sample_data\n# LAC 词语重要性\nfor elem in sample_data:\n    flows = [\"word_segmentation\",\"ner\",\"pos_tagging\",\"dependency_parsing\",\"information_extraction\",\"sentiment_analysis\",\"text_correction\",\"knowledge_mining\"]\n    for flow in flows:\n        if flow !=\"information_extraction\":\n            seg = Taskflow(flow) # need schema for information extraction.\n        else:\n            schema = [\"主语\",\"谓语\",\"宾语\"]\n            seg = Taskflow(flow, schema=schema) # need schema for information extraction\n        data = seg(elem)\n        del seg\n        print(flow,data)",
+        "type": "code",
+        "location": "/tests/title_cover_generator/paddlenlp_word_label.py:1-16"
+    },
+    "5009": {
+        "file_id": 641,
+        "content": "This code imports Taskflow from paddlenlp and commons.sample_data. It iterates through sample data, applying various tasks (word segmentation, NER, POS tagging, etc.) to each element using Taskflow. If the flow is information extraction, it uses a schema for processing. After processing, it deletes the Taskflow object and prints the task name along with the processed data.",
+        "type": "comment"
+    },
+    "5010": {
+        "file_id": 642,
+        "content": "/tests/title_cover_generator/gpt2_train.sh",
+        "type": "filepath"
+    },
+    "5011": {
+        "file_id": 642,
+        "content": "This code navigates into the \"GPT2-NewsTitle\" directory and creates a new directory named \"output_dir\". It then runs the Python script \"train.py\" to train a GPT-2 model for generating news titles or covers.",
+        "type": "summary"
+    },
+    "5012": {
+        "file_id": 642,
+        "content": "cd GPT2-NewsTitle\nmkdir output_dir\npython3 train.py",
+        "type": "code",
+        "location": "/tests/title_cover_generator/gpt2_train.sh:1-3"
+    },
+    "5013": {
+        "file_id": 642,
+        "content": "This code navigates into the \"GPT2-NewsTitle\" directory and creates a new directory named \"output_dir\". It then runs the Python script \"train.py\" to train a GPT-2 model for generating news titles or covers.",
+        "type": "comment"
+    },
+    "5014": {
+        "file_id": 643,
+        "content": "/tests/title_cover_generator/gpt2_title_data_prep.py",
+        "type": "filepath"
+    },
+    "5015": {
+        "file_id": 643,
+        "content": "Code copies train data as test data, creates a new data directory if it doesn't exist, writes train data to a JSON file, and then copies the train file to the test file.",
+        "type": "summary"
+    },
+    "5016": {
+        "file_id": 643,
+        "content": "# simply copy train shit as test shit.\nfrom commons import load_train_data_core, import_word\nWord = import_word()\nimport json\ndata = []\nimport os\ndata_dir = \"/media/root/help/pyjom/tests/title_cover_generator/GPT2-NewsTitle/data_dir\"\nif not os.path.exists(data_dir):\n    os.mkdir(data_dir)\ntrain_file = os.path.join(data_dir,\"train_data.json\")\ntest_file = os.path.join(data_dir,\"test_data.json\")\nfor content, title in load_train_data_core():\n    sample = {\"title\": title[0],\"content\":content[0]}\n    data.append(sample) # is that necessary?\nwith open(train_file,\"w+\",encoding=\"utf8\") as f:\n    f.write(json.dumps(data,ensure_ascii=False,indent=4))\nimport shutil\nshutil.copy(train_file, test_file)",
+        "type": "code",
+        "location": "/tests/title_cover_generator/gpt2_title_data_prep.py:1-26"
+    },
+    "5017": {
+        "file_id": 643,
+        "content": "Code copies train data as test data, creates a new data directory if it doesn't exist, writes train data to a JSON file, and then copies the train file to the test file.",
+        "type": "comment"
+    },
+    "5018": {
+        "file_id": 644,
+        "content": "/tests/title_cover_generator/commons.py",
+        "type": "filepath"
+    },
+    "5019": {
+        "file_id": 644,
+        "content": "The code loads and preprocesses training data using load_train_data_core function, iterating through indexes of text chunks, transforming words, and creating Word class instances. It applies shuffle and progress bar for efficient data access.",
+        "type": "summary"
+    },
+    "5020": {
+        "file_id": 644,
+        "content": "sample_data = [\"【翎伶】world.execute;(me);\", \"【封校日常】沙拉制作\", \"【Blender场景动画】新代 : 城市【VictoryLuode】\", \"历时733天! 圆了挖机梦，我独立造了一台可遥控小型挖机\", \"【难懂的数学】傅里叶、拉普拉斯、卷积、欧拉方程、梯度散度、拉格朗日方程、奈奎斯特采样、虚数等抽象难懂数学一网打尽\", \"这些up主是中学生和大学生的救星啊啊啊啊啊！！！学习方法｜免费课程｜兴趣技能｜生涯规划\", \"【不止游戏】游戏和电影中的M4，究竟有多经典？\", \"Steam++ 新版v2.7发布 新功能介绍\", \"手绘503张！还原数码宝贝OP\", \"好可爱鸭~ summertime\", \"男室友偷偷逛站酷网，毕设惊艳全校！\", \"对不起，我笑得真的很大声！【第一届立直麻将联赛】\", \"在南京每天画画一小时，在家接单养活自己！\", \"没有什么事情是一个纸团解决不了的，如果有那就用很多个\", \"到底是什么让我能在公园大爷面前如此的自信？\", \"欲拔山城寨，先过五虎将\", \"杨侃最下饭｜27 杨毅：经纪人不能太贪心\", \"【深渊的呼唤V】全球总决赛-决赛 Wolves vs SST\", \"【安特卫普MAJOR】亚洲区预选赛 TYLOO vs Renegades\", \"狼队第五人格分部成立两周年啦！\", \"【守望先锋联赛】英雄崛起!准备好迎接2022赛季!\"]\nimport progressbar\nimport random\ndef load_train_data_core(shuffle=True,batchsize=1,len_threshold = 2,no_unk=True):\n    filepath = \"/media/root/help/pyjom/tests/title_cover_generator/DianJing/data/basic_data_80k_v2.pkl\"\n    # warning...\n    import pickle\n    fobj = open(filepath, 'rb')\n    # print([fobj])\n    # breakpoint()\n    class Word:\n        def __init__(self,val,tf,df):\n            self.val = val",
+        "type": "code",
+        "location": "/tests/title_cover_generator/commons.py:1-17"
+    },
+    "5021": {
+        "file_id": 644,
+        "content": "The code imports the progressbar and random libraries, defines a function load_train_data_core which takes optional parameters shuffle, batchsize, len_threshold, and no_unk. The filepath variable stores the path to a pickle file containing data for training. The function opens the file using pickle's open function in read binary mode and does not perform any additional operations on its contents before returning.",
+        "type": "comment"
+    },
+    "5022": {
+        "file_id": 644,
+        "content": "            self.tf = tf\n            self.df = df\n        def __repr__(self):\n            pass\n    _, word2idx, idx2word, targets, srcs= pickle.load(fobj) # freaking swap.\n    # titles, abstracts\n    # print(titles) # these are not freaking words. numbers.\n    # print(abstracts)\n    for key in idx2word:\n        elem = idx2word[key]\n        if elem.startswith('<') and elem.endswith('>'):\n            elem = elem[1:-1].upper()\n            elem = \"[{}]\".format(elem)\n            idx2word[key] =elem\n    # you can freaking get the data.\n    # title = titles[0]\n    len_indexs = len(targets)\n    # indexs = [x for x in range(indexs)]\n        # random.shuffle(indexs)\n    randomIdx = [x for x in range(len_indexs)]\n    if shuffle:\n        random.shuffle(randomIdx)\n    randomIdx2 = [randomIdx[x*batchsize:(x+1)*batchsize] for x in range(len(randomIdx)//batchsize+1)]\n    len_srcs = len(srcs)\n    len_targets = len(targets)\n    # mfilter = lambda x: x.replace(\" \",\"\").replace(\"\\n\",\"\")\n    for indexs in progressbar.progressbar(randomIdx2):",
+        "type": "code",
+        "location": "/tests/title_cover_generator/commons.py:18-44"
+    },
+    "5023": {
+        "file_id": 644,
+        "content": "The code is loading a pickle file, extracting relevant data including titles and abstracts. It then modifies some elements in the idx2word dictionary by replacing specific characters with formatted strings. The code provides random indexes for accessing the data and applies a shuffle if required. Lastly, it uses a progress bar for iterating over the shuffled indexes to access the data.",
+        "type": "comment"
+    },
+    "5024": {
+        "file_id": 644,
+        "content": "        src_result=[]\n        target_result=[]\n        for index in indexs:\n            if index < len_srcs and index < len_targets:\n                src, target = srcs[index], targets[index]\n                src, target = [idx2word[x] for x in src], [idx2word[x] for x in target]\n                src, target = \"\".join(src),\"\".join(target)\n                if no_unk:\n                    src, target = src.replace(\"[UNK]\",\"\"), target.replace(\"[UNK]\",\"\")\n                # src, target = mfilter(src), mfilter(target)\n                if max(len(src),len(target)) > len_threshold:\n                    src_result.append(src)\n                    target_result.append(target)\n        if len(src_result) >0:\n            yield src_result,target_result\n    # for index in indexs:\n    #     title = titles[index]\n    #     mytitle = [idx2word[x] for x in title]\n    #     abstract = abstracts[index]\n    #     myabstract = [idx2word[x] for x in abstract]\n    #     if join:\n    #         yield \"\".join(mytitle), \"\".join(myabstract)\n    #     else: yield mytitle, myabstract",
+        "type": "code",
+        "location": "/tests/title_cover_generator/commons.py:45-67"
+    },
+    "5025": {
+        "file_id": 644,
+        "content": "This code is iterating through indexes in two lists of text chunks, transforming them to word form, joining the words into strings, and removing [UNK] tokens if specified. If any resulting string exceeds a certain length threshold, it appends them to two result lists. The code yields these two result lists if there are at least one entry.",
+        "type": "comment"
+    },
+    "5026": {
+        "file_id": 644,
+        "content": "    # print(mytitle)\n    # breakpoint()\ndef import_word():\n    # if __name__ == \"__main__\":\n    class Word:\n        def __init__(self,val,tf,df):\n            self.val = val\n            self.tf = tf\n            self.df = df\n        def __repr__(self):\n            pass\n    return Word\nif __name__ == '__main__':\n    Word = import_word()\n    for title, abstract in load_train_data_core():\n        print(title)\n        print(abstract) # we have <unk> tokens. how do we freaking deal with it?\n        breakpoint()",
+        "type": "code",
+        "location": "/tests/title_cover_generator/commons.py:68-87"
+    },
+    "5027": {
+        "file_id": 644,
+        "content": "The code defines a function `import_word` that returns a class named Word. The class has attributes `val`, `tf`, and `df`. The code then checks if it is being run as the main program and creates instances of the Word class from loaded data, printing title and abstract. It encounters a breakpoint to debug or inspect the handling of tokens in the code.",
+        "type": "comment"
+    },
+    "5028": {
+        "file_id": 645,
+        "content": "/tests/search_engine_suggestion_based_qa_bot/search_for_picture_embedding.py",
+        "type": "filepath"
+    },
+    "5029": {
+        "file_id": 645,
+        "content": "This code utilizes BaiDu image search API to find similar images and prints details, implements time delays for safety. It currently uses textrank model for improvements. The code is facing issues with `getBaiduImageSearchAjaxInfoParsed` function from `parse_baidu_search_ajax` module. It handles exceptions, provides URL structure info, and offers debugging support.",
+        "type": "summary"
+    },
+    "5030": {
+        "file_id": 645,
+        "content": "# actually the clip model does well for this.\n# though you want to use bm25 based textrank\nimage = \"prettyGirl.jpeg\" # girl image\nfrom PicImageSearch.sync import BaiDu\nbaidu = BaiDu()\nresult = baidu.search(file=image)\n# print(result)\n# better not to query 'ajax' unless you want to get banned.\n# breakpoint()\n# you want to use phash, width, height for this.\nimport requests\nSLEEP= 1\nfor elem in result.raw:\n    elem = elem.__dict__\n    # print(elem)\n    # breakpoint()\n    thumbnail = elem.get('thumbnail')\n    simi = elem.get('similarity')\n    title = elem.get('title')\n    # url is not necessary since we almost can't get the picture.\n    ajaxUrl = elem['origin'].get('ajaxUrl')\n    import time\n    print(thumbnail, simi, title)\n    # print(thumbnail, simi, title, ajaxUrl)\n    time.sleep(SLEEP) # wait too long?\n    r = requests.get(ajaxUrl)\n    myJson = r.json()\n    # from lazero.filesystem.io import writeJsonObjectToFile\n    # writeJsonObjectToFile('jq_image_2.json',myJson)\n    # breakpoint()\n    # maybe no need to parse this thing.",
+        "type": "code",
+        "location": "/tests/search_engine_suggestion_based_qa_bot/search_for_picture_embedding.py:1-34"
+    },
+    "5031": {
+        "file_id": 645,
+        "content": "This code uses the BaiDu image search API to find similar images and their details. It prints thumbnail, similarity, title, and AJAX URL for each result. The code also includes time delays to avoid being banned. The clip model is mentioned for potential use in future improvements, but currently, bm25 based textrank is recommended. The code avoids querying 'ajax' to prevent potential bans.",
+        "type": "comment"
+    },
+    "5032": {
+        "file_id": 645,
+        "content": "    # try: # TODO: skipping this parsing since multiple errors.\n    #     from parse_baidu_search_ajax import getBaiduImageSearchAjaxInfoParsed\n    #     title_some, url_meta_some= getBaiduImageSearchAjaxInfoParsed(myJson, debug=True)\n    #     # changed again?\n    # except:\n    #     import traceback\n    #     traceback.print_exc()\n    #     print(ajaxUrl)\n    #     print('error!')\n    #     breakpoint()\n    # breakpoint()\n# ['origin', 'raw', 'url']\n# result.raw[0].url is the original url. however you won't get the picture.\n# result.raw[0].thumbnail\n# 'origin', 'similarity', 'thumbnail', 'title', 'url'\n# result.raw[0].origin['ajaxUrl'] -> get more similar images of this one",
+        "type": "code",
+        "location": "/tests/search_engine_suggestion_based_qa_bot/search_for_picture_embedding.py:36-52"
+    },
+    "5033": {
+        "file_id": 645,
+        "content": "This code is trying to import the function `getBaiduImageSearchAjaxInfoParsed` from the module `parse_baidu_search_ajax`, but due to some errors, it's skipping this parsing process. It then handles any exceptions that may occur and prints the error message along with the URL. If an exception happens, it also calls a breakpoint to pause the code execution for debugging purposes. The code also provides information about the URL structure and how to access different parts of the URL, such as the original URL, thumbnail, and ajaxUrl to get more similar images.",
+        "type": "comment"
+    },
+    "5034": {
+        "file_id": 646,
+        "content": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_title_abstract.py",
+        "type": "filepath"
+    },
+    "5035": {
+        "file_id": 646,
+        "content": "This code reads a JSON file, cleans text, processes abstracts to generate phrases meeting minimum and maximum length requirements. It parses Baidu search result titles and abstracts for potential question-answering content using \"result_baidu.json\". Text preprocessing is performed, and the top 20 ranked candidate phrases are printed based on BM25 similarity and Chinese character portion in the query.",
+        "type": "summary"
+    },
+    "5036": {
+        "file_id": 646,
+        "content": "from lazero.filesystem.io import readJsonObjectFromFile\nfrom lazero.utils.mathlib import checkMinMaxDict\ndata = readJsonObjectFromFile(\"result_baidu.json\")\nimport string\nfrom zhon import hanzi\npunctuations = set(list(string.punctuation + hanzi.punctuation))\npermitted = [\" \"]\nfor perm in permitted:\n    if perm in punctuations:\n        punctuations.remove(perm)\ndef removeTimeInfo(phrase):\n    import re\n    timeinfos = re.findall(r\"\\d+年\\d+月\\d+日\", phrase)\n    for timeinfo in timeinfos:\n        phrase = phrase.replace(timeinfo, \"\")\n    return phrase\ndef processQueryResult(abstract, minMaxDict={\"min\": 8, \"max\": 24}):\n    for punc in punctuations:\n        abstract = abstract.replace(punc, \"\\n\")\n    abstract = abstract.split(\"\\n\")\n    for phrase in abstract:\n        phrase = removeTimeInfo(phrase)\n        phrase = phrase.strip()\n        if not checkMinMaxDict(len(phrase), minMaxDict):\n            continue\n        else:\n            yield phrase\ncandidates = []\nquery = \"python有个问题想请教一下 为什么我这个函数跑不通\"\n# use another model please?",
+        "type": "code",
+        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_title_abstract.py:1-41"
+    },
+    "5037": {
+        "file_id": 646,
+        "content": "This code reads a JSON file, removes time and punctuation information from text, and processes the abstract to yield phrases meeting minimum and maximum length requirements. The purpose is to parse Baidu search result titles and abstracts for potential question-answering content, using the \"result_baidu.json\" file as input. The code also includes a function to remove time information from text and ensures each phrase meets specific length criteria before yielding it. The query variable contains a sample input for testing or using with another model.",
+        "type": "comment"
+    },
+    "5038": {
+        "file_id": 646,
+        "content": "# haystack?\nfor elem in data:\n    title = elem.get(\"title\")\n    print(\"title: %s\" % title)\n    spliters = [\" - \", \"-\", \"_\", \"－\"]\n    for spliter in spliters:\n        title = title.replace(spliter, \"_\")\n    potentialWebsiteNames = title.split(\"_\")\n    title = potentialWebsiteNames[0].strip()\n    realWebsiteNames = []\n    if len(potentialWebsiteNames) > 1:\n        websiteNames = potentialWebsiteNames[1:]\n        for name in websiteNames:\n            name = name.strip()\n            if len(name) > 0:\n                realWebsiteNames.append(name)\n    abstract = elem.get(\"abstract\")\n    # print(abstract)\n    # breakpoint()\n    for name in realWebsiteNames:\n        abstract = abstract.replace(name, \"\")  # remove website names\n    for phrase in processQueryResult(abstract):\n        if phrase not in candidates and not phrase.endswith(\"\"):  # magic char.\n            candidates.append(phrase)  # what is your query?\nimport jieba\ndef getCuttedWords(phrase):\n    candidates = jieba.lcut(phrase.lower())\n    wordList = []\n    for word in candidates:",
+        "type": "code",
+        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_title_abstract.py:42-73"
+    },
+    "5039": {
+        "file_id": 646,
+        "content": "This code is iterating over a list of data items, extracting titles and abstracts. It cleans the titles by removing splitting characters like \"-\", \"_\", and \"－\" and then splits them into potential website names. It checks if there are additional website names in the title and removes them from the abstract. Then it cuts the abstract using Jieba's lcut function to generate candidates for further processing.",
+        "type": "comment"
+    },
+    "5040": {
+        "file_id": 646,
+        "content": "        word = word.strip()\n        if len(word) > 0:\n            wordList.append(word)\n    return wordList\ndef countCommonWords(phrase_1, phrase_2, wordCount=False):\n    words_1 = getCuttedWords(phrase_1)\n    words_2 = getCuttedWords(phrase_2)\n    # count for longest total length?\n    result = list(set(words_1) & set(words_2))\n    if wordCount:\n        return len(result)\n    else:\n        return len(\"\".join(result))\n# candidates = list(set(candidates))\n# https://pypi.org/project/rank-bm25/\n# candidates.sort(key=lambda phrase: -countCommonWords(phrase,query))\n# use bm25?\n# this sorting is wrong.\nfrom rank_bm25 import BM25Okapi\ntokenized_corpus = [getCuttedWords(phrase) for phrase in candidates]\ntokenized_query = getCuttedWords(query)\nbm25 = BM25Okapi(tokenized_corpus)\n# doc_scores = bm25.get_scores(tokenized_query)\ntop_k = 20\nprint(\"TOP\", top_k)\ntopKCandidates = bm25.get_top_n(tokenized_query, candidates, n=top_k)\n# count chinese chars.\n# count for english/chinese portion. (strange hack.)\nimport numpy as np\ndef calculateChinesePortion(phrase):",
+        "type": "code",
+        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_title_abstract.py:74-111"
+    },
+    "5041": {
+        "file_id": 646,
+        "content": "The code is performing text preprocessing, calculating the similarity between phrases, and ranking candidates using BM25 algorithm. It first tokenizes and cuts the words from the candidate phrases and the query. Then it calculates the common words between two phrases and uses this information to sort and rank the candidates. Finally, it applies the BM25Okapi algorithm to get the scores of each candidate based on their relevance to the query and selects the top 20 ranked candidates. The code also includes a function to calculate the Chinese portion in a phrase.",
+        "type": "comment"
+    },
+    "5042": {
+        "file_id": 646,
+        "content": "    length = len(phrase)\n    mdata = []\n    isalpha, isascii, isdigit, ischinese = 0, 0, 0, 0\n    for char in phrase:\n        isalpha += int(char.isalpha())\n        isascii += int(char.isascii())\n        isdigit += int(char.isdigit())\n        ischinese += int(not (isalpha or isascii or isdigit))\n    mdata = np.array([isalpha, isascii, isdigit, ischinese]) / length\n    return mdata\nqueryChinesePortion = calculateChinesePortion(query)\nfrom scipy.spatial.distance import cosine\ntopKCandidates.sort(\n    key=lambda phrase: cosine(calculateChinesePortion(phrase), queryChinesePortion)\n)\n# topKCandidates.sort(key=lambda phrase: -len(phrase))\nfor elem in topKCandidates:\n    print(elem.__repr__())",
+        "type": "code",
+        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_title_abstract.py:112-132"
+    },
+    "5043": {
+        "file_id": 646,
+        "content": "The code calculates the proportion of Chinese characters in a query and uses it to sort a list of candidate phrases. It then prints each candidate phrase, sorted by their similarity to the query based on the Chinese character portion.",
+        "type": "comment"
+    },
+    "5044": {
+        "file_id": 647,
+        "content": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_search_ajax.py",
+        "type": "filepath"
+    },
+    "5045": {
+        "file_id": 647,
+        "content": "This code parses Baidu Image Search results using two functions, extracting title snippets and image similarity, with potential img_sim issue. It retrieves image dimensions and appends to a dataframe before returning two dataframes in debug mode.",
+        "type": "summary"
+    },
+    "5046": {
+        "file_id": 647,
+        "content": "import pyjq\ndef getBaiduImageSearchAjaxInfoParsed(obj, debug=False):\n    commonFilter = \"select(.extData) | .extData.showInfo | select(. != null) | {titles, snippets, imgs_src, simi} | select (.titles !=null)\"\n    def standardJsonParser(obj):\n        command = \".data.cardData[] | {}\".format(commonFilter)\n        processed_obj = pyjq.first(command, obj)\n        return processed_obj\n    def hiddenJsParser(obj):\n        processed_obj = obj\n        for index in range(3):\n            data = pyjq.first(\".data.commonData.js[{}]\".format(index), obj2)\n            if not ('titles' in data and 'titles_url' in data):\n                continue\n            lines = data.split(\"\\n\")\n            for line in lines:\n                line = line.strip()\n                hint = \"var cardData = \"\n                # print(line)\n                if line.startswith(hint):\n                    import javascript\n                    cardData = javascript.eval_js(line.replace(hint,\"\")).valueOf()\n                    real_data = pyjq.first(commonFilter,cardData)",
+        "type": "code",
+        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_search_ajax.py:1-23"
+    },
+    "5047": {
+        "file_id": 647,
+        "content": "This code defines two functions: `standardJsonParser` and `hiddenJsParser`. The first function, `standardJsonParser`, processes the data using a common filter and returns the filtered results. The second function, `hiddenJsParser`, extracts data from hidden JavaScript strings and applies the same common filter to return the processed data. This code appears to be parsing Baidu Image Search AJAX information in different formats (standard JSON or hidden JavaScript).",
+        "type": "comment"
+    },
+    "5048": {
+        "file_id": 647,
+        "content": "                    # import pprint\n                    return real_data\n                    # pprint.pprint(real_data)\n    import pandas as pd\n    processed_obj = None\n    methods = [standardJsonParser,hiddenJsParser]\n    for method in methods:\n        try:\n            processed_obj = method(obj)\n            if processed_obj is not None:\n                break\n        except:\n            ...\n    if processed_obj is None:\n        if debug:\n            print('cannot parse info from obj')\n    # print(processed_obj)\n    # breakpoint()\n    # from pprint import pprint\n    # pprint(processed_obj)\n    title_snippets = pyjq.first(\"{titles, snippets}\", processed_obj)\n    img_sim = pyjq.first(\"(.simi[]|=tonumber )|{imgs_src, simi}\", processed_obj) # TODO: error! what is going on?\n    # img_sim[\"simi\"] = img_sim[\"simi\"] # what is this?\n    # [('titles', 15), ('snippets', 15), ('imgs_src', 43), ('simi', 43)]\n    # 15, 15, 43, 43\n    df_title_snippets = pd.DataFrame(title_snippets)\n    df_img_sim = pd.DataFrame(img_sim)\n    elem = df_img_sim[\"simi\"][0]",
+        "type": "code",
+        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_search_ajax.py:24-51"
+    },
+    "5049": {
+        "file_id": 647,
+        "content": "This code attempts to parse an object and extract title snippets and image similarity information. It uses various parsing methods, data frames for organization, and the pyjq library for data manipulation. The code also includes error handling and debugging options. However, there is a potential error in the img_sim variable parsing.",
+        "type": "comment"
+    },
+    "5050": {
+        "file_id": 647,
+        "content": "    if debug:\n        print(df_title_snippets.head())\n        print(df_img_sim.head())\n        print(type(elem), elem)  # str?\n    # breakpoint()\n    from urllib.parse import parse_qs\n    def getWidthHeight(url):\n        qs = url.split(\"?\")[-1]\n        mdict = parse_qs(qs)\n        # print(mdict)\n        # breakpoint()\n        width = int(mdict[\"w\"][0])\n        height = int(mdict[\"h\"][0])\n        area = width * height\n        return width, height, area\n    # pre_qs = df_img_sim['imgs_src'].split(\"?\")\n    width_height = df_img_sim[\"imgs_src\"].apply(\n        lambda v: pd.Series(getWidthHeight(v), index=[\"width\", \"height\", \"area\"])\n    )\n    df_img_sim_width_height = pd.concat([df_img_sim, width_height], axis=1, join=\"inner\")\n    # qs = parse_qs(pre_qs)\n    # print(qs)\n    if debug:\n        print(df_img_sim_width_height.head())\n    return df_title_snippets, df_img_sim_width_height\n# the \"js\" response may contain video info which may help with our reverse video search.\n# but the keyword also helps!\nif __name__ == \"__main__\":",
+        "type": "code",
+        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_search_ajax.py:53-85"
+    },
+    "5051": {
+        "file_id": 647,
+        "content": "This code snippet is parsing the Baidu search results and retrieving image width, height, and area information. It then appends these values to the dataframe df_img_sim_width_height and returns two dataframes: df_title_snippets and df_img_sim_width_height. The debug mode allows printing of important intermediate data for testing and validation.",
+        "type": "comment"
+    },
+    "5052": {
+        "file_id": 647,
+        "content": "    from lazero.filesystem.io import readJsonObjectFromFile\n    # obj = readJsonObjectFromFile(\"ajax_baidu.json\")\n    obj2 = readJsonObjectFromFile(\"jq_image_2.json\")\n    getBaiduImageSearchAjaxInfoParsed(obj2, debug=True)",
+        "type": "code",
+        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_search_ajax.py:86-89"
+    },
+    "5053": {
+        "file_id": 647,
+        "content": "This code imports the readJsonObjectFromFile function and reads two JSON files, \"ajax_baidu.json\" and \"jq_image_2.json\". The function getBaiduImageSearchAjaxInfoParsed is then called with the second file's content (obj2) and debug mode enabled.",
+        "type": "comment"
+    },
+    "5054": {
+        "file_id": 648,
+        "content": "/tests/search_engine_suggestion_based_qa_bot/test_fix.py",
+        "type": "filepath"
+    },
+    "5055": {
+        "file_id": 648,
+        "content": "This code snippet is from a Python script that uses the BaiduSpider module to search the web for information based on a query. It then prints the results in plain text format. The code also mentions an update needed in the baiduspider package and refers to specific pull requests on GitHub for further details.",
+        "type": "summary"
+    },
+    "5056": {
+        "file_id": 648,
+        "content": "query = \"python有个问题想请教一下 为什么我这个函数跑不通\"\nfrom baiduspider import BaiduSpider\nspider=BaiduSpider()\nfrom pprint import pprint\nresult = spider.search_web(query, pn= 1)\nprint(result.plain)\n# change the div class name.\n# change 'result-op' into 'result' at line 153\n# file: /usr/local/lib/python3.9/dist-packages/baiduspider/parser/__init__.py:153\n# https://github.com/BaiduSpider/BaiduSpider/pull/151\n# https://github.com/BaiduSpider/BaiduSpider/pull/151/files\n# breakpoint()\n# result.normal[0].url\n# also update the news extraction logic:\n# https://github.com/BaiduSpider/BaiduSpider/pull/127/files\n# 'des', 'origin', 'plain', 'snapshot', 'time', 'title', 'url'",
+        "type": "code",
+        "location": "/tests/search_engine_suggestion_based_qa_bot/test_fix.py:1-18"
+    },
+    "5057": {
+        "file_id": 648,
+        "content": "This code snippet is from a Python script that uses the BaiduSpider module to search the web for information based on a query. It then prints the results in plain text format. The code also mentions an update needed in the baiduspider package and refers to specific pull requests on GitHub for further details.",
+        "type": "comment"
+    },
+    "5058": {
+        "file_id": 649,
+        "content": "/tests/search_engine_suggestion_based_qa_bot/search_image_with_keywords.py",
+        "type": "filepath"
+    },
+    "5059": {
+        "file_id": 649,
+        "content": "This code imports a BaiduSpider class and uses it to search for an image related to the keyword \"绝对领域\". It then prints the result and checks if the 'title', 'url', and 'host' information is available.",
+        "type": "summary"
+    },
+    "5060": {
+        "file_id": 649,
+        "content": "# not sure if it relates.\nfrom baiduspider import BaiduSpider\nspider=BaiduSpider()\nfrom pprint import pprint\nquery = \"绝对领域\"\nresult = spider.search_pic(query, pn= 1) # are we fucked?\n# yeah we have result.\nprint(result)\nresult.plain\nbreakpoint()\n# 'title', 'url', 'host'\n# can we search for gif?",
+        "type": "code",
+        "location": "/tests/search_engine_suggestion_based_qa_bot/search_image_with_keywords.py:1-13"
+    },
+    "5061": {
+        "file_id": 649,
+        "content": "This code imports a BaiduSpider class and uses it to search for an image related to the keyword \"绝对领域\". It then prints the result and checks if the 'title', 'url', and 'host' information is available.",
+        "type": "comment"
+    },
+    "5062": {
+        "file_id": 650,
+        "content": "/tests/search_engine_suggestion_based_qa_bot/test.py",
+        "type": "filepath"
+    },
+    "5063": {
+        "file_id": 650,
+        "content": "The code utilizes BaiduSpider module to find related topics, generating suggestions and messages. It handles no-results scenarios and imports necessary modules, but may have issues with search results and requires implementation of ToAPI and Jina for further processing.",
+        "type": "summary"
+    },
+    "5064": {
+        "file_id": 650,
+        "content": "# we need suggestion, related topics, also search results.\n# can be used in title generation.\n# title/message as query (-> keyword -> suggested query) -> search results -> extract response/title\n# suggestion, trending topics/keywords\n# black hat seo, https://www.blackhatworld.com/forums/black-hat-seo.28/\n# paste your link 'elsewhere' 自动评论 自动发布信息 私信, submit your link to search engine somehow, visit your link from search engine somehow\n# seo without website\n# write a blog on github?\n# create short links and submit them to search engine\n# get query count, perform n-gram analysis\n# https://www.aeripret.com/ngrams-analysis-seo/\n# https://www.pemavor.com/seo-keyword-clustering-with-python/\n# i have bookmarked links for further use on macbook chrome.\nquery = \"python有个问题想请教一下 为什么我这个函数跑不通\"\nfrom baiduspider import BaiduSpider\nspider=BaiduSpider()\nfrom pprint import pprint\nresult = spider.search_web(query, pn= 1)\n# print(result)\n# nothing returned.\nimport random\n# result.related \nrelated = result.related\nnext_query = random.choice(related)",
+        "type": "code",
+        "location": "/tests/search_engine_suggestion_based_qa_bot/test.py:1-37"
+    },
+    "5065": {
+        "file_id": 650,
+        "content": "This code is using the BaiduSpider module to search for related topics based on a query. The search results are then used to generate suggestions and messages. The code handles cases where no relevant results are found, chooses a random related topic if necessary, and imports required modules.",
+        "type": "comment"
+    },
+    "5066": {
+        "file_id": 650,
+        "content": "# next_query = 'python'\nprint('next query: %s' % next_query)\nfrom baidusearch.baidusearch import search\n# the abstract is bad\n# use toapi to make website into api.\n# https://github.com/gaojiuli/toapi\nresults = search(next_query, num_results=20)  # returns 20 or less results\n# # next_result = spider.search_web(next_query, pn= 1)\n# # print(next_result)\n# # print(results) #this is working.\n# # breakpoint()\n# import parse\n# use jina? hahaha...\nimport json\nstring = json.dumps(results, ensure_ascii=False, indent=4)\nwith open('result_baidu.json', 'w+') as f:\n    f.write(string)\n# no search result! fuck.\n# what is going on?\n# 'baike', 'blog', 'calc', 'gitee', 'music', 'news', 'normal', 'pages', 'plain', 'related', 'tieba', 'total', 'video'",
+        "type": "code",
+        "location": "/tests/search_engine_suggestion_based_qa_bot/test.py:38-61"
+    },
+    "5067": {
+        "file_id": 650,
+        "content": "This code is using BaiduSearch to search for the next query and saving the results as JSON in a file. It seems there might be some issues with the search results, and it also mentions using ToAPI and Jina for further processing but doesn't appear to have implemented them yet.",
+        "type": "comment"
+    },
+    "5068": {
+        "file_id": 651,
+        "content": "/tests/tencent_video_recommendation_extraction/requests_html_test.py",
+        "type": "filepath"
+    },
+    "5069": {
+        "file_id": 651,
+        "content": "Imports pyppeteer and initializes an HTMLSession object, sets the URL to a QQ video page, uses session.get() to fetch the page's content, then iterates through all absolute links in the fetched HTML using r.html.absolute_links. Prints each link.",
+        "type": "summary"
+    },
+    "5070": {
+        "file_id": 651,
+        "content": "from requests_html import HTMLSession # use pyppeteer.\nsession = HTMLSession()\n# url='https://www.baidu.com/'\nurl = 'http://v.qq.com/x/page/m0847y71q98.html'\nr = session.get(url)\nfor link in r.html.absolute_links:\n    print(link)",
+        "type": "code",
+        "location": "/tests/tencent_video_recommendation_extraction/requests_html_test.py:1-8"
+    },
+    "5071": {
+        "file_id": 651,
+        "content": "Imports pyppeteer and initializes an HTMLSession object, sets the URL to a QQ video page, uses session.get() to fetch the page's content, then iterates through all absolute links in the fetched HTML using r.html.absolute_links. Prints each link.",
+        "type": "comment"
+    },
+    "5072": {
+        "file_id": 652,
+        "content": "/tests/tencent_video_recommendation_extraction/loop_all_tags.py",
+        "type": "filepath"
+    },
+    "5073": {
+        "file_id": 652,
+        "content": "This code reads the \"dump.html\" file, parses it with BeautifulSoup, and then iterates over all elements to check if their attributes include 'src' or 'href'. If so, it prints the key-value pair for further examination.",
+        "type": "summary"
+    },
+    "5074": {
+        "file_id": 652,
+        "content": "from bs4 import BeautifulSoup\ndata = open(\"dump.html\",'r').read()\nsoup = BeautifulSoup(data)\nfor elem in soup.find_all():\n    # print(elem.attrs)\n    # for further examination\n    attrs = elem.attrs\n    for key in ['src', 'href']:\n        if key in attrs.keys():\n            print(key, attrs[key])",
+        "type": "code",
+        "location": "/tests/tencent_video_recommendation_extraction/loop_all_tags.py:1-14"
+    },
+    "5075": {
+        "file_id": 652,
+        "content": "This code reads the \"dump.html\" file, parses it with BeautifulSoup, and then iterates over all elements to check if their attributes include 'src' or 'href'. If so, it prints the key-value pair for further examination.",
+        "type": "comment"
+    },
+    "5076": {
+        "file_id": 653,
+        "content": "/tests/tencent_video_recommendation_extraction/playwright_with_elinks.sh",
+        "type": "filepath"
+    },
+    "5077": {
+        "file_id": 653,
+        "content": "This code executes a Python script and an elinks command to extract recommended video IDs from a webpage, searching for them in specific HTML elements.",
+        "type": "summary"
+    },
+    "5078": {
+        "file_id": 653,
+        "content": "python3 dump_page.py\nelinks -dump dump.html > dump.log\n# please find recommended video id in <div data-vid=\"<vid>\">\n# or in <img src=\"//puui.qpic.cn/vpic_cover/<vid>/<vid>_old_ori.jpg/s640x360?max_age=7776000\">",
+        "type": "code",
+        "location": "/tests/tencent_video_recommendation_extraction/playwright_with_elinks.sh:1-5"
+    },
+    "5079": {
+        "file_id": 653,
+        "content": "This code executes a Python script and an elinks command to extract recommended video IDs from a webpage, searching for them in specific HTML elements.",
+        "type": "comment"
+    },
+    "5080": {
+        "file_id": 654,
+        "content": "/tests/tencent_video_recommendation_extraction/phantomjs_test.js",
+        "type": "filepath"
+    },
+    "5081": {
+        "file_id": 654,
+        "content": "This code uses PhantomJS and creates a new page. It opens the specified URL, checks if the status is \"success\", then retrieves the HTML of the page using evaluate() and outputs it to the console before exiting.",
+        "type": "summary"
+    },
+    "5082": {
+        "file_id": 654,
+        "content": "var page = require('webpage').create();\npage.open('http://v.qq.com/x/page/m0847y71q98.html', function(status) {\n    //console.log(\"Status: \" + status);\n    if (status === \"success\") {\n        //\tpage.render('example.png');\n        result = page.evaluate(() => document.body.innerHTML);\n        console.log(result)\n    }\n    phantom.exit();\n});",
+        "type": "code",
+        "location": "/tests/tencent_video_recommendation_extraction/phantomjs_test.js:1-10"
+    },
+    "5083": {
+        "file_id": 654,
+        "content": "This code uses PhantomJS and creates a new page. It opens the specified URL, checks if the status is \"success\", then retrieves the HTML of the page using evaluate() and outputs it to the console before exiting.",
+        "type": "comment"
+    },
+    "5084": {
+        "file_id": 655,
+        "content": "/tests/tencent_video_recommendation_extraction/dump_page.py",
+        "type": "filepath"
+    },
+    "5085": {
+        "file_id": 655,
+        "content": "This code uses Playwright library to launch a headless Chromium browser, navigates to a QQ video page, waits for the DOM content loaded state, retrieves the HTML content, writes it to a \"dump.html\" file, and then closes the browser.",
+        "type": "summary"
+    },
+    "5086": {
+        "file_id": 655,
+        "content": "from playwright.sync_api import sync_playwright\ndef run(playwright):\n    webkit = playwright.chromium\n    browser = webkit.launch(headless=True)\n    context = browser.new_context()\n    page = context.new_page()\n    page.goto(\"https://v.qq.com/x/page/m0847y71q98.html\")\n    page.wait_for_load_state(\"domcontentloaded\")\n    content = page.content()\n    with open(\"dump.html\", 'w+') as f: f.write(content)\n    print(\"content write to dump.html\")\n    browser.close()\nwith sync_playwright() as playwright:\n    run(playwright)",
+        "type": "code",
+        "location": "/tests/tencent_video_recommendation_extraction/dump_page.py:1-16"
+    },
+    "5087": {
+        "file_id": 655,
+        "content": "This code uses Playwright library to launch a headless Chromium browser, navigates to a QQ video page, waits for the DOM content loaded state, retrieves the HTML content, writes it to a \"dump.html\" file, and then closes the browser.",
+        "type": "comment"
+    },
+    "5088": {
+        "file_id": 656,
+        "content": "/tests/karaoke_effects/loadLingua_jpype_fastapi.py",
+        "type": "filepath"
+    },
+    "5089": {
+        "file_id": 656,
+        "content": "The code uses JPype to interact with Java from Python and FastAPI, imports necessary packages, sets up a Java virtual machine, creates an instance of the language detector, defines a function to detect languages using Lingua API, and handles exceptions while analyzing text language with LangID.",
+        "type": "summary"
+    },
+    "5090": {
+        "file_id": 656,
+        "content": "from jpype import *\nimport jpype.imports  # this is needed! shit.\naddClassPath(\"/root/Desktop/works/pyjom/tests/karaoke_effects/classpath/lingua.jar\")\nstartJVM(getDefaultJVMPath())\njava.lang.System.out.println(\"Calling Java Print from Python using Jpype!\")\nfrom com.github.pemistahl.lingua.api import *\n# detector = LanguageDetectorBuilder.fromAllLanguages().withLowAccuracyMode().build()\nlinguaDetector = (\n    LanguageDetectorBuilder.fromAllLanguages().build()\n)  # 3.5GB just for detecting language! it is somehow crazy.\ndef getLinguaDetectedLanguageLabel(sample):\n    result = linguaDetector.detectLanguageOf(sample)\n    # print(result, type(result)) # <java class 'com.github.pemistahl.lingua.api.Language'>\n    # but we can convert it into string.\n    strResult = str(result)\n    return strResult\n# shutdownJVM()\nfrom fastapi import FastAPI\napp = FastAPI()\n@app.get(\"/\")\ndef server_hello():\n    return \"say hello to jpype fastapi server\"\n@app.get(\"/langid\")\ndef read_item(text: str):\n    code = 200\n    try:\n        result = getLinguaDetectedLanguageLabel(text)",
+        "type": "code",
+        "location": "/tests/karaoke_effects/loadLingua_jpype_fastapi.py:1-42"
+    },
+    "5091": {
+        "file_id": 656,
+        "content": "This code uses the JPype library to interact with Java from Python and FastAPI. It imports necessary packages, sets up a Java virtual machine, creates an instance of the language detector, defines a function to detect languages using Lingua API, and sets up two endpoints in a FastAPI server.",
+        "type": "comment"
+    },
+    "5092": {
+        "file_id": 656,
+        "content": "    except:\n        code = 400\n        import traceback\n        traceback.print_exc()\n        print(\"ERROR ANALYSING TEXT LANGID %s\" % text)\n        result = \"ERROR\"\n    return {\"code\": code, \"result\": result}",
+        "type": "code",
+        "location": "/tests/karaoke_effects/loadLingua_jpype_fastapi.py:43-50"
+    },
+    "5093": {
+        "file_id": 656,
+        "content": "This code snippet handles exceptions while analyzing text language using the LangID library. It sets a 400 HTTP code, prints exception traceback and error message, and returns an \"ERROR\" result.",
+        "type": "comment"
+    },
+    "5094": {
+        "file_id": 657,
+        "content": "/tests/karaoke_effects/fastapi_translator.py",
+        "type": "filepath"
+    },
+    "5095": {
+        "file_id": 657,
+        "content": "This code initializes a FastAPI app for translation and recognition with PaddleHub models, handles proxies, and creates API endpoints with error handling and caching. It returns a dictionary containing the result or a 400 status code.",
+        "type": "summary"
+    },
+    "5096": {
+        "file_id": 657,
+        "content": "import os\n# before that, we need to fix cv2\nimport pathlib\nimport sys\nfrom isort import stream\nsite_path = pathlib.Path(\"/usr/local/lib/python3.9/site-packages\")\ncv2_libs_dir = (\n    site_path / \"cv2\" / f\"python-{sys.version_info.major}.{sys.version_info.minor}\"\n)\nprint(cv2_libs_dir)\ncv2_libs = sorted(cv2_libs_dir.glob(\"*.so\"))\nif len(cv2_libs) == 1:\n    print(\"INSERTING:\", cv2_libs[0].parent)\n    sys.path.insert(1, str(cv2_libs[0].parent))\nclash_http_port = 8381\n# wtf is wrong with this shit?\ndef useProxy(flag):\n    if flag:\n        os.environ[\"http_proxy\"] = \"http://127.0.0.1:{}\".format(clash_http_port)\n        os.environ[\"https_proxy\"] = \"http://127.0.0.1:{}\".format(clash_http_port)\n    else:\n        os.environ[\"http_proxy\"] = \"\"\n        os.environ[\"https_proxy\"] = \"\"\nfrom fastapi import FastAPI\napp = FastAPI()\n# import time\n# you want to wait? or you want to swap?\nimport paddlehub as hub\nlanguage_translation_model = hub.Module(name=\"baidu_translate\")\nlanguage_recognition_model = hub.Module(name=\"baidu_language_recognition\")",
+        "type": "code",
+        "location": "/tests/karaoke_effects/fastapi_translator.py:1-41"
+    },
+    "5097": {
+        "file_id": 657,
+        "content": "The code is importing necessary packages, fixing cv2 library path, setting a clash HTTP port, defining a function to use or unset proxies, and initializing FastAPI application along with two PaddleHub models for language translation and recognition.",
+        "type": "comment"
+    },
+    "5098": {
+        "file_id": 657,
+        "content": "def baiduTranslator(text, sleep=1):  # target language must be chinese.\n    useProxy(False)\n    import filelock\n    lock = filelock.FileLock(\n        \"/root/Desktop/works/pyjom/tests/karaoke_effects/baidu_translator.lock\"\n    )\n    with lock:\n        import time\n        time.sleep(sleep)\n        try:\n            language_code = language_recognition_model.recognize(text)\n            if language_code != \"zh\":\n                text_prompts = language_translation_model.translate(\n                    text, language_code, \"zh\"\n                )\n                translatedText = text_prompts\n            else:\n                translatedText = text\n            return translatedText\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"ERROR ON BAIDU TRANSLATOR\")\n            return None\nfrom lazero.network.proxy.clash import (\n    getTestedProxyList,\n    setProxyWithSelector,\n    clashProxyStateManager,\n)\nproxyList = []\nrefreshProxyCounter = 0\ndef deeplTranslator(text, sleep=2, timeout=5, mod=40):",
+        "type": "code",
+        "location": "/tests/karaoke_effects/fastapi_translator.py:44-83"
+    },
+    "5099": {
+        "file_id": 657,
+        "content": "This code defines two translation functions, `baiduTranslator` and `deeplTranslator`, which use the Baidu and DeepL APIs respectively. The `baiduTranslator` function requires the target language to be in Chinese. It uses a file lock for synchronization, performs language recognition and translation, and handles any exceptions that may occur during translation. The `deeplTranslator` function also performs translation using the DeepL API but with additional options for sleep time, timeout, and modification mode. Both functions return translated text or None if an error occurs.",
+        "type": "comment"
+    }
+}
