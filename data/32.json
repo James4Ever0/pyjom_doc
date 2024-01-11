@@ -1,543 +1,532 @@
 {
     "3200": {
         "file_id": 373,
-        "content": "            #     # assert src_x % 16 == 8\n            #     # assert src_y % 16 == 8\n            #     assert checkMacroBlock(dst_x) is not None\n            #     assert checkMacroBlock(dst_y) is not None\n            #     # assert dst_x<=res_x # dst_x can go beyond the res_x\n            #     # assert dst_y<=res_y\n            #     # so all rules applied.\n            # except:\n            #     # print('source',src_x, src_y)\n            #     print(\"res\", res_x, res_y)\n            #     print('destionation',dst_x, dst_y)\n            #     print('motion',motion_x, motion_y)\n            #     print(\"scale\",motion_scale)\n        motion_vectors_dict_averaged = {\n            key: averageMotionVectors(motion_vectors_dict[key])\n            for key in motion_vectors_dict.keys()\n        }\n        # assuming no duplicates?\n        weighted_motion_vectors = []\n        weights = []\n        rectangles = []\n        motion_vectors_filtered = []  # for getting data later?\n        for (\n            blockCenterCoordinates,\n            average_motion_vector,",
+        "content": "SERVER_PORT = 9341\nif __name__ == \"__main__\":\n    from fastapi import FastAPI\n    app = FastAPI()\n    import time\n    @app.get(\"/\")\n    def receiveImage():\n        time.sleep(10)\n        return \"hello world\"\n    import uvicorn\n    # checking: https://9to5answer.com/python-how-to-use-fastapi-and-uvicorn-run-without-blocking-the-thread\n    def run(host='0.0.0.0',port=SERVER_PORT): \n        \"\"\"\n        This function to run configured uvicorn server.\n        \"\"\"\n        uvicorn.run(app=app, host=host, port=port)\n    run()",
         "type": "code",
-        "location": "/tests/motion_vector_estimation/test.py:233-257"
+        "location": "/tests/patch_requests_timeout/server.py:1-21"
     },
     "3201": {
         "file_id": 373,
-        "content": "Testing macro block placement, asserting non-null checkMacroBlock results for dst_x and dst_y, asserting within res limits (dst_x <= res_x), and handling exceptions with error printing. Averages motion vectors using averageMotionVectors function. Creates weightedMotionVectors list and weights list. Initializing rectangles and motionVectorsFiltered for later use.",
+        "content": "This code sets up a FastAPI server using uvicorn, listens on port 9341, and has a single route (\"/\") that returns \"hello world\" after a 10-second delay. The run() function is used to start the configured uvicorn server.",
         "type": "comment"
     },
     "3202": {
-        "file_id": 373,
-        "content": "        ) in motion_vectors_dict_averaged.items():\n            if average_motion_vector == (0, 0):\n                continue\n                # wtf is this? why fucking zero?\n                # print('skipping zero average motion vector')\n                # print(\"destination coords\", key)\n                # print('average motion vector', average_motion_vector)\n            else:\n                m_x, m_y = average_motion_vector\n                motion_vectors_filtered.append(average_motion_vector)\n                rectangle_XYWH = getRectangleXYWHFromBlockCenterCoordinates(\n                    blockCenterCoordinates\n                )\n                rectangles.append(rectangle_XYWH)\n                blockWeight = getBlockWeightFromBlockCenterCoordinates(\n                    blockCenterCoordinates\n                )\n                weights.append(blockWeight)\n                weighted_motion_vectors.append(\n                    (\n                        m_x * blockWeight / frame_common_divisor,\n                        m_y * blockWeight / frame_common_divisor,",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/test.py:258-279"
+        "file_id": 374,
+        "content": "/tests/patch_requests_timeout/client.py",
+        "type": "filepath"
     },
     "3203": {
-        "file_id": 373,
-        "content": "This code block is filtering and processing motion vectors from a dictionary. It skips any average motion vector that is (0, 0) and then proceeds to calculate the weighted motion vectors by multiplying the motion vector with block weight and dividing it by a frame common divisor. The resulting coordinates are stored in 'weighted_motion_vectors'.",
-        "type": "comment"
+        "file_id": 374,
+        "content": "This code patches the requests library to set a default timeout for all requests made using it. It uses patchy module to modify the HTTPAdapter's send method, checking if a timeout is provided and setting it to REQUESTS_TIMEOUT (3 seconds) if none is given. The patch is then applied using the patchy module.",
+        "type": "summary"
     },
     "3204": {
-        "file_id": 373,
-        "content": "                    )\n                )\n        weighted_motion_vectors = np.array(weighted_motion_vectors)\n        sum_weighted_motion_vector = np.sum(weighted_motion_vectors, axis=0)\n        average_global_weighted_motion_vector = (\n            sum_weighted_motion_vector / total_block_weights\n        )\n        sum_weights = sum(weights)\n        average_weighted_motion_vector = sum_weighted_motion_vector / sum_weights\n        motion_area_ratio = sum_weights / total_block_weights\n        # print(motion_vectors.shape)\n        motion_vectors_filtered_cartesian_distance = [\n            cartesianDistance(vector) for vector in motion_vectors_filtered\n        ] + [\n            0\n        ]  # to avoid errors.\n        motion_vectors_filtered_cartesian_distance = np.array(\n            motion_vectors_filtered_cartesian_distance\n        )\n        cartesianWeights = weights + [0]\n        cartesianWeights = np.array(cartesianWeights)\n        cartesianWeightsSum = np.sum(cartesianWeights)\n        weighted_motion_vectors_filtered_cartesian_distance = (",
+        "file_id": 374,
+        "content": "import patchy\nfrom requests.adapters import HTTPAdapter\nREQUESTS_TIMEOUT=3 # working! great.\ndef patch_requests_default_timeout() -> None:\n    \"\"\"\n    Set a default timeout for all requests made with “requests”.\n    Upstream is waiting on this longstanding issue:\n    https://github.com/psf/requests/issues/3070\n    \"\"\"\n    patchy.patch(\n        HTTPAdapter.send,\n        f\"\"\"\\\n        @@ -14,6 +14,8 @@\n             :param proxies: (optional) The proxies dictionary to apply to the request.\n             :rtype: requests.Response\n             \\\"\"\"\n        +    if timeout is None:\n        +        timeout = {REQUESTS_TIMEOUT}\n             try:\n                 conn = self.get_connection(request.url, proxies)\n        \"\"\",\n    )\npatch_requests_default_timeout()\nimport requests\nfrom server import SERVER_PORT\nr = requests.get(f\"http://localhost:{SERVER_PORT}\")",
         "type": "code",
-        "location": "/tests/motion_vector_estimation/test.py:280-304"
+        "location": "/tests/patch_requests_timeout/client.py:2-36"
     },
     "3205": {
-        "file_id": 373,
-        "content": "This code calculates the weighted average motion vector and the average weighted motion vector for motion vectors in a block. It also determines the motion area ratio, applies cartesian distance to filtered motion vectors, and stores them with corresponding weights.",
+        "file_id": 374,
+        "content": "This code patches the requests library to set a default timeout for all requests made using it. It uses patchy module to modify the HTTPAdapter's send method, checking if a timeout is provided and setting it to REQUESTS_TIMEOUT (3 seconds) if none is given. The patch is then applied using the patchy module.",
         "type": "comment"
     },
     "3206": {
-        "file_id": 373,
-        "content": "            motion_vectors_filtered_cartesian_distance * cartesianWeights\n        )\n        sum_weighted_motion_vectors_filtered_cartesian_distance = np.sum(\n            weighted_motion_vectors_filtered_cartesian_distance\n        )\n        # print(\"SUM\", sum_weighted_motion_vectors_filtered_cartesian_distance)\n        # breakpoint()\n        average_weighted_motion_vectors_filtered_cartesian_distance = (\n            sum_weighted_motion_vectors_filtered_cartesian_distance / cartesianWeightsSum\n        )\n        average_global_weighted_motion_vectors_filtered_cartesian_distance = (\n            sum_weighted_motion_vectors_filtered_cartesian_distance\n            / total_block_weights # this is a number, not array!\n        )\n        min_cartesian = min(motion_vectors_filtered_cartesian_distance)\n        max_cartesian = max(motion_vectors_filtered_cartesian_distance)\n        motion_area_ratio_array.append(motion_area_ratio)\n        # print()\n        # print(average_weighted_motion_vector)\n        # print(average_global_weighted_motion_vector)",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/test.py:305-329"
-    },
-    "3207": {
-        "file_id": 373,
-        "content": "This code calculates the average and global-weighted motion vectors for a set of motion vectors, considering their weights and distances. It also finds the minimum and maximum cartesian distance in the list and appends the motion area ratio to an array.",
-        "type": "comment"
-    },
-    "3208": {
-        "file_id": 373,
-        "content": "        # breakpoint()\n        average_weighted_motion_vector_cartesian=cartesianDistance(average_weighted_motion_vector)\n        average_weighted_motion_vector_cartesian_array.append(average_weighted_motion_vector_cartesian)\n        average_global_weighted_motion_vector_cartesian = cartesianDistance(average_global_weighted_motion_vector)\n        average_global_weighted_motion_vector_cartesian_array.append(\n        average_global_weighted_motion_vector_cartesian\n        )\n        average_weighted_motion_vectors_filtered_cartesian_distance_array.append(\n            average_weighted_motion_vectors_filtered_cartesian_distance\n        )\n        average_global_weighted_motion_vectors_filtered_cartesian_distance_array.append(\n            average_global_weighted_motion_vectors_filtered_cartesian_distance\n        )\n        if motion_vectors_dict_averaged != {}:\n            # breakpoint()\n            if visualize:\n                print(\"motion_area_ratio\", motion_area_ratio)\n                print(\"average_weighted_motion_vector_cartesian\", average_weighted_motion_vector_cartesian)",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/test.py:330-348"
-    },
-    "3209": {
-        "file_id": 373,
-        "content": "Calculates the average weighted motion vector cartesian distance, appends it to the array and does the same for global vectors. If motion_vectors_dict_averaged is not empty, prints motion_area_ratio and average_weighted_motion_vector_cartesian if visualize is True.",
-        "type": "comment"
-    },
-    "3210": {
-        "file_id": 373,
-        "content": "                print(\n                    \"average_global_weighted_motion_vecto_cartesianr\",\n                    average_global_weighted_motion_vector_cartesian,\n                )\n                print(\n                    \"average_weighted_motion_vectors_filtered_cartesian_distance\",\n                    average_weighted_motion_vectors_filtered_cartesian_distance,\n                )\n                print(\n                    \"average_global_weighted_motion_vectors_filtered_cartesian_distance\",\n                    average_global_weighted_motion_vectors_filtered_cartesian_distance,\n                )\n                motion_mask = np.zeros(\n                    (motion_render_frame[1], motion_render_frame[0], 1)\n                )\n                for index, (x, y, w, h) in enumerate(rectangles):\n                    pt1, pt2 = XYWHToDiagonal(x, y, w, h)\n                    # print(pt1, pt2)\n                    current_cartesian = motion_vectors_filtered_cartesian_distance[\n                        index\n                    ]",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/test.py:349-369"
-    },
-    "3211": {
-        "file_id": 373,
-        "content": "Calculates and prints average motion vector metrics. Creates a zeroed motion mask. Iterates through rectangles to calculate the current cartesian distance.",
-        "type": "comment"
-    },
-    "3212": {
-        "file_id": 373,
-        "content": "                    # print(type(pt1), type(pt1[0]))\n                    relative_motion_cartesian = (current_cartesian - min_cartesian) / (\n                        max_cartesian - min_cartesian\n                    )  # must from 0 to 1 so we can plot this,\n                    # relative_motion_cartesian = 255*((current_cartesian-min_cartesian)/(max_cartesian-min_cartesian))\n                    # relative_motion_cartesian = int(relative_motion_cartesian)\n                    # relative_motion_cartesian = min(255,max(0, relative_motion_cartesian))\n                    # breakpoint()\n                    cv2.rectangle(\n                        motion_mask,\n                        pt1,\n                        pt2,\n                        color=(relative_motion_cartesian,),\n                        thickness=-1,\n                    )\n                # should we gaussian blur, threshold this, do convolution and then apply bounding box on it?\n                # # visualize this.\n                if show_picture:\n                    cv2.imshow(\"motion_mask\", motion_mask)",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/test.py:370-388"
-    },
-    "3213": {
-        "file_id": 373,
-        "content": "This code calculates the relative motion vectors for a set of points and plots them on an image using OpenCV. It converts the motion vectors to a range of 0-255, representing the pixel intensity values used in the image plotting. The resulting image is then displayed if the \"show_picture\" flag is set.",
-        "type": "comment"
-    },
-    "3214": {
-        "file_id": 373,
-        "content": "                    cv2.waitKey(100)\n            # may you create bounding box for this? for tracking motion? or not?\n        # breakpoint()\n    else:\n        break\n# print('max_dst_x', max_dst_x)\n# print('max_dst_y', max_dst_y)\nimport matplotlib.pyplot as plt\n# plt.style.use('dark_background')\na, b = 5,1\nfigure, axis = plt.subplots(a, b)\ndata = [\n    motion_area_ratio_array,\n    # average_weighted_motion_vector_array,\n    # average_global_weighted_motion_vector_array,\n    average_weighted_motion_vector_cartesian_array,\n    average_global_weighted_motion_vector_cartesian_array,\n    average_weighted_motion_vectors_filtered_cartesian_distance_array,\n    average_global_weighted_motion_vectors_filtered_cartesian_distance_array,\n]\ntitles = [\n    \"motion_area_ratio\",\n    # \"average_weighted_motion_vector\",\n    # \"average_global_weighted_motion_vector\",\n    \"average_weighted_motion_vector_cartesian\",\n    \"average_global_weighted_motion_vector_cartesian\",\n    \"average_weighted_motion_vectors_filtered_cartesian_distance\",",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/test.py:389-419"
-    },
-    "3215": {
-        "file_id": 373,
-        "content": "The code imports matplotlib and creates a figure with subplots. It stores various motion vector related arrays in the \"data\" list, presumably for plotting. These arrays are likely different representations of motion vectors at each point. The code then defines titles corresponding to each array's content.",
-        "type": "comment"
-    },
-    "3216": {
-        "file_id": 373,
-        "content": "    \"average_global_weighted_motion_vectors_filtered_cartesian_distance\",\n]\n# breakpoint()\nassert len(titles) == len(data)\nassert a*b >= len(titles)\nfor _a in range(a):\n    for _b in range(b):\n        index = _a * b + _b\n        if index > len(data) - 1:\n            break\n        if a == 1:\n            if b == 1:\n                axis[0].plot(data[index])\n                axis[0].set_title(titles[index])\n            else:\n                axis[_b].plot(data[index])\n                axis[_b].set_title(titles[index])\n        elif b == 1:\n            axis[_a].plot(data[index])\n            axis[_a].set_title(titles[index])\n        else:\n            axis[_a, _b].plot(data[index])\n            axis[_a, _b].set_title(titles[index])\nplt.show()",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/test.py:420-444"
-    },
-    "3217": {
-        "file_id": 373,
-        "content": "This code plots the data using matplotlib and sets titles for each plot based on the corresponding title from the provided list. It checks for potential errors like unequal lengths of 'titles' and 'data', and also handles cases when 'a' or 'b' is 1, adjusting the number of axes accordingly.",
-        "type": "comment"
-    },
-    "3218": {
-        "file_id": 374,
-        "content": "/tests/motion_vector_estimation/run.sh",
-        "type": "filepath"
-    },
-    "3219": {
-        "file_id": 374,
-        "content": "This code runs a Docker container using lubo1994/mv-extractor image, mounting the current directory to /home/video_cap within the container and allowing X11 forwarding for graphical user interface support.",
-        "type": "summary"
-    },
-    "3220": {
-        "file_id": 374,
-        "content": "#!/bin/bash\nxhost +\ndocker run \\\n    -it \\\n    --ipc=host \\\n    --env=\"DISPLAY\" \\\n    -v $(pwd):/home/video_cap \\\n    -v /tmp/.X11-unix:/tmp/.X11-unix:rw \\\n    lubo1994/mv-extractor:latest \\\n    \"$@\"",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/run.sh:1-12"
-    },
-    "3221": {
-        "file_id": 374,
-        "content": "This code runs a Docker container using lubo1994/mv-extractor image, mounting the current directory to /home/video_cap within the container and allowing X11 forwarding for graphical user interface support.",
-        "type": "comment"
-    },
-    "3222": {
         "file_id": 375,
-        "content": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py",
-        "type": "filepath"
-    },
-    "3223": {
-        "file_id": 375,
-        "content": "The code initializes motion vector estimation, filters horizontal movement, improves accuracy using various techniques, processes motion vectors from coordinates, visualizes motion with OpenCV, creates bounding boxes, and handles further options. The code plots multiple sets of data onto a graph, iterating through lists using nested for loops, creating separate plots if desired, and then displays the graph.",
-        "type": "summary"
-    },
-    "3224": {
-        "file_id": 375,
-        "content": "###################################################\n# aim to create optical flow here, with directions and convolution\n###################################################\n# it contains subpixel motion vectors. fucking hell\n# source = \"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\"\n# change source?\n# gif containers does not have motion vectors.\n# source = \"/root/Desktop/works/pyjom/samples/video/cat_invalid_eye_rolling.gif\"\n# source = \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.gif\"\n# without mestimate\n# source = \"/root/Desktop/works/pyjom/samples/video/cat_invalid_eye_rolling_without_mestimate.mp4\"\n# source = \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps_without_mestimate.mp4\"\n# with mestimate\n# source = \"/root/Desktop/works/pyjom/samples/video/cat_invalid_eye_rolling_with_mestimate.mp4\"\n# source = \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps_with_mestimate.mp4\"\n# source = \"/root/Desktop/works/pyjom/samples/video/nearly_duplicate_frames_detection_30fps.mp4\"",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:1-22"
-    },
-    "3225": {
-        "file_id": 375,
-        "content": "This code aims to create optical flow with motion vectors and convolution, using video files as input. The source file changes depending on the specific test case (with or without mestimate, different videos).",
-        "type": "comment"
-    },
-    "3226": {
-        "file_id": 375,
-        "content": "source = \"/root/Desktop/works/pyjom/samples/video/cute_cat_gif.mp4\"\nfrom lazero.utils.importers import cv2_custom_build_init\n# from sniffio import current_async_library\ncv2_custom_build_init()\nfrom mvextractor.videocap import VideoCap\nfrom caer.video.frames_and_fps import count_frames, get_res\nimport cv2\nframesCount = count_frames(source)\nres = get_res(source)  # (width, height)\nprint(\"RES: %s\" % str(res))\nres_x, res_y = res\nframe_common_divisor = min(res_x, res_y)\nimport math\ndef cartesianDistance(d2vector):\n    try:\n        x, y = d2vector\n        return math.sqrt(x**2 + y**2)\n    except:\n        print('item unpackable.', d2vector)\n        return 0\ndef XYWHToDiagonal(x, y, w, h):\n    return (x, y), (x + w, y + h)\n# 如果整除16那么就在这个范围里面 如果不整除范围就要扩大 扩大到相应的16的倍数\ndef get16Value(res_x):\n    rem_x = res_x % 16\n    val = res_x // 16\n    if rem_x != 0:\n        val += 1\n    return val\nx_16val = get16Value(res_x)\ny_16val = get16Value(res_y)\nmotion_render_frame = (x_16val * 16, y_16val * 16)\ntotal_block_weights = x_16val * y_16val * 2 * 2",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:24-70"
-    },
-    "3227": {
-        "file_id": 375,
-        "content": "This code initializes necessary libraries and imports, gets the resolution of a video source, calculates the frame count, and sets up variables for motion vector estimation. The functions cartesianDistance and XYWHToDiagonal are defined for spatial calculations, and get16Value is used to ensure the resolution is a multiple of 16 for the motion vector estimation process. The total number of block weights is calculated based on the video's resolution.",
-        "type": "comment"
-    },
-    "3228": {
-        "file_id": 375,
-        "content": "cap = VideoCap()\ncap.open(source)  # wtf is going on here?\n# if there is nothing we will breakup\n# visualize, show_picture = True, True\nvisualize, show_picture = False, False\n# so there can only be one such macroblock\ndef checkMacroBlock(value):\n    for mod in [16, 8]:\n        modValue = value % mod\n        if modValue == mod / 2:\n            return mod\n    # if not satisfied, we are shit.\nfrom functools import lru_cache\n@lru_cache(maxsize=4)\ndef getModXModYFromBlockCenterCoordinates(blockCenterCoordinates):\n    block_x, block_y = blockCenterCoordinates\n    mod_x, mod_y = checkMacroBlock(block_x), checkMacroBlock(block_y)\n    if mod_x is not None and mod_y is not None:\n        return mod_x, mod_y\n    else:\n        print(\"block center coordinates\", blockCenterCoordinates)\n        print(\"WTF IS GOING ON WITH THE BLOCK CENTER\")\n        breakpoint()\n        return 0, 0\ndef getRectangleXYWHFromBlockCenterCoordinates(blockCenterCoordinates):\n    block_x, block_y = blockCenterCoordinates\n    mod_x, mod_y = getModXModYFromBlockCenterCoordinates(blockCenterCoordinates)",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:72-106"
-    },
-    "3229": {
-        "file_id": 375,
-        "content": "The code initializes a VideoCap object and opens a specified source. It then defines two functions: `checkMacroBlock` to determine the macroblock size based on given values, and `getModXModYFromBlockCenterCoordinates` to get the modX and modY from block center coordinates using `checkMacroBlock`. The code also includes error handling in case of unexpected block center coordinates.",
-        "type": "comment"
-    },
-    "3230": {
-        "file_id": 375,
-        "content": "    mod_x_half, mod_y_half = mod_x / 2, mod_y / 2\n    x, y, w, h = block_x - mod_x_half, block_y - mod_y_half, mod_x, mod_y\n    return tuple([int(elem) for elem in [x, y, w, h]])\ndef getBlockWeightFromBlockCenterCoordinates(blockCenterCoordinates):\n    mod_x, mod_y = getModXModYFromBlockCenterCoordinates(blockCenterCoordinates)\n    weights = mod_x * mod_y / 8 / 8\n    return weights\nimport progressbar\nimport numpy as np\n# max_dst_x, max_dst_y = 0,0\ndef averageMotionVectors(motion_vector_list):\n    if len(motion_vector_list) == 0:\n        average_tuple = (0, 0)\n    if len(motion_vector_list) > 1:\n        marray = np.array(motion_vector_list)\n        # print(\"MAKING AVERAGE:\")\n        # print(marray)\n        average = np.average(marray, axis=0)\n        # breakpoint()\n        average_tuple = tuple(average)\n    else:\n        average_tuple = tuple(motion_vector_list[0])\n    return average_tuple\nmotion_area_ratio_array = []\n# average_weighted_motion_vector_array = []\n# average_global_weighted_motion_vector_array = []\naverage_weighted_motion_vector_cartesian_array = []",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:107-142"
-    },
-    "3231": {
-        "file_id": 375,
-        "content": "Function `getBlockWeightFromBlockCenterCoordinates` calculates the weight of a block based on its center coordinates.\nThe `averageMotionVectors` function calculates the average motion vector from a list of motion vectors.\n`motion_area_ratio_array` is used to store area ratios for blocks, which will be used in calculations later.",
-        "type": "comment"
-    },
-    "3232": {
-        "file_id": 375,
-        "content": "average_global_weighted_motion_vector_cartesian_array = []\naverage_weighted_motion_vectors_filtered_cartesian_distance_array = []\naverage_global_weighted_motion_vectors_filtered_cartesian_distance_array = []\nfor _ in progressbar.progressbar(range(framesCount)):\n    success, frame, motion_vectors, frame_type, timestamp = cap.read()\n    height, width, channels = frame.shape\n    # breakpoint()\n    if success:\n        # what is the content of this motion vector?\n        # print(motion_vectors)\n        # import pandas as pd\n        # df = pd.DataFrame(motion_vectors)\n        # df = pd.DataFrame(motion_vectors,index=['source_index','unk0','unk1','src_x','src_y','dst_x','dst_y','motion_x','motion_y','motion_scale'])\n        # breakpoint()\n        # print()\n        # print(\"_____________________________\")\n        condition = motion_vectors[:, 0] < 0\n        # print(condition)\n        # print(condition.shape)\n        # breakpoint()\n        motion_vectors_simplified = motion_vectors[condition, :][:, [0, 5, 6, 7, 8, 9]]",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:143-164"
-    },
-    "3233": {
-        "file_id": 375,
-        "content": "This code calculates the motion vectors from video frames and filters them based on a condition. The condition checks if the x-component of the motion vector is less than 0, which may indicate horizontal movement. The code then selects specific columns (x, y coordinates, and scale) from the motion vectors that meet this condition for further processing.",
-        "type": "comment"
-    },
-    "3234": {
-        "file_id": 375,
-        "content": "        motion_vectors_scale = motion_vectors_simplified[:, [5]]\n        motion_vectors_scale_inversed = 1 / motion_vectors_scale\n        motion_vectors_with_scale = motion_vectors_simplified[:, [3, 4]]\n        motion_vectors_scale_inversed_stacked = np.hstack(\n            [motion_vectors_scale_inversed] * 2\n        )\n        motion_vectors_restored = (\n            motion_vectors_scale_inversed_stacked * motion_vectors_with_scale\n        )  # just element wise?\n        # print('STACKED:', motion_vectors_scale_inversed_stacked.shape)\n        # print(\"WITH SCALE:\", motion_vectors_with_scale.shape)\n        # print(\"RESTORED:\",motion_vectors_restored.shape)\n        # print(motion_vectors_simplified.shape)\n        # print(motion_vectors_scale.shape)\n        # breakpoint()\n        motion_vectors_dest_coords_restored = np.hstack(\n            [motion_vectors_simplified[:, [1, 2]], motion_vectors_restored]\n        )\n        # motion_vectors_simplified = motion_vectors[:,[0,5,6,7,8]]\n        # motion_vectors_simplified_unique = np.unique(motion_vectors_simplified, axis=0)",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:165-184"
-    },
-    "3235": {
-        "file_id": 375,
-        "content": "This code segment is involved in optical flow calculation. It performs scaling, inverse scaling, and stacking of motion vectors to restore the original motion vector array. The code then concatenates the destination coordinates with restored motion vectors. This process helps in improving the accuracy of motion vector estimation.",
-        "type": "comment"
-    },
-    "3236": {
-        "file_id": 375,
-        "content": "        # print(motion_vectors_simplified_unique.shape, motion_vectors.shape)\n        # breakpoint()\n        motion_vectors_dict = {}\n        for mv in motion_vectors_dest_coords_restored:\n            # drop duplicates first!\n            (\n                dst_x,  # corresponding macro block.\n                dst_y,  # for destination only\n                motion_x,\n                motion_y,\n                # motion_scale,  # don't know what the fuck is wrong with the motion scale\n            ) = mv.tolist()\n            # say we just want source_index <0, aka mv compared to previous frame\n            # try:\n            #     assert motion_x / motion_scale == src_x - dst_x\n            #     assert motion_y / motion_scale == src_y - dst_y\n            # except:\n            #     print(src_x, dst_x, motion_x, motion_scale)\n            #     print(src_y, dst_y, motion_y, motion_scale)\n            #     print(\"*\" * 20)\n            # it will be inaccurate if we abandon this subpixel precision.\n            # if source_index >= 0:",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:185-206"
-    },
-    "3237": {
-        "file_id": 375,
-        "content": "This code segment is extracting and processing motion vectors from a set of coordinates. It is checking for duplicates, performing calculations with source and destination coordinates, and possibly handling inaccuracies caused by subpixel precision. The code seems to be part of a larger process, as it includes debugging statements and references to variables that are not explicitly defined within the provided segment.",
-        "type": "comment"
-    },
-    "3238": {
-        "file_id": 375,
-        "content": "            #     continue\n            # if dst_x>max_dst_x:\n            #     max_dst_x = dst_x\n            # if dst_y>max_dst_y:\n            #     max_dst_y = dst_y\n            destCoord = (dst_x, dst_y)\n            motion_vector = (motion_x, motion_y)\n            # print(destCoord)\n            # breakpoint()\n            if motion_vector == (0, 0):\n                # print(\"zero motion vector detected. skipping\")\n                # breakpoint()\n                continue\n            # print('destination coords:',destCoord)\n            # print('motion vector:',motion_vector)\n            motion_vectors_dict.update(\n                {destCoord: motion_vectors_dict.get(destCoord, []) + [motion_vector]}\n            )\n            # you know, different frame sources may lead to different results.\n            # these vectors could overlap. which one you want to keep? the smaller ones or the bigger ones?\n            # if destCoord in destCoords:\n            #     print(\"SKIPPING DUPLICATE DESTCOORD:\", destCoord)\n            #     print(\"PREVIOUS MV\",prevMV)",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:207-230"
-    },
-    "3239": {
-        "file_id": 375,
-        "content": "This code iterates over motion vectors and updates a dictionary with the destination coordinates and corresponding motion vectors. It skips zero vectors and handles duplicate destinations, but doesn't specify which motion vector to keep in case of overlapping coordinates.",
-        "type": "comment"
-    },
-    "3240": {
-        "file_id": 375,
-        "content": "            #     print(\"CURRENT MV\", mv)\n            #     continue\n            # else:\n            #     destCoords.add(destCoord)\n            # prevMV = mv\n            # try:\n            #     # src_x, src_y may not apply the same rule.\n            #     # assert src_x % 16 == 8\n            #     # assert src_y % 16 == 8\n            #     assert checkMacroBlock(dst_x) is not None\n            #     assert checkMacroBlock(dst_y) is not None\n            #     # assert dst_x<=res_x # dst_x can go beyond the res_x\n            #     # assert dst_y<=res_y\n            #     # so all rules applied.\n            # except:\n            #     # print('source',src_x, src_y)\n            #     print(\"res\", res_x, res_y)\n            #     print('destionation',dst_x, dst_y)\n            #     print('motion',motion_x, motion_y)\n            #     print(\"scale\",motion_scale)\n        motion_vectors_dict_averaged = {\n            key: averageMotionVectors(motion_vectors_dict[key])\n            for key in motion_vectors_dict.keys()\n        }",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:231-254"
-    },
-    "3241": {
-        "file_id": 375,
-        "content": "This code is filtering and averaging motion vectors for macroblocks within a certain range. It checks if the source coordinates follow a specific rule, asserts that valid macroblock check functions are not None, and ensures the destination coordinates do not exceed the resolution limits. If any of these conditions fail, it prints debug information and continues execution. Finally, it calculates the averaged motion vectors for each macroblock in the dictionary.",
-        "type": "comment"
-    },
-    "3242": {
-        "file_id": 375,
-        "content": "        # assuming no duplicates?\n        weighted_motion_vectors = []\n        weights = []\n        rectangles = []\n        motion_vectors_filtered = []  # for getting data later?\n        for (\n            blockCenterCoordinates,\n            average_motion_vector,\n        ) in motion_vectors_dict_averaged.items():\n            if average_motion_vector == (0, 0):\n                continue\n                # wtf is this? why fucking zero?\n                # print('skipping zero average motion vector')\n                # print(\"destination coords\", key)\n                # print('average motion vector', average_motion_vector)\n            else:\n                m_x, m_y = average_motion_vector\n                motion_vectors_filtered.append(average_motion_vector)\n                rectangle_XYWH = getRectangleXYWHFromBlockCenterCoordinates(\n                    blockCenterCoordinates\n                )\n                rectangles.append(rectangle_XYWH)\n                blockWeight = getBlockWeightFromBlockCenterCoordinates(\n                    blockCenterCoordinates",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:255-278"
-    },
-    "3243": {
-        "file_id": 375,
-        "content": "This code filters out motion vectors with an average of (0, 0) and stores the remaining vectors in a list. It also extracts relevant information from the blockCenterCoordinates and calculates the weight for each block. Rectangles are created using the getRectangleXYWHFromBlockCenterCoordinates function, and weights are obtained through getBlockWeightFromBlockCenterCoordinates. The motion_vectors_filtered list keeps track of filtered motion vectors for later use.",
-        "type": "comment"
-    },
-    "3244": {
-        "file_id": 375,
-        "content": "                )\n                weights.append(blockWeight)\n                weighted_motion_vectors.append(\n                    (\n                        m_x * blockWeight / frame_common_divisor,\n                        m_y * blockWeight / frame_common_divisor,\n                    )\n                )\n        weighted_motion_vectors = np.array(weighted_motion_vectors)\n        sum_weighted_motion_vector = np.sum(weighted_motion_vectors, axis=0)\n        average_global_weighted_motion_vector = (\n            sum_weighted_motion_vector / total_block_weights\n        )\n        sum_weights = sum(weights)\n        average_weighted_motion_vector = sum_weighted_motion_vector / sum_weights\n        motion_area_ratio = sum_weights / total_block_weights\n        # print(motion_vectors.shape)\n        motion_vectors_filtered_cartesian_distance = [\n            cartesianDistance(vector) for vector in motion_vectors_filtered\n        ] + [\n            0\n        ]  # to avoid errors.\n        motion_vectors_filtered_cartesian_distance = np.array(",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:279-301"
-    },
-    "3245": {
-        "file_id": 375,
-        "content": "This code calculates the average global weighted motion vector and average weighted motion vector, as well as the motion area ratio. It also filters and stores cartesian distances for each motion vector.",
-        "type": "comment"
-    },
-    "3246": {
-        "file_id": 375,
-        "content": "            motion_vectors_filtered_cartesian_distance\n        )\n        cartesianWeights = weights + [0]\n        cartesianWeights = np.array(cartesianWeights)\n        cartesianWeightsSum = np.sum(cartesianWeights)\n        weighted_motion_vectors_filtered_cartesian_distance = (\n            motion_vectors_filtered_cartesian_distance * cartesianWeights\n        )\n        sum_weighted_motion_vectors_filtered_cartesian_distance = np.sum(\n            weighted_motion_vectors_filtered_cartesian_distance\n        )\n        # print(\"SUM\", sum_weighted_motion_vectors_filtered_cartesian_distance)\n        # breakpoint()\n        average_weighted_motion_vectors_filtered_cartesian_distance = (\n            sum_weighted_motion_vectors_filtered_cartesian_distance / cartesianWeightsSum\n        )\n        average_global_weighted_motion_vectors_filtered_cartesian_distance = (\n            sum_weighted_motion_vectors_filtered_cartesian_distance\n            / total_block_weights # this is a number, not array!\n        )\n        min_cartesian = min(motion_vectors_filtered_cartesian_distance)",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:302-328"
-    },
-    "3247": {
-        "file_id": 375,
-        "content": "This code calculates weighted average motion vectors by multiplying the distance of each vector with its corresponding weight, summing them, and dividing by the total weight. The minimum cartesian distance is also found.",
-        "type": "comment"
-    },
-    "3248": {
-        "file_id": 375,
-        "content": "        max_cartesian = max(motion_vectors_filtered_cartesian_distance)\n        motion_area_ratio_array.append(motion_area_ratio)\n        # print()\n        # print(average_weighted_motion_vector)\n        # print(average_global_weighted_motion_vector)\n        # breakpoint()\n        average_weighted_motion_vector_cartesian=cartesianDistance(average_weighted_motion_vector)\n        average_weighted_motion_vector_cartesian_array.append(average_weighted_motion_vector_cartesian)\n        average_global_weighted_motion_vector_cartesian = cartesianDistance(average_global_weighted_motion_vector)\n        average_global_weighted_motion_vector_cartesian_array.append(\n        average_global_weighted_motion_vector_cartesian\n        )\n        average_weighted_motion_vectors_filtered_cartesian_distance_array.append(\n            average_weighted_motion_vectors_filtered_cartesian_distance\n        )\n        average_global_weighted_motion_vectors_filtered_cartesian_distance_array.append(\n            average_global_weighted_motion_vectors_filtered_cartesian_distance",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:329-346"
-    },
-    "3249": {
-        "file_id": 375,
-        "content": "Calculates the average weighted motion vector and global weighted motion vector in Cartesian distance, then appends them to corresponding arrays. It also computes and appends filtered Cartesian distances of both types of vectors to their respective arrays. No print statements or breakpoints are executed.",
-        "type": "comment"
-    },
-    "3250": {
-        "file_id": 375,
-        "content": "        )\n        if motion_vectors_dict_averaged != {}:\n            # breakpoint()\n            if visualize:\n                print(\"motion_area_ratio\", motion_area_ratio)\n                print(\"average_weighted_motion_vector_cartesian\", average_weighted_motion_vector_cartesian)\n                print(\n                    \"average_global_weighted_motion_vecto_cartesianr\",\n                    average_global_weighted_motion_vector_cartesian,\n                )\n                print(\n                    \"average_weighted_motion_vectors_filtered_cartesian_distance\",\n                    average_weighted_motion_vectors_filtered_cartesian_distance,\n                )\n                print(\n                    \"average_global_weighted_motion_vectors_filtered_cartesian_distance\",\n                    average_global_weighted_motion_vectors_filtered_cartesian_distance,\n                )\n                motion_mask = np.zeros(\n                    (motion_render_frame[1], motion_render_frame[0], 1)\n                )\n                for index, (x, y, w, h) in enumerate(rectangles):",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:347-369"
-    },
-    "3251": {
-        "file_id": 375,
-        "content": "The code checks if there are any motion vectors in the dictionary and prints various motion-related information and creates a motion mask with zeros.",
-        "type": "comment"
-    },
-    "3252": {
-        "file_id": 375,
-        "content": "                    pt1, pt2 = XYWHToDiagonal(x, y, w, h)\n                    # print(pt1, pt2)\n                    current_cartesian = motion_vectors_filtered_cartesian_distance[\n                        index\n                    ]\n                    # print(type(pt1), type(pt1[0]))\n                    relative_motion_cartesian = (current_cartesian - min_cartesian) / (\n                        max_cartesian - min_cartesian\n                    )  # must from 0 to 1 so we can plot this,\n                    # relative_motion_cartesian = 255*((current_cartesian-min_cartesian)/(max_cartesian-min_cartesian))\n                    # relative_motion_cartesian = int(relative_motion_cartesian)\n                    # relative_motion_cartesian = min(255,max(0, relative_motion_cartesian))\n                    # breakpoint()\n                    cv2.rectangle(\n                        motion_mask,\n                        pt1,\n                        pt2,\n                        color=(relative_motion_cartesian,),\n                        thickness=-1,",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:370-388"
-    },
-    "3253": {
-        "file_id": 375,
-        "content": "This code calculates the relative motion vector cartesian distance and draws a rectangle on an image using OpenCV's `cv2.rectangle` function. The rectangle dimensions are based on the input x, y, w, and h parameters, and its color is determined by the relative motion vector cartesian distance, converted to a range of 0-255 for image intensity values.",
-        "type": "comment"
-    },
-    "3254": {
-        "file_id": 375,
-        "content": "                    )\n                # should we gaussian blur, threshold this, do convolution and then apply bounding box on it?\n                # # visualize this.\n                if show_picture:\n                    cv2.imshow(\"motion_mask\", motion_mask)\n                    cv2.waitKey(100)\n            # may you create bounding box for this? for tracking motion? or not?\n        # breakpoint()\n    else:\n        break\n# print('max_dst_x', max_dst_x)\n# print('max_dst_y', max_dst_y)\nimport matplotlib.pyplot as plt\n# plt.style.use('dark_background')\na, b = 5, 1\nfigure, axis = plt.subplots(a, b)\ndata = [\n    motion_area_ratio_array,\n    # average_weighted_motion_vector_array,\n    # average_global_weighted_motion_vector_array,\n    average_weighted_motion_vector_cartesian_array,\n    average_global_weighted_motion_vector_cartesian_array,\n    average_weighted_motion_vectors_filtered_cartesian_distance_array,\n    average_global_weighted_motion_vectors_filtered_cartesian_distance_array,\n]\ntitles = [\n    \"motion_area_ratio\",",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:389-419"
-    },
-    "3255": {
-        "file_id": 375,
-        "content": "The code is visualizing and analyzing motion data using image processing techniques. It displays a motion mask, creates a bounding box for motion tracking, and plots various motion-related data on subplots. The code also includes options to blur, threshold, apply convolution, and display the results.",
-        "type": "comment"
-    },
-    "3256": {
-        "file_id": 375,
-        "content": "    # \"average_weighted_motion_vector\",\n    # \"average_global_weighted_motion_vector\",\n    \"average_weighted_motion_vector_cartesian\",\n    \"average_global_weighted_motion_vector_cartesian\",\n    \"average_weighted_motion_vectors_filtered_cartesian_distance\",\n    \"average_global_weighted_motion_vectors_filtered_cartesian_distance\",\n]\n# breakpoint()\nassert len(titles) == len(data)\nassert a*b >= len(titles)\nfor _a in range(a):\n    for _b in range(b):\n        index = _a * b + _b\n        if index > len(data) - 1:\n            break\n        if a == 1:\n            if b == 1:\n                axis[0].plot(data[index])\n                axis[0].set_title(titles[index])\n            else:\n                axis[_b].plot(data[index])\n                axis[_b].set_title(titles[index])\n        elif b == 1:\n            axis[_a].plot(data[index])\n            axis[_a].set_title(titles[index])\n        else:\n            axis[_a, _b].plot(data[index])\n            axis[_a, _b].set_title(titles[index])\nplt.show()",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:420-449"
-    },
-    "3257": {
-        "file_id": 375,
-        "content": "This code is plotting multiple sets of data onto a graph, with each set corresponding to an item in two lists of titles and data. The code asserts that the lengths of both lists are equal, and then iterates through each element of the lists using nested for loops. If a single plot is desired, it plots and labels one line of data at a time. If multiple plots are desired, it creates and labels a separate plot for each line of data. Finally, it displays the graph.",
-        "type": "comment"
-    },
-    "3258": {
-        "file_id": 376,
-        "content": "/tests/motion_vector_estimation/mpegflow/test.sh",
-        "type": "filepath"
-    },
-    "3259": {
-        "file_id": 376,
-        "content": "The code sets the VIDEO variable to a specific video file path, runs the mpegflow command on that file and redirects output to output.txt, but the .so file is fake so it doesn't work well. The code also provides an alternative method using Docker or downloading a real .so file from the web, creating an examples/vis_dump directory, and piping the mpegflow command's output into ./vis with the video file path.",
-        "type": "summary"
-    },
-    "3260": {
-        "file_id": 376,
-        "content": "VIDEO=\"/root/Desktop/works/pyjom/samples/video/cute_cat_gif.mp4\"\n# ./mpegflow $VIDEO > output.txt\n# it does not help because the .so file is fake. you need a real one.\n# you may download it from web, or just use docker\n# mkdir -p examples/vis_dump && ./mpegflow $VIDEO | ./vis $VIDEO examples/vis_dump\n# maybe this shit is not good at all...",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/mpegflow/test.sh:1-10"
-    },
-    "3261": {
-        "file_id": 376,
-        "content": "The code sets the VIDEO variable to a specific video file path, runs the mpegflow command on that file and redirects output to output.txt, but the .so file is fake so it doesn't work well. The code also provides an alternative method using Docker or downloading a real .so file from the web, creating an examples/vis_dump directory, and piping the mpegflow command's output into ./vis with the video file path.",
-        "type": "comment"
-    },
-    "3262": {
-        "file_id": 377,
-        "content": "/tests/motion_vector_estimation/mpegflow/init.sh",
-        "type": "filepath"
-    },
-    "3263": {
-        "file_id": 377,
-        "content": "Downloading 'mpegflow' and 'vis' from the 1.0 release of vadimkantorov/mpegflow repository.",
-        "type": "summary"
-    },
-    "3264": {
-        "file_id": 377,
-        "content": "curl -L -O https://github.com/vadimkantorov/mpegflow/releases/download/1.0/mpegflow\ncurl -L -O https://github.com/vadimkantorov/mpegflow/releases/download/1.0/vis",
-        "type": "code",
-        "location": "/tests/motion_vector_estimation/mpegflow/init.sh:1-2"
-    },
-    "3265": {
-        "file_id": 377,
-        "content": "Downloading 'mpegflow' and 'vis' from the 1.0 release of vadimkantorov/mpegflow repository.",
-        "type": "comment"
-    },
-    "3266": {
-        "file_id": 378,
         "content": "/tests/kaggle_yt_dls/transcode_nvenc.sh",
         "type": "filepath"
     },
-    "3267": {
-        "file_id": 378,
+    "3207": {
+        "file_id": 375,
         "content": "The code uses FFmpeg to transcode a video file, applying a hue filter and testing hardware acceleration options like CUDA, VDPAU, and Vulkan, while mentioning NVENC is not for everyone. It also includes trigonometric function comments for potential Hue effects.",
         "type": "summary"
     },
-    "3268": {
-        "file_id": 378,
+    "3208": {
+        "file_id": 375,
         "content": "# ffmpeg -hwaccels\n# vdpau\n# cuda\n# vaapi\n# vulkan\n# no blood.\nffmpeg -y -vsync 0 -hwaccel_output_format cuda -i \"Wolfenstein 2 The New Colossus - Courthouse Battle ( I am death incarnate & no HUD ) 4k_60Fps [FuV63EEhS8c].webm\" -vf \"hue=h=45:s=0.7\" Wolfenstein_courthouse_battle.mp4\n# ffmpeg -y -vsync 0 -hwaccel_output_format cuda -i \"Wolfenstein 2 The New Colossus - Courthouse Battle ( I am death incarnate & no HUD ) 4k_60Fps [FuV63EEhS8c].webm\"  Wolfenstein_courthouse_battle.mp4\n# ffmpeg -y -vsync 0 -hwaccel vdpau -hwaccel_output_format vulkan -i \"Wolfenstein 2 The New Colossus - Courthouse Battle ( I am death incarnate & no HUD ) 4k_60Fps [FuV63EEhS8c].webm\"  Wolfenstein_courthouse_battle.mp4\n# ffmpeg -y -vsync 0 -hwaccel vulkan -hwaccel_output_format vulkan -i \"Wolfenstein 2 The New Colossus - Courthouse Battle ( I am death incarnate & no HUD ) 4k_60Fps [FuV63EEhS8c].webm\"  Wolfenstein_courthouse_battle.mp4\n# ffmpeg -y -vsync 0 -hwaccel cuda -hwaccel_output_format cuda -i \"Wolfenstein 2 The N",
         "type": "code",
         "location": "/tests/kaggle_yt_dls/transcode_nvenc.sh:1-11"
     },
-    "3269": {
-        "file_id": 378,
+    "3209": {
+        "file_id": 375,
         "content": "This code uses FFmpeg to transcode a video file, applying a hue filter and saving the output as \"Wolfenstein_courthouse_battle.mp4\". It tests different hardware acceleration options (cuda, vdpau, vulkan) for video processing while specifying vsync 0 for disabling tearing. The code attempts to transcode the video using each of these hardware accelerations and saves the output file with the same name, overwriting previous outputs.",
         "type": "comment"
     },
-    "3270": {
-        "file_id": 378,
+    "3210": {
+        "file_id": 375,
         "content": "ew Colossus - Courthouse Battle ( I am death incarnate & no HUD ) 4k_60Fps [FuV63EEhS8c].webm\"  Wolfenstein_courthouse_battle.mp4  # this is not avaliable. nvenc is not for everyone.\n# use vulkan or cuda. but vulkan is universal.\n# \"hue=H=30+10*cos(2*PI*t):s=0.2*cos(2*PI*t)+0.6\"",
         "type": "code",
         "location": "/tests/kaggle_yt_dls/transcode_nvenc.sh:11-14"
     },
-    "3271": {
-        "file_id": 378,
+    "3211": {
+        "file_id": 375,
         "content": "This code specifies a video file name and mentions that NVENC is not for everyone, suggesting to use Vulkan or CUDA instead. It also includes a comment with potential Hue effects using trigonometric functions.",
         "type": "comment"
     },
-    "3272": {
-        "file_id": 379,
+    "3212": {
+        "file_id": 376,
         "content": "/tests/kaggle_yt_dls/test_init.sh",
         "type": "filepath"
     },
-    "3273": {
-        "file_id": 379,
+    "3213": {
+        "file_id": 376,
         "content": "The code initializes a Kaggle kernel, pushes code to it, checks its status, and then retrieves output after completion. Proxies are skipped, and the download speed is measured.",
         "type": "summary"
     },
-    "3274": {
-        "file_id": 379,
+    "3214": {
+        "file_id": 376,
         "content": "# kaggle kernels init\n# code/jessysisca/some-yt-stuff \n# kaggle kernels push\n# kaggle kernels status jessysisca/some-yt-stuff\n# jessysisca/some-yt-stuff has status \"complete\"\n# root@alpharetta ~/android_connect_scrcpy_patch# \n# kaggle kernels status jessysisca/test-of-yt-dlp\n# jessysisca/test-of-yt-dlp has status \"running\"\n# after it is done, we pull back all shit.\n# skip all proxies.\nexport http_proxy=\"\"\nexport https_proxy=\"\"\nkaggle kernels output jessysisca/test-of-yt-dlp # what is the freaking speed?\n# not too slow.",
         "type": "code",
         "location": "/tests/kaggle_yt_dls/test_init.sh:1-14"
     },
-    "3275": {
-        "file_id": 379,
+    "3215": {
+        "file_id": 376,
         "content": "The code initializes a Kaggle kernel, pushes code to it, checks its status, and then retrieves output after completion. Proxies are skipped, and the download speed is measured.",
         "type": "comment"
     },
-    "3276": {
-        "file_id": 380,
+    "3216": {
+        "file_id": 377,
         "content": "/tests/kaggle_yt_dls/test.py",
         "type": "filepath"
     },
-    "3277": {
-        "file_id": 380,
+    "3217": {
+        "file_id": 377,
         "content": "The code imports the os module and defines a list of commands. It then iterates through each command, executes it using the os.system() function, installing yt-dlp and downloading a YouTube video with its unique link.",
         "type": "summary"
     },
-    "3278": {
-        "file_id": 380,
+    "3218": {
+        "file_id": 377,
         "content": "import os\ncommands = [\"pip3 install yt-dlp\",'yt-dlp \"https://m.youtube.com/watch?v=FuV63EEhS8c\"']\nfor c in commands:\n    os.system(c)",
         "type": "code",
         "location": "/tests/kaggle_yt_dls/test.py:1-5"
     },
-    "3279": {
-        "file_id": 380,
+    "3219": {
+        "file_id": 377,
         "content": "The code imports the os module and defines a list of commands. It then iterates through each command, executes it using the os.system() function, installing yt-dlp and downloading a YouTube video with its unique link.",
         "type": "comment"
     },
-    "3280": {
-        "file_id": 381,
+    "3220": {
+        "file_id": 378,
         "content": "/tests/optical_flow/sparse_cpu.py",
         "type": "filepath"
     },
-    "3281": {
-        "file_id": 381,
+    "3221": {
+        "file_id": 378,
         "content": "The code initializes an App object, tracks key points using PyrLK algorithm, calculates optical flow between frames, maintains maximum length of tracks and displays results. It uses OpenCV, numpy and Flownet2-pytorch model for processing and detecting key points.",
         "type": "summary"
     },
-    "3282": {
-        "file_id": 381,
+    "3222": {
+        "file_id": 378,
         "content": "#coding=utf-8\nimport numpy as np\nimport cv2\n# from common import anorm2, draw_str\n# from time import clock\nimport cmath\nlk_params = dict(winSize=(15, 15),\n                 maxLevel=2,\n                 criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))\n# maxCorners : 设置最多返回的关键点数量。\n# qualityLevel : 反应一个像素点强度有多强才能成为关键点。\n# minDistance : 关键点之间的最少像素点。\n# blockSize : 计算一个像素点是否为关键点时所取的区域大小。\n# useHarrisDetector :使用原声的 Harris 角侦测器或最小特征值标准。\n# k : 一个用在Harris侦测器中的自由变量。\nfeature_params = dict(maxCorners=5000000,\n                      qualityLevel=0.1,\n                      minDistance=7,\n                      blockSize=7)\nclass App:\n    def __init__(self, video_src):  # 构造方法，初始化一些参数和视频路径\n        self.track_len = 10\n        self.detect_interval = 1\n        self.tracks = []\n        self.cam = cv2.VideoCapture(video_src)\n        self.frame_idx = 0\n        self.num = 0\n        self.i = 0\n        self.all_distance = 0\n        self.count = 0\n    def run(self):  # 光流运行方法\n        while True:\n            ret, frame = self.cam.read()  # 读取视频帧",
         "type": "code",
         "location": "/tests/optical_flow/sparse_cpu.py:1-37"
     },
-    "3283": {
-        "file_id": 381,
+    "3223": {
+        "file_id": 378,
         "content": "App class initialization and video reading\n\nCode for creating and initializing the App object, capturing video frames from a specified source.",
         "type": "comment"
     },
-    "3284": {
-        "file_id": 381,
+    "3224": {
+        "file_id": 378,
         "content": "            if ret == True:\n                frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)  # 转化为灰度虚图像\n                # vis = frame.copy()\n                h, w = frame.shape[:2]\n                vis = np.ones((h, w), )\n                f = open('./shuibo_8_LK(x1,y1,x2,y2).txt','w+')\n                if len(self.tracks) > 0:  # 检测到角点后进行光流跟踪\n                    img0, img1 = self.prev_gray, frame_gray\n                    p0 = np.float32([tr[-1] for tr in self.tracks]).reshape(-1, 1, 2)\n                    \"\"\"\n                    nextPts, status, err = calcOpticalFlowPyrLK(prevImg, nextImg, prevPts[, nextPts[, status[, \n                    err[, winSize[, maxLevel[, criteria[, flags[, minEigThreshold]]]]]]]])\n                    参数说明：\n                      prevImage 前一帧8-bit图像\n                      nextImage 当前帧8-bit图像\n                      prevPts 待跟踪的特征点向量\n                      nextPts 输出跟踪特征点向量\n                      status 特征点是否找到，找到的状态为1，未找到的状态为0\n                      err 输出错误向量，（不太理解用途...）\n                      winSize 搜索窗口的大小",
         "type": "code",
         "location": "/tests/optical_flow/sparse_cpu.py:38-58"
     },
-    "3285": {
-        "file_id": 381,
+    "3225": {
+        "file_id": 378,
         "content": "This code is performing optical flow tracking using the Pyramid Lucas-Kanade algorithm (PyrLK) on a video frame. It reads the previous and current frames, detects key points in the previous frame, calculates the new positions of these key points in the current frame, and updates the tracks list if any key point is found. The status array indicates whether each tracked point was found or not, and err presumably contains error information related to tracking. The code writes the x and y coordinates of each tracked point to a text file.",
         "type": "comment"
     },
-    "3286": {
-        "file_id": 381,
+    "3226": {
+        "file_id": 378,
         "content": "                      maxLevel 最大的金字塔层数\n                      flags 可选标识：OPTFLOW_USE_INITIAL_FLOW   OPTFLOW_LK_GET_MIN_EIGENVALS\n                    \"\"\"\n                    p1, st, err = cv2.calcOpticalFlowPyrLK(img0, img1, p0, None,\n                                                           **lk_params)  # 前一帧的角点和当前帧的图像作为输入来得到角点在当前帧的位置\n                    p0r, st, err = cv2.calcOpticalFlowPyrLK(img1, img0, p1, None,\n                                                            **lk_params)  # 当前帧跟踪到的角点及图像和前一帧的图像作为输入来找到前一帧的角点位置\n                    d = abs(p0 - p0r).reshape(-1, 2).max(-1)  # 得到角点回溯与前一帧实际角点的位置变化关系\n                    # good = d < 1  # 判断d内的值是否小于1，大于1跟踪被认为是错误的跟踪点\n                    good=d\n                    new_tracks = []\n                    for tr, (x, y), good_flag in zip(self.tracks, p1.reshape(-1, 2), good):  # 将跟踪正确的点列入成功跟踪点\n                        if not good_flag:\n                            continue\n                        tr.append((x, y))#tr是前一帧的角点，与当前帧的角点(x,y)合并。标志为good_flag",
         "type": "code",
         "location": "/tests/optical_flow/sparse_cpu.py:59-74"
     },
-    "3287": {
-        "file_id": 381,
+    "3227": {
+        "file_id": 378,
         "content": "This code calculates optical flow between two images using cv2.calcOpticalFlowPyrLK, tracking points from one image to another. It then compares the tracked points with the actual points and measures the displacement. Points with displacement greater than 1 are considered as incorrect and removed. The remaining points form new_tracks, which is a list of successful tracks.",
         "type": "comment"
     },
-    "3288": {
-        "file_id": 381,
+    "3228": {
+        "file_id": 378,
         "content": "                        if len(tr) > self.track_len:\n                            del tr[0]\n                        new_tracks.append(tr)\n                        # print(x,y)\n                        # breakpoint()\n                        cv2.circle(vis, (int(x), int(y)), 2, (0, 255, 0), -1)#当前帧角点画圆\n                    self.tracks = new_tracks #self.tracks中的值的格式是：(前一帧角点)(当前帧角点)\n                    # print(self.tracks[0])\n                    # print(self.tracks[1])\n                    distance = 0\n                    for tr in self.tracks:\n                        # tr[0]=list(tr[0])\n                        # tr[1]=list(tr[1])\n                        x1=tr[0][0]\n                        y1=tr[0][1]\n                        x2 = tr[1][0]\n                        y2 = tr[1][1]\n                        f.writelines([ str(x1), ' ', str(y1), ' ', str(x2), ' ', str(y2),'\\n'])\n                        dis=cmath.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))\n                        #正确追踪的点的个数\n                        print(len(self.tracks))",
         "type": "code",
         "location": "/tests/optical_flow/sparse_cpu.py:75-98"
     },
-    "3289": {
-        "file_id": 381,
+    "3229": {
+        "file_id": 378,
         "content": "This code tracks optical flow points across multiple frames, storing the tracked points in 'tracks'. It appends new tracks and deletes old ones to maintain a maximum length. The x and y coordinates of current points are plotted on a visualization ('vis'). Finally, it calculates the Euclidean distance between consecutive points and writes them into file 'f', while printing the total number of correctly tracked points.",
         "type": "comment"
     },
-    "3290": {
-        "file_id": 381,
+    "3230": {
+        "file_id": 378,
         "content": "                        #每一个正确追踪的点的像素点的位移\n                        print(dis.real)\n                        distance=distance+dis\n                    len_tracks = len(self.tracks)\n                    if len_tracks == 0:continue\n                    distance=distance/len_tracks\n                    self.all_distance=self.all_distance+distance\n                    self.count=self.count+1\n                    print(\"每一帧像素点平均位移：\",distance,\"第几帧：\",self.count)\n                    print(\"所有帧平均位移：\",(self.all_distance/self.count).real)\n                f.close()\n                if self.frame_idx % self.detect_interval == 0:  #每1帧检测一次特征点\n                    mask = np.zeros_like(frame_gray)  # 初始化和视频大小相同的图像\n                    mask[:] = 255  # 将mask赋值255也就是算全部图像的角点\n                    for x, y in [np.int32(tr[-1]) for tr in self.tracks]:  #跟踪的角点画圆\n                        cv2.circle(mask, (x, y), 5, 0, -1)\n                    p = cv2.goodFeaturesToTrack(frame_gray, mask=mask, **feature_params)  # 像素级别角点检测\n                    if p is not None:",
         "type": "code",
         "location": "/tests/optical_flow/sparse_cpu.py:99-117"
     },
-    "3291": {
-        "file_id": 381,
+    "3231": {
+        "file_id": 378,
         "content": "Code calculates average pixel point displacement between frames and prints the results. It keeps track of all pixel point movements in a frame and counts the number of frames. The code checks for features every 1 frame, initializes a mask image, detects corners using goodFeaturesToTrack function, and stores the result if it is not None.",
         "type": "comment"
     },
-    "3292": {
-        "file_id": 381,
+    "3232": {
+        "file_id": 378,
         "content": "                        for x, y in np.float32(p).reshape(-1, 2):\n                            self.tracks.append([(x, y)])  # 将检测到的角点放在待跟踪序列中\n                self.frame_idx += 1\n                self.prev_gray = frame_gray\n                cv2.imshow('lk_track', vis)\n            # ch = 0xFF & \n            if cv2.waitKey(20) == \"q\":\n                # cv2.imwrite(\"./mashiti-result4.png\", vis)\n                break\n# # get flownet2-pytorch source\n# git clone https://github.com/NVIDIA/flownet2-pytorch.git\n# cd flownet2-pytorch\n# # install custom layers\n# bash install.sh\ndef main():\n    import sys\n    try:\n        video_src = sys.argv[1]\n    except:\n        # video_src = \"./F/8/shuibo_8.avi\"\n        video_src = \"/media/root/help/pyjom/samples/video/dog_with_text.mp4\"\n    # print\n    # __doc__\n    App(video_src).run()\n    cv2.destroyAllWindows()\nif __name__ == '__main__':\n    main()",
         "type": "code",
         "location": "/tests/optical_flow/sparse_cpu.py:118-151"
     },
-    "3293": {
-        "file_id": 381,
+    "3233": {
+        "file_id": 378,
         "content": "This code is a part of a video processing program. It reads frames from a video source, detects key points in each frame using the LK tracker, tracks these key points across successive frames to estimate optical flow, and displays the results. The code uses OpenCV library for image processing, numpy for numerical computations, and cv2.waitKey() function for window handling. It also imports a Flownet2-pytorch model from a git repository and installs custom layers.",
         "type": "comment"
     },
-    "3294": {
-        "file_id": 382,
+    "3234": {
+        "file_id": 379,
         "content": "/tests/optical_flow/nvidia_of_test.py",
         "type": "filepath"
     },
-    "3295": {
-        "file_id": 382,
+    "3235": {
+        "file_id": 379,
         "content": "The code converts video frames to grayscale, creates an optical flow object, and uploads the first two frames to GPU for calculation. It downloads a GPU flow, visualizes it using flow_vis library, displays in a window, and quits on 'q'. No garbage collection is performed.",
         "type": "summary"
     },
-    "3296": {
-        "file_id": 382,
+    "3236": {
+        "file_id": 379,
         "content": "from nvidia_common import *\nimport numpy as np \nimport cv2\nimport flow_vis\nvideo_file = \"/media/root/help/pyjom/samples/video/dog_with_text.mp4\"\n# this is the fastest.\nvideo = cv2.VideoCapture(video_file)\nret, img = video.read()\nprevImg = img.copy()\nwhile True:\n    ret, img = video.read()\n    if img is None: break\n    else:\n        frame1 = prevImg\n        frame1 = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)\n        frame2 = img # why freaking grayscale?\n        frame2 =  cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)\n        prevImg = img.copy()\n        perfPreset = 5\n        gpuId=0\n        # nvof = cv2.cuda_NvidiaOpticalFlow_2_0.create((frame1.shape[1], frame1.shape[0]),5, False, False, False, 0)\n        gpu_flow =cv2.cuda_FarnebackOpticalFlow.create(5, 0.5, False,\n                                                        15, 3, 5, 1.2, 0)\n        gpu_frame_a = cv2.cuda_GpuMat()\n        gpu_frame_b = cv2.cuda_GpuMat()\n        gpu_frame_a.upload(frame1)\n        gpu_frame_b.upload(frame2)\n        # -- exec flow --\n        gpu_flow = cv2.cuda_FarnebackOpticalFlow.calc(gpu_flow, gpu_frame_a,",
         "type": "code",
         "location": "/tests/optical_flow/nvidia_of_test.py:1-36"
     },
-    "3297": {
-        "file_id": 382,
+    "3237": {
+        "file_id": 379,
         "content": "Reading video file, converting frames to grayscale, creating optical flow object with specified parameters, and uploading the first two frames to GPU for calculation.",
         "type": "comment"
     },
-    "3298": {
-        "file_id": 382,
+    "3238": {
+        "file_id": 379,
         "content": "                                                      gpu_frame_b, None)\n        gpu_flow = gpu_flow.download()\n        # gpu_flow = gpu_flow.transpose(2,0,1)\n        # print(gpu_flow.shape())\n        # breakpoint()\n        # gpu_flow = th.from_numpy(gpu_flow).half()\n        # cv2.writeOpticalFlow('OpticalFlow.flo', flowUpSampled)\n        visualize = flow_vis.flow_to_color(gpu_flow, convert_to_bgr=False)\n        cv2.imshow(\"OPTFLOW\",visualize)\n        if cv2.waitKey(20) == chr(\"q\"):\n            print(\"QUIT THIS SHIT\")\n            break\n        # nvof.collectGarbage()",
         "type": "code",
         "location": "/tests/optical_flow/nvidia_of_test.py:37-53"
     },
-    "3299": {
-        "file_id": 382,
+    "3239": {
+        "file_id": 379,
         "content": "This code downloads a GPU flow, potentially transposes it and prints its shape, then visualizes the flow using flow_vis library. It displays the visualization in a window and quits when 'q' is pressed. No garbage collection is performed.",
+        "type": "comment"
+    },
+    "3240": {
+        "file_id": 380,
+        "content": "/tests/optical_flow/nvidia_common.py",
+        "type": "filepath"
+    },
+    "3241": {
+        "file_id": 380,
+        "content": "This code is for setting the path to the OpenCV library for Turing architecture. It first determines the site-packages directory and then checks if there's a specific folder for the current Python version containing .so files, which are loaded into sys.path. If only one such folder exists, it gets added to sys.path before importing cv2. The code prints dir(cv2) for information or potentially debugging purposes.",
+        "type": "summary"
+    },
+    "3242": {
+        "file_id": 380,
+        "content": "import pathlib\nimport site\nimport sys\n# optical flow sdk is exclusively for Turing architecture.\n# this is root. this is not site-packages.\n# site_path = pathlib.Path([x for x in site.getsitepackages() if \"site-packages\" in x][0])\nsite_path = pathlib.Path(\"/usr/local/lib/python3.9/site-packages\")\ncv2_libs_dir = site_path / 'cv2' / f'python-{sys.version_info.major}.{sys.version_info.minor}'\nprint(cv2_libs_dir)\ncv2_libs = sorted(cv2_libs_dir.glob(\"*.so\"))\nif len(cv2_libs) == 1:\n    print(\"INSERTING:\",cv2_libs[0].parent)\n    sys.path.insert(1, str(cv2_libs[0].parent))\nimport cv2\nprint(dir(cv2)) # shit?",
+        "type": "code",
+        "location": "/tests/optical_flow/nvidia_common.py:1-19"
+    },
+    "3243": {
+        "file_id": 380,
+        "content": "This code is for setting the path to the OpenCV library for Turing architecture. It first determines the site-packages directory and then checks if there's a specific folder for the current Python version containing .so files, which are loaded into sys.path. If only one such folder exists, it gets added to sys.path before importing cv2. The code prints dir(cv2) for information or potentially debugging purposes.",
+        "type": "comment"
+    },
+    "3244": {
+        "file_id": 381,
+        "content": "/tests/optical_flow/mmof_test/get_frame_flow.py",
+        "type": "filepath"
+    },
+    "3245": {
+        "file_id": 381,
+        "content": "This code reads frames from a video file, converts them to grayscale (optional), and saves the 40th frame as \"frame0.png\" and the next frame as \"frame1.png\". The loop continues until it encounters an empty frame (none) indicating the end of the video.",
+        "type": "summary"
+    },
+    "3246": {
+        "file_id": 381,
+        "content": "import cv2\nvideo_file = \"/media/root/help/pyjom/samples/video/dog_with_text.mp4\"\nvideo = cv2.VideoCapture(video_file)\nret, img = video.read()\nprevImg = img.copy()\ncounter = 0\nwhile True:\n    ret, img = video.read()\n    if img is None: break\n    else:\n        frame1 = prevImg\n        # frame1 = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)\n        frame2 = img # why freaking grayscale?\n        # frame2 =  cv2.cvtColor(frame2,cv2.COLOR_BGR2GRAY)\n        if counter == 40:\n            cv2.imwrite(\"frame0.png\",frame1)\n            cv2.imwrite(\"frame1.png\",frame2)\n        prevImg = img.copy()\n        counter +=1",
+        "type": "code",
+        "location": "/tests/optical_flow/mmof_test/get_frame_flow.py:1-23"
+    },
+    "3247": {
+        "file_id": 381,
+        "content": "This code reads frames from a video file, converts them to grayscale (optional), and saves the 40th frame as \"frame0.png\" and the next frame as \"frame1.png\". The loop continues until it encounters an empty frame (none) indicating the end of the video.",
+        "type": "comment"
+    },
+    "3248": {
+        "file_id": 382,
+        "content": "/tests/optical_flow/mmof_test/execute_me.py",
+        "type": "filepath"
+    },
+    "3249": {
+        "file_id": 382,
+        "content": "This code initializes an MMFlow model and performs optical flow calculation on video frames, visualizing results and breaking the loop when \"q\" is pressed. It uses BGR to grayscale conversion and can perform Canny edge detection.",
+        "type": "summary"
+    },
+    "3250": {
+        "file_id": 382,
+        "content": "from mmflow.apis import init_model, inference_model\nfrom mmflow.datasets import visualize_flow, write_flow\nimport mmcv\n# Specify the path to model config and checkpoint file\nconfig_id = 0\nif config_id == 0:\n    config_file = 'flownet2cs_8x1_slong_flyingchairs_384x448.py'\n    checkpoint_file = 'flownet2cs_8x1_slong_flyingchairs_384x448.pth'\nelif config_id == 1:\n    config_file = 'gma_8x2_120k_mixed_368x768.py' # damn slow.\n    checkpoint_file = 'gma_8x2_120k_mixed_368x768.pth'\n# build the model from a config file and a checkpoint file\nmodel = init_model(config_file, checkpoint_file, device='cuda:0')\n# test image pair, and save the results\nimport cv2\nvideo_file = \"/media/root/help/pyjom/samples/video/dog_with_text.mp4\"\nvideo = cv2.VideoCapture(video_file)\nret, img = video.read()\nprevImg = img.copy()\ncounter = 0\nwhile True:\n    ret, img = video.read()\n    if img is None: break\n    else:\n        frame1 = prevImg\n        # frame1 = cv2.cvtColor(frame1,cv2.COLOR_BGR2GRAY)\n        frame2 = img # why freaking grayscale?",
+        "type": "code",
+        "location": "/tests/optical_flow/mmof_test/execute_me.py:1-35"
+    },
+    "3251": {
+        "file_id": 382,
+        "content": "This code initializes a model using MMFlow library and performs optical flow calculation on video frames. It reads a video file, captures frames, applies optical flow algorithm using the initialized model, and saves the results. The model configuration is determined by config_id, with two options specified in the code. Frame1 and frame2 are used to calculate optical flow between these consecutive frames. The code includes color conversion (BGR to grayscale), but this is not clearly explained or justified in the code.",
+        "type": "comment"
+    },
+    "3252": {
+        "file_id": 382,
+        "content": "        result = inference_model(model, frame1,frame2)\n        prevImg = img.copy()\n        flow_map = visualize_flow(result,None)\n        cv2.imshow(\"flowmap\",flow_map)\n    if cv2.waitKey(20) == ord(\"q\"):\n        break\n        # can also do canny edge detection.",
+        "type": "code",
+        "location": "/tests/optical_flow/mmof_test/execute_me.py:36-42"
+    },
+    "3253": {
+        "file_id": 382,
+        "content": "The code executes inference using the provided model on two frames, visualizes the optical flow map, and displays it in a window. It breaks the loop when \"q\" key is pressed, and can perform Canny edge detection.",
+        "type": "comment"
+    },
+    "3254": {
+        "file_id": 383,
+        "content": "/tests/jina_deploy_free_gpu_cpu/README.md",
+        "type": "filepath"
+    },
+    "3255": {
+        "file_id": 383,
+        "content": "This code is a README for a test case, which aims to verify if Jina's computational resources can be used for free. It suggests creating a simple test case and potentially using this service indefinitely.",
+        "type": "summary"
+    },
+    "3256": {
+        "file_id": 383,
+        "content": "different from another 'jina' named test case, we are here to run things **for free**\nit is said that jina currently offer computational resources for free so why not just create a simple test case to verify that? maybe i can own this free service forever?",
+        "type": "code",
+        "location": "/tests/jina_deploy_free_gpu_cpu/README.md:1-3"
+    },
+    "3257": {
+        "file_id": 383,
+        "content": "This code is a README for a test case, which aims to verify if Jina's computational resources can be used for free. It suggests creating a simple test case and potentially using this service indefinitely.",
+        "type": "comment"
+    },
+    "3258": {
+        "file_id": 384,
+        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test_client.py",
+        "type": "filepath"
+    },
+    "3259": {
+        "file_id": 384,
+        "content": "The code initializes a Jina Client, sends a document array with 'hello world' text to the client's endpoint, and retrieves the response. It then checks if the response status is 'success', prints the embedding data if it is, or otherwise prints the response message along with an error marker.",
+        "type": "summary"
+    },
+    "3260": {
+        "file_id": 384,
+        "content": "from jina import Client, DocumentArray, Document\nc = Client(port=12345)\ndocArray = DocumentArray.empty(1)\ndocArray[0].text = 'hello world'\nr = c.post('/', docArray)\nr_0 = r[0]\n# print(dir(r_0))\n# print(r_0.tags)\n# breakpoint()\ntext = r[0].text\nif text == 'success':\n    data = r[0].embedding\n    print(data)\n    print(data.dtype, shape(data))\nelse:\n    print(text)\n    print(\"____________ERROR____________\")",
+        "type": "code",
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test_client.py:1-18"
+    },
+    "3261": {
+        "file_id": 384,
+        "content": "The code initializes a Jina Client, sends a document array with 'hello world' text to the client's endpoint, and retrieves the response. It then checks if the response status is 'success', prints the embedding data if it is, or otherwise prints the response message along with an error marker.",
+        "type": "comment"
+    },
+    "3262": {
+        "file_id": 385,
+        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.sh",
+        "type": "filepath"
+    },
+    "3263": {
+        "file_id": 385,
+        "content": "This code sets the JINA_MP_START_METHOD environment variable to \"spawn\" before running a Python script. It mentions an ongoing issue with loading a model using txtai, but doesn't elaborate further on the problem or its potential solutions.",
+        "type": "summary"
+    },
+    "3264": {
+        "file_id": 385,
+        "content": "env JINA_MP_START_METHOD=spawn python3 test.py\n# still we are having issue with the txtai, which cannot load our model for whatever reason.",
+        "type": "code",
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.sh:1-2"
+    },
+    "3265": {
+        "file_id": 385,
+        "content": "This code sets the JINA_MP_START_METHOD environment variable to \"spawn\" before running a Python script. It mentions an ongoing issue with loading a model using txtai, but doesn't elaborate further on the problem or its potential solutions.",
+        "type": "comment"
+    },
+    "3266": {
+        "file_id": 386,
+        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.py",
+        "type": "filepath"
+    },
+    "3267": {
+        "file_id": 386,
+        "content": "Importing semantic search encoder multilingual executor, disabling proxies, creating a Flow with 1 prefetch and 12345 port, adding the semantic search encoder to it with 1 replica, then running the Flow in blocking mode.",
+        "type": "summary"
+    },
+    "3268": {
+        "file_id": 386,
+        "content": "from executor import semantic_search_encoder_multilingual\nfrom jina import Flow\nimport os\nif __name__ == \"__main__\":\n    os.environ[\"http_proxy\"] = \"\"\n    os.environ[\"https_proxy\"] = \"\"\n    f = Flow(prefetch=1,port=12345).add(uses=semantic_search_encoder_multilingual, replicas=1)\n    with f:\n        f.block()",
+        "type": "code",
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.py:1-11"
+    },
+    "3269": {
+        "file_id": 386,
+        "content": "Importing semantic search encoder multilingual executor, disabling proxies, creating a Flow with 1 prefetch and 12345 port, adding the semantic search encoder to it with 1 replica, then running the Flow in blocking mode.",
+        "type": "comment"
+    },
+    "3270": {
+        "file_id": 387,
+        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/requirements.txt",
+        "type": "filepath"
+    },
+    "3271": {
+        "file_id": 387,
+        "content": "These lines specify the required Python packages for the project. \"txtai\" is a package for text analysis, \"transformers\" is used for natural language processing, and \"faiss\" is an efficient library for nearest neighbors search.",
+        "type": "summary"
+    },
+    "3272": {
+        "file_id": 387,
+        "content": "txtai\ntransformers\nfaiss",
+        "type": "code",
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/requirements.txt:1-3"
+    },
+    "3273": {
+        "file_id": 387,
+        "content": "These lines specify the required Python packages for the project. \"txtai\" is a package for text analysis, \"transformers\" is used for natural language processing, and \"faiss\" is an efficient library for nearest neighbors search.",
+        "type": "comment"
+    },
+    "3274": {
+        "file_id": 388,
+        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/README.md",
+        "type": "filepath"
+    },
+    "3275": {
+        "file_id": 388,
+        "content": "This code appears to be a shell script for transitioning from a random shell environment to the Jina framework.",
+        "type": "summary"
+    },
+    "3276": {
+        "file_id": 388,
+        "content": "# random_shell\nshell to jina",
+        "type": "code",
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/README.md:1-3"
+    },
+    "3277": {
+        "file_id": 388,
+        "content": "This code appears to be a shell script for transitioning from a random shell environment to the Jina framework.",
+        "type": "comment"
+    },
+    "3278": {
+        "file_id": 389,
+        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/push_to_jina_hub.sh",
+        "type": "filepath"
+    },
+    "3279": {
+        "file_id": 389,
+        "content": "This command pushes the current directory (denoted by `.`) to Jina Hub, making it publicly accessible for others to use or collaborate on.",
+        "type": "summary"
+    },
+    "3280": {
+        "file_id": 389,
+        "content": "jina hub push --public .",
+        "type": "code",
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/push_to_jina_hub.sh:1-1"
+    },
+    "3281": {
+        "file_id": 389,
+        "content": "This command pushes the current directory (denoted by `.`) to Jina Hub, making it publicly accessible for others to use or collaborate on.",
+        "type": "comment"
+    },
+    "3282": {
+        "file_id": 390,
+        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/flow.yml",
+        "type": "filepath"
+    },
+    "3283": {
+        "file_id": 390,
+        "content": "This code defines a Jina flow with 1 executor, using the latest version of \"semantic_search_encoder_multilingual\" container from JinaHub. It has 1 GPU and 8G memory allocated, but these resources will be shut down shortly.",
+        "type": "summary"
+    },
+    "3284": {
+        "file_id": 390,
+        "content": "jtype: Flow\nwith:\n  prefetch: 1\n  env:\n    JINA_MP_START_METHOD: spawn\njcloud:\n  retention_days: -1 # ignored! it will be fucked anyway.\nexecutors:\n  - uses: jinahub+docker://semantic_search_encoder_multilingual/latest\n    name: semantic_search_encoder_multilingual\n    jcloud:\n      resources:\n        gpu: 1 # which means it will be shutdown shortly\n        memory: 8G",
+        "type": "code",
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/flow.yml:1-14"
+    },
+    "3285": {
+        "file_id": 390,
+        "content": "This code defines a Jina flow with 1 executor, using the latest version of \"semantic_search_encoder_multilingual\" container from JinaHub. It has 1 GPU and 8G memory allocated, but these resources will be shut down shortly.",
+        "type": "comment"
+    },
+    "3286": {
+        "file_id": 391,
+        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/executor.py",
+        "type": "filepath"
+    },
+    "3287": {
+        "file_id": 391,
+        "content": "The code creates an Executor class for a semantic search encoder with multilingual support using sentence-transformers, and includes a `foo` method that handles document embedding, exceptions, and error handling.",
+        "type": "summary"
+    },
+    "3288": {
+        "file_id": 391,
+        "content": "from jina import Executor, DocumentArray, requests\nimport numpy as np\nfrom txtai.embeddings import Embeddings\n#     raise RuntimeError(\n# RuntimeError: Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, you must use the 'spawn' start method\nclass semantic_search_encoder_multilingual(Executor):\n    embeddings = Embeddings({\n            \"path\": \"sentence-transformers/distiluse-base-multilingual-cased-v1\"\n        } )\n    @requests\n    def foo(self, docs: DocumentArray, **kwargs):\n        try:\n            command = docs[0].text\n            command = command.strip()\n            if len(command) == 0 or command == '_success':\n                raise Exception('No command')\n            response = self.embeddings.transform((None, command, None))\n            response = np.array([response])\n            docs[0].embedding = response\n            docs[0].text = '_success'\n        # docs[1].text = 'goodbye, world!'\n        except:\n            import traceback\n            error = traceback.format_exc()",
+        "type": "code",
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/executor.py:1-28"
+    },
+    "3289": {
+        "file_id": 391,
+        "content": "The code defines an Executor class for a semantic search encoder that utilizes the sentence-transformers library for multilingual support. It also includes a `foo` method which takes a DocumentArray, extracts the command from the first document's text, applies the embeddings transformation, updates the embedding and status of the document, and handles any exceptions during processing.",
+        "type": "comment"
+    },
+    "3290": {
+        "file_id": 391,
+        "content": "            print(error)\n            docs[0].embedding = None\n            docs[0].text = \"\\n\".join([\"error!\", error])",
+        "type": "code",
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/executor.py:29-31"
+    },
+    "3291": {
+        "file_id": 391,
+        "content": "Error handling: Prints the error message, sets document embedding to None, and adds an error message line to the document text.",
+        "type": "comment"
+    },
+    "3292": {
+        "file_id": 392,
+        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/deploy_to_jina_cloud.sh",
+        "type": "filepath"
+    },
+    "3293": {
+        "file_id": 392,
+        "content": "Creates Jina Cloud deployment using `flow.yml` configuration file and optional environment file.",
+        "type": "summary"
+    },
+    "3294": {
+        "file_id": 392,
+        "content": "jc deploy flow.yml\n# jc deploy flow.yml --env-file flow.env",
+        "type": "code",
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/deploy_to_jina_cloud.sh:1-2"
+    },
+    "3295": {
+        "file_id": 392,
+        "content": "Creates Jina Cloud deployment using `flow.yml` configuration file and optional environment file.",
+        "type": "comment"
+    },
+    "3296": {
+        "file_id": 393,
+        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/config.yml",
+        "type": "filepath"
+    },
+    "3297": {
+        "file_id": 393,
+        "content": "This configuration file specifies a semantic search encoder (multilingual) using the provided \"executor.py\" module. It has a name, description, and URL, along with relevant keywords such as 'semantic search encoder' and 'multilingual'.",
+        "type": "summary"
+    },
+    "3298": {
+        "file_id": 393,
+        "content": "jtype: semantic_search_encoder_multilingual\npy_modules:\n  - executor.py\nmetas:\n  name: semantic_search_encoder_multilingual\n  description: borrowed from sentence encoder\n  url: \n  keywords: ['semantic search encoder, multilingual']",
+        "type": "code",
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/config.yml:1-8"
+    },
+    "3299": {
+        "file_id": 393,
+        "content": "This configuration file specifies a semantic search encoder (multilingual) using the provided \"executor.py\" module. It has a name, description, and URL, along with relevant keywords such as 'semantic search encoder' and 'multilingual'.",
         "type": "comment"
     }
 }

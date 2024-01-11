@@ -1,545 +1,541 @@
 {
     "5000": {
-        "file_id": 654,
-        "content": "/tests/video_detector_tests/singleTracker.py",
-        "type": "filepath"
+        "file_id": 650,
+        "content": "class {{ channelName }}:\n    tid = {{ channelTid }}{% for subChannelName, subChannelTid in subChannels %}\n    {{ subChannelName }} = {{ subChannelTid }}{% endfor %}",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/template.j2:2-4"
     },
     "5001": {
-        "file_id": 654,
-        "content": "This code utilizes YOLOv5 for object detection and a video tracker to monitor dog movement in frames, identifying dogs and providing bounding box coordinates above threshold. Additionally, it closes OpenCV-created video windows.",
-        "type": "summary"
-    },
-    "5002": {
-        "file_id": 654,
-        "content": "import cv2\n# import imutils #another dependency?\n# tracker = cv2.TrackerCSRT_create() # outdated tracker.\n# i really don't know what is a dog.\nimport torch\n# don't really know how paddleocr recognize chars.\nlocalModelDir = '/root/Desktop/works/pyjom/pyjom/models/yolov5/ultralytics_yolov5_master/'\nimport os\nos.environ[\"YOLOV5_MODEL_DIR\"] = '/root/Desktop/works/pyjom/pyjom/models/yolov5/'\nmodel = torch.hub.load(localModelDir, 'yolov5s',source=\"local\")\ndef getDogBB(frame,thresh=0.7):\n    img = frame[:,:,::-1].transpose((2,0,1))\n    # Inference\n    # reshape this shit.\n    # img = np.reshape()\n    results = model(img) # pass the image through our model\n    df = results.pandas().xyxy[0]\n    print(df)\n    data = []\n    for index,line in df.iterrows():\n        # print(line)\n        left = (line[\"xmin\"],line[\"ymin\"])\n        right = (line[\"xmax\"],line[\"ymax\"])\n        confidence = line[\"confidence\"]\n        class_ = line[\"class\"]\n        name = line[\"name\"]\n        if name == \"dog\" and confidence >= thresh: # better figure out all output names.",
-        "type": "code",
-        "location": "/tests/video_detector_tests/singleTracker.py:1-31"
-    },
-    "5003": {
-        "file_id": 654,
-        "content": "This code imports necessary libraries, sets the local model directory, and loads a YOLOv5 model for object detection. It defines a function to get the bounding box coordinates of a dog in an image, with the option to set a minimum confidence threshold. The code then performs inference using the loaded model on the input frame image and returns the bounding box information if the detected class is \"dog\" and the confidence meets or exceeds the threshold.",
+        "file_id": 650,
+        "content": "This code defines a class with properties named after channel names, where the values are their respective channel TIDs. It also includes subchannels as additional properties, each with its own TID.",
         "type": "comment"
     },
+    "5002": {
+        "file_id": 651,
+        "content": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py",
+        "type": "filepath"
+    },
+    "5003": {
+        "file_id": 651,
+        "content": "The code processes generators, repairs links, detects errors, and extracts links using regular expressions. It also parses video descriptions for BGM detection and author keyword extraction with Jieba segmentation, and updates video information by processing video-related data.",
+        "type": "summary"
+    },
     "5004": {
-        "file_id": 654,
-        "content": "            data.append({\"location\":[left,right],\"confidence\":confidence,\"identity\":{\"class\":class_,\"name\":name}})\n    print(data)\n    data = list(sorted(data,key=lambda x: -x[\"confidence\"]))\n    if len(data)>0:\n        target= data[0]\n        xmin,ymin = target[\"location\"][0]\n        xmax,ymax = target[\"location\"][1]\n        return int(xmin),int(ymin),int(xmax-xmin),int(ymax-ymin)\ndef checkDog(frame,thresh=0.5):\n    return getDogBB(frame,thresh=thresh) == None # dog missing.\n# better use something else?\n# tracker = cv2.TrackerMIL_create()\ntracker_types = ['MIL', 'GOTURN', 'DaSiamRPN']\ntracker_type = tracker_types[2]\nbasepath = \"./OpenCV-Object-Tracker-Python-Sample\"\nif tracker_type == 'MIL':\n    tracker = cv2.TrackerMIL_create()\nelif tracker_type == 'DaSiamRPN': # deeplearning.\n    # this tracker is slow as hell. really.\n    params = cv2.TrackerDaSiamRPN_Params()\n    params.model = os.path.join(basepath,\"model/DaSiamRPN/dasiamrpn_model.onnx\")\n    params.kernel_r1 = os.path.join(basepath,\"model/DaSiamRPN/dasiamrpn_kernel_r1.onnx\")",
+        "file_id": 651,
+        "content": "import json\nfrom bs4 import BeautifulSoup\nfrom lazero.utils.logger import sprint\ndef generatorToList(generator):\n    return [x for x in generator]\ndef linkFixer(link, prefix=\"http:\"):\n    if link.startswith(\"//\"):\n        return prefix + link\n    return link\ndef traceError(errorMsg: str = \"error!\", _breakpoint: bool = False):\n    import traceback\n    traceback.print_exc()\n    sprint(errorMsg)\n    if _breakpoint:\n        return breakpoint()\ndef extractLinks(description, extract_bgm=True):\n    \"\"\"Extract and remove links in description\"\"\"\n    import re\n    # notice, we don't need to go wild here. we just want the title and the cover, and the tags.\n    expression = r\"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\"\n    # expr = re.compile(expression)\n    links = re.findall(expression, description)\n    # if links == None:\n    #     links = []\n    desc_without_link = re.sub(expression, \"\", description)\n    desc_without_link_per_line = [\n        x.replace(\"\\n\", \"\").strip() for x in desc_without_link.split(\"\\n\")",
         "type": "code",
-        "location": "/tests/video_detector_tests/singleTracker.py:32-56"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:1-37"
     },
     "5005": {
-        "file_id": 654,
-        "content": "Code initializes a video tracker using different algorithms and prepares parameters for the 'DaSiamRPN' tracker, which is slower but uses deep learning. It then checks if a dog is present in each frame of a video and returns its bounding box coordinates.",
+        "file_id": 651,
+        "content": "The code contains functions for handling generators, fixing links, error tracing, and extracting links from descriptions. It uses regular expressions to find links in the description and removes them while preserving other relevant information like titles and tags.",
         "type": "comment"
     },
     "5006": {
-        "file_id": 654,
-        "content": "    params.kernel_cls1 = os.path.join(basepath,\"model/DaSiamRPN/dasiamrpn_kernel_cls1.onnx\")\n    tracker = cv2.TrackerDaSiamRPN_create(params)\n    # tracker = cv2.TrackerDaSiamRPN_create()\nelif tracker_type == 'GOTURN': #also need config file.\n    # this is bad though.\n    params = cv2.TrackerGOTURN_Params()\n    params.modelTxt = os.path.join(basepath,\"model/GOTURN/goturn.prototxt\") # save this shit without BOM.\n    params.modelBin = os.path.join(basepath,\"model/GOTURN/goturn.caffemodel\")\n    tracker = cv2.TrackerGOTURN_create(params)\n    # tracker = cv2.TrackerGOTURN_create()\n# we have to feed dog coordinates into the shit.\nvideo = cv2.VideoCapture(\"../../samples/video/dog_with_text.mp4\")\n_,frame = video.read()\n# frame = imutils.resize(frame,width=720) #why?\nindex = 0\nyoloRate = 10\ntrack_success = False\nupdate_track = 3\nBB = None\ninit=False\nwhile frame is not None:\n    index +=1\n    _, frame = video.read()\n    if frame is None:\n        print(\"VIDEO END.\")\n        break\n    if index%yoloRate == 0:\n        if BB is None:",
+        "file_id": 651,
+        "content": "    ]\n    desc_without_link_per_line = [x for x in desc_without_link_per_line if len(x) > 0]\n    bgms = []\n    final_desc_list = []\n    if not extract_bgm:\n        final_desc_list = desc_without_link_per_line\n    else:\n        for line in desc_without_link_per_line:\n            bgmCandidateTemplates = [\"{}：\", \"{}:\", \"{} \"]\n            fixers = [x.format(\"\") for x in bgmCandidateTemplates]\n            bgmCandidates = [x.format(\"bgm\") + \"(.+)\" for x in bgmCandidateTemplates]\n            has_bgm = False\n            for candidate in bgmCandidates:\n                bgm_parse_result = re.findall(candidate, line.lower())\n                if len(bgm_parse_result) > 0:\n                    has_bgm = True\n                    # bgm = line[len(bgmCandidates) :]\n                    bgm = bgm_parse_result[0]\n                    bgm = bgm.strip()\n                    for fixer in fixers:\n                        bgm = bgm.strip(fixer)\n                    if len(bgm) > 0:\n                        bgms.append(bgm)\n                    break",
         "type": "code",
-        "location": "/tests/video_detector_tests/singleTracker.py:57-86"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:38-61"
     },
     "5007": {
-        "file_id": 654,
-        "content": "This code initializes a tracker using the cv2.TrackerDaSiamRPN or cv2.TrackerGOTURN methods based on the tracker_type variable. It then creates parameters for the GOTURN tracker and creates a video capture object to read a video file. The loop reads frames from the video, checks if a bounding box is None every yoloRate frames, and if it's None, it initializes the BB variable. This code appears to be part of a video tracking application.",
+        "file_id": 651,
+        "content": "This code extracts background music (BGMs) from a list of descriptions. It checks each description line for specific patterns using regular expressions and adds them to the bgms list if found. If no BGMs are found, it stores all the description lines without links in final_desc_list.",
         "type": "comment"
     },
     "5008": {
-        "file_id": 654,
-        "content": "            BB = getDogBB(frame)\n        else:\n            x, y, w, h = BB\n            if len(frame.shape) == 3:\n                dogFrame = frame[y:y+h,x:x+w,:]\n            else:\n                dogFrame = frame[y:y+h,x:x+w]\n            result = checkDog(dogFrame)\n            if result: # dog gone missing.\n                BB = getDogBB(frame)\n                init=False\n    if BB is not None:\n        if not init:\n            tracker.init(frame, BB) # how to init this shit?\n            init=True\n    # when lost, we know there is no dog inside the bounding box.\n    # frame = imutils.resize(frame,width=720)\n        if index % update_track == 0:\n            track_success,BB = tracker.update(frame)\n        if track_success and BB:\n            top_left = (int(BB[0]),int(BB[1]))\n            bottom_right = (int(BB[0]+BB[2]), int(BB[1]+BB[3]))\n            cv2.rectangle(frame,top_left,bottom_right,(0,255,0),5)\n    cv2.imshow('Output',frame)\n    key  =  cv2.waitKey(1) & 0xff\n    if key == ord('q'):\n        break\nvideo.release()",
+        "file_id": 651,
+        "content": "            if not has_bgm:\n                final_desc_list.append(line)\n    desc_without_link = \"\\n\".join(final_desc_list)\n    return links, bgms, desc_without_link\ndef videoDurationStringToSeconds(durationString):\n    if type(durationString) == int:\n        return durationString  # not string at all.\n    if type(durationString) != str:\n        print(\"unknown durationString type: %s\" % type(durationString))\n        return None\n    durationString = durationString.strip()\n    mList = durationString.split(\":\")[::-1]\n    if len(mList) > 3:\n        print(\"DURATION STRING TOO LONG\")\n        return None\n    seconds = 0\n    for index, elem in enumerate(mList):\n        elem = int(elem)\n        seconds += (60**index) * elem\n    return seconds\ndef clearHtmlTags(htmlObject):\n    a = BeautifulSoup(htmlObject, features=\"lxml\")\n    return a.text\ndef detectAuthorRelatedKeywords(title_tag, author_keywords):\n    abandon = False\n    for keyword in author_keywords:\n        if len(keyword) > 1:\n            if keyword in title_tag:\n                abandon = True  # detected this thing.",
         "type": "code",
-        "location": "/tests/video_detector_tests/singleTracker.py:87-114"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:62-96"
     },
     "5009": {
-        "file_id": 654,
-        "content": "This code initializes a tracker and tracks a dog's movement in video frames. It checks if the dog is present in the bounding box and updates the position accordingly. If the dog goes missing, it reinitializes the tracker with new dog's bounding box. The tracked dog's position is displayed on the frame, which is then shown as output.",
+        "file_id": 651,
+        "content": "The code contains functions for parsing video descriptions, converting duration strings to seconds, and detecting related keywords. It also handles cases where a background music (BGM) is or isn't present. The final description without links is returned along with the links and BGMs.",
         "type": "comment"
     },
     "5010": {
-        "file_id": 654,
-        "content": "cv2.destroyAllWindows()",
+        "file_id": 651,
+        "content": "                break\n    return abandon\ndef getAuthorKeywords(author):\n    author = author.strip()\n    import jieba\n    author_keywords = jieba.lcut(author)\n    author_keywords = [x.strip() for x in author_keywords]\n    author_keywords = [x for x in author_keywords if len(x) > 0]\n    return author_keywords\ndef removeAuthorRelatedTags(description_or_title, author):\n    templates = [\"【{}】\", \"@{}\", \"{}\"]\n    tags = [template.format(author) for template in templates]\n    for tag in tags:\n        description_or_title = description_or_title.replace(tag, \"\")\n    return description_or_title\ndef splitTitleTags(title, author_keywords):\n    import re\n    pattern = r\"【.+】\"\n    title_tags = re.findall(pattern, title)\n    title = re.sub(pattern, \"\", title)\n    title_tags = [x.lstrip(\"【\").rstrip(\"】\").strip() for x in title_tags]\n    title_tags = [x for x in title_tags if len(x) > 0]\n    final_title_tags = []\n    for title_tag in title_tags:\n        detected = detectAuthorRelatedKeywords(title_tag, author_keywords)\n        if not detected:",
         "type": "code",
-        "location": "/tests/video_detector_tests/singleTracker.py:115-115"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:97-131"
     },
     "5011": {
-        "file_id": 654,
-        "content": "This code is used to close all the video windows created by OpenCV (cv2).",
+        "file_id": 651,
+        "content": "This code performs the following tasks:\n1. Extracts author keywords using Jieba segmentation and removes leading/trailing whitespace, while discarding empty strings.\n2. Removes author-related tags from the description or title by replacing them with an empty string.\n3. Splits the title into tags, removing any leading/trailing brackets, and eliminating empty strings.\n4. Detects if each tag contains any of the author's keywords and adds it to a list called \"final_title_tags\" only if it does.",
         "type": "comment"
     },
     "5012": {
-        "file_id": 655,
-        "content": "/tests/video_detector_tests/rectangle_test.py",
-        "type": "filepath"
+        "file_id": 651,
+        "content": "            final_title_tags.append(title_tag)\n    return title, title_tags\ndef parseVideoSearchItem(video, disableList: list = [], debug=False):\n    bvid = video[\"bvid\"]\n    pubdate = video['pubdate']\n    if \"author\" not in disableList:\n        author = video[\"author\"]\n        author_id = video[\"mid\"] # this is important. may let us able to find out the fans count.\n    else:\n        author = \"\"\n        author_id = -1\n    author_keywords = getAuthorKeywords(author)\n    if \"tag\" not in disableList:\n        tag = video[\"tag\"]\n        tags = tag.split(\",\")\n        tags = [\n            tag for tag in tags if not detectAuthorRelatedKeywords(tag, author_keywords)\n        ]\n    else:\n        tags = []\n    if \"typeid\" not in disableList and \"typename\" not in disableList:\n        categoryId = int(video.get(\"typeid\", video.get(\"type_id\")))\n        categoryName = video.get(\"typename\", video.get(\"type_name\"))\n    else:\n        categoryId = 0\n        categoryName = \"\"\n    title = video[\"title\"]  # remove those markers, please?",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:132-160"
     },
     "5013": {
-        "file_id": 655,
-        "content": "This code imports OpenCV libraries, sets up a motion detector algorithm for object tracking and suggests improvements. It reads a video file, applies the algorithm to each frame, finds bounding boxes, handles stability issues, displays images, stores results in JSON format and prints \"DATA DUMPED\" upon successful execution.",
-        "type": "summary"
+        "file_id": 651,
+        "content": "The function takes a video object, optional disabled list for author and tag keywords, and debug flag as input. It extracts the bvid and pubdate from the video object. If author is not in disableList, it retrieves the author name and id. The author's keywords are obtained using getAuthorKeywords function. If tag is not in disableList, it splits the tags and removes any related to author keywords. The typeid and typename are also extracted if not in disableList, otherwise set to default values. Finally, title removal markers are applied.",
+        "type": "comment"
     },
     "5014": {
-        "file_id": 655,
-        "content": "# motion detectors are used to track objects. though you may want to separate objects with it.\nimport progressbar\nimport json\nimport pybgs as bgs\nimport numpy as np\nimport pathlib\nimport sys\nsite_path = pathlib.Path(\"/usr/local/lib/python3.9/site-packages\")\ncv2_libs_dir = site_path / 'cv2' / \\\n    f'python-{sys.version_info.major}.{sys.version_info.minor}'\nprint(cv2_libs_dir)\ncv2_libs = sorted(cv2_libs_dir.glob(\"*.so\"))\nif len(cv2_libs) == 1:\n    print(\"INSERTING:\", cv2_libs[0].parent)\n    sys.path.insert(1, str(cv2_libs[0].parent))\nimport cv2\n# suspect by static image analysis, and then create bounding box over the thing.\n# check image quality.\n# for donga, you must change the framerate to skip identical frames.\n# also donga have strange things you may dislike, e.g.: when only part of the image changes.\n# algorithm = bgs.FrameDifference() # this is not stable since we have more boundaries. shall we group things?\n# can we use something else?\nalgorithm = bgs.WeightedMovingVariance()\n# this one with cropped boundaries.",
+        "file_id": 651,
+        "content": "    title = clearHtmlTags(title)\n    title = removeAuthorRelatedTags(title, author)\n    title, title_tags = splitTitleTags(\n        title, author_keywords\n    )  # use author for filtering unwanted title tags.\n    duration = video[\"duration\"]  # this is not recommended. we need seconds.\n    play = video.get(\"play\", video.get(\"view\"))  # select some hot videos.\n    cover = video[\"pic\"]\n    cover = linkFixer(cover)\n    if \"description\" not in disableList:\n        description = video.get(\"description\", video.get(\"desc\"))\n        description = clearHtmlTags(description)\n        description = removeAuthorRelatedTags(description, author)\n    else:\n        description = \"\"\n    links_in_description, bgms, description = extractLinks(description)\n    duration_seconds = videoDurationStringToSeconds(duration)\n    resultTuple = (\n        author,\n        author_id,\n        bvid,\n        tags,\n        categoryId,\n        categoryName,\n        title,\n        duration_seconds,\n        play,\n        cover,\n        description,\n        links_in_description,",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_test.py:1-31"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:161-190"
     },
     "5015": {
-        "file_id": 655,
-        "content": "This code imports necessary libraries, checks the OpenCV library version, and sets up a motion detector algorithm (WeightedMovingVariance) for object tracking. It also suggests possible improvements like grouping boundaries or using a different algorithm if needed.",
+        "file_id": 651,
+        "content": "This code parses video data from a bilibili search API response and extracts relevant information such as author, title, duration, play count, cover image, and description. It applies filters to remove unwanted HTML tags and uses author keywords for filtering. It converts duration strings to seconds and extracts links from the description.",
         "type": "comment"
     },
     "5016": {
-        "file_id": 655,
-        "content": "# average shit.\n# video_file = \"../../samples/video/LiEIfnsvn.mp4\"\n# select our 娜姐驾到\nvideo_file = \"../../samples/video/LiGlReJ4i.mp4\"\n# video_file = \"../../samples/video/LiEIfnsvn.mp4\"\n# denoising, moving average, sampler and  similar merge.\n# moving average span: -20 frame to +20 frame\n# denoising: 选区间之内相似的最多的那种\ncapture = cv2.VideoCapture(video_file)\nwhile not capture.isOpened():\n    capture = cv2.VideoCapture(video_file)\n    cv2.waitKey(1000)\n    print(\"Wait for the header\")\ndefaultWidth = capture.get(cv2.CAP_PROP_FRAME_WIDTH)\ndefaultHeight = capture.get(cv2.CAP_PROP_FRAME_HEIGHT)\ntotal_frames = capture.get(cv2.CAP_PROP_FRAME_COUNT)\ntotal_frames = int(total_frames)\npipFrames = []\ndefaultRect = [(0,0),(defaultWidth,defaultHeight)]\npos_frame = capture.get(1)\nareaThreshold = int(0.2*0.2*defaultWidth*defaultHeight)\nfor index in progressbar.progressbar(range(total_frames)):\n    # if index % 20 != 0: continue\n    flag, frame = capture.read()\n    if flag:\n        pos_frame = capture.get(1)\n        img_output = algorithm.apply(frame)",
+        "file_id": 651,
+        "content": "        bgms,\n        title_tags,\n        pubdate\n    )\n    if debug:\n        for metadata in resultTuple:\n            print(metadata)\n    from lazero.utils.logger import sprint\n    if debug:\n        sprint()\n    return resultTuple\n# you might want the creater's name, to filter out unwanted parts.\ndef iterateResultList(resultList, debug=False):\n    for video in resultList:\n        # be warned cause all these things might fail.\n        try:\n            if video[\"type\"] == \"video\":\n                yield parseVideoSearchItem(video, debug=debug)\n        except:\n            traceError(\"error iterating video metadata\")\n            continue\ndef parseSearchAllResult(data, debug=False):\n    # if not generator:\n    #     return generatorToList(parseSearchAllResult(data, debug=debug,generator=True))\n    results = data[\"result\"]\n    for elem in results:\n        try:\n            if elem[\"result_type\"] == \"video\":\n                resultList = elem[\"data\"]\n                for videoMetadata in iterateResultList(resultList, debug=debug):",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_test.py:32-66"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:191-227"
     },
     "5017": {
-        "file_id": 655,
-        "content": "This code reads a video file and applies an algorithm to each frame. It also retrieves the frame width, height, total frames, and uses a progress bar for looping through each frame. The code has a skipping mechanism for every 20th frame and a threshold for area calculations.",
+        "file_id": 651,
+        "content": "This code defines a function `parseSearchAllResult` that takes in data and a boolean debug parameter. It extracts the \"result\" list from the data, then iterates through each element checking if its type is 'video'. For each video, it yields a parsed video metadata using the `iterateResultList` function, while handling any exceptions that may occur. The `iterateResultList` function iterates over a result list of video items, yielding the parsed data for videos and handling exceptions related to parsing video metadata.",
         "type": "comment"
     },
     "5018": {
-        "file_id": 655,
-        "content": "        imgThresh = img_output\n        # imgMorph = cv2.GaussianBlur(img_output, (3,3), 0)\n        # _,imgThresh = cv2.threshold(imgMorph, 1, 255, cv2.THRESH_BINARY)\n        # img_bgmodel = algorithm.getBackgroundModel()\n        # _, contours = cv2.findContours(\n        #     imgThresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)\n        # maybe you should merge all active areas.\n        # if contours is not None:\n            # continue\n            # counted = False\n            # maxArea = 0\n            # for contour in contours:\n        [x, y, w, h] = cv2.boundingRect(img_output) # wtf is this?\n        area = w*h\n        if area > areaThreshold:\n                # #     maxArea = area\n                # if counted==False:\n            min_x, min_y = x, y\n            max_x, max_y = x+w, y+h\n                # else:\n                #     if x<min_x: min_x = x\n                #     if x+w>max_x: max_x = x+w\n                #     if y<min_y: min_y = y\n                #     if y+w>max_y: max_y = y+w\n            currentRect = [(min_x, min_y), (max_x, max_y)]",
+        "file_id": 651,
+        "content": "                    yield videoMetadata\n        except:\n            traceError(\"error iterating data results\")\ndef parseSearchVideoResult(data, debug=False):\n    # if not generator:\n    #     return generatorToList(parseSearchVideoResult(data, debug=debug,generator=True))\n    try:\n        resultList = data[\"result\"]\n        try:\n            for videoMetadata in iterateResultList(resultList, debug=debug):\n                try:\n                    yield videoMetadata\n                except:\n                    traceError(\"error iterating video metadata\")\n        except:\n            traceError(\"error iterating result list\")\n    except:\n        traceError(\"error parsing search video result\")\ndef parseVideoInfo(videoInfo, debug=False):\n    data = videoInfo\n    # no tag out here.\n    secondaryVideoInfoList = []\n    data_copy = data.copy()\n    data_copy.update({\"author\": data[\"owner\"][\"name\"], \"mid\": data[\"owner\"][\"mid\"]})\n    data_copy.update(data[\"stat\"])\n    primaryVideoInfo = parseVideoSearchItem(\n        data_copy, disableList=[\"tag\", \"typeid\", \"typename\"], debug=debug",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_test.py:67-91"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:228-258"
     },
     "5019": {
-        "file_id": 655,
-        "content": "This code segment is responsible for finding the bounding box around objects in an image. The variables `x`, `y`, `w`, and `h` are the coordinates of the rectangle's top left corner, width, and height respectively. It uses a Gaussian blur on the image and applies a binary threshold to isolate objects. It then finds contours, checks if they exceed a certain area threshold, and updates the minimum and maximum coordinates of the bounding box accordingly.",
+        "file_id": 651,
+        "content": "The code defines two functions, `parseSearchVideoResult` and `parseVideoInfo`, which are responsible for parsing video search results and video information respectively. The code utilizes exception handling to handle errors while iterating over data and result lists. It also includes a function `iterateResultList` to iterate over the result list.",
         "type": "comment"
     },
     "5020": {
-        "file_id": 655,
-        "content": "            pipFrames.append(currentRect.copy())\n            defaultRect = currentRect.copy()\n        else:\n            pipFrames.append(defaultRect.copy())\n            # how to stablize this shit?\n        # cv2.imshow('video', frame)\n        # cv2.imshow('img_output', img_output)\n        # cv2.imshow('img_bgmodel', img_bgmodel)\n        # cv2.imshow('imgThresh', imgThresh)\n        # cv2.waitKey(100)\n    else:\n        # cv2.waitKey(1000)\n        break\ncv2.destroyAllWindows()\n# we process this shit elsewhere.\nwith open(\"pip_meanVarianceSisterNa.json\", 'w') as f:\n    f.write(json.dumps(\n        {\"data\": pipFrames, \"width\": defaultWidth, \"height\": defaultHeight}))\nprint(\"DATA DUMPED\")",
+        "file_id": 651,
+        "content": "    )\n    # videoInfoList.append(primaryVideoInfo)\n    season = data.get(\"ugc_season\", {})  # we only care about this thing.\n    season_cover = season.get(\"cover\", None)  # it could be noting.\n    sections = season.get(\"sections\", [])\n    for section in sections:\n        for episode in section[\"episodes\"]:\n            # print(episode.keys())\n            # breakpoint()\n            arc = episode[\"arc\"]\n            stat = arc[\"stat\"]\n            videoInfo = episode.copy()\n            videoInfo.update(stat)\n            videoInfo.update(arc)\n            authorRelatedVideoInfo = parseVideoSearchItem(\n                videoInfo,\n                disableList=[\"tag\", \"typeid\", \"typename\", \"description\", \"author\"],\n                debug=debug,\n            )  # author is the same as the original video.\n            secondaryVideoInfoList.append(authorRelatedVideoInfo)\n            # BV1Cb4y1s7em\n            # []\n            # 0\n            # 这次真的燃起来了！！！\n            # 217\n            # 27911\n            # http://i2.hdslb.com/bfs/archive/c5a0d18ee077fb6a4ac0970ccb0a3788e137d14f.jpg",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_test.py:92-116"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:259-286"
     },
     "5021": {
-        "file_id": 655,
-        "content": "Code captures frames, appends rectangles to pipFrames, and handles stability issues. It displays images on various windows using OpenCV. Breaks loop if no changes detected. Closes all windows after processing. Writes pipFrames data to a JSON file named \"pip_meanVarianceSisterNa.json\" with width and height information. Prints \"DATA DUMPED\" upon successful execution.",
+        "file_id": 651,
+        "content": "Code iterates through season episodes, extracts arc and stat information from each episode, creates a videoInfo dictionary with episode and arc data, updates the author-related video information by parsing the original video, and appends it to secondaryVideoInfoList.",
         "type": "comment"
     },
     "5022": {
-        "file_id": 656,
-        "content": "/tests/video_detector_tests/rect_detect.py",
-        "type": "filepath"
+        "file_id": 651,
+        "content": "    return primaryVideoInfo, secondaryVideoInfoList\ndef parseVideoRelated(videoRelatedData, debug=False):\n    data = videoRelatedData\n    # if not generator:\n    #     return generatorToList(parseVideoRelated(data, debug=debug,generator=True))\n    try:\n        for videoInfo in data:\n            try:\n                videoInfo2 = videoInfo.copy()\n                videoInfo2.update({\"author\": videoInfo[\"owner\"][\"name\"]})\n                videoInfo2.update({\"mid\": videoInfo[\"owner\"][\"mid\"]})\n                # also update the stat.\n                videoInfo2.update(videoInfo[\"stat\"])\n                try:\n                    yield parseVideoSearchItem(\n                        videoInfo2,\n                        disableList=[\"tag\", \"typeid\", \"typename\"],\n                        debug=debug,\n                    )\n                    # print(videoMetadata)\n                except:\n                    traceError()\n            except:\n                traceError()\n    except:\n        traceError()\nif __name__ == \"__main__\":\n    # test_subject = \"search_video\"",
+        "type": "code",
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:287-318"
     },
     "5023": {
-        "file_id": 656,
-        "content": "The code reads video files, performs object tracking/recognition, and detects lines using OpenCV. It calculates mean differences, updates rectangles, applies edge detection and morphological operations, displays results, and saves as houghlines.jpg.",
-        "type": "summary"
+        "file_id": 651,
+        "content": "This code defines a function `parseVideoRelated` that parses video-related data and yields parsed video information, and also includes an if block for generator handling. It updates the video info with author name and mid, and applies the `parseVideoSearchItem` to each item in the data list. If any error occurs during processing, it traces the error.",
+        "type": "comment"
     },
     "5024": {
-        "file_id": 656,
-        "content": "import cv2\nimport numpy as np\nimport itertools\nimport uuid\n# Reading the required image in\n# which operations are to be done.\n# Make sure that the image is in the same\n# directory in which this python program is\n# video_file = \"../../samples/video/LiEIfnsvn.mp4\" # this one with cropped boundaries.\nvideo_file = \"/media/root/help1/pyjom/samples/video/LiGE8vLuX.mp4\"\nvideo = cv2.VideoCapture(video_file)\ndef rectMerge(oldRect, newRect,delta_thresh = 0.1):\n    # if very much alike, we merge these rects.\n    # what about those rect that overlaps? we check exactly those who overlaps.\n    # 1. check all new rects against all old rects. if they overlap, highly alike (or not) then mark it as having_alike_rect (or not) and append to new old rect list. <- after those old rects have been marked with alike sign, one cannot revoke the sign. still remaining new rects will be checked against them.\n    # 2. while checking, if not very alike then append newRect to new rect list.\n    # 3. if one old rect has not yet been ",
+        "file_id": 651,
+        "content": "    # test_subject = \"search_all\"\n    # test_subject = 'video_related'\n    test_subject = \"video_info\"\n    # test_subject = 'extract_links'\n    if test_subject == \"search_all\":\n        with open(\"search_result_all.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for mresult in parseSearchAllResult(data):\n            print(\"RESULT:\")\n            sprint(mresult)\n    elif test_subject == \"search_video\":\n        with open(\"search_by_type_result_video.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for mresult in parseSearchVideoResult(data):\n            print(\"VIDEO SEARCH RESULT:\")\n            sprint(mresult)\n    elif test_subject == \"video_info\":\n        with open(\"video_info.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        primaryVideoInfo, secondaryVideoInfoList = parseVideoInfo(data)\n        videoInfoList = [primaryVideoInfo] + secondaryVideoInfoList\n        for mVideoInfo in videoInfoList:",
         "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:1-20"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:319-343"
     },
     "5025": {
-        "file_id": 656,
-        "content": "The code reads an input video file and defines a function rectMerge that takes two rectangles as parameters and determines if they are highly alike. It checks all new rectangles against all old rectangles to find overlapping ones and marks them as having_alike_rect before proceeding with the remaining new rectangles. The purpose is likely for object tracking or recognition within a video stream.",
+        "file_id": 651,
+        "content": "This code is testing different APIs by reading JSON files and parsing the data. It tests \"search_all\", \"search_video\", and \"video_info\" sections. For each section, it reads a corresponding JSON file, loads the data, and then prints the results after parsing. This appears to be part of API testing for a video search application.",
         "type": "comment"
     },
     "5026": {
-        "file_id": 656,
-        "content": "checked as having_alike_rect then cut its life. otherwise extend its life, though not extend above max_rect_life.\n    (old_x1,old_y1), (old_x2, old_y2) = oldRect\n    (new_x1,new_y1), (new_x2, new_y2) = newRect\n    old_w = old_x2-old_x1\n    old_h = old_y2-old_y1\n    det_x1 = abs(new_x1 - old_x1)/ old_w\n    det_x2 = abs(new_x2 - old_x2)/ old_w\n    det_y1 = abs(new_y1 - old_y1)/ old_h\n    det_y2 = abs(new_y2 - old_y2)/ old_h\n    # print(\"deltas:\",det_x1, det_x2, det_y1, det_y2)\n    having_alike_rect =  (det_x1 < delta_thresh) and (det_y1 < delta_thresh) and (det_x2 < delta_thresh ) and (det_y2 < delta_thresh)\n    myRect = newRect\n    if having_alike_rect:\n        myRect = oldRect\n    return myRect, having_alike_rect\ndef rectSurge(oldRectList, newRectList,delta_thresh = 0.1, min_rect_life = 0, max_rect_life = 6):\n    newToOldDictList = []\n    oldRectDictList = [{\"rect\":x[\"rect\"], \"alike\":False, \"life\":x[\"life\"],\"uuid\":x[\"uuid\"]} for x in oldRectList] # actually they are all dict lists. you can pass an empty list as oldRectList anyway.",
+        "file_id": 651,
+        "content": "            print(mVideoInfo)\n            sprint()\n    elif test_subject == \"video_related\":\n        with open(\"video_related.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for videoMetadata in parseVideoRelated(data):\n            print(videoMetadata)\n            sprint()\n    elif test_subject == \"extract_links\":\n        description = (\n            \"http://www.toutiao.com/a6347649852365897986/ 男子送走从小养大的狗，狗狗用泪汪汪的眼神看着他\\n\"\n            + \"https://www.youtube.com/watch?v=r724w57oXyU\"\n            + \" https://www.youtube.com/shorts/UYCy8HD1C7o\"\n        )\n        links, desc = extractLinks(description)\n        print(links)\n        print(desc)\n    else:\n        raise Exception(\"unknown test_subject:\", test_subject)",
         "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:20-43"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/searchDataParser.py:344-363"
     },
     "5027": {
-        "file_id": 656,
-        "content": "This code calculates the delta between two rectangles and checks if they are alike within a certain threshold. It updates the rectangle list based on this comparison, ensuring rectangles with little change remain unchanged while extending or cutting their life depending on the condition.",
+        "file_id": 651,
+        "content": "The code snippet appears to handle different test subjects, each with a specific task. For \"video_related\", it reads data from a JSON file and processes it using the parseVideoRelated function, then prints videoMetadata for each videoMetadata in the parsed data. The \"extract_links\" subject extracts links from a given description and prints them. Unknown test subjects will raise an Exception.",
         "type": "comment"
     },
     "5028": {
-        "file_id": 656,
-        "content": "    # print(\"OLDRECTDICTLIST:\",oldRectDictList)\n    for newRect in newRectList:\n        needAppend = True\n        for index, oldRectDict in enumerate(oldRectDictList):\n            # print(\"ENUMERATING OLD INDEX:\",index)\n            oldRect = oldRectDict[\"rect\"]\n            _, having_alike_rect = rectMerge(oldRect,newRect,delta_thresh=delta_thresh)\n            if having_alike_rect:\n                needAppend = False\n                if not oldRectDict[\"alike\"]:\n                    # print(\"SET ALIKE:\",index,oldRect)\n                    oldRectDictList[index][\"alike\"] = True\n                # ignore myRect.\n        if needAppend:\n            newToOldDictList.append({\"rect\":newRect,\"life\":1,\"uuid\":str(uuid.uuid4())}) # make sure it is not duplicated?\n            # if appended we shall break this loop. but when shall we append?\n    oldToOldDictList = []\n    for oldRectDict in oldRectDictList:\n        alike = oldRectDict[\"alike\"]\n        life = oldRectDict[\"life\"]\n        oldRect = oldRectDict[\"rect\"]\n        myUUID = oldRectDict[\"uuid\"]",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:44-65"
+        "file_id": 652,
+        "content": "/tests/bilibili_search_api_modification_section_params_get_related_videos/recursive_search_bilibili_test.py",
+        "type": "filepath"
     },
     "5029": {
-        "file_id": 656,
-        "content": "The code is iterating through a list of new rectangles and an existing list of old rectangles. For each new rectangle, it checks if any old rectangle has a similar one using the rectMerge function. If a similar rectangle is found, it updates its \"alike\" flag in the oldRectDictList. If no similar rectangle is found, it appends the new rectangle to the newToOldDictList. Finally, it creates a new list, oldToOldDictList, by iterating through oldRectDictList and excluding any rectangles with \"alike\" set to True.",
-        "type": "comment"
+        "file_id": 652,
+        "content": "The code changes directory, initializes OpenCV, and fetches video metadata for production. It imports necessary modules and displays an image using imshow, pausing until a keyboard event occurs for visualization purposes.",
+        "type": "summary"
     },
     "5030": {
-        "file_id": 656,
-        "content": "        if not alike:\n            life -=1\n        else:\n            life +=1\n            life = min(max_rect_life, life)\n        if life <= min_rect_life:\n            continue\n        oldToOldDictList.append({\"rect\":oldRect,\"life\":life,\"uuid\":myUUID})\n    return oldToOldDictList + newToOldDictList # a combination.\ndef updateTotalRects(oldTotalRectDict,rectList,currentFrameIndex,diffFrame):\n    for elem in rectList:\n        uuid = elem[\"uuid\"]\n        rect = elem[\"rect\"]\n        if uuid not in oldTotalRectDict.keys():\n            oldTotalRectDict.update({uuid:{\"rect\":rect,\"startFrame\":currentFrameIndex,\"endFrame\":None,\"meanDifference\":None}}) # finally,remove those without endFrame.\n        else:\n            duration = currentFrameIndex - oldTotalRectDict[uuid][\"startFrame\"]\n            (x0,y0),(x1,y1) = rect\n            diff = diffFrame[y0:y1,x0:x1] # this is shit. we need to crop this shit.\n            # grayscale.\n            # std = np.abs(std)\n            # get the total delta over time?\n            # std = np.mean(std,axis=2)",
+        "file_id": 652,
+        "content": "import sys\nimport os\nos.chdir(\"../../\")\nsys.path.append(\".\")\n# ignore the global proxy now, we are not going to use that.\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\nfrom pyjom.platforms.bilibili.postMetadata import getBilibiliPostMetadataForDogCat\n# metatopic = {\n#     \"optional\": [\n#         [\n#             \"狗狗\",\n#             \"狗\",\n#             \"汪汪\",\n#             \"修勾\",\n#             \"汪\",\n#             \"狗子\",\n#         ],\n#         [\"喵喵\", \"猫\", \"猫咪\", \"喵\"],\n#     ],\n#     \"dynamic\": [[\"可爱\", \"萌\", \"萌宠\", \"行为\", \"燃\"]],\n# }\n# maybe this is not task specific. just maybe.\nif __name__ == \"__main__\":\n    for (\n        mCover,\n        mTagSeries,\n        mTitle,\n        mBgm,\n        mDescription,\n        dog_or_cat,\n    ) in getBilibiliPostMetadataForDogCat():\n        print(\"FETCHED VIDEO METADATA FOR PRODUCTION:\")\n        videoMetadata = mCover, mTagSeries, mTitle, mBgm, mDescription, dog_or_cat\n        print(videoMetadata)\n        mCover2 = cv2.resize(mCover, (int(1920 / 2), int(1080 / 2)))",
         "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:66-89"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/recursive_search_bilibili_test.py:1-45"
     },
     "5031": {
-        "file_id": 656,
-        "content": "This function updates a dictionary of rectangles by iterating over a list of rectangles and their properties. It adds new rectangles to the dictionary or updates existing ones with their duration, position, and difference from previous frames. It ignores rectangles that do not change and removes those without an end frame.",
+        "file_id": 652,
+        "content": "The code changes the directory, appends the current path to Python's sys.path, and removes the global proxy environment variables. It then initializes OpenCV with a custom build and imports necessary modules. Finally, it loops through fetched video metadata for production, resizing the cover image, and prints the metadata.",
         "type": "comment"
     },
     "5032": {
-        "file_id": 656,
-        "content": "            diff_x = np.mean(diff.flatten())\n            # std_x = np.std(std,axis=2)\n            # std_x = np.std(std_x,axis=1)\n            # std_x = np.std(std_x,axis=0)\n            std_total = diff_x # later we need to convert this float64.\n            # breakpoint()\n            if duration == 1:\n                oldTotalRectDict[uuid][\"meanDifference\"] = std_total\n            else:\n                dur2 = duration - 1\n                prev_std = oldTotalRectDict[uuid][\"meanDifference\"]\n                new_std = (dur2*prev_std + std_total)/duration # may freaking exceed limit.\n                oldTotalRectDict[uuid][\"meanDifference\"] = new_std\n            oldTotalRectDict[uuid][\"endFrame\"] = currentFrameIndex\n    return oldTotalRectDict\ntotal_rect_dict ={}\nrect_dict_main_list = []\nmin_rect_life_display_thresh = 3 # a filter.\nmode = 1\nline_thresh =  150\nincludeBoundaryLines = True # applied to those cornered crops.\n# this will slow down the process. or maybe?\nframeIndex = -1\nprevFrame = None\nif mode == 1:\n    import pybgs as bgs",
+        "file_id": 652,
+        "content": "        cv2.imshow(\"COVER\", mCover2)\n        cv2.waitKey(0)\n        breakpoint()",
         "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:90-117"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/recursive_search_bilibili_test.py:46-48"
     },
     "5033": {
-        "file_id": 656,
-        "content": "This code calculates the mean difference of rectangles over a certain duration and updates an existing dictionary with this information. It then returns the updated dictionary. The dictionary contains rectangle information such as mean difference, start frame index, end frame index, and duration for each unique ID (uuid). If the duration is 1, it simply stores the current mean difference in the dictionary. Otherwise, it calculates a new mean difference by taking a weighted average of the previous mean difference and the new mean difference. The code also initializes variables and imports a module called pybgs as bgs.",
+        "file_id": 652,
+        "content": "The code snippet displays an image using OpenCV's imshow function, pauses the execution until a keyboard event occurs with waitKey, and then terminates the loop with breakpoint. It is used for visualizing an image, potentially during debugging or analysis.",
         "type": "comment"
     },
     "5034": {
-        "file_id": 656,
-        "content": "    algorithm = (\n    bgs.FrameDifference()\n)  # this\nwhile True:\n    ret, img = video.read()\n    if img is None:\n        if mode == 1:\n            popKeys = []\n            for key in total_rect_dict.keys():\n                elem = total_rect_dict[key]\n                if elem[\"endFrame\"] is None:\n                    popKeys.append(key)\n            for key in popKeys:\n                total_rect_dict.pop(key) # remove premature rectangles.\n        break\n    else: frameIndex+=1\n    if mode == 1:\n        diff_img_output = algorithm.apply(img)\n    # what about the freaking still image?\n    # Convert the img to grayscale\n    # gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)\n    # no need to use gray image.\n    # Apply edge detection method on the image\n    blurred = cv2.GaussianBlur(img, (5, 5), 0)\n    edges = cv2.Canny(blurred,20,210,apertureSize = 3) # great.\n    # why not applying edges directly to rectangles?\n    # This returns an array of r and theta values\n    # line_thresh =  200\n    # maintain a rectangle list. merge the alikes?",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:118-152"
+        "file_id": 653,
+        "content": "/tests/bilibili_search_api_modification_section_params_get_related_videos/load_json5_render_template.py",
+        "type": "filepath"
     },
     "5035": {
-        "file_id": 656,
-        "content": "This code reads frames from a video and applies different algorithms to detect objects. It checks for premature rectangles and removes them if necessary, and applies edge detection methods on the image. The code uses GaussianBlur and Canny functions for edge detection. It maintains a rectangle list and considers merging similar rectangles.",
-        "type": "comment"
+        "file_id": 653,
+        "content": "The code reads a JSON5 file named 'channelConfig.json5' and a Jinja2 template file named 'template.j2'. It then parses the JSON5 data to obtain channel information such as name and tid. For each channel, it tries to extract subChannel information (name and tid). If successful, it appends them to a list called subChannels. The code renders the Jinja2 template with the extracted channel and subchannel information, and then prints the rendered data.",
+        "type": "summary"
     },
     "5036": {
-        "file_id": 656,
-        "content": "    if mode == 1:\n        lines = cv2.HoughLines(edges,1,np.pi/180,line_thresh)\n        angle_error = 0.00003   # this can only detect square things, absolute square.\n        # we need to know horizontal and vertical lines, when they cross we get points.\n        frameHeight, frameWidth = img.shape[:2]\n        # print(\"height: \", frameHeight)\n        # print(\"width: \", frameWidth)\n        mlines = {\"horizontal\":[], \"vertical\":[]}\n        if includeBoundaryLines:\n            originPoint = (0,0)\n            cornerPoint = (frameWidth,frameHeight)\n            mlines[\"horizontal\"].append(originPoint)\n            mlines[\"horizontal\"].append(cornerPoint)\n            mlines[\"vertical\"].append(originPoint)\n            mlines[\"vertical\"].append(cornerPoint)\n        for line in lines:\n            for r_theta in line:\n                # breakpoint()\n                r,theta = r_theta.tolist()\n                # Stores the value of cos(theta) in a\n                # filter detected lines?\n                # theta filter:\n                if not abs(theta % (np.pi/2) )< angle_error:",
+        "file_id": 653,
+        "content": "import json5\nimport jinja2\ntemplate = open('template.j2','r').read()\ntemplate = jinja2.Template(template)\ndata = open(\"channelConfig.json5\",'r').read()\ndata = json5.loads(data)\nchannelList = data['channelList']\nfor channel in channelList:\n    try:\n        channelName = channel['name']\n        channelTid = channel['tid']\n        subChannels = []\n        for subChannel in channel['sub']:\n            try:\n                subChannelName = subChannel['name']\n                subChannelTid = subChannel['tid']\n                subChannels.append((subChannelName, subChannelTid))\n            except:\n                continue\n        rendered_data = template.render(channelName=channelName, channelTid=channelTid, subChannels=subChannels)\n        print(rendered_data)\n    except:\n        continue",
         "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:154-176"
+        "location": "/tests/bilibili_search_api_modification_section_params_get_related_videos/load_json5_render_template.py:1-26"
     },
     "5037": {
-        "file_id": 656,
-        "content": "The code segment is filtering HoughLines-detected lines from an image, ensuring they are nearly horizontal or vertical. It stores the cosine of line angles in a variable called 'a', and applies an angle error threshold to filter out lines not close to 0 (horizontal) or π/2 (vertical). If includeBoundaryLines is True, it adds four boundary points for both horizontal and vertical lines.",
+        "file_id": 653,
+        "content": "The code reads a JSON5 file named 'channelConfig.json5' and a Jinja2 template file named 'template.j2'. It then parses the JSON5 data to obtain channel information such as name and tid. For each channel, it tries to extract subChannel information (name and tid). If successful, it appends them to a list called subChannels. The code renders the Jinja2 template with the extracted channel and subchannel information, and then prints the rendered data.",
         "type": "comment"
     },
     "5038": {
-        "file_id": 656,
-        "content": "                    continue # this is filtering.\n                # print(\"line parameter:\",r,theta)\n                a = np.cos(theta)\n                # Stores the value of sin(theta) in b\n                b = np.sin(theta)\n                # x0 stores the value rcos(theta)\n                x0 = a*r\n                # y0 stores the value rsin(theta)\n                y0 = b*r\n                # x1 stores the rounded off value of (rcos(theta)-1000sin(theta))\n                x1 = int(x0 + 1000*(-b))\n                # y1 stores the rounded off value of (rsin(theta)+1000cos(theta))\n                y1 = int(y0 + 1000*(a))\n                # x2 stores the rounded off value of (rcos(theta)+1000sin(theta))\n                x2 = int(x0 - 1000*(-b))\n                # y2 stores the rounded off value of (rsin(theta)-1000cos(theta))\n                y2 = int(y0 - 1000*(a))\n                # cv2.line draws a line in img from the point(x1,y1) to (x2,y2).\n                # (0,0,255) denotes the colour of the line to be\n                #drawn. In this case, it is red.",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:177-204"
+        "file_id": 654,
+        "content": "/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/test_bilibili.sh",
+        "type": "filepath"
     },
     "5039": {
-        "file_id": 656,
-        "content": "This code calculates line parameters using trigonometry and then draws a red line on the image. The loop filters out certain conditions, and the calculations are based on radius (r), polar angle (theta). Lines are drawn between different points calculated from these variables to create lines in the image.",
-        "type": "comment"
+        "file_id": 654,
+        "content": "This code utilizes yt-dlp to download Bilibili video sections with authentication, handles subtitles and danmaku, supports multiple portions, updates cookies, allows title-only downloads, and retrieves metadata.",
+        "type": "summary"
     },
     "5040": {
-        "file_id": 656,
-        "content": "                df_x = abs(x1-x2)\n                df_y = abs(y1-y2)\n                lineType = \"vertical\"\n                if df_x > df_y:\n                    lineType = \"horizontal\"\n                # we just need one single point and lineType.\n                linePoint = (x1,y1)\n                mlines[lineType].append(linePoint)\n                # cv2.line(img,(x1,y1), (x2,y2), (0,0,255),2)\n                # would not draw lines this time. draw found rects instead.\n        # get rectangle points. or just all possible rectangles?\n        # enumerate all possible lines.\n        if len(mlines[\"horizontal\"]) < 2 or len(mlines[\"vertical\"]) < 2:\n            print(\"unable to form rectangles.\")\n            continue\n        else:\n            rects =[] # list of rectangles\n            for line_h1, line_h2 in itertools.combinations(mlines[\"horizontal\"],2):\n                ymin, ymax = list(sorted([line_h1[1],line_h2[1]]))\n                for line_v1, line_v2 in itertools.combinations(mlines[\"vertical\"], 2):\n                    xmin, xmax = list(sorted([line_v1[0],line_v2[0]]))",
+        "file_id": 654,
+        "content": "# 关于视频合集 分p视频的分析逻辑：\n# https://github.com/Satoing/python_bilibili_downloader/blob/master/bilibili_video.py\n# 解析这个接口可以得到分p或者合集的信息 以及字幕信息 AI生成的字幕\n# https://api.bilibili.com/x/web-interface/view?bvid=BV1Fs411k7e9\n# https://api.bilibili.com/x/web-interface/view?bvid=BV1Cg411E7NF\nURL=\"https://www.bilibili.com/video/BV1Fs411k7e9\" #老戴 马克思佩恩 分p视频\n# 也可以直接网页parse\n# executing this you will get \"subtitle\" in \"danmaku\" as language, in xml format.\n# 对于海量弹幕的某些视频 （超电磁炮 12w asoul的某些二创 3w）不建议进行弹幕分析 可以通过API获取弹幕总数 不下载弹幕 \n# yt-dlp --skip-download --list-subs -I 1 \"https://www.bilibili.com/video/BV1Fs411k7e9\"\n# URL=\"https://www.bilibili.com/video/BV1Cg411E7NF\" #苏打baka 魔改机箱 合集\n# 合集视频 用bilibili_api 或者直接网页parse即可\n# it has multiple videos. what to do?\n# --force-keyframes-at-cuts\n# man i just need the first chapter.\n# yt-dlp --download-sections \"*0:05:00-0:06:30\" --playlist-items \"1\" \"$URL\" # only first video.\n# premium?\n# this feature is awesome! how to extract cookies programmatically from browser?\n# Use --cookies-from-browser o",
         "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:205-226"
+        "location": "/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/test_bilibili.sh:1-26"
     },
     "5041": {
-        "file_id": 656,
-        "content": "Calculating differences in x and y coordinates to determine line type. Appends line points based on line type to a dictionary. If there are less than 2 horizontal or vertical lines, the code cannot form rectangles and skips to the next iteration. Iterates through combinations of horizontal lines to find the upper and lower bounds, then does the same with vertical lines for left and right bounds.",
+        "file_id": 654,
+        "content": "This code snippet is for downloading specific sections of Bilibili videos using yt-dlp. It provides URLs for both single video parts and video collections, explains how to handle subtitles and danmaku (comments), and suggests using the --cookies-from-browser option for premium access.",
         "type": "comment"
     },
     "5042": {
-        "file_id": 656,
-        "content": "                    rect = ((xmin,ymin),(xmax,ymax))\n                    rects.append(rect)\n            rect_dict_main_list = rectSurge(rect_dict_main_list,rects)\n            # print(\"RECT DICT MAIN LIST:\")\n            # print(rect_dict_main_list) # maybe i want this shit?\n            total_rect_dict = updateTotalRects(total_rect_dict,rect_dict_main_list,frameIndex,diff_img_output)\n            mdisplayed_rect_count = 0\n            for rect_dict in rect_dict_main_list:\n                life = rect_dict[\"life\"]\n                if life < min_rect_life_display_thresh:\n                    continue # this is needed.\n                # draw shit now.\n                mdisplayed_rect_count +=1\n                (xmin,ymin),(xmax,ymax) = rect_dict[\"rect\"]\n                cv2.rectangle(img,(xmin,ymin),(xmax,ymax) , (255,0,0), 2)\n            #     (xmin,ymin),(xmax,ymax) = rect\n            #     rect_area = (xmax-xmin) * (ymax-ymin)\n            #     print(\"rect found:\",rect,rect_area)\n            prevFrame = img.copy()",
+        "file_id": 654,
+        "content": "r --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp \n# not working for chromium on kali? (no bilibili cookie found) maybe it is relocated.\n# cookies = yt_dlp.cookies.extract_cookies_from_browser(BROWSER_NAME) -> YourubeDLCookieJar\n# save as Netscape HTTP Cookie File.\n# cookies.save(OUTPUT_FILE_PATH) \n# since we have issue playing content at tail of video, we do this.\n# yt-dlp --download-sections \"*0:05:00-0:06:30\" --playlist-items \"1\" --cookies-from-browser firefox --force-keyframes-at-cuts \"$URL\" # pass cookies.\n# forcing keyframe is much slower. but it produces better results.\n# yt-dlp --download-sections \"*0:05:00-0:06:30\" --playlist-items \"1\" --cookies-from-browser firefox --force-keyframes-at-cuts \"$URL\" # pass cookies.\n# you may want to add some margin at tail (or head) if not using \"--force-keyframes-at-cuts\", be it 10 seconds. usually jigs happens at 5 secs. but we are careful.\n# yt-dlp --download-sections \"*0:04:50-0:06:40\" --playlist-items \"1\" --cookies-from-browser firefox \"$URL\" # pass cookies.",
         "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:227-245"
+        "location": "/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/test_bilibili.sh:26-42"
     },
     "5043": {
-        "file_id": 656,
-        "content": "The code is updating a list of rectangles and iterating over it to draw them on an image. It checks if the rectangle \"life\" is above a certain threshold before drawing, and maintains a count of displayed rectangles. The code also stores the previous frame for comparison in a later step.",
+        "file_id": 654,
+        "content": "The code is trying to download a specific portion of a Bilibili video, ensuring authentication by passing cookies from the browser (Firefox in this case) to yt-dlp. It forces keyframes at cuts for better results but notes that it's slower. The code provides different options to account for potential issues and suggests adding margin at tail or head if not using --force-keyframes-at-cuts, with a recommended 10 seconds or even 5 seconds depending on the need for caution.",
         "type": "comment"
     },
     "5044": {
-        "file_id": 656,
-        "content": "            # print(\"total rects:\",mdisplayed_rect_count)\n    elif mode == 2:\n        lines = cv2.HoughLinesP(edges,1,np.pi/180,line_thresh,minLineLength=2,maxLineGap=100) # these are not angle filtering.\n        for points in lines:\n      # Extracted points nested in the list\n            x1,y1,x2,y2=points[0]\n            # filter out angle errors?\n            # Draw the lines joing the points\n            # On the original image\n            cv2.line(img,(x1,y1),(x2,y2),(0,255,0),2)\n            # Maintain a simples lookup list for points\n            # lines_list.append([(x1,y1),(x2,y2)])\n    elif mode == 3:\n        # edges = cv2.GaussianBlur(edges, (5, 5), 0)\n        horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (10,1))\n        detect_horizontal = cv2.morphologyEx(edges, cv2.MORPH_OPEN, horizontal_kernel, iterations=3)\n        vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1,10))\n        detect_vertical = cv2.morphologyEx(edges, cv2.MORPH_OPEN, vertical_kernel, iterations=3)",
+        "file_id": 654,
+        "content": "# what if we download multiple sections?\n# no combination? shit.\n# if not at the very tail, other tails can be better than the last tail. but it is just my guess. better to keep all these margins!\n# yt-dlp --download-sections \"*0:04:50-0:05:40\" --download-sections \"*0:05:50-0:06:40\" --playlist-items \"1\" --cookies-from-browser firefox -o \"%(uploader_id)s-%(id)s-%(title)s-%(autonumber)s.%(ext)s\" \"$URL\" # pass cookies.\n# since we have cron job now, no need to do the old-school thing.\nyt-dlp --download-sections \"*0:04:50-0:05:40\" --download-sections \"*0:05:50-0:06:40\" --playlist-items \"1\" --cookies /root/.browser_cookies_exported/firefox.cookies -o \"%(uploader_id)s-%(id)s-%(title)s-%(autonumber)s.%(ext)s\" \"$URL\" # pass cookies in different way\n# like this: '2142762-BV1Fs411k7e9_p1-老戴《马克思佩恩 3》全收集流程攻略【共14期完结】 p01 EP-01-00002.mp4'\n# https://github.com/yt-dlp/yt-dlp#readme -> \"OUTPUT TEMPLATE\"\n# https://github.com/yt-dlp/yt-dlp/issues/4579\n# you better use stored cookies instead of retrieving cookies every time.",
         "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:246-264"
+        "location": "/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/test_bilibili.sh:44-59"
     },
     "5045": {
-        "file_id": 656,
-        "content": "The code applies different modes to detect lines and edges in an image. Mode 2 uses HoughLinesP to detect lines without angle filtering, drawing them on the original image. Mode 3 applies morphological operations using structuring elements for horizontal and vertical lines detection.",
+        "file_id": 654,
+        "content": "The code tests downloading multiple video portions from Bilibili using yt-dlp with cookies stored, instead of retrieving them every time. It mentions that keeping all margins is better and suggests using a different format for the output file name.",
         "type": "comment"
     },
     "5046": {
-        "file_id": 656,
-        "content": "        cnts_horizontal = cv2.findContours(detect_horizontal, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)\n        cnts_horizontal = cnts_horizontal[0] if len(cnts_horizontal) == 2 else cnts_horizontal[1]\n        cnts_vertical = cv2.findContours(detect_vertical, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)\n        cnts_vertical = cnts_vertical[0] if len(cnts_vertical) == 2 else cnts_vertical[1]\n        for c in cnts_horizontal:\n            cv2.drawContours(img, [c], -1, (255,0,0), 3)\n        for c in cnts_vertical:\n            cv2.drawContours(img, [c], -1, (255,0,0), 3)\n    # what the heck?\n    # The below for loop runs till r and theta values\n    # are in the range of the 2d array\n    # why you have middle lines?\n            # how to get the intersections? lines?\n    cv2.imshow('linesDetected.jpg', img)\n    # cv2.imshow(\"edges.jpg\",edges) # not for fun.\n    if cv2.waitKey(20) == ord(\"q\"):\n        print(\"QUIT INTERFACE.\")\n        break\n# All the changes made in the input image are finally\n# written on a new image houghlines.jpg",
+        "file_id": 654,
+        "content": "# or you can update cookies regularly with cronjob.\n# just want metadata?\n# if you want title for each video in playlist, you just get it from elsewhere or parse the damn output filename (slow, man!)\n# this seems to only have video description. nothing else! not even video length.\n# yt-dlp --write-description --write-playlist-metafiles --skip-download \"$URL\"\n# hey i don't want many download links. i just want title.\n# yt-dlp --write-info-json  --write-playlist-metafiles --skip-download \"$URL\" # this will get metadata main playlist and every video in the playlist in separate json files.\n# this is one of the video in that playlist. \"https://www.bilibili.com/video/BV1Fs411k7e9?p=1\n# you can get comments with this tool.\n## no comments?\n# yt-dlp --write-info-json --skip-download \"$URL\"\n# download-sections can be used multiple times?",
         "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:266-290"
+        "location": "/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/test_bilibili.sh:60-75"
     },
     "5047": {
-        "file_id": 656,
-        "content": "This code uses OpenCV to detect horizontal and vertical lines in an image. It finds contours for both line types and draws them on the original image. Then, it displays the image with the detected lines using cv2.imshow(). The code also checks for a 'q' key press to exit the interface and saves the edited image as houghlines.jpg.",
+        "file_id": 654,
+        "content": "This code snippet provides various options for downloading or obtaining metadata from a Bilibili playlist using yt-dlp. The user can choose to update cookies regularly, download only the video title, or retrieve metadata for the entire playlist and each individual video in separate JSON files. The user can also use specific URLs to obtain comments without actually downloading the videos. The code suggests multiple usage scenarios for the 'download-sections' functionality.",
         "type": "comment"
     },
     "5048": {
-        "file_id": 656,
-        "content": "if mode == 1:\n    print(\"FINAL RESULT:\")\n    for key in total_rect_dict.keys():\n        elem = total_rect_dict[key]\n        print(\"RECT UUID\",key)\n        print(\"RECT CONTENT\",elem)",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:291-298"
-    },
-    "5049": {
-        "file_id": 656,
-        "content": "This code block checks if mode is 1, then prints the final results. It iterates through each key-value pair in total_rect_dict and outputs the rect UUID and content.",
-        "type": "comment"
-    },
-    "5050": {
-        "file_id": 657,
-        "content": "/tests/video_detector_tests/rectangle_framedifference.py",
+        "file_id": 655,
+        "content": "/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/cron_update_cookies_stored_under_root_home.py",
         "type": "filepath"
     },
-    "5051": {
-        "file_id": 657,
-        "content": "The code utilizes a motion detector to continuously capture frames, detecting changes for object detection and tracking. It calculates merged bounding boxes, applies thresholds, updates coordinates based on average values, and displays frames using OpenCV.",
+    "5049": {
+        "file_id": 655,
+        "content": "This script creates a directory for cookie storage if it doesn't already exist, and then extracts and saves cookies from Firefox and Chromium browsers.",
         "type": "summary"
     },
-    "5052": {
-        "file_id": 657,
-        "content": "# motion detectors are used to track objects. though you may want to separate objects with it.\nimport numpy as np\nimport cv2\nimport pybgs as bgs\nimport talib  # wait till all points are stablized. find a way to stream this.\n# suspect by static image analysis, and then create bounding box over the thing.\n# check image quality.\n# this can generate frame borders.\nalgorithm = (\n    bgs.FrameDifference()\n)  # this is not stable since we have more boundaries. shall we group things?\nvideo_file = (\n    \"../../samples/video/dog_with_text.mp4\"  # this is doggy video without borders.\n)\n# video_file = \"../../samples/video/LiEIfnsvn.mp4\" # this one with cropped boundaries.\ncapture = cv2.VideoCapture(video_file)\nwhile not capture.isOpened():\n    capture = cv2.VideoCapture(video_file)\n    # cv2.waitKey(1000)\n    # print(\"Wait for the header\")\npos_frame = capture.get(1)\ndef getAppendArray(mx1, min_x, past_frames=19):\n    return np.append(mx1[-past_frames:], min_x)\ndef getFrameAppend(frameArray, pointArray, past_frames=19):\n    mx1, mx2, my1, my2 = [",
+    "5050": {
+        "file_id": 655,
+        "content": "# 0 * * * * /usr/bin/python3 /root/Desktop/works/pyjom/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/cron_update_cookies_stored_under_root_home.py\nimport os\nimport shutil\ncookies_path = \"/root/.browser_cookies_exported\"\nif not (os.path.exists(cookies_path) or os.path.isdir(cookies_path)):\n    if os.path.isfile(cookies_path):\n        os.remove(cookies_path)\n    elif os.path.isdir(cookies_path):\n        shutil.rmtree(cookies_path)\n    elif os.path.islink(cookies_path):\n        os.unlink(cookies_path)\n    os.mkdir(cookies_path)\nimport yt_dlp\nbrowser_names = [\"firefox\",\"chromium\"]\nfor browser_name in browser_names:\n    cookies = yt_dlp.cookies.extract_cookies_from_browser(browser_name)\n    filepath = os.path.join(cookies_path,f\"{browser_name}.cookies\")\n    cookies.save(filepath)",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:1-33"
+        "location": "/tests/download_sections_video_portion_partial_download_youtube_yt_dlp_bilibili/cron_update_cookies_stored_under_root_home.py:1-24"
     },
-    "5053": {
-        "file_id": 657,
-        "content": "The code initializes a motion detector using frame difference algorithm to track objects in a video. It reads the video file and prepares two functions: `getAppendArray` for appending array elements, and `getFrameAppend` for processing frame data. These functions are used with specified past frames to analyze the video and possibly group objects. The code also handles potential video file opening issues by retrying if necessary.",
+    "5051": {
+        "file_id": 655,
+        "content": "This script creates a directory for cookie storage if it doesn't already exist, and then extracts and saves cookies from Firefox and Chromium browsers.",
         "type": "comment"
     },
+    "5052": {
+        "file_id": 656,
+        "content": "/tests/video_phash_deduplication/test_video_hash.py",
+        "type": "filepath"
+    },
+    "5053": {
+        "file_id": 656,
+        "content": "The code defines `getVideoPHash` to calculate a video's phash using the `videohashes` tool, testing it by comparing pairwise differences between hash values for different videos and considering duplicates based on a threshold.",
+        "type": "summary"
+    },
     "5054": {
-        "file_id": 657,
-        "content": "        getAppendArray(a, b, past_frames=past_frames)\n        for a, b in zip(frameArray, pointArray)\n    ]\n    return mx1, mx2, my1, my2\ndef getStreamAvg(a, timeperiod=10):  # to maintain stability.\n    return talib.stream.EMA(a, timeperiod=timeperiod)\ndef checkChange(frame_x1, val_x1, h, change_threshold=0.2):\n    return (abs(frame_x1 - val_x1) / h) > change_threshold  # really changed.\nmx1, mx2, my1, my2 = [np.array([]) for _ in range(4)]\npast_frames = 19\nperc = 0.03\nframe_num = 0\n# what is the time to update the frame?\nframe_x1, frame_y1, frame_x2, frame_y2 = [None for _ in range(4)]\nreputation = 0\nmax_reputation = 3\nminVariance = 10\nframeDict = {}  # include index, start, end, coords.\nframeIndex = 0\nwhile True:\n    flag, frame = capture.read()\n    frameIndex += 1\n    if flag:\n        pos_frame = capture.get(1)  # this is getting previous frame without read again.\n        img_output = algorithm.apply(frame)\n        img_bgmodel = algorithm.getBackgroundModel()\n        _, contours = cv2.findContours(\n            img_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE",
+        "file_id": 656,
+        "content": "# use some delogo stuff.\nfrom lazero.program.subprocess import runCommandGetJson\n# these two are similar. can be used as threshold.\n# aaaa3d8a2eaa1f8a delogo\n# aaaa398a2faa5d8a not delogoed.\n# aaaa3c8a2faa5e8a mp4 (very similar to delogoed version)\ndef getVideoPHash(filepath,debug=False, timeout=100):\n    import os\n    import imagehash\n    assert os.path.exists(filepath)\n    assert os.path.isfile(filepath)\n    if not os.path.isabs(filepath):\n        filepath = os.path.abspath(filepath)\n    commandLine = [\n        \"videohashes\", # installed in path.\n        # \"/root/Desktop/works/pyjom/tests/video_phash_deduplication/videohashes/videohashes-linux\",\n        \"-json\",\n        filepath,\n    ]\n    success, myJson = runCommandGetJson(commandLine, debug=debug, timeout=timeout)\n    if debug:\n        print(\"SUCCESS?\", success)\n        print(myJson, type(myJson))\n    if not success:\n        return\n    # breakpoint()\n    phashString = myJson[\"phash\"]\n    phash = imagehash.hex_to_hash(phashString)\n    if debug:\n        print(\"FILEPATH: %s\" % filepath)",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:34-70"
+        "location": "/tests/video_phash_deduplication/test_video_hash.py:1-32"
     },
     "5055": {
-        "file_id": 657,
-        "content": "The code initializes variables for frame coordinates, past frames count, and other parameters. It then enters a loop to continuously capture frames from the camera, apply an algorithm to detect changes, and update relevant variables accordingly. The purpose is likely object detection and tracking using background subtraction or similar techniques.",
+        "file_id": 656,
+        "content": "The code defines a function `getVideoPHash` that calculates a video's phash (a unique identifier for an image or video) using the `videohashes` command-line tool. It takes a filepath as input, checks if it exists and is a file, then runs the command to generate the JSON output. The function also converts the returned phash string to a binary hash and optionally prints debug information.",
         "type": "comment"
     },
     "5056": {
-        "file_id": 657,
-        "content": "        )\n        # maybe you should merge all active areas.\n        if contours is not None:\n            # continue\n            counted = False\n            for contour in contours:\n                [x, y, w, h] = cv2.boundingRect(img_output)\n                if not counted:\n                    min_x, min_y = x, y\n                    max_x, max_y = x + w, y + h\n                    counted = True\n                else:\n                    min_x = min(min_x, x)\n                    min_y = min(min_y, y)\n                    max_x = max(max_x, x + w)\n                    max_y = max(max_y, y + h)\n                    # only create one single bounding box.\n            # print(\"points:\",min_x, min_y, max_x,max_y)\n            this_w = max_x - min_x\n            this_h = max_y - min_y\n            thresh_x = max(minVariance, int(perc * (this_w)))\n            thresh_y = max(minVariance, int(perc * (this_h)))\n            mx1, mx2, my1, my2 = getFrameAppend(\n                (mx1, mx2, my1, my2), (min_x, max_x, min_y, max_y)\n            )",
+        "file_id": 656,
+        "content": "        print(myJson)\n        print(\"PHASH:\", phash)\n    # if withDuration:\n    #     duration = myJson[\"duration\"]\n    #     return duration, phash\n    # duration is inaccurate\n    return phash\nif __name__ == \"__main__\":\n    videoPaths = [\n        \"cute_cat_gif.mp4\",\n        \"cute_cat_gif.gif\",\n        \"cat_delogo.gif\",\n        \"/root/Desktop/works/pyjom/samples/video/dog_with_large_text.gif\",\n    ]\n    hashs = [getVideoPHash(filepath,debug=True) for filepath in videoPaths]\n    dis0 = hashs[0] - hashs[1]  # small\n    dis1 = hashs[1] - hashs[2]  # big\n    dis2 = hashs[0] - hashs[2]  # big\n    dis3 = hashs[0] - hashs[3]  # big\n    print(dis0, dis1, dis2, dis3)\n    # 4 4 4\n    # strange. why?\n    # 4 4 4 42\n    # huge difference.\n    # what value do you decide to be duplicate?\n    # phash < 7 (really?)\n    # so how do we run this test?",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:71-95"
+        "location": "/tests/video_phash_deduplication/test_video_hash.py:33-65"
     },
     "5057": {
-        "file_id": 657,
-        "content": "The code finds the bounding box of all detected contours and merges them into a single one. It then calculates the width and height of this merged bounding box, applies thresholds based on its size and percentage, and updates existing frame append values with new min and max coordinates.",
+        "file_id": 656,
+        "content": "This code tests the video hashing function by calculating pairwise differences between hash values for different video files. It then compares the differences to determine potential duplicates and prints the results. The hash difference threshold for considering duplicates is set to 7, but this seems low and may need adjustment based on further testing.",
         "type": "comment"
     },
     "5058": {
         "file_id": 657,
-        "content": "            val_x1, val_x2, val_y1, val_y2 = [\n                getStreamAvg(a) for a in (mx1, mx2, my1, my2)\n            ]\n            # not a number. float\n            # will return False on any comparison, including equality.\n            if (\n                abs(val_x1 - min_x) < thresh_x\n                and abs(val_x2 - max_x) < thresh_x\n                and abs(val_y1 - min_y) < thresh_y\n                and abs(val_y2 - max_y) < thresh_y\n            ):\n                needChange = False\n                # this will create bounding rect.\n                # this cannot handle multiple active rects.\n                reputation = max_reputation\n                if frame_x1 == None:\n                    needChange = True\n                elif (\n                    checkChange(frame_x1, val_x1, this_w)\n                    or checkChange(frame_x2, val_x2, this_w)\n                    or checkChange(frame_y1, val_y1, this_h)\n                    or checkChange(frame_y2, val_y2, this_h)\n                ):\n                    needChange = True",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:96-119"
+        "content": "/tests/video_phash_deduplication/test_milvus_library.py",
+        "type": "filepath"
     },
     "5059": {
         "file_id": 657,
-        "content": "This code calculates the average values of x1, x2, y1, and y2 using getStreamAvg function for variables mx1 to my2. If these averages are within a certain threshold from min_x, max_x, min_y, and max_y, it sets needChange to False and reputation to max_reputation. If frame_x1 is None or there's a change in any of the variables, needChange is set to True.",
-        "type": "comment"
+        "content": "This code defines a Milvus function for connecting, managing collections, and caching. It creates Collections with specified data types, searches duplicated videos, retrieves video duration/hash, indexes videos, and reloads collection if necessary.",
+        "type": "summary"
     },
     "5060": {
         "file_id": 657,
-        "content": "                    # the #2 must be of this reason.\n                if needChange:\n                    frame_x1, frame_y1, frame_x2, frame_y2 = [\n                        int(a) for a in (min_x, min_y, max_x, max_y)\n                    ]\n                    print()\n                    print(\"########FRAME CHANGED########\")\n                    frame_num += 1\n                    frame_area = (frame_x2 - frame_x1) * (frame_y2 - frame_y1)\n                    # update the shit.\n                    coords = ((frame_x1, frame_y1), (frame_x2, frame_y2))\n                    frameDict[frame_num] = {\n                        \"coords\": coords,\n                        \"start\": frameIndex,\n                        \"end\": frameIndex,\n                    }\n                    print(\n                        \"FRAME INDEX: {}\".format(frame_num)\n                    )  # this is the indexable frame. not uuid.\n                    print(\"FRAME AREA: {}\".format(frame_area))\n                    print(\"FRAME COORDS: {}\".format(str(coords)))",
+        "content": "# # duplicate -> remove, do not insert\n# # not duplicate -> get the data, insert\n# # you want to clear the collection after this run?\n# from functools import lru_cache\n# from pymilvus import connections\n# @lru_cache(maxsize=1)\n# def connectMilvusDatabase(alias=\"default\", host=\"localhost\", port=\"19530\"):\n#     connection = connections.connect(\n#         alias=alias, host=host, port=port\n#     )  # can we reconnect?\n#     print(\"milvus connected\")\n# # connectMilvusDatabase()\n# # connectMilvusDatabase() # will not connect again.\n# from pymilvus import Collection\n# from pymilvus import utility\n# from pymilvus import CollectionSchema, FieldSchema, DataType\n# import traceback\n# def getMilvusVideoDeduplicationCollection(\n#     get_existing: bool = False,\n# ):  # most of the time we just use the same\n#     collection_name = \"video_deduplication\"\n#     try:\n#         if utility.has_collection(collection_name):  # be prudent.\n#             if get_existing:\n#                 return Collection(collection_name)\n#             utility.drop_collection(collection_name)",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:120-140"
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:1-35"
     },
     "5061": {
         "file_id": 657,
-        "content": "This code snippet handles frame changes in a video detection process. When a change is detected (needChange), it updates the frame's coordinates, number, and area. It then prints information about the new frame and adds it to the frameDict dictionary with the index as the key.",
+        "content": "The code defines a function to connect to a Milvus database, get or remove an existing collection named \"video_deduplication\", and returns the collection if it already exists. The function uses caching and checks if the collection already exists before performing any actions.",
         "type": "comment"
     },
     "5062": {
         "file_id": 657,
-        "content": "                # allow us to introduce our new frame determinism.\n            else:\n                if reputation > 0:\n                    reputation -= 1\n            if frame_x1 is not None and reputation > 0:\n                # you may choose to keep cutting the frame? with delay though.\n                cv2.rectangle(\n                    frame, (frame_x1, frame_y1), (frame_x2, frame_y2), (255, 0, 0), 2\n                )\n                frameDict[frame_num][\"end\"] = frameIndex\n                # we mark the first and last time to display this frame.\n            # how to stablize this shit?\n        cv2.imshow(\"video\", frame)\n        # just video.\n        # cv2.imshow('img_output', img_output)\n        # cv2.imshow('img_bgmodel', img_bgmodel)\n    else:\n        cv2.waitKey(1000)\n        break\n    if 0xFF & cv2.waitKey(10) == 27:\n        break\ncv2.destroyAllWindows()\nprint(\"FINAL FRAME DETECTIONS:\")\nprint(frameDict)\n# {1: {'coords': ((80, 199), (496, 825)), 'start': 13, 'end': 269}, 2: {'coords': ((80, 381), (483, 644)), 'start': 297, 'end': 601}}",
+        "content": "#     except:\n#         traceback.print_exc()\n#         print(\"maybe the collection does not exist\")\n#     video_semantic_id = FieldSchema(  # how to insert this shit without prior knowledge?\n#         name=\"video_semantic_id\",\n#         dtype=DataType.INT64,\n#         is_primary=True,  # if is primary, will do check for 'not duplicate' or something.\n#         auto_id=True,  # no need for id generation.\n#     )\n#     video_length = FieldSchema(\n#         name=\"video_length\",\n#         dtype=DataType.FLOAT,\n#     )\n#     video_phash = FieldSchema(\n#         name=\"video_phash\", dtype=DataType.BINARY_VECTOR, dim=64\n#     )  # 64\n#     # single dimension? no multi dimension support?\n#     schema = CollectionSchema(\n#         fields=[video_semantic_id, video_length, video_phash],\n#         description=\"Test video deduplication\",\n#     )\n#     collection = Collection(\n#         name=collection_name,\n#         schema=schema,\n#         using=\"default\",\n#         shards_num=2,\n#     )\n#     # is this demo collection?\n#     return collection",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:141-169"
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:36-65"
     },
     "5063": {
         "file_id": 657,
-        "content": "This code appears to be part of a video detection and analysis program. It uses OpenCV to display frames from the video and overlay rectangles on frames that have been detected multiple times. The \"frameDict\" stores information about detected frames, including their coordinates, start and end indices in the video, and reputation. The program continues until the user presses ESC or waits too long, then prints the final frame detections.",
+        "content": "This code defines a CollectionSchema and Collection for Milvus library. The schema contains fields for video_semantic_id, video_length, and video_phash, with their respective data types and properties. The Collection is created with a name, schema, database usage, and number of shards.",
         "type": "comment"
     },
     "5064": {
-        "file_id": 658,
-        "content": "/tests/video_detector_tests/rect_corner_detect_fast.py",
-        "type": "filepath"
+        "file_id": 657,
+        "content": "# # seems hard to setup.\n# # not started!\n# # https://milvus.io/docs/v2.0.0/metric.md#binary\n# # the metric is important to us.\n# import numpy as np\n# import bitarray\n# @lru_cache(maxsize=1)\n# def transformVideoPhash(videoPhash):\n#     # we need the raw phash.\n#     queryData = videoPhash.hash  # videoPhashTruthTable8x8 or something\n#     queryData = queryData.reshape(-1).tolist()\n#     queryData = [\"1\" if x else \"0\" for x in queryData]\n#     queryData = bitarray.bitarray(\"\".join(queryData), endian=\"little\")\n#     queryData = queryData.tobytes()\n#     return queryData\n# # dimension: 8*8=64\n# def indexVideoWithVideoDurationAndPhash(collection, videoDuration, videoPhash):\n#     queryData = transformVideoPhash(videoPhash)\n#     collection.insert([[np.float32(videoDuration)], [queryData]])\n# # can release even if not loaded.\n# from test_video_hash import getVideoPHash\n# import caer\n# @lru_cache(maxsize=1)\n# def getVideoDurationAndPhashFromFile(videoFilePath):\n#     videoDuration = caer.video.frames_and_fps.get_duration(videoFilePath)",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:68-103"
     },
     "5065": {
-        "file_id": 658,
-        "content": "This code appears to be exploring various corner detection methods from the OpenCV library (cv2) for potential use with the Canny edge detector. The purpose might be to find the most suitable method for a specific application.",
-        "type": "summary"
+        "file_id": 657,
+        "content": "Function `transformVideoPhash` takes a video phash and converts it into a binary format for Milvus library indexing. Function `indexVideoWithVideoDurationAndPhash` inserts the video duration and transformed phash into the specified collection. The `getVideoDurationAndPhashFromFile` function retrieves the video duration and corresponding phash of a given video file using caer's video module. All functions are cached to avoid redundant computations.",
+        "type": "comment"
     },
     "5066": {
-        "file_id": 658,
-        "content": "# there are some corner detection methods in cv2. not sure what to follow... is it intended to use with canny edge detector or not?",
+        "file_id": 657,
+        "content": "#     videoPhash = getVideoPHash(videoFilePath)\n#     return videoDuration, videoPhash\n# def indexVideoWithVideoDurationAndPhashFromFile(collection, videoFilePath):\n#     videoDuration, videoPhash = getVideoDurationAndPhashFromFile(videoFilePath)\n#     indexVideoWithVideoDurationAndPhash(collection, videoDuration, videoPhash)\n# def reloadMilvusCollection(collection):\n#     collection.release()  # unload.\n#     collection.load()\n# # make it into some library!\n# # insert after load?\n# # # 1,64\n# # what is wrong? wtf?\n# # queryData = queryData.tolist()\n# def getDistancesBySearchingDuplicatedVideoInMilvusByFile(\n#     collection,\n#     videoFilePath,\n#     search_params={\"metric_type\": \"Jaccard\", \"params\": {\"nprobe\": 10}},\n#     autoreload: bool = True,\n#     span: float = 2,\n#     debug: bool = False,\n#     limit: int = 10,\n# ):\n#     if autoreload:\n#         reloadMilvusCollection(collection)\n#     videoDuration, videoPhash = getVideoDurationAndPhashFromFile(videoFilePath)\n#     queryData = transformVideoPhash(videoPhash)",
         "type": "code",
-        "location": "/tests/video_detector_tests/rect_corner_detect_fast.py:1-1"
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:104-136"
     },
     "5067": {
-        "file_id": 658,
-        "content": "This code appears to be exploring various corner detection methods from the OpenCV library (cv2) for potential use with the Canny edge detector. The purpose might be to find the most suitable method for a specific application.",
+        "file_id": 657,
+        "content": "This code snippet defines a function for searching duplicated videos in Milvus by their file path, using Jaccard metric. It also includes functions to get video duration and hash from the file, index videos with duration and hash, and reload Milvus collection if necessary. The search parameters include metric type, probe count, span, limit, and whether to enable debug mode.",
         "type": "comment"
     },
     "5068": {
-        "file_id": 659,
-        "content": "/tests/video_detector_tests/rect_active_rect_frame_difference.py",
-        "type": "filepath"
+        "file_id": 657,
+        "content": "#     minVideoLength = max(0, videoDuration - span)\n#     maxVideoLength = videoDuration + span\n#     results = collection.search(\n#         data=[queryData],  # this is the float dimension.\n#         anns_field=\"video_phash\",\n#         param=search_params,\n#         output_fields=[\"video_length\"],\n#         limit=limit,\n#         expr=\"video_length > {minVideoLength} and video_length < {maxVideoLength}\".format(\n#             minVideoLength=minVideoLength, maxVideoLength=maxVideoLength\n#         ),\n#     )\n#     theHit = results[0]\n#     # print(theHit)\n#     # so we can perform search without filtering afterwards.\n#     # results[0][0].entity.get('video_length')\n#     # print(results[0].ids)\n#     # now, we want to have the 'distance' parameter.\n#     # print(results[0])\n#     # print(theHit)\n#     distances = list(theHit.distances)\n#     if debug:\n#         print(\"distances: %s\" % distances)\n#     return distances\n#     # what is the distance? we need to try.\n#     # returh the closest distance?\n#     # results = [x for x in theHit]",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:137-164"
     },
     "5069": {
-        "file_id": 659,
-        "content": "This code aims to merge frame difference with rectangle detection, calculate the most active rect region, and consider 4 boundary lines as a custom switch.",
-        "type": "summary"
+        "file_id": 657,
+        "content": "This code searches for videos within a specified range of video length in the Milvus library. It sets minimum and maximum lengths based on the query's duration and span, and uses these values to filter results from the search. The closest distance between the query and each result is then returned.",
+        "type": "comment"
     },
     "5070": {
-        "file_id": 659,
-        "content": "# merge framedifference with rectangle detection.\n# calculate the most active rect region.\n# also you might want to include 4 boundary lines as custom switch.",
+        "file_id": 657,
+        "content": "#     # hits = len(theHit)\n#     # breakpoint()\n#     # how to get document by id? wtf\n# def checkDuplicatedVideoAndInsertVector(\n#     collection,\n#     videoPath,\n#     threshold: float = 0.15,  # are you sure?\n#     insertDuplicatedVector: bool = True,\n#     debug: bool = True,\n# ):\n#     reloadMilvusCollection(collection)\n#     distances = getDistancesBySearchingDuplicatedVideoInMilvusByFile(\n#         collection, videoPath, debug=debug\n#     )\n#     minDistance = min(distances + [1])  # empty!\n#     duplicated = minDistance < threshold\n#     if insertDuplicatedVector or (not duplicated):\n#         indexVideoWithVideoDurationAndPhashFromFile(\n#             collection, videoPath\n#         )  # anyway let's do this.\n#     return duplicated\n# shall we insert that vector or not, even if we have detected the duplicated media?\n# you choose.\nimport sys\nimport os\n# os.chdir(\"../../\")\nsys.path.append(\"../../\")\n# ignore the global proxy now, we are not going to use that.\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"",
         "type": "code",
-        "location": "/tests/video_detector_tests/rect_active_rect_frame_difference.py:1-5"
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:165-200"
     },
     "5071": {
-        "file_id": 659,
-        "content": "This code aims to merge frame difference with rectangle detection, calculate the most active rect region, and consider 4 boundary lines as a custom switch.",
+        "file_id": 657,
+        "content": "Function checkDuplicatedVideoAndInsertVector checks if a video file exists in Milvus collection and returns whether the video is duplicated or not. If insertDuplicatedVector is True, it indexes the video regardless of duplication status. The function uses getDistancesBySearchingDuplicatedVideoInMilvusByFile to find distances between the new video and existing videos in Milvus.",
         "type": "comment"
     },
     "5072": {
-        "file_id": 660,
-        "content": "/tests/video_detector_tests/pip_meanVariance_stablize.py",
-        "type": "filepath"
+        "file_id": 657,
+        "content": "from pyjom.videotoolbox import getMilvusVideoDeduplicationCollection,checkDuplicatedVideoAndInsertVector\nif __name__ == \"__main__\":\n    # connectMilvusDatabase()\n    collection = (\n        getMilvusVideoDeduplicationCollection()\n    )  # will not get existing collections\n    videoPaths = [\n        \"cute_cat_gif.mp4\",\n        \"cute_cat_gif.gif\",\n        \"cat_delogo.gif\",\n        \"/root/Desktop/works/pyjom/samples/video/dog_with_large_text.gif\",\n    ]\n    # for videoPath in videoPaths:\n    from lazero.utils.logger import sprint\n    for videoPath in videoPaths:\n        print(\"filepath: %s\" % videoPath)\n        duplicated = checkDuplicatedVideoAndInsertVector(collection, videoPath)\n        sprint(\"duplicated?\", duplicated)\n\"\"\"\nfilepath: cute_cat_gif.mp4\ndistances: [0.0, 0.11764705926179886, 0.11764705926179886, 0.7200000286102295, 0.7200000286102295, 0.7346938848495483, 0.7659574747085571, 0.7924528121948242]\n______________________________\nfilepath: cute_cat_gif.gif\ndistances: [0.0, 0.11764705926179886, 0.117647",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:201-226"
     },
     "5073": {
-        "file_id": 660,
-        "content": "The function uses calculations, filters, and analyses to process data and perform tasks such as linear regression and image analysis. The code creates a rectangular plot using matplotlib with randomly chosen colors and displays it using plt.show().",
-        "type": "summary"
+        "file_id": 657,
+        "content": "The code connects to a Milvus database, retrieves the video deduplication collection, and checks if each given video path is already in the collection. It prints the file paths of the videos and whether they are duplicated or not using `checkDuplicatedVideoAndInsertVector` function from `lazero.utils.logger` module. The distances between the new video and existing ones in the database are also printed.",
+        "type": "comment"
     },
     "5074": {
-        "file_id": 660,
-        "content": "from mathlib import *\n# from ...pyjom.mathlib import sequentialToMergedRanges\n# you can use yolo to train network to detect these sharp corners, total four sharp corners.\n# but it might fail to do so.\n# but what about other stuff?\n# whatever let's just use this.\ndef sampledStablePipRegionExporter(data, defaultWidth, defaultHeight):\n    defaultWidth, defaultHeight = int(defaultWidth), int(defaultHeight)\n    import numpy as np\n    data = np.array(data)\n    def getAlikeValueMerged(mArray, threshold=35):\n        for index, elem in enumerate(mArray[:-1]):\n            nextElem = mArray[index + 1]\n            if abs(nextElem - elem) < threshold:\n                mArray[index + 1] = elem\n        return mArray\n    def listToRangedDictWithLabel(mList, label):\n        resultDict = {}\n        for index, elem in enumerate(mList):\n            mKey = \"{}:{}\".format(label, int(elem))\n            resultDict.update({mKey: resultDict.get(mKey, []) + [(index, index + 1)]})\n        return resultDict\n    def get1DArrayEMA(mArray,N=5):",
+        "file_id": 657,
+        "content": "05926179886, 0.7200000286102295, 0.7200000286102295, 0.7346938848495483, 0.7659574747085571, 0.7692307829856873]\n______________________________\nfilepath: cat_delogo.gif\ndistances: [0.0, 0.11764705926179886, 0.11764705926179886, 0.7200000286102295, 0.7200000286102295, 0.7346938848495483, 0.7659574747085571, 0.7924528121948242]\n______________________________\nfilepath: /root/Desktop/works/pyjom/samples/video/dog_with_large_text.gif\ndistances: [0.0, 0.6808510422706604, 0.6938775777816772, 0.6938775777816772, 0.739130437374115, 0.7692307829856873, 0.7924528121948242, 0.7924528121948242]\n______________________________\n\"\"\"",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:1-33"
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:226-234"
     },
     "5075": {
-        "file_id": 660,
-        "content": "The function sampledStablePipRegionExporter takes data, defaultWidth, and defaultHeight as inputs. It converts the data into a numpy array, then provides three helper functions: getAlikeValueMerged, listToRangedDictWithLabel, and get1DArrayEMA. The purpose of these helper functions is to manipulate and process the data into desired ranges for further analysis or processing.",
+        "file_id": 657,
+        "content": "The code appears to be storing and comparing distances between video phashes for different files. Each line contains a file path followed by an array of distances, indicating the similarity of that video phash to other video phashes in the system. The lower the distance value, the more similar the videos are.",
         "type": "comment"
     },
     "5076": {
-        "file_id": 660,
-        "content": "        weights=np.exp(np.linspace(0,1,N))\n        weights =weights/np.sum(weights)\n        ema = np.convolve(weights, mArray, mode='valid')\n        return ema\n    def pointsToRangedDictWithLabel(mArray, label, threshold=35):\n        mArray = get1DArrayEMA(mArray)\n        mArray = getAlikeValueMerged(mArray, threshold=threshold)\n        return listToRangedDictWithLabel(mArray, label)\n    threshold = int(max(defaultWidth, defaultHeight)*0.02734375)\n    xLeftPoints = pointsToRangedDictWithLabel(data[:, 0, 0], \"xleft\", threshold = threshold)\n    yLeftPoints = pointsToRangedDictWithLabel(data[:, 0, 1], \"yleft\", threshold = threshold)\n    xRightPoints = pointsToRangedDictWithLabel(data[:, 1, 0], \"xright\", threshold = threshold)\n    yRightPoints = pointsToRangedDictWithLabel(data[:, 1, 1], \"yright\", threshold = threshold)\n    commandDict = {}\n    for mDict in [xLeftPoints, yLeftPoints, xRightPoints, yRightPoints]:\n        commandDict.update(mDict)\n    commandDict = getContinualMappedNonSympyMergeResult(commandDict)",
-        "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:34-52"
+        "file_id": 658,
+        "content": "/tests/video_phash_deduplication/test_milvus.py",
+        "type": "filepath"
     },
     "5077": {
-        "file_id": 660,
-        "content": "The code calculates the exponential moving average (EMA) of a 1D array and converts points into a ranged dictionary with labels. It then updates a command dictionary using the labeled points and applies non-sympy merge to get the final result. The threshold value is determined based on the maximum width or height, and there are four types of points processed: xLeft, yLeft, xRight, and yRight.",
-        "type": "comment"
+        "file_id": 658,
+        "content": "The code demonstrates Milvus database operations, including creating a \"video\" collection, inserting data and performing searches. It is part of debugging process to retrieve documents by ID. The programmer is stuck and requires further investigation.",
+        "type": "summary"
     },
     "5078": {
-        "file_id": 660,
-        "content": "    commandDictSequential = mergedRangesToSequential(commandDict)\n    def getSpanDuration(span):\n        start, end = span\n        return end - start\n    itemDurationThreshold = 10\n    # framerate?\n    while True:\n        # print(\"LOOP COUNT:\", loopCount)\n        # loopCount+=1\n        # noAlter = True\n        beforeChange = [item[0] for item in commandDictSequential].copy()\n        for i in range(len(commandDictSequential) - 1):\n            currentItem = commandDictSequential[i]\n            nextItem = commandDictSequential[i + 1]\n            currentItemCommand = currentItem[0]\n            currentItemDuration = getSpanDuration(currentItem[1])\n            nextItemCommand = nextItem[0]\n            nextItemDuration = getSpanDuration(nextItem[1])\n            if currentItemDuration < itemDurationThreshold:\n                if nextItemCommand != currentItemCommand and nextItemDuration >= itemDurationThreshold:\n                    # print(\"HERE0\",i, currentItemCommand, nextItemCommand)\n                    commandDictSequential[i][0] = nextItemCommand",
+        "file_id": 658,
+        "content": "# duplicate -> remove, do not insert\n# not duplicate -> get the data, insert\n# you want to clear the collection after this run?\n# import pymilvus\nfrom pymilvus import connections\nfrom functools import lru_cache\n@lru_cache(maxsize=1)\ndef connectMilvusDatabase(alias=\"default\", host=\"localhost\", port=\"19530\"):\n\tconnection = connections.connect(alias=alias, host=host, port=port)# can we reconnect?\n\tprint('milvus connected')\nconnectMilvusDatabase()\nconnectMilvusDatabase() # will not connect again.\ncollection_name = \"video_deduplication\"\nfrom pymilvus import Collection\n# Collection(collection_name)\n# remote this thing.\nfrom pymilvus import utility\ntry:\n    if utility.has_collection(collection_name):  # be prudent.\n        utility.drop_collection(collection_name)\nexcept:\n    import traceback\n    traceback.print_exc()\n    print(\"maybe the collection does not exist\")\nfrom pymilvus import CollectionSchema, FieldSchema, DataType\nvideo_semantic_id = FieldSchema(  # how to insert this shit without prior knowledge?\n    name=\"video_semantic_id\",",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:53-77"
+        "location": "/tests/video_phash_deduplication/test_milvus.py:1-39"
     },
     "5079": {
-        "file_id": 660,
-        "content": "This code loops through a sequence of command pairs, adjusting commands with durations below the threshold by taking the next command if it has a duration above the threshold. This ensures that there is no gap between consecutive commands and maintains smooth video detection.",
+        "file_id": 658,
+        "content": "This code establishes a connection to a Milvus database, checks if the \"video_deduplication\" collection exists, and if so, removes it before creating a new one. The `connectMilvusDatabase` function sets up a connection with specified alias, host, and port (default values used in this code). The `utility.has_collection` and `utility.drop_collection` functions from the `pymilvus` utility module are used to check for and remove an existing collection named \"video_deduplication\". A `CollectionSchema` is defined for the new collection, specifying a field schema named \"video_semantic_id\".",
         "type": "comment"
     },
     "5080": {
-        "file_id": 660,
-        "content": "                    # noAlter=False\n            if nextItemDuration < itemDurationThreshold:\n                if nextItemCommand != currentItemCommand :\n                    # print(\"HERE1\",i, currentItemCommand, nextItemCommand)\n                    commandDictSequential[i + 1][0] = currentItemCommand\n                    # noAlter=False\n        afterChange = [item[0] for item in commandDictSequential].copy()\n        noAlter = beforeChange == afterChange\n        if noAlter:\n            break\n    preFinalCommandDict = sequentialToMergedRanges(commandDictSequential)\n    finalCommandDict = {}\n    for key, elem in preFinalCommandDict.items():\n        # print(key,elem)\n        varNames = [\"xleft\", \"yleft\", \"xright\", \"yright\"]\n        defaultValues = [0, 0, defaultWidth, defaultHeight]\n        for varName, defaultValue in zip(varNames, defaultValues):\n            key = key.replace(\n                \"{}:empty\".format(varName), \"{}:{}\".format(varName, defaultValue)\n            )\n        # print(key,elem)\n        # breakpoint()",
+        "file_id": 658,
+        "content": "    dtype=DataType.INT64,\n    is_primary=True,  # if is primary, will do check for 'not duplicate' or something.\n    auto_id=True,  # no need for id generation.\n)\nvideo_length = FieldSchema(\n    name=\"video_length\",\n    dtype=DataType.FLOAT,\n)\nvideo_phash = FieldSchema(\n    name=\"video_phash\", dtype=DataType.BINARY_VECTOR, dim=64\n)  # 64\n# single dimension? no multi dimension support?\nschema = CollectionSchema(\n    fields=[video_semantic_id, video_length, video_phash],\n    description=\"Test video deduplication\",\n)\n# collection = Collection(\"video\")      # Get an existing collection.\ncollection = Collection(\n    name=collection_name,\n    schema=schema,\n    using=\"default\",\n    shards_num=2,\n)\n# is this demo collection?\n# seems hard to setup.\n# not started!\n# https://milvus.io/docs/v2.0.0/metric.md#binary\n# the metric is important to us.\nsearch_params = {\"metric_type\": \"Jaccard\", \"params\": {\"nprobe\": 10}}\nimport numpy as np\nqueryData = np.array(\n    [\n        [True, True, True, False, False, True, False, True],\n        [True, False, False, True, False, True, True, False],",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:78-99"
+        "location": "/tests/video_phash_deduplication/test_milvus.py:40-76"
     },
     "5081": {
-        "file_id": 660,
-        "content": "The code checks if there is a change in item commands and updates the command dictionary accordingly. If no changes occur, it breaks the loop. It then converts the sequential command dictionary to merged ranges and stores default values for variables.",
+        "file_id": 658,
+        "content": "This code is defining a schema for a Milvus collection, specifying the data types and field names. The schema includes video_semantic_id, video_length, and video_phash fields, which are used in video deduplication. The code creates a collection named \"video\" with 2 shards using the specified schema and sets the metric type for searching as Jaccard with nprobe parameter set to 10. It also imports numpy and creates queryData, which seems to be a binary vector.",
         "type": "comment"
     },
     "5082": {
-        "file_id": 660,
-        "content": "        import parse\n        formatString = (\n            \"xleft:{xleft:d}|yleft:{yleft:d}|xright:{xright:d}|yright:{yright:d}\"\n        )\n        commandArguments = parse.parse(formatString, key)\n        x, y, w, h = (\n            commandArguments[\"xleft\"],\n            commandArguments[\"yleft\"],\n            commandArguments[\"xright\"] - commandArguments[\"xleft\"],\n            commandArguments[\"yright\"] - commandArguments[\"yleft\"],\n        )\n        if w <= 0 or h <= 0:\n            continue\n        cropCommand = \"crop_{}_{}_{}_{}\".format(x, y, w, h)\n        # print(cropCommand)\n        finalCommandDict.update({cropCommand: elem})\n        # print(elem)\n        # the parser shall be in x,y,w,h with keywords.\n        # we might want to parse the command string and reengineer this shit.\n    return finalCommandDict\ndef kalmanStablePipRegionExporter(data, defaultWidth, defaultHeight):\n    defaultWidth, defaultHeight = int(defaultWidth), int(defaultHeight)\n    import numpy as np\n    data = np.array(data)\n    from pykalman import KalmanFilter",
+        "file_id": 658,
+        "content": "        [True, False, False, True, True, False, False, True],\n        [True, True, True, True, True, False, False, True],\n        [True, False, False, True, False, True, True, False],\n        [False, True, True, False, False, False, False, True],\n        [True, True, False, False, False, True, True, False],\n        [False, False, True, False, False, True, False, False],\n    ]\n)\nqueryData = queryData.reshape(-1).tolist()\nqueryData = [\"1\" if x else \"0\" for x in queryData]\nimport bitarray\nqueryData = bitarray.bitarray(\"\".join(queryData), endian=\"little\")\nqueryData2 = queryData.copy()\nqueryData2[1:4] = 0\nqueryData3 = queryData2.copy()\nqueryData2 = queryData2.tobytes()\nqueryData3[8:15] = 0\nqueryData3 = queryData3.tobytes()\nqueryData = queryData.tobytes()\n# dimension: 8*8=64\n# collection.insert([[1], [np.float32(3.5)], [queryData]])\n# collection.insert([[np.float32(3.5)], [queryData]])\n# for _ in range(8):\ncollection.insert([[np.float32(3.5)], [queryData]])\ncollection.insert([[np.float32(3.5)], [queryData2]])  # slight difference.",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:100-129"
+        "location": "/tests/video_phash_deduplication/test_milvus.py:77-102"
     },
     "5083": {
-        "file_id": 660,
-        "content": "The code imports the \"parse\" library, defines a format string for command arguments, uses parse to extract x, y, w, and h values, checks if these values are valid, creates a crop command based on these values, updates finalCommandDict with this command and corresponding element, and finally imports numpy and pykalman for further processing.",
+        "file_id": 658,
+        "content": "The code is preparing and inserting data into a Milvus collection. It creates binary representations of queryData, queryData2, and queryData3 (slightly different from queryData2), then inserts them along with a float value (np.float32(3.5)) into the collection, representing a 64-dimensional vector.",
         "type": "comment"
     },
     "5084": {
-        "file_id": 660,
-        "content": "    def Kalman1D(observations, damping=0.2):\n        # To return the smoothed time series data\n        observation_covariance = damping\n        initial_value_guess = observations[0]\n        transition_matrix = 1\n        transition_covariance = 0.1\n        initial_value_guess\n        kf = KalmanFilter(\n            initial_state_mean=initial_value_guess,\n            initial_state_covariance=observation_covariance,\n            observation_covariance=observation_covariance,\n            transition_covariance=transition_covariance,\n            transition_matrices=transition_matrix,\n        )\n        pred_state, state_cov = kf.smooth(observations)\n        return pred_state\n    def getSinglePointStableState(xLeftPoints, signalFilterThreshold=10, commandFloatMergeThreshold = 15, \n        stdThreshold = 1,\n        slopeThreshold = 0.2):\n        xLeftPointsFiltered = Kalman1D(xLeftPoints)\n        xLeftPointsFiltered = xLeftPointsFiltered.reshape(-1)\n        from itertools import groupby\n        def extract_span(mlist, target=0):",
+        "file_id": 658,
+        "content": "collection.insert([[np.float32(3.5)], [queryData3]])  # more difference.\n# print(len(queryData), len(queryData)*8)\n# # print(queryData.shape)\n# breakpoint()\n# collection.load()\ncollection.insert([[np.float32(3.5)], [queryData]]) # still three.\n# can release even if not loaded.\ncollection.release() # unload.\ncollection.load()\n# make it into some library!\n# insert after load?\n# # 1,64\n# what is wrong? wtf?\n# queryData = queryData.tolist()\nresults = collection.search(\n    data=[queryData],  # this is the float dimension.\n    anns_field=\"video_phash\",\n    param=search_params,\n    output_fields=[\"video_length\"],\n    limit=10,\n    expr=\"video_length > 1.2 and video_length < 4\",\n    # expr='video_length < 1.2',\n)\ntheHit = results[0]\nprint(theHit)\n# so we can perform search without filtering afterwards.\n# results[0][0].entity.get('video_length')\n# print(results[0].ids)\n# now, we want to have the 'distance' parameter.\n# print(results[0])\n# print(theHit)\n# distances = theHit.distances\n# results = [x for x in theHit]\n# hits = len(theHit)",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:131-155"
+        "location": "/tests/video_phash_deduplication/test_milvus.py:103-139"
     },
     "5085": {
-        "file_id": 660,
-        "content": "This code defines two functions: \"Kalman1D\" and \"getSinglePointStableState\". \"Kalman1D\" uses a Kalman filter algorithm to smooth time-series observations, while \"getSinglePointStableState\" filters and processes left points data for single-point stable states. The input parameters allow customization of the filtering and processing thresholds.",
+        "file_id": 658,
+        "content": "The code is inserting data into a collection, releasing and reloading it, performing a search based on specific parameters, and accessing the results. The purpose seems to be searching for video data within a database based on certain criteria, such as length, and extracting relevant information from the resulting hits.",
         "type": "comment"
     },
     "5086": {
-        "file_id": 660,
-        "content": "            counter = 0\n            spanList = []\n            target_list = [(a, len(list(b))) for a, b in groupby(mlist)]\n            for a, b in target_list:\n                nextCounter = counter + b\n                if a == target:\n                    spanList.append((counter, nextCounter))\n                counter = nextCounter\n            return spanList\n        # solve diff.\n        xLeftPointsFilteredDiff = np.diff(xLeftPointsFiltered)\n        # xLeftPointsFilteredDiff3 = np.diff(xLeftPointsFilteredDiff)\n        # import matplotlib.pyplot as plt\n        # plt.plot(xLeftPointsFilteredDiff)\n        # plt.plot(xLeftPointsFiltered)\n        # plt.plot(xLeftPoints)\n        # plt.show()\n        # xLeftPointsFilteredDiff3Filtered = Kalman1D(xLeftPointsFilteredDiff3)\n        derivativeThreshold = 3\n        # derivative3Threshold = 3\n        xLeftPointsSignal = (\n            (abs(xLeftPointsFilteredDiff) < derivativeThreshold)\n            .astype(np.uint8)\n            .tolist()\n        )\n        def signalFilter(signal, threshold=10):",
+        "file_id": 658,
+        "content": "# breakpoint()\n# how to get document by id? wtf",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:156-184"
+        "location": "/tests/video_phash_deduplication/test_milvus.py:140-141"
     },
     "5087": {
-        "file_id": 660,
-        "content": "The code filters and extracts a list of spans from a given input, likely for text processing or analysis purposes. It uses groupby function to split the input into consecutive repetitions of the same element, then iterates over the resulting list of tuples (element, count) to create a new span list based on a target element. The code also performs differential calculations on the filtered xLeftPoints and applies a derivative threshold to generate a binary signal list likely for further processing or visualization purposes.",
+        "file_id": 658,
+        "content": "This code appears to be part of a debugging process, where the programmer is trying to understand how to retrieve a document by its ID using the Milvus database. The \"breakpoint()\" comment suggests they are currently stuck or needing to pause execution for further investigation.",
         "type": "comment"
     },
     "5088": {
-        "file_id": 660,
-        "content": "            newSignal = np.zeros(len(signal))\n            signalFiltered = extract_span(xLeftPointsSignal, target=1)\n            newSignalRanges = []\n            for start, end in signalFiltered:\n                length = end - start\n                if length >= threshold:\n                    newSignalRanges.append((start, end))\n                    newSignal[start : end + 1] = 1\n            return newSignal, newSignalRanges\n        xLeftPointsSignalFiltered, newSignalRanges = signalFilter(xLeftPointsSignal, threshold = signalFilterThreshold)\n        xLeftPointsSignalFiltered *= 255\n        mShrink = 2\n        from sklearn.linear_model import LinearRegression\n        target = []\n        for start, end in newSignalRanges:\n            # could we shrink the boundaries?\n            mStart, mEnd = start + mShrink, end - mShrink\n            if mEnd <= mStart:\n                continue\n            sample = xLeftPointsFiltered[mStart:mEnd]\n            std = np.std(sample)\n            if std > stdThreshold:\n                continue",
-        "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:185-210"
+        "file_id": 659,
+        "content": "/tests/video_phash_deduplication/test_image_hash_milvus_database_search.py",
+        "type": "filepath"
     },
     "5089": {
-        "file_id": 660,
-        "content": "This code segment performs signal filtering and preparation for subsequent analysis. It extracts a filtered signal, selects ranges above a threshold, scales the values to 255, applies boundary shrinking, and checks if the standard deviation exceeds a threshold before passing it on for further processing.",
-        "type": "comment"
+        "file_id": 659,
+        "content": "This code is initializing image paths and loading necessary libraries. It calculates image hashes for three different images using the phash function from imagehash library. It then creates a connection to a Milvus database and loads an existing collection.",
+        "type": "summary"
     },
     "5090": {
-        "file_id": 660,
-        "content": "            model = LinearRegression()\n            X, y = np.array(range(sample.shape[0])).reshape(-1, 1), sample\n            model.fit(X, y)\n            coef = model.coef_[0]  # careful!\n            if abs(coef) > slopeThreshold:\n                continue\n            meanValue = int(np.mean(sample))\n            target.append({\"range\": (start, end), \"mean\": meanValue})\n            # print((start, end), std, coef)\n        newTarget = {}\n        for elem in target:\n            meanStr = str(elem[\"mean\"])\n            mRange = elem[\"range\"]\n            newTarget.update({meanStr: newTarget.get(meanStr, []) + [mRange]})\n        mStart = 0\n        mEnd = len(xLeftPoints)\n        newTarget = getContinualMappedNonSympyMergeResultWithRangedEmpty(\n            newTarget, mStart, mEnd\n        )\n        newTargetSequential = mergedRangesToSequential(newTarget)\n        if (newTargetSequential) == 1:\n            if newTargetSequential[0][0] == \"empty\":\n                # the whole thing is empty now. no need to investigate.\n                print(\"NO STATIC PIP FOUND HERE.\")",
+        "file_id": 659,
+        "content": "pic_0 = \"cat.png\"\npic_0_similar = \"cat3.png\"\npic_1 = \"/root/Desktop/works/pyjom/samples/image/dick.png\"\nfrom PIL import Image\n# >>> import imagehash\n# >>> hash = imagehash.average_hash(Image.open\nimport imagehash\npics = [pic_0, pic_0_similar, pic_1]\nhashs = [imagehash.phash(Image.open(pic)) for pic in pics]\n# dis0 = hashs[0]-hashs[1]\n# dis1 = hashs[1]-hashs[2]\n# print(dis0, dis1)\n# 0 24\n# 6 24\n# well, let's check?\n# print(hashs)\n# three truth tables.\n# 2^4 = 16, total 2*8 digits=16?\n# towhee(multimodal search like jina), haystack, milvus\n# import pymilvus\nfrom pymilvus import connections\nconnection = connections.connect(alias=\"default\", host=\"localhost\", port=\"19530\")\nfrom pymilvus import Collection\ncollection = Collection(\"book\")  # Get an existing collection.\ncollection.load()\n# seems hard to setup.\n# not started!",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:211-238"
+        "location": "/tests/video_phash_deduplication/test_image_hash_milvus_database_search.py:1-37"
     },
     "5091": {
-        "file_id": 660,
-        "content": "Performs linear regression on sample data, if slope is within threshold range, adds mean value and range to target list. Combines target elements into newTarget dictionary, and converts newTarget to sequential format. If entire sequential format is empty, prints \"NO STATIC PIP FOUND HERE.\"",
+        "file_id": 659,
+        "content": "This code is initializing image paths and loading necessary libraries. It calculates image hashes for three different images using the phash function from imagehash library. It then creates a connection to a Milvus database and loads an existing collection.",
         "type": "comment"
     },
     "5092": {
         "file_id": 660,
-        "content": "                return {}\n        else:\n            # newTargetSequential\n            newTargetSequentialUpdated = []\n            for index in range(len(newTargetSequential) - 1):\n                elem = newTargetSequential[index]\n                commandString, commandTimeSpan = elem\n                nextElem = newTargetSequential[index + 1]\n                nextCommandString, nextCommandTimeSpan = nextElem\n                if commandString == \"empty\":\n                    newTargetSequential[index][0] = nextCommandString\n                else:\n                    if nextCommandString == \"empty\":\n                        newTargetSequential[index + 1][0] = commandString\n                    else:  # compare the two!\n                        commandFloat = float(commandString)\n                        nextCommandFloat = float(nextCommandString)\n                        if (\n                            abs(commandFloat - nextCommandFloat)\n                            < commandFloatMergeThreshold\n                        ):",
-        "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:239-259"
+        "content": "/tests/video_phash_deduplication/test_image_hash.py",
+        "type": "filepath"
     },
     "5093": {
         "file_id": 660,
-        "content": "This code is updating a list of commands by merging consecutive commands if they are within a certain threshold. It compares the difference between two commands and if it's below a specific value, it updates the list accordingly.",
-        "type": "comment"
+        "content": "This code uses the Python Imaging Library (PIL) and imagehash module to calculate average color hash values for images. It opens three images, 'pic_0', 'pic_0_similar', and 'pic_1', calculates their color hash values using the phash function from imagehash, and then calculates the differences between the hashes of each pair of images. The code checks the types of the calculated hashes and prints the distances (dis0 and dis1) between the pairs of images. It also mentions a possible discrepancy in the expected number of digits for the distances.",
+        "type": "summary"
     },
     "5094": {
         "file_id": 660,
-        "content": "                            newTargetSequential[index + 1][0] = commandString\n            # bring this sequential into dict again.\n            answer = sequentialToMergedRanges(newTargetSequential)\n            # print(\"_\"*30, \"ANSWER\",\"_\"*30)\n            # for elem in answer.items():\n            #     print(elem)\n            return answer\n        print(\"[FAILSAFE] SOMEHOW THE CODE SUCKS\")\n        return {}\n    xLeftPoints = data[:, 0, 0]\n    yLeftPoints = data[:, 0, 1]\n    xRightPoints = data[:, 1, 0]\n    yRightPoints = data[:, 1, 1]\n    mPoints = [xLeftPoints, yLeftPoints, xRightPoints, yRightPoints]\n    answers = []\n    for mPoint in mPoints:\n        answer = getSinglePointStableState(mPoint)\n        answers.append(answer)\n        # print(\"_\"*30, \"ANSWER\",\"_\"*30)\n        # for elem in answer.items():\n        #     print(elem)\n    if answers == [{}, {}, {}, {}]:\n        print(\"NO PIP FOUND\")\n        finalCommandDict = {}\n    else:\n        defaultCoord = [0, 0, defaultWidth, defaultHeight]  # deal with it later?",
+        "content": "pic_0= 'cat.png'\npic_0_similar = \"cat3.png\"\npic_1 = \"/root/Desktop/works/pyjom/samples/image/dick.png\"\nfrom PIL import Image\n# >>> import imagehash\n# >>> hash = imagehash.average_hash(Image.open\nimport imagehash\npics = [pic_0, pic_0_similar, pic_1]\nhashs = [imagehash.phash(Image.open(pic)) for pic in pics]\ndis0 = hashs[0]-hashs[1]\ndis1 = hashs[1]-hashs[2]\n# 0 24\n# 6 24\n# well, let's check?\nprint([type(h) for h in hashs])\nbreakpoint()\nprint(dis0, dis1)\n# three truth tables.\n# 2^4 = 16, total 2*8 digits=16?",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:260-291"
+        "location": "/tests/video_phash_deduplication/test_image_hash.py:1-23"
     },
     "5095": {
         "file_id": 660,
-        "content": "This code is performing image analysis and stabilization for PIP (Picture-in-Picture) detection. It first creates newSequential, then converts it back into a dictionary named \"answer.\" The code checks if any PIP was found by comparing the \"answers\" list to four empty dictionaries. If no PIP is detected, it returns an empty dictionary; otherwise, it proceeds further with default coordinates.",
+        "content": "This code uses the Python Imaging Library (PIL) and imagehash module to calculate average color hash values for images. It opens three images, 'pic_0', 'pic_0_similar', and 'pic_1', calculates their color hash values using the phash function from imagehash, and then calculates the differences between the hashes of each pair of images. The code checks the types of the calculated hashes and prints the distances (dis0 and dis1) between the pairs of images. It also mentions a possible discrepancy in the expected number of digits for the distances.",
         "type": "comment"
     },
     "5096": {
-        "file_id": 660,
-        "content": "        defaults = [{str(defaultCoord[index]): [(0, len(data))]} for index in range(4)]\n        for index in range(4):\n            if answers[index] == {}:\n                answers[index] = defaults[index]\n        labels = [\"xleft\", \"yleft\", \"xright\", \"yright\"]\n        commandDict = {}\n        for index, elem in enumerate(answers):\n            label = labels[index]\n            newElem = {\"{}:{}\".format(label, key): elem[key] for key in elem.keys()}\n            commandDict.update(newElem)\n        commandDict = getContinualMappedNonSympyMergeResult(commandDict)\n        commandDictSequential = mergedRangesToSequential(commandDict)\n        def getSpanDuration(span):\n            start, end = span\n            return end - start\n        itemDurationThreshold = 15\n        # print(\"HERE\")\n        # loopCount = 0\n        while True:\n            # print(\"LOOP COUNT:\", loopCount)\n            # loopCount+=1\n            # noAlter = True\n            beforeChange = [item[0] for item in commandDictSequential].copy()\n            for i in range(len(commandDictSequential) - 1):",
-        "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:292-318"
+        "file_id": 661,
+        "content": "/tests/video_phash_deduplication/README.md",
+        "type": "filepath"
     },
     "5097": {
-        "file_id": 660,
-        "content": "Sets default values for missing answers, converts dictionary format, applies consecutive ranges to sequential format, and enters a while loop that iteratively checks changes in the commandDictSequential list.",
-        "type": "comment"
+        "file_id": 661,
+        "content": "Code detects identical video files and finds repeated intervals within each video file.",
+        "type": "summary"
     },
     "5098": {
-        "file_id": 660,
-        "content": "                currentItem = commandDictSequential[i]\n                nextItem = commandDictSequential[i + 1]\n                currentItemCommand = currentItem[0]\n                currentItemDuration = getSpanDuration(currentItem[1])\n                nextItemCommand = nextItem[0]\n                nextItemDuration = getSpanDuration(nextItem[1])\n                if currentItemDuration < itemDurationThreshold:\n                    if nextItemCommand != currentItemCommand:\n                        # print(\"HERE0\",i, currentItemCommand, nextItemCommand)\n                        commandDictSequential[i][0] = nextItemCommand\n                        # noAlter=False\n                if nextItemDuration < itemDurationThreshold:\n                    if nextItemCommand != currentItemCommand and currentItemDuration >= itemDurationThreshold:\n                        # print(\"HERE1\",i, currentItemCommand, nextItemCommand)\n                        commandDictSequential[i + 1][0] = currentItemCommand\n                        # noAlter=False",
+        "file_id": 661,
+        "content": "two main problems, one is to detect identical video files, one is to find 'repeated interval' inside each other.",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:319-334"
+        "location": "/tests/video_phash_deduplication/README.md:1-1"
     },
     "5099": {
-        "file_id": 660,
-        "content": "Checks if current and next commands in commandDictSequential have durations below itemDurationThreshold. If so, adjusts or merges the commands to maintain sequence continuity.",
+        "file_id": 661,
+        "content": "Code detects identical video files and finds repeated intervals within each video file.",
         "type": "comment"
     }
 }

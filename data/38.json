@@ -1,535 +1,533 @@
 {
     "3800": {
-        "file_id": 460,
-        "content": "# now cluster shit shall we?\n# from sklearn.neighbors import NearestNeighbors\n# neigh = NearestNeighbors(n_neighbors=5)\n# X = sample\n# neigh.fit(X)\n# A = neigh.kneighbors_graph(X)\n# A.toarray()\n# print(A)\n# print(A.shape) # sparse matrix? wtf?\nfrom sklearn.cluster import MiniBatchKMeans  # better?\n# from sklearn.cluster import KMeans\nX = sample\nbatch_size = 45\n# kmeans = KMeans(n_clusters=5).fit(X) # not deterministic please?\nn_clusters = 5\nkmeans = MiniBatchKMeans(\n    init=\"k-means++\",\n    n_clusters=n_clusters,\n    batch_size=batch_size,\n    # n_init=10,\n    max_no_improvement=10,\n    verbose=0,\n).fit(X)\n# from lazero.utils import inspectObject\n# inspectObject(kmeans)\n# breakpoint()\nlabels = kmeans.labels_\ncluster_centers = kmeans.cluster_centers_\nprint(labels)\nprint(cluster_centers)\nlabel_percentage = {\n    x: np.count_nonzero(labels == x) / sample_size for x in range(n_clusters)\n}\nflagged_image = image.copy()\nflagged_image[:,:,:] = 1 # every element is 1 now.\nepsilon = 0.01 # shit man.\npercents = []\nshift=2\nfor center5 in cluster_centers:",
-        "type": "code",
-        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py:124-165"
-    },
-    "3801": {
-        "file_id": 460,
-        "content": "Code is performing clustering using MiniBatchKMeans from sklearn.cluster, with n_clusters=5 and batch_size=45 to handle larger datasets. After fitting the data, it prints labels and cluster centers. Then, it calculates label percentages based on the labels assigned by KMeans, initializes a flagged image with all elements set to 1, and starts iterating through each cluster center to perform further operations (not shown in code snippet).",
-        "type": "comment"
-    },
-    "3802": {
-        "file_id": 460,
-        "content": "    # fetch area nearby given center\n    if use_spatial:\n        center = center5[:3]\n    else:\n        center = center5\n    # center_int = center.astype(np.uint8)\n    # i just don't know what the fuck is going on here.\n    upper = center + shift\n    lower = center - shift\n    mask = cv2.inRange(image, lower, upper)\n    # not image.\n    output = cv2.bitwise_and(flagged_image, flagged_image, mask=mask)\n    # print(output)\n    # print(output.shape)\n    mOutput = output.reshape(-1, 3)\n    mOutput = np.sum(mOutput, axis=1)\n    mSum = sum(mOutput)\n    # breakpoint()\n    positive_count = np.count_nonzero(abs(mOutput - 3) < epsilon)\n    percent = positive_count/len(mOutput)\n    # print(mOutput)\n    # print(mOutput.shape)\n    # breakpoint()\n    print(\"CENTER:\",center)\n    print('POSITIVE COUNT:', positive_count)\n    print(\"SUM:\", mSum, \"MIN:\", min(mOutput), 'MAX:', max(mOutput))\n    print(\"NEARBY CENTER PERCENTAGE: {:.2f} %\".format(percent*100))\n    percents.append(percent)\nprint(\"CENTRALITY: {:.2f} %\".format(sum(percents)*100))",
-        "type": "code",
-        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py:166-195"
-    },
-    "3803": {
-        "file_id": 460,
-        "content": "The code calculates the centrality of a center by extracting nearby pixel values and checking if they are within a specified epsilon threshold. It uses image processing functions from OpenCV (cv2) and numpy for masking, reshaping, and summing operations. The code then prints various metrics related to the center's centrality, such as positive count, sum of pixel values, minimum and maximum values, and finally calculates the overall centrality percentage.",
-        "type": "comment"
-    },
-    "3804": {
-        "file_id": 461,
-        "content": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py",
-        "type": "filepath"
-    },
-    "3805": {
-        "file_id": 461,
-        "content": "The user is experiencing issues with image centrality and nearby center percentages when using OpenCV (cv2) and MiniBatchKMeans for clustering in numpy. The code extracts similar color frames, calculates percentages of nearby centers, and prints related statistics to calculate overall centrality.",
-        "type": "summary"
-    },
-    "3806": {
-        "file_id": 461,
-        "content": "# i'd say i want centrality below 6 percent. what's the catch?\n# we'd like to adjust the shift.\n# another tip: you have forgot the spatial coordinates.\n# fuck!\n# src = \"/root/Desktop/works/pyjom/samples/image/cute_cat.bmp\"\n# CENTRALITY: 0.00 %\n# single not go beyond 4 percent.\n# total not go beyond 6 percent.\n# is that right? fuck?\n# src = \"/root/Desktop/works/pyjom/samples/image/dog_with_text.png\"\n# and yet this does not look right.\n# NEARBY CENTER PERCENTAGE: 0.84 %\n# CENTRALITY: 2.57 %\n# src = \"/root/Desktop/works/pyjom/samples/image/miku_on_green.png\"\n# for this one we have double centers. fuck.\n# CENTRALITY: 181.80 %\n# it is off the charge!\n# with text. a meme.\n# src = \"/root/Desktop/works/pyjom/samples/image/dog_saturday_night.bmp\"\n# CENTRALITY: 1.26 %\n# src = \"/root/Desktop/works/pyjom/samples/image/similar_color_extraction.bmp\"  # use some filter first, or rather not to?\n# CENTER: [254.62436869 254.63794192 254.79734848]\n# POSITIVE COUNT: 188772\n# SUM: 566316.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 81.93 %",
-        "type": "code",
-        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:1-35"
-    },
-    "3807": {
-        "file_id": 461,
-        "content": "The code snippet is displaying image centrality, nearby center percentage, and other related information for several images. The user seems to be adjusting the shift and working with spatial coordinates. However, they are encountering issues like double centers and results that do not look right. They seem to be unsure about some parameters and considering using a filter on an image.",
-        "type": "comment"
-    },
-    "3808": {
-        "file_id": 461,
-        "content": "# CENTRALITY: 82.33 %\n# let's try some cats.\n# the filter: removegrain\n# src = \"/root/Desktop/works/pyjom/samples/image/kitty_flash.bmp\"  # use some filter first, or rather not to?\n# CENTER: [1.37254902 2.34313725 9.46078431]\n# POSITIVE COUNT: 2600\n# SUM: 7800.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 3.91 %\n# CENTRALITY: 3.91 %\n# now the 八点半配音\n# src = \"/root/Desktop/works/pyjom/samples/image/is_this_duck.bmp\"\n# CENTER: [252.66293811 177.62005966 126.37844892]\n# POSITIVE COUNT: 222893\n# SUM: 668679.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 36.49 %\n# CENTRALITY: 36.55 %\n# likely to be the blue.\nsrc = \"/root/Desktop/works/pyjom/samples/image/pig_really.bmp\"\n# multiple centers.\n# CENTER: [246.76865924 226.40763256 216.41472476]\n# POSITIVE COUNT: 95497\n# SUM: 286491.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 6.74 %\n# CENTRALITY: 7.32 %\nimport numpy as np\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\nimage = cv2.imread(src)\nshape = image.shape\nif len(shape) != 3:\n    print(\"weird shit.\")",
-        "type": "code",
-        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:36-75"
-    },
-    "3809": {
-        "file_id": 461,
-        "content": "This code reads an image from a specific file and applies filters to detect and remove duplicate frames. The results include information about centrality, positive counts, nearby center percentages, and more. The code uses OpenCV (cv2) for image processing and numpy for array manipulation.",
-        "type": "comment"
-    },
-    "3810": {
-        "file_id": 461,
+        "file_id": 467,
         "content": "if shape[2] != 3:\n    print(\"depth not right.\")\n# for i in range(3):\n#     image[:,:,i] = i\n# col_0, col_1 = shape[:2]\n# coords = []\n# for c0 in range(col_0):\n#     for c1 in range(col_1):\n#         coords.append((c0,c1))\n# coords = np.array(coords)\n# print(image.reshape(-1,3))\nreshapedImage = image.reshape(-1, 3)  # are you sure about this?\nlength, depth = reshapedImage.shape\nsample_size_limit = 5000\nreshapedImageIndexs = np.arange(0, length)\n# so now it is good.\nsampleIndexs = np.random.choice(reshapedImageIndexs, size=min(sample_size_limit, length))\nprint(sampleIndexs)\nprint(sampleIndexs.shape)\nsample_size = len(sampleIndexs)\nsample = reshapedImageIndexs[sampleIndexs]\nsample = reshapedImage[sample, :]\nprint(sample)\nprint(sample.shape)\n# breakpoint()\n# sampleCoords = coords[sampleIndexs]\n# sample = np.hstack([sample, sampleCoords])\n# print(sample)\n# print(sample.shape)\n# breakpoint()\n# warning: OOM?\n# now cluster shit shall we?\n# from sklearn.neighbors import NearestNeighbors\n# neigh = NearestNeighbors(n_neighbors=5)",
         "type": "code",
         "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:76-119"
     },
-    "3811": {
-        "file_id": 461,
+    "3801": {
+        "file_id": 467,
         "content": "The code extracts color samples from an image and selects a random sample of up to 5000 indices. It then reshapes the image into a 1D array, creates new sample indices, retrieves the sample data, and prepares for clustering.",
         "type": "comment"
     },
-    "3812": {
-        "file_id": 461,
+    "3802": {
+        "file_id": 467,
         "content": "# X = sample\n# neigh.fit(X)\n# A = neigh.kneighbors_graph(X)\n# A.toarray()\n# print(A)\n# print(A.shape) # sparse matrix? wtf?\nfrom sklearn.cluster import MiniBatchKMeans  # better?\n# from sklearn.cluster import KMeans\nX = sample\nbatch_size = 45\n# kmeans = KMeans(n_clusters=5).fit(X) # not deterministic please?\nn_clusters = 5\nkmeans = MiniBatchKMeans(\n    init=\"k-means++\",\n    n_clusters=n_clusters,\n    batch_size=batch_size,\n    # n_init=10,\n    max_no_improvement=10,\n    verbose=0,\n).fit(X)\n# from lazero.utils import inspectObject\n# inspectObject(kmeans)\n# breakpoint()\nlabels = kmeans.labels_\ncluster_centers = kmeans.cluster_centers_\nprint(labels)\nprint(cluster_centers)\nlabel_percentage = {\n    x: np.count_nonzero(labels == x) / sample_size for x in range(n_clusters)\n}\nflagged_image = image.copy()\nflagged_image[:,:,:] = 1 # every element is 1 now.\nepsilon = 0.01 # shit man.\npercents = []\nshift=2\nfor center in cluster_centers:\n    # fetch area nearby given center\n    # center = center5[:3]\n    # center_int = center.astype(np.uint8)",
         "type": "code",
         "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:120-161"
     },
-    "3813": {
-        "file_id": 461,
+    "3803": {
+        "file_id": 467,
         "content": "This code performs clustering using MiniBatchKMeans to find clusters in a dataset, extracts cluster centers, calculates label percentages for each cluster, and then sets the entire flagged image to 1 before iterating through cluster centers and performing an unknown operation on nearby areas.",
         "type": "comment"
     },
-    "3814": {
-        "file_id": 461,
+    "3804": {
+        "file_id": 467,
         "content": "    # i just don't know what the fuck is going on here.\n    upper = center + shift\n    lower = center - shift\n    mask = cv2.inRange(image, lower, upper)\n    # not image.\n    output = cv2.bitwise_and(flagged_image, flagged_image, mask=mask)\n    # print(output)\n    # print(output.shape)\n    mOutput = output.reshape(-1, 3)\n    mOutput = np.sum(mOutput, axis=1)\n    mSum = sum(mOutput)\n    # breakpoint()\n    positive_count = np.count_nonzero(abs(mOutput - 3) < epsilon)\n    percent = positive_count/len(mOutput)\n    # print(mOutput)\n    # print(mOutput.shape)\n    # breakpoint()\n    print(\"CENTER:\",center)\n    print('POSITIVE COUNT:', positive_count)\n    print(\"SUM:\", mSum, \"MIN:\", min(mOutput), 'MAX:', max(mOutput))\n    print(\"NEARBY CENTER PERCENTAGE: {:.2f} %\".format(percent*100))\n    percents.append(percent)\nprint(\"CENTRALITY: {:.2f} %\".format(sum(percents)*100))",
         "type": "code",
         "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:162-185"
     },
-    "3815": {
-        "file_id": 461,
+    "3805": {
+        "file_id": 467,
         "content": "This code extracts similar color frames and calculates the percentage of nearby centers. It reshapes the output, sums values, counts non-zero absolute differences, and calculates the percentage of nearby centers. The code then appends the percentages to a list for later calculation of centrality. Finally, it prints various statistics about the image and calculates the overall centrality based on the accumulated percentages.",
         "type": "comment"
     },
-    "3816": {
-        "file_id": 462,
+    "3806": {
+        "file_id": 468,
         "content": "/tests/nearly_duplicate_frames_detection_removal/fast_vqa_test.sh",
         "type": "filepath"
     },
-    "3817": {
-        "file_id": 462,
+    "3807": {
+        "file_id": 468,
         "content": "Code changes the video file being tested, mentions quality scores and potential issues with large white areas, suggests using k-NN (k=5), and runs the VQA script on a CPU.",
         "type": "summary"
     },
-    "3818": {
-        "file_id": 462,
+    "3808": {
+        "file_id": 468,
         "content": "cd FAST-VQA\n# VIDEO=\"/root/Desktop/works/pyjom/samples/video/nearly_duplicate_frames_detection_30fps.mp4\"\n# The quality score of the video is 0.11833.\nVIDEO=\"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.mp4\"\n# The quality score of the video is 0.12778.\n# nothing serious. it does not produce significant shits.\npython3 vqa.py -o ./options/fast/f3dvqa-b.yml -v $VIDEO -d cpu\n# another feature is that this video produces a large area in white, which is not what we really want.\n# use knn?\n# k=5",
         "type": "code",
         "location": "/tests/nearly_duplicate_frames_detection_removal/fast_vqa_test.sh:1-13"
     },
-    "3819": {
-        "file_id": 462,
+    "3809": {
+        "file_id": 468,
         "content": "Code changes the video file being tested, mentions quality scores and potential issues with large white areas, suggests using k-NN (k=5), and runs the VQA script on a CPU.",
         "type": "comment"
     },
-    "3820": {
-        "file_id": 463,
+    "3810": {
+        "file_id": 469,
         "content": "/tests/music_analysis/download_exciting_bgm_with_lyric.py",
         "type": "filepath"
     },
-    "3821": {
-        "file_id": 463,
+    "3811": {
+        "file_id": 469,
         "content": "The code utilizes requests to interact with an API, defines a download path based on file extension, and has functions for login, logout, registration, and downloading BGMs. It searches endpoints for song details, extracts them, downloads and saves the songs as binary files, retrieves lyrics from a local server, writes them to a file, and handles potential issues with duration or service login.",
         "type": "summary"
     },
-    "3822": {
-        "file_id": 463,
+    "3812": {
+        "file_id": 469,
         "content": "get_download_path = lambda extension:\"exciting_bgm.{}\".format(extension) # is the extension right?\nimport requests\nbaseUrl = \"http://localhost:4000\"\n# now what is the port?\n# 4042\nkeywords = \"last friday night\" # american pop music?\nimport time\ndef getJSTimeStamp(): return int(time.time()*1000)\n# {'data': {'code': 200, 'account': {'id': 7935782775, 'userName': '0_fxg_pxw@163.com', 'type': 0, 'status': -10, 'whitelistAuthority': 0, 'createTime': 1657240405751, 'tokenVersion': 0, 'ban': 0, 'baoyueVersion': 0, 'donateVersion': 0, 'vipType': 0, 'anonimousUser': False, 'paidFee': False}, 'profile': None}}\n# breakpoint()\n# phone, password = \"19825089619\",\"dbH361210110\"\n# login_response = requests.get(baseUrl+\"/login/cellphone\",params={\"phone\": phone,\"password\": password})\n# login_response = requests.get(baseUrl+\"/logout\")\n# login_response_json = login_response.json()\n# print(login_response_json)\n# login_response = requests.get(baseUrl+\"/register/anonimous\")\n# login_response_json = login_response.json()\n# # {'code': -460, 'message': '网络太拥挤，请稍候再试！'}",
         "type": "code",
         "location": "/tests/music_analysis/download_exciting_bgm_with_lyric.py:1-23"
     },
-    "3823": {
-        "file_id": 463,
+    "3813": {
+        "file_id": 469,
         "content": "The code defines a download path based on file extension and uses requests to interact with an API at \"http://localhost:4000\". It seems to be related to music analysis and has functions for login, logout, and registration. The API endpoints are used to verify the account and perform operations related to downloading exciting background music (BGMs) with lyrics. The code also uses time.time() function to get the current timestamp in JST format. The purpose of the code is unclear without further context or knowledge of the specific project it's part of.",
         "type": "comment"
     },
-    "3824": {
-        "file_id": 463,
+    "3814": {
+        "file_id": 469,
         "content": "# # what the fuck is this shit?\n# print(login_response_json)\n# login_status = requests.get(baseUrl+\"/login/status\")\n# login_status_json = login_status.json()\n# print(login_status_json)\n# breakpoint()\nsearch_result = requests.get(baseUrl+\"/search\", params={\"keywords\": keywords, \"timestamp\":getJSTimeStamp()})\n# search_result = requests.get(baseUrl+\"/cloudsearch\", params={\"keywords\": keywords, \"timestamp\":getJSTimeStamp()})\nsearch_result_json = search_result.json() # check search_result.json\n# breakpoint()\ncode = search_result_json[\"code\"]\n# print(search_result_json)\n# breakpoint()\n# {'msg': '操作频繁，请稍候再试', 'code': 405, 'message': '操作频繁，请稍候再试'} # too frequent.\nif not code == 200:\n    print(\"ERROR CODE IN SEARCH:\", code)\n    print(search_result_json)\nelse:# no error here.\n    result = search_result_json[\"result\"]\n    songs = result[\"songs\"]\n    mySong = songs[1]\n    mySongName = mySong[\"name\"]\n    mySongId = mySong[\"id\"]\n    if \"ar\" in mySong.keys():\n        mySongArtists = mySong[\"ar\"] # reserved for further use. like find other songs by the artist.",
         "type": "code",
         "location": "/tests/music_analysis/download_exciting_bgm_with_lyric.py:24-55"
     },
-    "3825": {
-        "file_id": 463,
+    "3815": {
+        "file_id": 469,
         "content": "This code makes a GET request to a search endpoint with specified keywords and timestamp. If the response code is not 200, it prints an error message along with the response JSON. Otherwise, it extracts song details from the response and assigns them to variables for further use.",
         "type": "comment"
     },
-    "3826": {
-        "file_id": 463,
+    "3816": {
+        "file_id": 469,
         "content": "    elif \"artists\" in mySong.keys():\n        mySongArtists = mySong[\"artists\"]\n    else: mySongArtists = []\n    # mySong[\"artists\"]\n    print(\"SELECTED SONG:\")\n    print(mySongName, mySongId, mySongArtists)\n    # download that thing.\n    download_result = requests.get(baseUrl + \"/song/url\", params = {\"id\":mySongId}) # 试听歌曲\n    # download_result = requests.get(baseUrl + \"/song/url\", params = {\"id\":mySongId, \"timestamp\":getJSTimeStamp()}) # 试听歌曲\n    download_result_json = download_result.json()\n    print(download_result_json) # no download url!\n    # breakpoint()\n    code = download_result_json[\"code\"]\n    if code == 200: # allow to download now?\n        myDownloads = download_result_json[\"data\"]\n        myDownload = myDownloads[0]\n        myDownloadUrl = myDownload[\"url\"]\n        myDownloadType = myDownload[\"type\"]\n        # now download the thing.\n        result = requests.get(myDownloadUrl) # no need for timestamp?\n        if result.status_code == 200:\n            data = result.content\n            with open(get_download_path(myDownloadType),\"wb\") as f:",
         "type": "code",
         "location": "/tests/music_analysis/download_exciting_bgm_with_lyric.py:56-82"
     },
-    "3827": {
-        "file_id": 463,
+    "3817": {
+        "file_id": 469,
         "content": "This code is checking if the song has associated artists and then prints the selected song's name, ID, and artists. It attempts to download the song's URL based on the provided parameters. If successful, it downloads the song data and saves it as a binary file using the downloaded type and path.",
         "type": "comment"
     },
-    "3828": {
-        "file_id": 463,
+    "3818": {
+        "file_id": 469,
         "content": "                f.write(data)\n            print(\"DOWNLOAD SONG DONE.\") # you should check the duration of this music file.\n            # 2871154\n            lyrics_result = requests.get(\"http://localhost:4000/lyric\",{\"id\":mySongId, \"timestamp\":getJSTimeStamp()})\n            # this is cached.\n            lyrics_result_json = lyrics_result.json()\n            if lyrics_result_json[\"code\"] == 200:\n                lrc = lyrics_result_json[\"lrc\"]\n                if type(lrc) == dict:\n                    version = lrc[\"version\"]\n                    lyric = lrc[\"lyric\"]\n                    if type(lyric) == str:\n                        with open(\n                            \"exciting_bgm.lrc\",\"w\") as f0: f0.write(lyric)\n                        print(\"LYRIC DOWNLOAD DONE.\")\n            # THIS IS FREAKING WRONG... SHALL I LOGIN?\n            # Duration                                 : 30 s 41 ms",
         "type": "code",
         "location": "/tests/music_analysis/download_exciting_bgm_with_lyric.py:83-99"
     },
-    "3829": {
-        "file_id": 463,
+    "3819": {
+        "file_id": 469,
         "content": "This code downloads a music file, then retrieves its lyrics from a local server. It writes the lyrics to a file named \"exciting_bgm.lrc\" and prints messages indicating when the song and lyric downloads are done. The code also includes a comment pointing out an issue, possibly with the duration of the song or logging in to a service.",
         "type": "comment"
     },
-    "3830": {
-        "file_id": 464,
+    "3820": {
+        "file_id": 470,
         "content": "/tests/music_analysis/lyric_change_detector/read_lyrics.py",
         "type": "filepath"
     },
-    "3831": {
-        "file_id": 464,
+    "3821": {
+        "file_id": 470,
         "content": "Reading lyrics from \"some_lyrics.json.lrc\" file using pylrc library, parsing the LRC format and storing time and content for each subtitle in subs variable.",
         "type": "summary"
     },
-    "3832": {
-        "file_id": 464,
+    "3822": {
+        "file_id": 470,
         "content": "import pylrc\nwith open(\"some_lyrics.json.lrc\",\"r\") as f:\n    lrc_string = f.read()\n    subs = pylrc.parse(lrc_string)\n    for sub in subs:\n        time_in_secs = sub.time\n        content = sub.text\n    # skip those which are too short.\n    # print(subs)\n    # breakpoint()",
         "type": "code",
         "location": "/tests/music_analysis/lyric_change_detector/read_lyrics.py:1-11"
     },
-    "3833": {
-        "file_id": 464,
+    "3823": {
+        "file_id": 470,
         "content": "Reading lyrics from \"some_lyrics.json.lrc\" file using pylrc library, parsing the LRC format and storing time and content for each subtitle in subs variable.",
         "type": "comment"
     },
-    "3834": {
-        "file_id": 465,
-        "content": "/tests/music_analysis/lyric_change_detector/launch_lyric_api_server.sh",
-        "type": "filepath"
-    },
-    "3835": {
-        "file_id": 465,
-        "content": "The code changes the directory to the NeteaseCloudMusicApi project and starts a server on port 4000 with Node.js, launching the music API server.",
-        "type": "summary"
-    },
-    "3836": {
-        "file_id": 465,
-        "content": "cd ../../../externals/NeteaseCloudMusicApi\nPORT=4000 node app.js",
-        "type": "code",
-        "location": "/tests/music_analysis/lyric_change_detector/launch_lyric_api_server.sh:1-3"
-    },
-    "3837": {
-        "file_id": 465,
-        "content": "The code changes the directory to the NeteaseCloudMusicApi project and starts a server on port 4000 with Node.js, launching the music API server.",
-        "type": "comment"
-    },
-    "3838": {
-        "file_id": 466,
-        "content": "/tests/music_analysis/lyric_change_detector/extract_lyrics_from_netease_json.py",
-        "type": "filepath"
-    },
-    "3839": {
-        "file_id": 466,
-        "content": "This code reads a JSON file, checks if it ends with \".json\", and extracts the lyric content. It then writes the extracted lyric to another file with the same name but with an additional \".lrc\" extension.",
-        "type": "summary"
-    },
-    "3840": {
-        "file_id": 466,
-        "content": "import json\nimport sys\njson_file = sys.argv[1]\nassert json_file.endswith(\".json\")\nwith open(json_file,\"r\", encoding=\"utf-8\") as f:\n    json_data = json.loads(f.read())\n    lrc = json_data[\"lrc\"]\n    version = lrc[\"version\"]\n    lyric = lrc[\"lyric\"]\n    with open(json_file+\".lrc\",\"w\") as f0: f0.write(lyric)",
-        "type": "code",
-        "location": "/tests/music_analysis/lyric_change_detector/extract_lyrics_from_netease_json.py:1-12"
-    },
-    "3841": {
-        "file_id": 466,
-        "content": "This code reads a JSON file, checks if it ends with \".json\", and extracts the lyric content. It then writes the extracted lyric to another file with the same name but with an additional \".lrc\" extension.",
-        "type": "comment"
-    },
-    "3842": {
-        "file_id": 467,
+    "3824": {
+        "file_id": 471,
         "content": "/tests/music_analysis/lyric_change_detector/download_lyric.sh",
         "type": "filepath"
     },
-    "3843": {
-        "file_id": 467,
+    "3825": {
+        "file_id": 471,
         "content": "The code downloads a JSON file containing lyrics from an API endpoint, then extracts the lyrics using a separate script. The goal is to obtain the \"lrc\" part of the lyrics.",
         "type": "summary"
     },
-    "3844": {
-        "file_id": 467,
+    "3826": {
+        "file_id": 471,
         "content": "curl -L -o some_lyrics.json http://localhost:4000/lyric?id=33894312\npython3 extract_lyrics_from_netease_json.py some_lyrics.json\n# just want the \"lrc\" part.",
         "type": "code",
         "location": "/tests/music_analysis/lyric_change_detector/download_lyric.sh:1-4"
     },
-    "3845": {
-        "file_id": 467,
+    "3827": {
+        "file_id": 471,
         "content": "The code downloads a JSON file containing lyrics from an API endpoint, then extracts the lyrics using a separate script. The goal is to obtain the \"lrc\" part of the lyrics.",
         "type": "comment"
     },
-    "3846": {
-        "file_id": 468,
+    "3828": {
+        "file_id": 472,
+        "content": "/tests/music_analysis/lyric_change_detector/launch_lyric_api_server.sh",
+        "type": "filepath"
+    },
+    "3829": {
+        "file_id": 472,
+        "content": "The code changes the directory to the NeteaseCloudMusicApi project and starts a server on port 4000 with Node.js, launching the music API server.",
+        "type": "summary"
+    },
+    "3830": {
+        "file_id": 472,
+        "content": "cd ../../../externals/NeteaseCloudMusicApi\nPORT=4000 node app.js",
+        "type": "code",
+        "location": "/tests/music_analysis/lyric_change_detector/launch_lyric_api_server.sh:1-3"
+    },
+    "3831": {
+        "file_id": 472,
+        "content": "The code changes the directory to the NeteaseCloudMusicApi project and starts a server on port 4000 with Node.js, launching the music API server.",
+        "type": "comment"
+    },
+    "3832": {
+        "file_id": 473,
+        "content": "/tests/music_analysis/lyric_change_detector/extract_lyrics_from_netease_json.py",
+        "type": "filepath"
+    },
+    "3833": {
+        "file_id": 473,
+        "content": "This code reads a JSON file, checks if it ends with \".json\", and extracts the lyric content. It then writes the extracted lyric to another file with the same name but with an additional \".lrc\" extension.",
+        "type": "summary"
+    },
+    "3834": {
+        "file_id": 473,
+        "content": "import json\nimport sys\njson_file = sys.argv[1]\nassert json_file.endswith(\".json\")\nwith open(json_file,\"r\", encoding=\"utf-8\") as f:\n    json_data = json.loads(f.read())\n    lrc = json_data[\"lrc\"]\n    version = lrc[\"version\"]\n    lyric = lrc[\"lyric\"]\n    with open(json_file+\".lrc\",\"w\") as f0: f0.write(lyric)",
+        "type": "code",
+        "location": "/tests/music_analysis/lyric_change_detector/extract_lyrics_from_netease_json.py:1-12"
+    },
+    "3835": {
+        "file_id": 473,
+        "content": "This code reads a JSON file, checks if it ends with \".json\", and extracts the lyric content. It then writes the extracted lyric to another file with the same name but with an additional \".lrc\" extension.",
+        "type": "comment"
+    },
+    "3836": {
+        "file_id": 474,
         "content": "/tests/music_analysis/bpm_tracking/test_audioowl.py",
         "type": "filepath"
     },
-    "3847": {
-        "file_id": 468,
+    "3837": {
+        "file_id": 474,
         "content": "The code uses AudioOwl library to import audio file data, calculates beat times, slices beats, finds closest BPM time and selects startup beat. It then detects the closest beat time to a specified value, appends it to 'selected_beat_times' and prints this list.",
         "type": "summary"
     },
-    "3848": {
-        "file_id": 468,
+    "3838": {
+        "file_id": 474,
         "content": "import matplotlib\nmatplotlib.use(\"TkAgg\")\nimport matplotlib.pyplot as plt # cannot plot shit. must change the thing.\nimport audioowl # do not install with dependencies. check it in setup.py and install latest versions.\nmyMusic = \"tarot_desc_acc_exceprt.wav\"\n# myMusic = \"/root/Desktop/works/bilibili_tarot/tarot_desc_acc.wav\"\nfrom MediaInfo import MediaInfo\ninfo = MediaInfo(filename = myMusic)\ninfo = info.getInfo()\nprint(info)\n# breakpoint()\naudioSampleRate = info[\"audioSamplingRate\"]\naudioSampleRate = int(audioSampleRate)\nwaveform = audioowl.get_waveform(myMusic,sr=audioSampleRate)\ndata = audioowl.analyze_file(myMusic,sr=audioSampleRate) # how fucking long?\n# plt.figure()\n# plt.vlines(data['beat_samples'], -1.0, 1.0)\n# plt.plot(waveform)\n# plt.show()\n# dict_keys(['sample_rate', 'duration', 'beat_samples', 'number_of_beats', 'tempo_float', 'tempo_int', 'zero_crossing', 'noisiness_median', 'noisiness_sum', 'notes', 'dominant_note'])\ndef getClosest(mlist,standard):\n    # mlist is sorted.\n    # assert mlist == list(sorted(mlist))",
         "type": "code",
         "location": "/tests/music_analysis/bpm_tracking/test_audioowl.py:1-30"
     },
-    "3849": {
-        "file_id": 468,
+    "3839": {
+        "file_id": 474,
         "content": "The code imports necessary libraries, reads audio file information and waveform using AudioOwl library, stores the relevant data in a dictionary, and provides a function to find the closest element in a sorted list.",
         "type": "comment"
     },
-    "3850": {
-        "file_id": 468,
+    "3840": {
+        "file_id": 474,
         "content": "    queue_list = []\n    last_elem = None\n    for elem in mlist:\n        mred = abs(elem-standard)\n        queue_list.append(mred)\n        if len(queue_list) > 2:\n            queue_list.pop(0)\n        if len(queue_list) == 2:\n            #compare now.\n            last_mred = queue_list[0]\n            if mred >= last_mred: return last_elem\n        last_elem = elem\n    return last_elem\na,b,c,d = [data[k] for k in [\"beat_samples\",\"duration\",\"sample_rate\",\"tempo_float\"]]\nprint(data)\nbreakpoint()\nsingle_bpm_time = 60/d\nbpm_times = [single_bpm_time*(2**x) for x in range(5)] #usually works.\nmin_beat_time = 2 # minimum beat skip time.\nclosest_beat_time = getClosest(bpm_times,min_beat_time)\n# breakpoint()\nmin_outro_time = 3 # must longer than the song.\n# total_samples = b*c\nbeat_times = [x/c for x in a if x <= c*(b - min_outro_time)] # no final cut.\n# so the beats are evenly sliced.\n# print(beat_times)\n# breakpoint()\nselected_beat_times = [0] # original beat. the startup.\nfor i,x in enumerate(beat_times):\n    lastBeat = selected_beat_times[-1]",
         "type": "code",
         "location": "/tests/music_analysis/bpm_tracking/test_audioowl.py:31-69"
     },
-    "3851": {
-        "file_id": 468,
+    "3841": {
+        "file_id": 474,
         "content": "Calculates beat times for audio, ensures beats are evenly sliced, finds closest bpm time, selects original beat as startup.",
         "type": "comment"
     },
-    "3852": {
-        "file_id": 468,
+    "3842": {
+        "file_id": 474,
         "content": "    if x <= lastBeat:\n        continue\n    ired_beat_times = beat_times[i:] # exactly what we want.\n    selectedBeat = getClosest(ired_beat_times,lastBeat+closest_beat_time)\n    selected_beat_times.append(selectedBeat)\nprint('selected beat times:')\nprint(selected_beat_times)\n# we have to check the thing.",
         "type": "code",
         "location": "/tests/music_analysis/bpm_tracking/test_audioowl.py:70-78"
     },
-    "3853": {
-        "file_id": 468,
+    "3843": {
+        "file_id": 474,
         "content": "This code segment is finding the closest beat time to a specified value from a set of beat times. It continues from the last detected beat and appends the selected beat time to the 'selected_beat_times' list. Finally, it prints out the 'selected_beat_times'.",
         "type": "comment"
     },
+    "3844": {
+        "file_id": 475,
+        "content": "/tests/render_and_recognize_long_text_to_filter_unwanted_characters/test_render.py",
+        "type": "filepath"
+    },
+    "3845": {
+        "file_id": 475,
+        "content": "The code utilizes pygame and specific libraries to generate text, render it, set up a game display window, and save the updated display as output_name.",
+        "type": "summary"
+    },
+    "3846": {
+        "file_id": 475,
+        "content": "import os\n# https://github.com/ntasfi/PyGame-Learning-Environment/issues/26\nos.environ[\"SDL_VIDEODRIVER\"] = \"dummy\"\nimport pygame\npygame.init()\nblack, white = pygame.Color('black'), pygame.Color('white')\n# pillow can also do that\n# https://plainenglish.io/blog/generating-text-on-image-with-python-eefe4430fe77\ntextContent = \"\".join([\"中\",\"ぁ\"]+[f\"[{index+1}]\" for index in range(100)]) # will see [100] at the end of text if successful.\n# pygame.font.get_fonts()\n# install your font to system please? but why all lower case font names?\n# fontName = \"notosans\"\n# this font is bad.\nfontSize = 40\n# font = pygame.font.SysFont(fontName,fontSize)\n# fontPath = \"/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf\" # shit this fails.\nfontPath = \"./get_and_merge_fonts/GoNotoCurrent.ttf\"\n# use some kind of super large merged notofont.\nfont = pygame.font.Font(fontPath, fontSize)\noutput_name = \"test_render.png\"\nword_surface = font.render(textContent, False, black)\nword_width, word_height = word_surface.get_size()\nmargin=20\nSIZE=(word_width+margin*2, word_height+margin*2)",
+        "type": "code",
+        "location": "/tests/render_and_recognize_long_text_to_filter_unwanted_characters/test_render.py:1-33"
+    },
+    "3847": {
+        "file_id": 475,
+        "content": "The code imports necessary libraries, sets the video driver, initializes pygame, defines colors, generates text content with 100 placeholders, selects a font (GoNotoCurrent.ttf), renders the text, and determines the size of the rendered image.",
+        "type": "comment"
+    },
+    "3848": {
+        "file_id": 475,
+        "content": "image = pygame.display.set_mode(SIZE, pygame.RESIZABLE)\nimage.fill(white)\nimage.blit(word_surface,(margin,margin))\npygame.display.update()\npygame.image.save(image,output_name)",
+        "type": "code",
+        "location": "/tests/render_and_recognize_long_text_to_filter_unwanted_characters/test_render.py:34-38"
+    },
+    "3849": {
+        "file_id": 475,
+        "content": "Initializes game display window with specified size, fills it with white color, blits word image onto the surface, updates pygame display and saves the updated display to output_name.",
+        "type": "comment"
+    },
+    "3850": {
+        "file_id": 476,
+        "content": "/tests/render_and_recognize_long_text_to_filter_unwanted_characters/test_pytesseract.py",
+        "type": "filepath"
+    },
+    "3851": {
+        "file_id": 476,
+        "content": "This code uses the pytesseract library to extract text from an image. It specifies a list of supported languages (English, Chinese Simplified, Chinese Traditional, Japanese), combines them into a single language code, and applies it to the \"test_render.png\" image file. The resulting extracted text is then printed out. However, there may be many incorrect results due to the complexity of character recognition in different languages.",
+        "type": "summary"
+    },
+    "3852": {
+        "file_id": 476,
+        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nimport pytesseract\n# pytesseract.get_languages(config=\"\")\nlangs =['eng','chi_sim','chi_tra','jpn']\nlangCode = \"+\".join(langs)\npicPath = \"test_render.png\"\noutput = pytesseract.image_to_string(picPath, lang=langCode)\nprint(\"OUTPUT?\")\nprint(output)\n# many incorrect results?",
+        "type": "code",
+        "location": "/tests/render_and_recognize_long_text_to_filter_unwanted_characters/test_pytesseract.py:1-15"
+    },
+    "3853": {
+        "file_id": 476,
+        "content": "This code uses the pytesseract library to extract text from an image. It specifies a list of supported languages (English, Chinese Simplified, Chinese Traditional, Japanese), combines them into a single language code, and applies it to the \"test_render.png\" image file. The resulting extracted text is then printed out. However, there may be many incorrect results due to the complexity of character recognition in different languages.",
+        "type": "comment"
+    },
     "3854": {
-        "file_id": 469,
-        "content": "/tests/pyidm_yd_dlp_download_manager_multithread/test.py",
-        "type": "filepath"
-    },
-    "3855": {
-        "file_id": 469,
-        "content": "Code checks the value of 'option' variable and performs different download tasks based on its value. If option is 1, it uses yt_dlp library to download a video file. If option is 2, it uses pySmartDL library to download a GIF file. If option is 3, it uses firedm library for the same purpose. After each download task, it prints the status and downloaded file path.",
-        "type": "summary"
-    },
-    "3856": {
-        "file_id": 469,
-        "content": "url = \"https://media3.giphy.com/media/wTrXRamYhQzsY/giphy.gif?cid=dda24d502m79hkss38jzsxteewhs4e3ocd3iqext2285a3cq&rid=giphy.gif&ct=g\"\n# url = \"https://media3.giphy.com/media/J9asIpW5apX7cjT2oh/giphy.gif\"\noption = 3\nif option == 1:\n    import yt_dlp\n    # import pyidm\n    path = \"./randomName.mp4\"\n    x = yt_dlp.YoutubeDL({\"outtmpl\":path,'format':'[ext=mp4]'})\n    y = x.download([url])\n    breakpoint()\nelif option == 2:\n    from pySmartDL import SmartDL\n    dest = \"./test.gif\"\n    obj = SmartDL(url, dest, threads=20)\n    obj.start()\n    # [*] 0.23 Mb / 0.37 Mb @ 88.00Kb/s [##########--------] [60%, 2s left]\n    print('DOWNLOAD FINISHED')\n    path = obj.get_dest()\n    print(\"DOWNLOADED AT:\", path)\nelif option == 3:\n    from firedm import FireDM\n    args = [\"-o\",\"./test.gif\", url]\n    settings = FireDM.pars_args(args)\n    urls = settings.pop('url')\n    controller = FireDM.Controller(view_class=FireDM.CmdView, custom_settings=settings)\n    controller.run()\n    controller.cmdline_download(urls, **settings)\n    print('FireDM download complete')",
-        "type": "code",
-        "location": "/tests/pyidm_yd_dlp_download_manager_multithread/test.py:1-31"
-    },
-    "3857": {
-        "file_id": 469,
-        "content": "Code checks the value of 'option' variable and performs different download tasks based on its value. If option is 1, it uses yt_dlp library to download a video file. If option is 2, it uses pySmartDL library to download a GIF file. If option is 3, it uses firedm library for the same purpose. After each download task, it prints the status and downloaded file path.",
-        "type": "comment"
-    },
-    "3858": {
-        "file_id": 470,
-        "content": "/tests/qq_go_cqhttp/launch.sh",
-        "type": "filepath"
-    },
-    "3859": {
-        "file_id": 470,
-        "content": "The code changes the directory to \"go-cqhttp\" and executes the \"go-cqhttp\" script, which likely starts the CQHTTP bot.",
-        "type": "summary"
-    },
-    "3860": {
-        "file_id": 470,
-        "content": "cd go-cqhttp\n./go-cqhttp",
-        "type": "code",
-        "location": "/tests/qq_go_cqhttp/launch.sh:1-2"
-    },
-    "3861": {
-        "file_id": 470,
-        "content": "The code changes the directory to \"go-cqhttp\" and executes the \"go-cqhttp\" script, which likely starts the CQHTTP bot.",
-        "type": "comment"
-    },
-    "3862": {
-        "file_id": 471,
-        "content": "/tests/qq_go_cqhttp/build.sh",
-        "type": "filepath"
-    },
-    "3863": {
-        "file_id": 471,
-        "content": "This code navigates to the \"go-cqhttp\" directory and compiles it using the Go language's 'build' command.",
-        "type": "summary"
-    },
-    "3864": {
-        "file_id": 471,
-        "content": "cd go-cqhttp\ngo build",
-        "type": "code",
-        "location": "/tests/qq_go_cqhttp/build.sh:1-2"
-    },
-    "3865": {
-        "file_id": 471,
-        "content": "This code navigates to the \"go-cqhttp\" directory and compiles it using the Go language's 'build' command.",
-        "type": "comment"
-    },
-    "3866": {
-        "file_id": 472,
-        "content": "/tests/qq_go_cqhttp/tests/download_group_files.py",
-        "type": "filepath"
-    },
-    "3867": {
-        "file_id": 472,
-        "content": "The code connects to a local server, retrieves status, and handles errors. It provides functions for downloading QQ group files and directories using different APIs, handling subfolders recursively, and checking for existing files. The `group_file_wholesale_downloader` function is used to download group files to a specific path, running in a loop for each group ID with optional retry and sleep mechanisms.",
-        "type": "summary"
-    },
-    "3868": {
-        "file_id": 472,
-        "content": "import pathlib\nimport os\nimport requests\n# again 0.0.0.0 not avaliable. must be localhost.\nbaseurl = \"http://localhost:5700/\"\n# go-cqhttp client does not support adding friends, searching groups or something! test if we can login opqbot and this shit at the same time!\n# it is working but unable to know if it is going to kill me.\nimport time\ndef check_connection():\n    while True:\n        try:\n            response = requests.get(baseurl+\"get_status\", timeout=5)\n            response_json = response.json()\n            print(\"GO_CQHTTP STATUS:\", response_json)\n            data_json = response_json[\"data\"]\n            assert data_json[\"online\"] == True\n            print(\"connection ok\")\n            break\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"Connection error.\")\n            time.sleep(3)\ndef get_url(api):\n    assert not api.startswith(\"/\")\n    return baseurl+api\ndef ensure_dir(download_path):\n    if not os.path.exists(download_path):\n        os.mkdir(download_path)",
-        "type": "code",
-        "location": "/tests/qq_go_cqhttp/tests/download_group_files.py:1-34"
-    },
-    "3869": {
-        "file_id": 472,
-        "content": "This code checks the connection to a local server, retrieves and prints the status, handles errors by retrying, and provides a function for generating full URLs. It seems related to testing or managing a program that interacts with CQHTTP, a third-party service.",
-        "type": "comment"
-    },
-    "3870": {
-        "file_id": 472,
-        "content": "# api = \"get_group_file_system_info\"\ndef get_group_file(group_id, file_id, busid):\n    api = \"get_group_file_url\"\n    url = get_url(api)\n    params = {\"group_id\": group_id, \"file_id\": file_id, \"busid\": busid}\n    r = requests.get(url, params=params)\n    # print(r.content)\n    content = r.json()\n    data = content[\"data\"]\n    if data!=None:\n        download_url = data[\"url\"]\n        print(\"DOWNLOAD URL:\", download_url)\n        return download_url\ndef try_pass(function):\n    try:\n        function()\n    except:\n        pass\ndef downloader(url, filepath, skip_exist=True):\n    lock = filepath+\".lock\"\n    # check lock related operations.\n    if os.path.exists(lock):\n        try_pass(lambda: os.remove(lock))\n        try_pass(lambda: os.remove(filepath))\n    # do skip if flag \"skip_exists\" is set.\n    if skip_exist:\n        if os.path.exists(filepath):\n            return  # no overwritting existing files.\n    # download command\n    cmd = 'curl -L -o \"{}\" \"{}\"'.format(filepath, url)\n    # download main logic\n    # touch lock first.",
-        "type": "code",
-        "location": "/tests/qq_go_cqhttp/tests/download_group_files.py:36-77"
-    },
-    "3871": {
-        "file_id": 472,
-        "content": "This code defines a function for getting group file URLs, downloading files using curl, and includes optional checks for existing files and locking mechanisms.",
-        "type": "comment"
-    },
-    "3872": {
-        "file_id": 472,
-        "content": "    pathlib.Path(lock).touch()\n    os.system(cmd)\n    try_pass(lambda: os.remove(lock))\ndef recursive_get_qq_group_files(api, group_id, basepath=None, folder_id=None, download_path=\"qq_group_file_download\"):\n    ensure_dir(download_path)\n    if basepath is None:\n        basepath = os.path.join(download_path, str(group_id))\n    ensure_dir(basepath)\n    if api == \"get_group_root_files\":\n        params = {\"group_id\": group_id}  # integer for group id\n    elif api == \"get_group_files_by_folder\":\n        # integer for group id\n        params = {\"group_id\": group_id, \"folder_id\": folder_id}\n    else:\n        raise Exception(\"Unknown recursive_get_qq_group_files api\", api)\n    url = get_url(api)\n    r = requests.get(url, params=params)\n# r = requests.get(url)\n    content = r.json()\n    # print(content)\n    # breakpoint()\n    data = content[\"data\"]\n    base_files = data[\"files\"]\n    base_folders = data[\"folders\"]  # may walk recursively.\n    base_files = [] if base_files == None else base_files\n    base_folders = [] if base_folders == None else base_folders",
-        "type": "code",
-        "location": "/tests/qq_go_cqhttp/tests/download_group_files.py:78-109"
-    },
-    "3873": {
-        "file_id": 472,
-        "content": "Creates a directory for group files based on the group ID, downloads QQ group files recursively and handles different APIs.",
-        "type": "comment"
-    },
-    "3874": {
-        "file_id": 472,
-        "content": "    # print(base_files)\n    for bfile in base_files:\n        file_id = bfile[\"file_id\"]  # prefixed with /, no need to check?\n        # any expired files present? may cause download errors?\n        file_name = bfile[\"file_name\"]\n        busid = bfile[\"busid\"]\n        download_url = get_group_file(group_id, file_id, busid)\n        if download_url == None: continue\n        filepath = os.path.join(basepath, file_name)\n        print(\"FILEPATH:\", filepath)\n        yield download_url, filepath\n        # download those base files!\n    for bfolder in base_folders:\n        # we have group_id though.\n        folder_id = bfolder[\"folder_id\"]\n        folder_name = bfolder[\"folder_name\"]\n        new_basepath = os.path.join(basepath, folder_name)\n        for download_url, filepath in recursive_get_qq_group_files(\"get_group_files_by_folder\", group_id, basepath=new_basepath, folder_id=folder_id):\n            yield download_url, filepath\n        # all the same logic.\n        # now do recursive folder search.\n    # how to download these shits? curl?",
-        "type": "code",
-        "location": "/tests/qq_go_cqhttp/tests/download_group_files.py:111-134"
-    },
-    "3875": {
-        "file_id": 472,
-        "content": "This code downloads group files and folders from QQ group. It first retrieves base files by iterating through the base_files list, using get_group_file to obtain the download URL for each file and storing it in the filepath. Then, it recursively downloads files within specified folders using recursive_get_qq_group_files function. This code uses os.path.join to construct file paths and continues if a download URL is None.",
-        "type": "comment"
-    },
-    "3876": {
-        "file_id": 472,
-        "content": "def group_file_wholesale_downloader(group_id, download_path=\"qq_group_file_download\", skip_exist=True):\n    for download_url, filepath in recursive_get_qq_group_files(\"get_group_root_files\", group_id, download_path=download_path):\n        downloader(download_url, filepath, skip_exist=skip_exist)\n# group_id = 927825838 # more files but no base_files.\n# group_id = 537384511 # less files but have base_files\n# make it dynamic!\ndownload_path = \"/root/Desktop/works/pyjom/tests/wechat_bots/msimg32.dll_wechat_hook_webapi/official_qq_group_files\"\ngroup_ids = [927825838, 537384511] # i know i am in these groups.\n#  import time\ncheck_connection() # failsafe or not?\nfor group_id in group_ids:\n    #  while True:\n        #  try:\n    group_file_wholesale_downloader(group_id, download_path=download_path, skip_exist=True)\n    #  break\n        #  except: time.sleep(10) # auto retry.\n        # there is no need for any failsafes. maybe we are outside the groups.\n# already downloaded. waiting for updates?",
-        "type": "code",
-        "location": "/tests/qq_go_cqhttp/tests/download_group_files.py:137-159"
-    },
-    "3877": {
-        "file_id": 472,
-        "content": "The code defines a function `group_file_wholesale_downloader` that downloads QQ group files for specified group IDs to a specific path. It uses recursive calls to `recursive_get_qq_group_files` and `downloader` functions. The provided example group IDs (927825838, 537384511) are used with the download path \"/root/Desktop/works/pyjom/tests/wechat_bots/msimg32.dll_wechat_hook_webapi/official_qq_group_files\". The code runs this function in a loop for each group ID, potentially with retry and sleep mechanisms if needed.",
-        "type": "comment"
-    },
-    "3878": {
-        "file_id": 473,
+        "file_id": 477,
         "content": "/tests/readbility_webpage_to_markdown_simplification/test_readability.py",
         "type": "filepath"
     },
-    "3879": {
-        "file_id": 473,
+    "3855": {
+        "file_id": 477,
         "content": "Code imports necessary libraries, sets URL for webpage, retrieves response from the page using GET request, initializes a Readability Document object with the page's text, prints document summary and title.",
         "type": "summary"
     },
-    "3880": {
-        "file_id": 473,
+    "3856": {
+        "file_id": 477,
         "content": "import requests\nfrom readability import Document\nurl='https://zhuanlan.zhihu.com/p/384614837'\nresponse = requests.get(url)\ndoc = Document(response.text)\nprint(doc.summary())\nprint()\nprint(doc.title())\n# print()\n# print(dir(doc))",
         "type": "code",
         "location": "/tests/readbility_webpage_to_markdown_simplification/test_readability.py:1-10"
     },
-    "3881": {
-        "file_id": 473,
+    "3857": {
+        "file_id": 477,
         "content": "Code imports necessary libraries, sets URL for webpage, retrieves response from the page using GET request, initializes a Readability Document object with the page's text, prints document summary and title.",
         "type": "comment"
     },
-    "3882": {
-        "file_id": 474,
+    "3858": {
+        "file_id": 478,
         "content": "/tests/readbility_webpage_to_markdown_simplification/test_node_readbility.js",
         "type": "filepath"
     },
-    "3883": {
-        "file_id": 474,
+    "3859": {
+        "file_id": 478,
         "content": "The code requires the 'node-readability' module and uses it to fetch an article from a specified URL. It then logs the article content, title, HTML source code, DOM, response object from the request library, and closes the article to prevent leaks.",
         "type": "summary"
     },
-    "3884": {
-        "file_id": 474,
+    "3860": {
+        "file_id": 478,
         "content": "var read = require('node-readability');\nurl = \"https://zhuanlan.zhihu.com/p/384614837\"\n    // 'http://howtonode.org/really-simple-file-uploads'\nread(url, function(err, article, meta) {\n    // Main Article\n    console.log(article.content); // still html\n    // Title\n    console.log(article.title);\n    // HTML Source Code\n    // console.log(article.html);\n    // // DOM\n    // console.log(article.document);\n    // Response Object from Request Lib\n    // console.log(meta);\n    // Close article to clean up jsdom and prevent leaks\n    article.close();\n});",
         "type": "code",
         "location": "/tests/readbility_webpage_to_markdown_simplification/test_node_readbility.js:1-19"
     },
-    "3885": {
-        "file_id": 474,
+    "3861": {
+        "file_id": 478,
         "content": "The code requires the 'node-readability' module and uses it to fetch an article from a specified URL. It then logs the article content, title, HTML source code, DOM, response object from the request library, and closes the article to prevent leaks.",
         "type": "comment"
     },
-    "3886": {
-        "file_id": 475,
+    "3862": {
+        "file_id": 479,
         "content": "/tests/readbility_webpage_to_markdown_simplification/test_mozilla.js",
         "type": "filepath"
     },
-    "3887": {
-        "file_id": 475,
+    "3863": {
+        "file_id": 479,
         "content": "Code loads a web page containing an image of a cat, uses jsdom to parse the HTML, and then uses the Readability library from @mozilla/readability to extract the article content. The extracted article is logged to the console.",
         "type": "summary"
     },
-    "3888": {
-        "file_id": 475,
+    "3864": {
+        "file_id": 479,
         "content": "const jsdom = require(\"jsdom\");\nconst { JSDOM } = jsdom;\ndoc = new jsdom.JSDOM(\"<body>Look at this cat: <img src='./cat.jpg'></body>\"); // load this shit from the web or something...\n// make it into a server.\nconst { Readability } = require('@mozilla/readability');\nlet reader = new Readability(doc.window.document);\narticle = reader.parse();\nconsole.log(article);",
         "type": "code",
         "location": "/tests/readbility_webpage_to_markdown_simplification/test_mozilla.js:1-8"
     },
-    "3889": {
-        "file_id": 475,
+    "3865": {
+        "file_id": 479,
         "content": "Code loads a web page containing an image of a cat, uses jsdom to parse the HTML, and then uses the Readability library from @mozilla/readability to extract the article content. The extracted article is logged to the console.",
         "type": "comment"
     },
-    "3890": {
-        "file_id": 476,
+    "3866": {
+        "file_id": 480,
         "content": "/tests/readbility_webpage_to_markdown_simplification/README.md",
         "type": "filepath"
     },
-    "3891": {
-        "file_id": 476,
+    "3867": {
+        "file_id": 480,
         "content": "These are test links for the readability_webpage_to_markdown_simplification functionality.",
         "type": "summary"
     },
-    "3892": {
-        "file_id": 476,
+    "3868": {
+        "file_id": 480,
         "content": "test links:\nhttps://www.macbookproslow.com/is-macbook-air-good-for-programming/\nhttps://zhuanlan.zhihu.com/p/384614837\nhttps://mp.weixin.qq.com/s?src=11&timestamp=1663090785&ver=4042&signature=8bWivjRcA5sicP22nFtzBBEP8LeQJa9rHgTA7wd7QTteh8Rcj0uc2QS1VeZjaI*PPjt90MNn9vigukae1keLI7GYXzbLXl93djqb5K7iPuOdbz2NBgvbxq6wImUD05XX&new=1",
         "type": "code",
         "location": "/tests/readbility_webpage_to_markdown_simplification/README.md:1-4"
     },
-    "3893": {
-        "file_id": 476,
+    "3869": {
+        "file_id": 480,
         "content": "These are test links for the readability_webpage_to_markdown_simplification functionality.",
         "type": "comment"
     },
-    "3894": {
-        "file_id": 477,
+    "3870": {
+        "file_id": 481,
+        "content": "/tests/redis_music_info_persistance/test_cache.py",
+        "type": "filepath"
+    },
+    "3871": {
+        "file_id": 481,
+        "content": "This code imports Redis cache functions and defines a function `redisLRUCache` which creates a Redis LRU cache with specified parameters. The function `test_function` is decorated with `@redisLRUCache()` to utilize the cache. Finally, it prints \"hello world\" twice and returns 'abcdefg' for the given parameter. The code tests the function using 'toy_data' as the parameter.",
+        "type": "summary"
+    },
+    "3872": {
+        "file_id": 481,
+        "content": "# from redis_cache.redis_cache import RedisCache\n# from redis_cache.rediscache import cache_it\nimport redis\nfrom redis_lru import RedisLRU\nfrom functools import lru_cache\noneDay = 60*60*24 # one day?\nredisExpire =oneDay*7 # god damn it!\n@lru_cache(maxsize=1)\ndef redisLRUCache(ttl=redisExpire,redisAddress = \"127.0.0.1\",redisPort = 9291,max_size=20):\n    client = redis.StrictRedis(host=redisAddress, port=redisPort)\n    cache = RedisLRU(client,max_size=max_size)\n    return cache(ttl=redisExpire)\n# we've fixed this shit.\n@redisLRUCache()\ndef test_function(parameter):\n    print('hello world')\n    print('parameter:',parameter)\n    return 'abcdefg'\nprint(\"RESULT:\",test_function('toy_data'))\nprint(\"RESULT:\",test_function('toy_data'))",
+        "type": "code",
+        "location": "/tests/redis_music_info_persistance/test_cache.py:1-24"
+    },
+    "3873": {
+        "file_id": 481,
+        "content": "This code imports Redis cache functions and defines a function `redisLRUCache` which creates a Redis LRU cache with specified parameters. The function `test_function` is decorated with `@redisLRUCache()` to utilize the cache. Finally, it prints \"hello world\" twice and returns 'abcdefg' for the given parameter. The code tests the function using 'toy_data' as the parameter.",
+        "type": "comment"
+    },
+    "3874": {
+        "file_id": 482,
+        "content": "/tests/redis_music_info_persistance/launch_redis.sh",
+        "type": "filepath"
+    },
+    "3875": {
+        "file_id": 482,
+        "content": "This script checks if a Redis server process is running on port 9291, then stops it using the PID found in the output. It ensures that only one instance of the server is running before executing the test suite.",
+        "type": "summary"
+    },
+    "3876": {
+        "file_id": 482,
+        "content": "ps aux | grep \"redis-server\"| grep 9291 | grep -v grep | awk '{print $2}' | xargs -iabc kill -s KILL abc\nredis-server --port 9291",
+        "type": "code",
+        "location": "/tests/redis_music_info_persistance/launch_redis.sh:1-2"
+    },
+    "3877": {
+        "file_id": 482,
+        "content": "This script checks if a Redis server process is running on port 9291, then stops it using the PID found in the output. It ensures that only one instance of the server is running before executing the test suite.",
+        "type": "comment"
+    },
+    "3878": {
+        "file_id": 483,
         "content": "/tests/random_giphy_gifs/test_sdk.js",
         "type": "filepath"
     },
-    "3895": {
-        "file_id": 477,
+    "3879": {
+        "file_id": 483,
         "content": "The code imports libraries, initializes the GiphyFetch API, defines a function to write JSON data, and tests various API functions such as trending gifs, searching for dog-related gifs, retrieving related gifs, listing categories, and searching with keywords. The results are saved in separate JSON files.",
         "type": "summary"
     },
-    "3896": {
-        "file_id": 477,
+    "3880": {
+        "file_id": 483,
         "content": "// Require with custom API key\n// const myBetaApiKey = 'IoJVsWoxDPKBr6gOcCgOPWAB25773hqP';\nconst myBetaApiKey = \"Gc7131jiJuvI7IdN0HZ1D7nh0ow5BU6g\"; // some common web browser based things.\n// maybe they just don't distinguish api and sdk keys. fuck.\n// sXpGFDGZs0Dv1mmNFvYaGUvYwKX0PWIh\n// is this key limited? or is it production ready?\nconst fetch = require('node-fetch');\nconst fs = require(\"fs\");\nconst JsonFormat = require(\"json-format\")\nconst { GiphyFetch } = require('@giphy/js-fetch-api')\nconst gf = new GiphyFetch(myBetaApiKey)\n// fetch 10 gifs\nfunction writeJsonToFile(json, filename) {\n    // let data = JSON.stringify(json);\n    let data = JsonFormat(json)\n    fs.writeFile(filename, data, function(err) {\n        if (err) {\n            console.error(err);\n        } else {\n            console.log(filename + \" has been saved with the json data\");\n        }\n    });\n}\n// console.log(data)\n// https://bobbyhadz.com/blog/javascript-error-err-require-esm-of-es-module-node-fetch\n// fucking hell?\n// data.then((result) =>{console.log('TRENDING OUTPUT');",
         "type": "code",
         "location": "/tests/random_giphy_gifs/test_sdk.js:1-35"
     },
-    "3897": {
-        "file_id": 477,
+    "3881": {
+        "file_id": 483,
         "content": "Code imports necessary libraries and initializes the GiphyFetch API with a custom key. It defines a function to write JSON data to a file, and then fetches 10 trending gifs using the API.",
         "type": "comment"
     },
-    "3898": {
-        "file_id": 477,
+    "3882": {
+        "file_id": 483,
         "content": "// writeJsonToFile(result, 'trending.json')\n// })\nasync function test(){\n// var data = await gf.trending({ limit: 10 }) // a promise\n// search for related things dog related things.\n// await writeJsonToFile(data,'trending.json')\n// var data = await gf.search('dog cute', { sort: 'relevant', rating: 'g'});\n// await writeJsonToFile(data,'cute_dog.json')\n// var relatedId = \"QvBoMEcQ7DQXK\"\n// var data = await gf.related(relatedId, { limit: 50 })\n// await writeJsonToFile(data,'related.json')\n// const data = await gf.categories() // category are actually keywords here.\n// // data.forEach((category) => {\n// //     console.log(category) // ICategory\n// // })\n// await writeJsonToFile(data,'categories.json')\n// var data = await gf.gifs('animals','bulldog') // not freaking found!\nvar data = await gf.gifs('animals','samoyed') // freaking works! guess it is just keyword based search\nawait writeJsonToFile(data, 'samoyed_subcategory2.json')\n}\ntest()",
         "type": "code",
         "location": "/tests/random_giphy_gifs/test_sdk.js:36-61"
     },
-    "3899": {
-        "file_id": 477,
+    "3883": {
+        "file_id": 483,
         "content": "This code tests various Giphy API functions. It fetches trending gifs, searches for dog-related gifs, retrieves related gifs, lists available categories, and searches for gifs using different keywords. The test results are saved in separate JSON files.",
         "type": "comment"
+    },
+    "3884": {
+        "file_id": 484,
+        "content": "/tests/random_giphy_gifs/test_api.js",
+        "type": "filepath"
+    },
+    "3885": {
+        "file_id": 484,
+        "content": "This code uses 'giphy-api', 'json-format', and 'fs' modules to search for \"pokemon\" and \"dog funny\" GIFs, checking duration and saving results as JSON files. Error logging and 'writeJsonToFile' function are included.",
+        "type": "summary"
+    },
+    "3886": {
+        "file_id": 484,
+        "content": "// Require with custom API key\n// const myBetaApiKey = 'IoJVsWoxDPKBr6gOcCgOPWAB25773hqP';\nconst myBetaApiKey = \"Gc7131jiJuvI7IdN0HZ1D7nh0ow5BU6g\"; // some common web browser based things.\n// can we prepare some key server? i don't know. wtf is this shit?\nvar giphy = require('giphy-api')(myBetaApiKey);\nconst JsonFormat = require(\"json-format\")\nconst fs = require(\"fs\");\nfunction writeJsonToFile(json, filename) {\n    // let data = JSON.stringify(json);\n    let data = JsonFormat(json)\n    fs.writeFile(filename, data, function(err) {\n        if (err) {\n            console.error(err);\n        } else {\n            console.log(filename + \" has been saved with the json data\");\n        }\n    });\n}\n// // Require with the public beta key\n// var giphy = require('giphy-api')(); // banned. cannot use this public api.\n// it may timeout!\n// giphy.search({\n//     q: 'pokemon',\n//     rating: 'g'\n// }, function(err, res) {\n//     // Res contains gif data!\n//     console.log('ERROR?', err); //null if normal.\n//     // save it to json?",
+        "type": "code",
+        "location": "/tests/random_giphy_gifs/test_api.js:1-31"
+    },
+    "3887": {
+        "file_id": 484,
+        "content": "Code snippet requires the 'giphy-api', 'json-format', and 'fs' modules. It defines a function 'writeJsonToFile' to write JSON data to file. The API key is set for a custom Giphy API, and it mentions a public API key that is currently banned. The code then searches for GIFs related to \"pokemon\" with a \"g\" rating, and plans to save the results as JSON to a file.",
+        "type": "comment"
+    },
+    "3888": {
+        "file_id": 484,
+        "content": "//     writeJsonToFile(res, 'pokemon_test.json');\n// });   \n//     // save it to json?\n//     writeJsonToFile(res, 'pokemon_test.json');\n// });\n// giphy.search({\n//     q: 'pokemon',\n//     rating: 'y'\n// }, function(err, res) {\n//     // Res contains gif data!\n//     console.log('ERROR?', err); //null if normal.\n//     // save it to json?\n//     writeJsonToFile(res, 'pokemon_test_youth.json');\n// });\n// question: is that still image?\n// check the duration bro. filter out those ridiculusly short ones.\n// Input £0, gif, from 'still_gif_image.gif':\n// Duration: 00:00:00.84, start: 0.000000, bitrate: 635 kb/s\n// Stream £0:0: Video: gif, bgra, 300x200, 19.42 fps, 25 tbr, 100 tbn\n// giphy.random({\n//     tag: 'dog funny',\n//     rating: 'g',\n//     fmt: 'json',\n// }, function (err, res) {\n//     console.log('ERROR?', err); //null if normal.\n//     // save it to json?\n//     writeJsonToFile(res, 'funny_dog_test.json');\n// });\ngiphy.id('feqkVgjJpYtjy', function (err, res) { // only one reply. there are no other fancy shits.",
+        "type": "code",
+        "location": "/tests/random_giphy_gifs/test_api.js:32-64"
+    },
+    "3889": {
+        "file_id": 484,
+        "content": "This code is making API requests to Giphy, retrieving gifs based on different search criteria (pokemon and dog funny), and then saving the returned data as JSON files. It also checks the duration of the gif to filter out extremely short ones. The 'writeJsonToFile' function is used to save the gif data as JSON.",
+        "type": "comment"
+    },
+    "3890": {
+        "file_id": 484,
+        "content": "    console.log('ERROR?', err); //null if normal.\n    // save it to json?\n    writeJsonToFile(res, 'id_search2.json');\n});",
+        "type": "code",
+        "location": "/tests/random_giphy_gifs/test_api.js:65-68"
+    },
+    "3891": {
+        "file_id": 484,
+        "content": "This code logs an error message if there is an error, and then saves the response to a JSON file named 'id_search2.json' using the writeJsonToFile function.",
+        "type": "comment"
+    },
+    "3892": {
+        "file_id": 485,
+        "content": "/tests/random_giphy_gifs/README.md",
+        "type": "filepath"
+    },
+    "3893": {
+        "file_id": 485,
+        "content": "The code provides Giphy API keys and usage information, defining global variables for authentication and access to GIPHY's APIs, including public and sdk keys. Links to GitHub repositories guide users on implementation.",
+        "type": "summary"
+    },
+    "3894": {
+        "file_id": 485,
+        "content": "# random giphy gifs\ngiphy has many extensible apis. i guess most media platforms are all the same (complex enough), but we have to start somewhere though...\ngiphy has 'clips' now. clips are gifs with sound, just like short videos.\nbeta key limitations:\n1000 requests per day, 42 requests per hour\nor just use the public beta key? does that subject to the rate limit?\n```javascript\nvar PUBLIC_BETA_API_KEY = 'dc6zaTOxFJmzC';\n```\napi keys:\nIoJVsWoxDPKBr6gOcCgOPWAB25773hqP\nlTRWAEGHjB1AkfO0sk2XTdujaPB5aH7X\nsdk keys:\n6esYBEm9OG3wAifbBFZ2mA0Ml6Ic0rvy\nto use api:\nhttps://github.com/austinkelleher/giphy-api\nto use sdk:\nhttps://github.com/Giphy/giphy-js/blob/master/packages/fetch-api/README.md\nfind public api keys inside html:\n```javascript\n          window.GIPHY_FE_MOBILE_API_KEY = \"L8eXbxrbPETZxlvgXN9kIEzQ55Df04v0\"\n          window.GIPHY_FE_WEB_API_KEY = \"Gc7131jiJuvI7IdN0HZ1D7nh0ow5BU6g\"\n          window.GIPHY_FE_FOUR_O_FOUR_API_KEY = \"MRwXFtxAnaHo3EUMrSefHWmI0eYz5aGe\"\n          window.GIPHY_FE_STORIES_AND_GIPHY_TV_API_KEY = \"3eFQvabDx69SMoOemSPiYfh9FY0nzO9x\"",
+        "type": "code",
+        "location": "/tests/random_giphy_gifs/README.md:1-34"
+    },
+    "3895": {
+        "file_id": 485,
+        "content": "This code snippet provides information about Giphy APIs, their usage, and API keys. The PUBLIC_BETA_API_KEY is defined in JavaScript, and there are various public and sdk keys listed for using the Giphy APIs. Links to GitHub repositories are provided for guidance on how to use them, and four public API keys found inside HTML elements are also mentioned.",
+        "type": "comment"
+    },
+    "3896": {
+        "file_id": 485,
+        "content": "          window.GIPHY_FE_DEFAULT_API_SERVICE_KEY = \"5nt3fDeGakBKzV6lHtRM1zmEBAs6dsIc\"\n          window.GIPHY_FE_GET_POST_HEADERS_KEY = \"e0771ed7b244ec9c942bea646ad08e6bf514f51a\"\n          window.GIPHY_FE_MEDIUM_BLOG_API_KEY = \"i3dev0tcpgvcuaocfmdslony2q9er7tvfndxcszm\"\n          window.GIPHY_FE_EMBED_KEY = \"eDs1NYmCVgdHvI1x0nitWd5ClhDWMpRE\"\n```\nsearch for 'ear flops' to locate the tags in 'samoyed.html'",
+        "type": "code",
+        "location": "/tests/random_giphy_gifs/README.md:35-41"
+    },
+    "3897": {
+        "file_id": 485,
+        "content": "This code sets the GIPHY API service key, get headers key, medium blog API key, and embed key as global variables in the window object. These keys are used to authenticate and access GIPHY's APIs for fetching gifs and related content.",
+        "type": "comment"
+    },
+    "3898": {
+        "file_id": 486,
+        "content": "/tests/random_giphy_gifs/nodejs_server.js",
+        "type": "filepath"
+    },
+    "3899": {
+        "file_id": 486,
+        "content": "This Node.js server code handles Giphy API requests, provides error-handling functions for processing elements and retrieving GIFs, and serves responses while listening on port 8902.",
+        "type": "summary"
     }
 }

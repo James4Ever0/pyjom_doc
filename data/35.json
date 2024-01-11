@@ -1,540 +1,536 @@
 {
     "3500": {
-        "file_id": 420,
-        "content": "/tests/nsfw_violence_drug_detection/nsfwjs_test.mjs",
-        "type": "filepath"
-    },
-    "3501": {
-        "file_id": 420,
-        "content": "The code imports libraries, sets up an Express app and Multer for file uploads, converts images to RGBA format, initializes a model, calculates pixel counts using TensorFlow, handles requests, checks missing files, logs uploaded files, returns server status, loads NSFW image detection model, serves predictions on port 8511.",
-        "type": "summary"
-    },
-    "3502": {
-        "file_id": 420,
-        "content": "import { createRequire } from \"module\";\nconst require = createRequire(import.meta.url);\nconst express = require('express')\nconst multer = require('multer')\nconst jpeg = require('jpeg-js')\n    // const bmp = require('bmp-js')\nconst bmp = require('bmp-ts');\n// const bmpBuffer = fs.readFileSync('bit24.bmp');\nconst { PNG } = require('pngjs')\nconst tf = require('@tensorflow/tfjs-node')\nconst nsfw = require('nsfwjs')\nconst app = express()\nconst upload = multer()\nlet _model\n// this even works for gif!\n// it will normalize and resize the image if needed.\n// shall we check for gif?\nconst convert = async(img, type) => {\n    // Decoded image in UInt8 Byte array\n    let image\n    if (type == 'image/jpeg') {\n        image = await jpeg.decode(img, true)\n            // RGBA\n    } //wtf?\n    // order: rgba\n    else if (type == 'image/png') {\n        image = PNG.sync.read(img)\n    } else if (type == 'image/bmp') {\n        // image = await bmp.decode(img, true)\n        image = bmp.decode(img, { toRGBA: true });\n    }\n    const numChannels = 3",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.mjs:1-40"
-    },
-    "3503": {
-        "file_id": 420,
-        "content": "The code imports necessary libraries, sets up an express application and multer middleware for handling file uploads. It also defines a function to convert images of different types (JPEG, PNG, BMP) into the same RGBA format for further processing using TensorFlow.js. The code also initializes a model and mentions that it works for GIFs as well.",
-        "type": "comment"
-    },
-    "3504": {
-        "file_id": 420,
-        "content": "    const numPixels = image.width * image.height // will raise an error if image is not acquired.\n    const values = new Int32Array(numPixels * numChannels)\n        // are you sure about the width?\n    // can you make this faster? shit?\n    // this shit is no numpy. fuck.\n    for (let i = 0; i < numPixels; i++)\n        for (let c = 0; c < numChannels; ++c)\n        // if (type == 'bmp') {\n        //     // ABGR?\n        //     // values[i * numChannels + c] = image.data[i * 4+c]\n        //     values[i * numChannels + c] = image.data[i * 4 + 3 - c]\n        // } else {\n            values[i * numChannels + c] = image.data[i * 4 + c]\n            // }\n    return tf.tensor3d(values, [image.height, image.width, numChannels], 'int32')\n}\napp.get('/', async(req, res) => {\n    res.send('nsfw nodejs server')\n})\napp.post('/nsfw', upload.single('image'), async(req, res) => {\n    if (!req.file) res.status(400).send('Missing image multipart/form-data')\n    else {\n        try {\n            console.log('file uploaded:', req.file)",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.mjs:41-68"
-    },
-    "3505": {
-        "file_id": 420,
-        "content": "The code snippet is calculating the number of pixels in an image and storing its values into a TensorFlow tensor. It's then using the NodeJS framework to handle requests for images, checking if a file is missing, logging uploaded files, and returning a response with the server status. The code uses different data access methods based on the image format (BMP or others). However, there are concerns about potential width calculation errors, improving performance, and frustration with working outside of the Python ecosystem.",
-        "type": "comment"
-    },
-    "3506": {
-        "file_id": 420,
-        "content": "            if (req.file.fieldname == 'image') {\n                type = req.file.mimetype // deal with it later.\n                extension = req.file.originalname.split(\".\").slice(-1)[0].toLowerCase()\n                if (extension == 'gif' || type == 'image/gif') {\n                    let image = req.file.buffer\n                    let predictions = await _model.classifyGif(image, { topk: 3, fps: 1 })\n                        // image.dispose()\n                    predictions.message = 'success'\n                    res.json(predictions)\n                } else {\n                    if (extension == 'bmp') {\n                        type = 'image/bmp'\n                    }\n                    let image = await convert(req.file.buffer, type) // here we have buffer.\n                    let predictions = await _model.classify(image)\n                    predictions.message = 'success'\n                        // image.dispose()\n                    res.json(predictions)\n                }\n            }\n            // we need some file format hints.",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.mjs:69-89"
-    },
-    "3507": {
-        "file_id": 420,
-        "content": "Checks if the file field is 'image' and deals with GIF files separately by classifying them directly. For other formats, converts the buffer to the appropriate type before classification. Responds with predictions and success message.",
-        "type": "comment"
-    },
-    "3508": {
-        "file_id": 420,
-        "content": "        } catch (e) {\n            console.log(e)\n            res.json({ message: 'error' })\n        }\n    }\n})\nconst load_model = async() => {\n    _model = await nsfw.load()\n}\n// Keep the model in memory, make sure it's loaded only once\nload_model().then(() => {\n    console.log('server ready')\n    app.listen(8511)\n})\n// curl --request POST localhost:8080/nsfw --header 'Content-Type: multipart/form-data' --data-binary 'image=@/full/path/to/picture.jpg'",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.mjs:91-109"
-    },
-    "3509": {
-        "file_id": 420,
-        "content": "The code loads an NSFW image detection model, ensures it's only loaded once, and starts a server on port 8511. It accepts POST requests with image data from the client.",
-        "type": "comment"
-    },
-    "3510": {
-        "file_id": 421,
-        "content": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js",
-        "type": "filepath"
-    },
-    "3511": {
-        "file_id": 421,
-        "content": "The function creates a color mask, processes BMP file header info, handles compression types, and supports various color formats. The code converts images to TensorFlow tensor3d arrays, handles file uploads, loads an NSFW model for classification, and runs on port 8511.",
-        "type": "summary"
-    },
-    "3512": {
-        "file_id": 421,
-        "content": "// import { createRequire } from \"module\";\n// const require = createRequire(import.meta.url);\n// now we are talking\nfunction maskColor(maskRed, maskGreen, maskBlue, maskAlpha) {\n    const maskRedR = (~maskRed + 1) & maskRed;\n    const maskGreenR = (~maskGreen + 1) & maskGreen;\n    const maskBlueR = (~maskBlue + 1) & maskBlue;\n    const maskAlphaR = (~maskAlpha + 1) & maskAlpha;\n    const shiftedMaskRedL = maskRed / maskRedR + 1;\n    const shiftedMaskGreenL = maskGreen / maskGreenR + 1;\n    const shiftedMaskBlueL = maskBlue / maskBlueR + 1;\n    const shiftedMaskAlphaL = maskAlpha / maskAlphaR + 1;\n    return {\n        shiftRed: (x) => (((x & maskRed) / maskRedR) * 0x100) / shiftedMaskRedL,\n        shiftGreen: (x) => (((x & maskGreen) / maskGreenR) * 0x100) / shiftedMaskGreenL,\n        shiftBlue: (x) => (((x & maskBlue) / maskBlueR) * 0x100) / shiftedMaskBlueL,\n        shiftAlpha: maskAlpha !== 0 ?\n            (x) => (((x & maskAlpha) / maskAlphaR) * 0x100) / shiftedMaskAlphaL :\n            () => 255\n    };",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:1-22"
-    },
-    "3513": {
-        "file_id": 421,
-        "content": "This function takes four parameters (maskRed, maskGreen, maskBlue, and maskAlpha) to create a color mask. It performs bitwise operations and calculations to shift the color values and returns an object with functions to shift red, green, blue, and alpha components of any given value. If maskAlpha is not zero, it also returns an additional function for shifting alpha values.",
-        "type": "comment"
-    },
-    "3514": {
-        "file_id": 421,
-        "content": "}\nvar HeaderTypes;\n(function(HeaderTypes) {\n    HeaderTypes[HeaderTypes[\"BITMAP_INFO_HEADER\"] = 40] = \"BITMAP_INFO_HEADER\";\n    HeaderTypes[HeaderTypes[\"BITMAP_V2_INFO_HEADER\"] = 52] = \"BITMAP_V2_INFO_HEADER\";\n    HeaderTypes[HeaderTypes[\"BITMAP_V3_INFO_HEADER\"] = 56] = \"BITMAP_V3_INFO_HEADER\";\n    HeaderTypes[HeaderTypes[\"BITMAP_V4_HEADER\"] = 108] = \"BITMAP_V4_HEADER\";\n    HeaderTypes[HeaderTypes[\"BITMAP_V5_HEADER\"] = 124] = \"BITMAP_V5_HEADER\";\n})(HeaderTypes || (HeaderTypes = {}));\nclass BmpDecoder {\n    constructor(buffer, { toRGBA } = { toRGBA: false }) {\n        this.buffer = buffer;\n        this.toRGBA = !!toRGBA;\n        this.pos = 0;\n        this.bottomUp = true;\n        this.flag = this.buffer.toString('utf-8', 0, (this.pos += 2));\n        if (this.flag !== 'BM') {\n            throw new Error('Invalid BMP File');\n        }\n        this.locRed = this.toRGBA ? 0 : 3;\n        this.locGreen = this.toRGBA ? 1 : 2;\n        this.locBlue = this.toRGBA ? 2 : 1;\n        this.locAlpha = this.toRGBA ? 3 : 0;\n        this.parseHeader();",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:23-48"
-    },
-    "3515": {
-        "file_id": 421,
-        "content": "Class BmpDecoder is created with a buffer and optional toRGBA parameter, which determines the pixel data format. The constructor initializes variables, checks for valid file signature, and sets location indices for RGB(A) values based on toRGBA flag. parseHeader function will be called next.",
-        "type": "comment"
-    },
-    "3516": {
-        "file_id": 421,
-        "content": "        this.parseRGBA();\n    }\n    parseHeader() {\n        this.fileSize = this.readUInt32LE();\n        this.reserved1 = this.buffer.readUInt16LE(this.pos);\n        this.pos += 2;\n        this.reserved2 = this.buffer.readUInt16LE(this.pos);\n        this.pos += 2;\n        this.offset = this.readUInt32LE();\n        // End of BITMAP_FILE_HEADER\n        this.headerSize = this.readUInt32LE();\n        if (!(this.headerSize in HeaderTypes)) {\n            throw new Error(`Unsupported BMP header size ${this.headerSize}`);\n        }\n        this.width = this.readUInt32LE();\n        this.height = this.readUInt32LE();\n        this.planes = this.buffer.readUInt16LE(this.pos);\n        this.pos += 2;\n        this.bitPP = this.buffer.readUInt16LE(this.pos);\n        this.pos += 2;\n        this.compression = this.readUInt32LE();\n        this.rawSize = this.readUInt32LE();\n        this.hr = this.readUInt32LE();\n        this.vr = this.readUInt32LE();\n        this.colors = this.readUInt32LE();\n        this.importantColors = this.readUInt32LE();",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:49-74"
-    },
-    "3517": {
-        "file_id": 421,
-        "content": "The code reads and parses the BMP file header information. It begins by reading and setting values for file size, reserved bytes, and offset. Then it checks the header size to ensure compatibility before proceeding to read and set values for width, height, planes, bits per pixel, compression type, raw data size, and color depth.",
-        "type": "comment"
-    },
-    "3518": {
-        "file_id": 421,
-        "content": "        // De facto defaults\n        if (this.bitPP === 32) {\n            this.maskAlpha = 0;\n            this.maskRed = 0x00ff0000;\n            this.maskGreen = 0x0000ff00;\n            this.maskBlue = 0x000000ff;\n        } else if (this.bitPP === 16) {\n            this.maskAlpha = 0;\n            this.maskRed = 0x7c00;\n            this.maskGreen = 0x03e0;\n            this.maskBlue = 0x001f;\n        }\n        // End of BITMAP_INFO_HEADER\n        if (this.headerSize > HeaderTypes.BITMAP_INFO_HEADER ||\n            this.compression === 3 /* BI_BIT_FIELDS */ ||\n            this.compression === 6 /* BI_ALPHA_BIT_FIELDS */ ) {\n            this.maskRed = this.readUInt32LE();\n            this.maskGreen = this.readUInt32LE();\n            this.maskBlue = this.readUInt32LE();\n        }\n        // End of BITMAP_V2_INFO_HEADER\n        if (this.headerSize > HeaderTypes.BITMAP_V2_INFO_HEADER ||\n            this.compression === 6 /* BI_ALPHA_BIT_FIELDS */ ) {\n            this.maskAlpha = this.readUInt32LE();\n        }\n        // End of BITMAP_V3_INFO_HEADER",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:75-100"
-    },
-    "3519": {
-        "file_id": 421,
-        "content": "The code checks the bitPP value and sets default mask values accordingly. It then verifies if the headerSize exceeds specific limits or if the compression type is BI_BIT_FIELDS or BI_ALPHA_BIT_FIELDS, in which case it reads and assigns mask values. This code handles different header types and compression types to set appropriate mask values for image processing.",
-        "type": "comment"
-    },
-    "3520": {
-        "file_id": 421,
-        "content": "        if (this.headerSize > HeaderTypes.BITMAP_V3_INFO_HEADER) {\n            this.pos +=\n                HeaderTypes.BITMAP_V4_HEADER - HeaderTypes.BITMAP_V3_INFO_HEADER;\n        }\n        // End of BITMAP_V4_HEADER\n        if (this.headerSize > HeaderTypes.BITMAP_V4_HEADER) {\n            this.pos += HeaderTypes.BITMAP_V5_HEADER - HeaderTypes.BITMAP_V4_HEADER;\n        }\n        // End of BITMAP_V5_HEADER\n        if (this.bitPP <= 8 || this.colors > 0) {\n            const len = this.colors === 0 ? 1 << this.bitPP : this.colors;\n            this.palette = new Array(len);\n            for (let i = 0; i < len; i++) {\n                const blue = this.buffer.readUInt8(this.pos++);\n                const green = this.buffer.readUInt8(this.pos++);\n                const red = this.buffer.readUInt8(this.pos++);\n                const quad = this.buffer.readUInt8(this.pos++);\n                this.palette[i] = {\n                    red,\n                    green,\n                    blue,\n                    quad\n                };",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:101-123"
-    },
-    "3521": {
-        "file_id": 421,
-        "content": "This code handles different header types in a file format. It checks the header size and adjusts the position accordingly for BITMAP_V4_HEADER and BITMAP_V5_HEADER. If bitPP is less than or equal to 8 or colors are 0, it creates a palette array by reading RGB values and quad value from the buffer.",
-        "type": "comment"
-    },
-    "3522": {
-        "file_id": 421,
-        "content": "            }\n        }\n        // End of color table\n        // Can the height ever be negative?\n        if (this.height < 0) {\n            this.height *= -1;\n            this.bottomUp = false;\n        }\n        const coloShift = maskColor(this.maskRed, this.maskGreen, this.maskBlue, this.maskAlpha);\n        this.shiftRed = coloShift.shiftRed;\n        this.shiftGreen = coloShift.shiftGreen;\n        this.shiftBlue = coloShift.shiftBlue;\n        this.shiftAlpha = coloShift.shiftAlpha;\n    }\n    parseRGBA() {\n        this.data = Buffer.alloc(this.width * this.height * 4);\n        switch (this.bitPP) {\n            case 1:\n                this.bit1();\n                break;\n            case 4:\n                this.bit4();\n                break;\n            case 8:\n                this.bit8();\n                break;\n            case 16:\n                this.bit16();\n                break;\n            case 24:\n                this.bit24();\n                break;\n            default:\n                this.bit32();\n        }\n    }",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:124-159"
-    },
-    "3523": {
-        "file_id": 421,
-        "content": "The code initializes variables based on the given color table, checks if the height is negative and adjusts accordingly. It then calculates RGBA shift values for subsequent image parsing based on the bit-per-pixel value provided.",
-        "type": "comment"
-    },
-    "3524": {
-        "file_id": 421,
-        "content": "    bit1() {\n        const xLen = Math.ceil(this.width / 8);\n        const mode = xLen % 4;\n        const padding = mode !== 0 ? 4 - mode : 0;\n        let lastLine;\n        this.scanImage(padding, xLen, (x, line) => {\n            if (line !== lastLine) {\n                lastLine = line;\n            }\n            const b = this.buffer.readUInt8(this.pos++);\n            const location = line * this.width * 4 + x * 8 * 4;\n            for (let i = 0; i < 8; i++) {\n                if (x * 8 + i < this.width) {\n                    const rgb = this.palette[(b >> (7 - i)) & 0x1];\n                    this.data[location + i * this.locAlpha] = 0;\n                    this.data[location + i * 4 + this.locBlue] = rgb.blue;\n                    this.data[location + i * 4 + this.locGreen] = rgb.green;\n                    this.data[location + i * 4 + this.locRed] = rgb.red;\n                } else {\n                    break;\n                }\n            }\n        });\n    }\n    bit4() {\n        if (this.compression === 2 /* BI_RLE4 */ ) {",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:160-185"
-    },
-    "3525": {
-        "file_id": 421,
-        "content": "This function reads the image data in 8-bit chunks (bit1) and converts it into RGBA format. The width of the image is divided into segments of 8 bits, and based on the mode (remainder when width is divided by 4), padding is applied. The scanImage method reads the bits in lines and processes each bit using a for loop to extract red, green, and blue values from the palette and assign them to their respective locations in the data array. If the compression type is BI_RLE4 (bit4 function), it indicates that the image uses RLE4 compression.",
-        "type": "comment"
-    },
-    "3526": {
-        "file_id": 421,
-        "content": "            this.data.fill(0);\n            let lowNibble = false; //for all count of pixel\n            let lines = this.bottomUp ? this.height - 1 : 0;\n            let location = 0;\n            while (location < this.data.length) {\n                const a = this.buffer.readUInt8(this.pos++);\n                const b = this.buffer.readUInt8(this.pos++);\n                //absolute mode\n                if (a === 0) {\n                    if (b === 0) {\n                        //line end\n                        lines += this.bottomUp ? -1 : 1;\n                        location = lines * this.width * 4;\n                        lowNibble = false;\n                        continue;\n                    }\n                    if (b === 1) {\n                        // image end\n                        break;\n                    }\n                    if (b === 2) {\n                        // offset x, y\n                        const x = this.buffer.readUInt8(this.pos++);\n                        const y = this.buffer.readUInt8(this.pos++);",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:186-209"
-    },
-    "3527": {
-        "file_id": 421,
-        "content": "This code reads an image file's metadata and processes it. It initializes the data array with zeros, handles absolute mode for lines and pixel positions, checks for line end and image end conditions, and reads offset values for x and y coordinates.",
-        "type": "comment"
-    },
-    "3528": {
-        "file_id": 421,
-        "content": "                        lines += this.bottomUp ? -y : y;\n                        location += y * this.width * 4 + x * 4;\n                    } else {\n                        let c = this.buffer.readUInt8(this.pos++);\n                        for (let i = 0; i < b; i++) {\n                            location = this.setPixelData(location, lowNibble ? c & 0x0f : (c & 0xf0) >> 4);\n                            if (i & 1 && i + 1 < b) {\n                                c = this.buffer.readUInt8(this.pos++);\n                            }\n                            lowNibble = !lowNibble;\n                        }\n                        if ((((b + 1) >> 1) & 1) === 1) {\n                            this.pos++;\n                        }\n                    }\n                } else {\n                    //encoded mode\n                    for (let i = 0; i < a; i++) {\n                        location = this.setPixelData(location, lowNibble ? b & 0x0f : (b & 0xf0) >> 4);\n                        lowNibble = !lowNibble;\n                    }",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:210-230"
-    },
-    "3529": {
-        "file_id": 421,
-        "content": "This code handles image data encoding and decoding. It checks the mode (encoded or not) to determine how to process the pixel data. For unencoded mode, it calculates coordinates and updates location by reading bytes from the buffer. In encoded mode, it processes blocks of pixels using low nibble bit manipulation. The code also handles odd-sized blocks by incrementing the position in the buffer.",
-        "type": "comment"
-    },
-    "3530": {
-        "file_id": 421,
-        "content": "                }\n            }\n        } else {\n            const xLen = Math.ceil(this.width / 2);\n            const mode = xLen % 4;\n            const padding = mode !== 0 ? 4 - mode : 0;\n            this.scanImage(padding, xLen, (x, line) => {\n                const b = this.buffer.readUInt8(this.pos++);\n                const location = line * this.width * 4 + x * 2 * 4;\n                const first4 = b >> 4;\n                let rgb = this.palette[first4];\n                this.data[location] = 0;\n                this.data[location + 1] = rgb.blue;\n                this.data[location + 2] = rgb.green;\n                this.data[location + 3] = rgb.red;\n                if (x * 2 + 1 >= this.width) {\n                    // throw new Error('Something');\n                    return false;\n                }\n                const last4 = b & 0x0f;\n                rgb = this.palette[last4];\n                this.data[location + 4] = 0;\n                this.data[location + 4 + 1] = rgb.blue;\n                this.data[location + 4 + 2] = rgb.green;",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:231-254"
-    },
-    "3531": {
-        "file_id": 421,
-        "content": "This code initializes the image scanning process for a specific region, reading and setting pixel colors based on their respective nibbles. The padding is determined by the mode of the width divided by 2, and the image data is updated accordingly.",
-        "type": "comment"
-    },
-    "3532": {
-        "file_id": 421,
-        "content": "                this.data[location + 4 + 3] = rgb.red;\n            });\n        }\n    }\n    bit8() {\n        if (this.compression === 1 /* BI_RLE8 */ ) {\n            this.data.fill(0);\n            let lines = this.bottomUp ? this.height - 1 : 0;\n            let location = 0;\n            while (location < this.data.length) {\n                const a = this.buffer.readUInt8(this.pos++);\n                const b = this.buffer.readUInt8(this.pos++);\n                //absolute mode\n                if (a === 0) {\n                    if (b === 0) {\n                        //line end\n                        lines += this.bottomUp ? -1 : 1;\n                        location = lines * this.width * 4;\n                        continue;\n                    }\n                    if (b === 1) {\n                        //image end\n                        break;\n                    }\n                    if (b === 2) {\n                        //offset x,y\n                        const x = this.buffer.readUInt8(this.pos++);\n                        const y = this.buffer.readUInt8(this.pos++);",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:255-282"
-    },
-    "3533": {
-        "file_id": 421,
-        "content": "This code implements a RLE8 compression for image data. It iterates through the compressed data, decoding absolute mode values to populate an array with pixel values (RGB). When it encounters line end or image end markers, it adjusts the location accordingly.",
-        "type": "comment"
-    },
-    "3534": {
-        "file_id": 421,
-        "content": "                        lines += this.bottomUp ? -y : y;\n                        location += y * this.width * 4 + x * 4;\n                    } else {\n                        for (let i = 0; i < b; i++) {\n                            const c = this.buffer.readUInt8(this.pos++);\n                            location = this.setPixelData(location, c);\n                        }\n                        // @ts-ignore\n                        const shouldIncrement = b & (1 === 1);\n                        if (shouldIncrement) {\n                            this.pos++;\n                        }\n                    }\n                } else {\n                    //encoded mode\n                    for (let i = 0; i < a; i++) {\n                        location = this.setPixelData(location, b);\n                    }\n                }\n            }\n        } else {\n            const mode = this.width % 4;\n            const padding = mode !== 0 ? 4 - mode : 0;\n            this.scanImage(padding, this.width, (x, line) => {\n                const b = this.buffer.readUInt8(this.pos++);",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:283-307"
-    },
-    "3535": {
-        "file_id": 421,
-        "content": "This code processes image pixel data based on its mode and other conditions. It updates the location and buffer positions accordingly, applies specific functions to set pixel data depending on mode, and increments pos if necessary.",
-        "type": "comment"
-    },
-    "3536": {
-        "file_id": 421,
-        "content": "                const location = line * this.width * 4 + x * 4;\n                if (b < this.palette.length) {\n                    const rgb = this.palette[b];\n                    this.data[location] = 0;\n                    this.data[location + 1] = rgb.blue;\n                    this.data[location + 2] = rgb.green;\n                    this.data[location + 3] = rgb.red;\n                } else {\n                    this.data[location] = 0;\n                    this.data[location + 1] = 0xff;\n                    this.data[location + 2] = 0xff;\n                    this.data[location + 3] = 0xff;\n                }\n            });\n        }\n    }\n    bit16() {\n        const padding = (this.width % 2) * 2;\n        this.scanImage(padding, this.width, (x, line) => {\n            const loc = line * this.width * 4 + x * 4;\n            const px = this.buffer.readUInt16LE(this.pos);\n            this.pos += 2;\n            this.data[loc + this.locRed] = this.shiftRed(px);\n            this.data[loc + this.locGreen] = this.shiftGreen(px);",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:308-331"
-    },
-    "3537": {
-        "file_id": 421,
-        "content": "Calculates the pixel location in the image data based on x and y coordinates. If the pixel index is within the palette range, sets RGB values from the palette; otherwise, sets all values to 255. Utilizes bit16 method for processing pixels in groups of two.",
-        "type": "comment"
-    },
-    "3538": {
-        "file_id": 421,
-        "content": "            this.data[loc + this.locBlue] = this.shiftBlue(px);\n            this.data[loc + this.locAlpha] = this.shiftAlpha(px);\n        });\n    }\n    bit24() {\n        const padding = this.width % 4;\n        this.scanImage(padding, this.width, (x, line) => {\n            const loc = line * this.width * 4 + x * 4;\n            const blue = this.buffer.readUInt8(this.pos++);\n            const green = this.buffer.readUInt8(this.pos++);\n            const red = this.buffer.readUInt8(this.pos++);\n            this.data[loc + this.locRed] = red;\n            this.data[loc + this.locGreen] = green;\n            this.data[loc + this.locBlue] = blue;\n            this.data[loc + this.locAlpha] = 0;\n        });\n    }\n    bit32() {\n        this.scanImage(0, this.width, (x, line) => {\n            const loc = line * this.width * 4 + x * 4;\n            const px = this.readUInt32LE();\n            this.data[loc + this.locRed] = this.shiftRed(px);\n            this.data[loc + this.locGreen] = this.shiftGreen(px);\n            this.data[loc + this.locBlue] = this.shiftBlue(px);",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:332-355"
-    },
-    "3539": {
-        "file_id": 421,
-        "content": "This code snippet is part of an image processing library that supports various color formats (bit24, bit32). The bit24 function processes pixels in a 24-bit RGB format and sets the alpha channel to 0. The bit32 function reads pixel values in a 32-bit RGBA format and directly assigns the RGB values while setting the alpha channel to an undefined value. These functions iterate through each pixel of the image and store their respective color data in the \"data\" array.",
-        "type": "comment"
-    },
-    "3540": {
-        "file_id": 421,
-        "content": "            this.data[loc + this.locAlpha] = this.shiftAlpha(px);\n        });\n    }\n    scanImage(padding = 0, width = this.width, processPixel) {\n        for (let y = this.height - 1; y >= 0; y--) {\n            const line = this.bottomUp ? y : this.height - 1 - y;\n            for (let x = 0; x < width; x++) {\n                const result = processPixel.call(this, x, line);\n                if (result === false) {\n                    return;\n                }\n            }\n            this.pos += padding;\n        }\n    }\n    readUInt32LE() {\n        const value = this.buffer.readUInt32LE(this.pos);\n        this.pos += 4;\n        return value;\n    }\n    setPixelData(location, rgbIndex) {\n        const { blue, green, red } = this.palette[rgbIndex];\n        this.data[location + this.locAlpha] = 0;\n        this.data[location + 1 + this.locBlue] = blue;\n        this.data[location + 2 + this.locGreen] = green;\n        this.data[location + 3 + this.locRed] = red;\n        return location + 4;\n    }\n}\nconst express = require('express')",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:356-386"
-    },
-    "3541": {
-        "file_id": 421,
-        "content": "This code defines a class with methods for image processing, including scanning an image line by line and setting pixel data. The class uses a buffer to store data, and has properties such as locAlpha, locBlue, locGreen, and locRed for organizing the data in the buffer. It also utilizes the express module from the Node.js framework.",
-        "type": "comment"
-    },
-    "3542": {
-        "file_id": 421,
-        "content": "const multer = require('multer')\nconst jpeg = require('jpeg-js')\n    // const bmp = require('bmp-js')\n    // const bmp = require('bmp-ts').default;\n    // const bmpBuffer = fs.readFileSync('bit24.bmp');\nconst { PNG } = require('pngjs')\nconst tf = require('@tensorflow/tfjs-node')\nconst nsfw = require('nsfwjs')\nconst app = express()\nconst upload = multer()\nlet _model\n// this even works for gif!\n// it will normalize and resize the image if needed.\n// shall we check for gif?\nconst convert = async(img, type) => {\n    // Decoded image in UInt8 Byte array\n    let image\n    if (type == 'image/jpeg') {\n        image = await jpeg.decode(img, true)\n            // RGBA\n    } //wtf?\n    // order: rgba\n    else if (type == 'image/png') {\n        image = PNG.sync.read(img)\n    } else if (type == 'image/bmp') {\n        // image = await bmp.decode(img, true)\n        image = new BmpDecoder(img, { toRGBA: true });\n    }\n    const numChannels = 3\n    const numPixels = image.width * image.height // will raise an error if image is not acquired.",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:387-423"
-    },
-    "3543": {
-        "file_id": 421,
-        "content": "The code imports necessary libraries for image processing and model loading. It defines an asynchronous function \"convert\" to handle different image types (JPEG, PNG, BMP) and convert them into a standard RGBA format. The function reads the image using appropriate libraries based on its MIME type, determines the number of color channels and total pixels in the image.",
-        "type": "comment"
-    },
-    "3544": {
-        "file_id": 421,
-        "content": "    const values = new Int32Array(numPixels * numChannels)\n        // are you sure about the width?\n    // can you make this faster? shit?\n    // this shit is no numpy. fuck.\n    for (let i = 0; i < numPixels; i++)\n        for (let c = 0; c < numChannels; ++c)\n        // if (type == 'bmp') {\n        //     // ABGR?\n        //     // values[i * numChannels + c] = image.data[i * 4+c]\n        //     values[i * numChannels + c] = image.data[i * 4 + 3 - c]\n        // } else {\n            values[i * numChannels + c] = image.data[i * 4 + c]\n            // }\n    return tf.tensor3d(values, [image.height, image.width, numChannels], 'int32')\n}\napp.get('/', async(req, res) => {\n    res.send('nsfw nodejs server')\n})\napp.post('/nsfw', upload.single('image'), async(req, res) => {\n    if (!req.file) res.status(400).send('Missing image multipart/form-data')\n    else {\n        try {\n            console.log('file uploaded:', req.file)\n            if (req.file.fieldname == 'image') {\n                type = req.file.mimetype // deal with it later.",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:424-452"
-    },
-    "3545": {
-        "file_id": 421,
-        "content": "This code defines a function that converts an image into a TensorFlow tensor3d array. It takes the number of pixels and channels as inputs, iterates over each pixel and channel, and assigns values from the image data to the tensor3d array based on the image's format (BMP or other). The function returns the resulting tensor3d array. The app also has two routes: a GET route that returns \"nsfw nodejs server\" and a POST route for handling image uploads, which logs the file information if it is an image.",
-        "type": "comment"
-    },
-    "3546": {
-        "file_id": 421,
-        "content": "                extension = req.file.originalname.split(\".\").slice(-1)[0].toLowerCase()\n                if (extension == 'gif' || type == 'image/gif') {\n                    let image = req.file.buffer\n                    let predictions = await _model.classifyGif(image, { topk: 3, fps: 1 })\n                        // image.dispose()\n                    predictions.message = 'success'\n                    res.json(predictions)\n                } else {\n                    if (extension == 'bmp') {\n                        type = 'image/bmp'\n                    }\n                    let image = await convert(req.file.buffer, type) // here we have buffer.\n                    let predictions = await _model.classify(image)\n                    predictions.message = 'success'\n                        // image.dispose()\n                    res.json(predictions)\n                }\n            }\n            // we need some file format hints.\n        } catch (e) {\n            console.log(e)\n            res.json({ message: 'error' })",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:453-475"
-    },
-    "3547": {
-        "file_id": 421,
-        "content": "This code handles file uploads and classifies images based on their format. It checks if the image is a GIF, in which case it uses a specialized function for classification, otherwise it converts non-GIF images to a specified type and performs classification. The code catches any errors that occur during this process and sends an appropriate response.",
-        "type": "comment"
-    },
-    "3548": {
-        "file_id": 421,
-        "content": "        }\n    }\n})\nconst load_model = async() => {\n    _model = await nsfw.load()\n}\n// Keep the model in memory, make sure it's loaded only once\nload_model().then(() => {\n    console.log('server ready')\n    app.listen(8511)\n})\n// curl --request POST localhost:8080/nsfw --header 'Content-Type: multipart/form-data' --data-binary 'image=@/full/path/to/picture.jpg'",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_test.js:476-491"
-    },
-    "3549": {
-        "file_id": 421,
-        "content": "The code loads an NSFW content detection model and keeps it in memory. It ensures the model is loaded only once and starts the server on port 8511. When a POST request with an image is received, the model classifies the content as NSFW or not.",
-        "type": "comment"
-    },
-    "3550": {
-        "file_id": 422,
-        "content": "/tests/nsfw_violence_drug_detection/nsfwjs_gif.js",
-        "type": "filepath"
-    },
-    "3551": {
-        "file_id": 422,
-        "content": "This code imports TensorFlow and nsfwjs libraries, processes GIF frames at 1fps, loads a model for classification using predictions, and sets up a file stream to read data in chunks for partial processing.",
-        "type": "summary"
-    },
-    "3552": {
-        "file_id": 422,
-        "content": "const tf = require('@tensorflow/tfjs-node')\nconst nsfw = require('nsfwjs')\n// predictions [\n//     [\n//       { className: 'Neutral', probability: 0.9845383167266846 },\n//       { className: 'Porn', probability: 0.009829860180616379 },\n//       { className: 'Drawing', probability: 0.003906613681465387 }\n//     ],\n//     [\n//       { className: 'Neutral', probability: 0.9763429760932922 },\n//       { className: 'Porn', probability: 0.014182578772306442 },\n//       { className: 'Drawing', probability: 0.007088858168572187 }\n//     ],\n//     [\n//       { className: 'Neutral', probability: 0.9598317742347717 },\n//       { className: 'Drawing', probability: 0.03286046162247658 },\n//       { className: 'Porn', probability: 0.003989457152783871 }\n//     ]\n//   ]\nfilepath = \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.gif\"\n// mechanism: choose three most likely categories per chosen frame, process at 1fps.\n// no other classes?\n// filepath = \"/root/Desktop/works/pyjom/samples/video/cat_invalid_eye_rolling.gif\"",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_gif.js:1-27"
-    },
-    "3553": {
-        "file_id": 422,
-        "content": "Code imports TensorFlow and nsfwjs libraries, and defines an array of prediction results for three frames. The filepath is set to \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.gif\". The code chooses the top three categories from each frame, processes them at 1fps, and does not consider other classes.",
-        "type": "comment"
-    },
-    "3554": {
-        "file_id": 422,
-        "content": "const fs = require('fs');\n// Store file data chunks in this array\nlet chunks = [];\n// We can use this variable to store the final data\nlet fileBuffer;\n// Read file into stream.Readable\nlet fileStream = fs.createReadStream(filepath);\n// An error occurred with the stream\nfileStream.once('error', (err) => {\n    // Be sure to handle this properly!\n    console.error(err);\n});\nlet _model\nconst load_model = async() => {\n    _model = await nsfw.load()\n    console.log('model ready')\n}\n// Keep the model in memory, make sure it's loaded only once\n// File is done being read\nfileStream.once('end', () => {\n    // create the final data Buffer from data chunks;\n    fileBuffer = Buffer.concat(chunks);\n    // do shit here.\n    console.log(\"filebuffer ready\")\n    load_model().then(() => {\n        _model.classifyGif(fileBuffer, { topk: 3, fps: 1 })\n            .then(predictions => console.log('predictions', predictions))\n            .catch(error => console.log('model error', error))\n    })\n    // Of course, you can do anything else you need to here, like emit an event!",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_gif.js:29-64"
-    },
-    "3555": {
-        "file_id": 422,
-        "content": "The code reads a file into a stream, stores it in chunks, combines the chunks into a final data buffer, and then loads a model to classify the GIF using its predictions. This allows for efficient processing of large files and accurate detection of content.",
-        "type": "comment"
-    },
-    "3556": {
-        "file_id": 422,
-        "content": "});\n// Data is flushed from fileStream in chunks,\n// this callback will be executed for each chunk\nfileStream.on('data', (chunk) => {\n    chunks.push(chunk); // push data chunk to array\n    // We can perform actions on the partial data we have so far!\n});",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/nsfwjs_gif.js:65-73"
-    },
-    "3557": {
-        "file_id": 422,
-        "content": "This code snippet sets up a file stream that reads data in chunks. The 'data' event triggers for each chunk, and pushes the chunk into an array (chunks). This allows performing actions on partial data as it arrives.",
-        "type": "comment"
-    },
-    "3558": {
-        "file_id": 423,
-        "content": "/tests/nsfw_violence_drug_detection/launch_nodejs_server.sh",
-        "type": "filepath"
-    },
-    "3559": {
-        "file_id": 423,
-        "content": "This line of code runs a JavaScript file named \"nsfwjs_test.js\" using the Node.js runtime environment. The purpose could be to execute tests or perform specific operations related to nsfw (not safe for work) detection, specifically for violence and drug-related content.",
-        "type": "summary"
-    },
-    "3560": {
-        "file_id": 423,
-        "content": "node nsfwjs_test.js",
-        "type": "code",
-        "location": "/tests/nsfw_violence_drug_detection/launch_nodejs_server.sh:1-1"
-    },
-    "3561": {
-        "file_id": 423,
-        "content": "This line of code runs a JavaScript file named \"nsfwjs_test.js\" using the Node.js runtime environment. The purpose could be to execute tests or perform specific operations related to nsfw (not safe for work) detection, specifically for violence and drug-related content.",
-        "type": "comment"
-    },
-    "3562": {
-        "file_id": 424,
-        "content": "/tests/nsfw_violence_drug_detection/init_nsfwjs.sh",
-        "type": "filepath"
-    },
-    "3563": {
-        "file_id": 424,
-        "content": "Installing global dependencies for TF.js, nsfwjs, jpeg-js, express, and multer in the codebase.",
-        "type": "summary"
-    },
-    "3564": {
-        "file_id": 424,
+        "file_id": 427,
         "content": "npm i -g @tensorflow/tfjs-node nsfwjs jpeg-js express multer",
         "type": "code",
         "location": "/tests/nsfw_violence_drug_detection/init_nsfwjs.sh:1-1"
     },
-    "3565": {
-        "file_id": 424,
+    "3501": {
+        "file_id": 427,
         "content": "Installing global dependencies for TF.js, nsfwjs, jpeg-js, express, and multer in the codebase.",
         "type": "comment"
     },
-    "3566": {
-        "file_id": 425,
-        "content": "/tests/keepalive_service/test.sh",
+    "3502": {
+        "file_id": 428,
+        "content": "/tests/interval_set_math_operations/continual_sympy.py",
         "type": "filepath"
     },
-    "3567": {
-        "file_id": 425,
-        "content": "This line of code is running the \"keepalive\" executable with the argument \"echo abc\". The purpose seems to be testing and logging that the process is still alive.",
+    "3503": {
+        "file_id": 428,
+        "content": "The code uses Sympy to manipulate intervals, merges overlapping ones, performs set operations, and updates the \"empty\" category in a dictionary, eventually printing the updated finalCats dictionary.",
         "type": "summary"
     },
-    "3568": {
-        "file_id": 425,
-        "content": "./keepalive echo abc",
+    "3504": {
+        "file_id": 428,
+        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nimport sympy\ndef unionToTupleList(myUnion):\n  #  seriously wrong. this will fuck up.\n  unionBoundaries = list(myUnion.boundary)\n  unionBoundaries.sort()\n  leftBoundaries = unionBoundaries[::2]\n  rightBoundaries = unionBoundaries[1::2]\n  return list(zip(leftBoundaries, rightBoundaries))\ndef tupleSetToUncertain(mSet):\n  mUncertain = None\n  for start, end in mSet:\n    if mUncertain is None:\n      mUncertain = sympy.Interval(start,end)\n    else:\n      mUncertain += sympy.Interval(start,end)\n  typeUncertain = type(mUncertain)\n  return mUncertain, typeUncertain\n# borrowed from above code.\ndef mergeOverlappedInIntervalTupleList(intervalTupleList):\n  mUncertain, _ = tupleSetToUncertain(intervalTupleList)\n  mUncertainBoundaryList = list(mUncertain.boundary)\n  mUncertainBoundaryList.sort()\n  #  print(mUncertain)\n  #  print(mUncertainBoundaryList)\n  mergedIntervalTupleList = list(zip(mUncertainBoundaryList[::2], mUncertainBoundaryList[1::2]))\n  # print(mergedIntervalTupleList)\n  return mergedIntervalTupleList",
         "type": "code",
-        "location": "/tests/keepalive_service/test.sh:1-1"
+        "location": "/tests/interval_set_math_operations/continual_sympy.py:1-33"
     },
-    "3569": {
-        "file_id": 425,
-        "content": "This line of code is running the \"keepalive\" executable with the argument \"echo abc\". The purpose seems to be testing and logging that the process is still alive.",
+    "3505": {
+        "file_id": 428,
+        "content": "This code defines functions to work with intervals and unions of intervals using Sympy. \"unionToTupleList\" converts a union of intervals into a tuple list, while \"tupleSetToUncertain\" converts a tuple set into an uncertain Sympy interval. \"mergeOverlappedInIntervalTupleList\" merges overlapping intervals in a tuple list to avoid redundancy.",
         "type": "comment"
     },
-    "3570": {
-        "file_id": 426,
-        "content": "/tests/keepalive_service/install.sh",
+    "3506": {
+        "file_id": 428,
+        "content": "mSet = [(0,1), (2,3)]\nmUncertain, typeUncertain = tupleSetToUncertain(mSet)\nunrolledMSet = list(mUncertain.boundary)\n# can be either sympy.sets.sets.Interval of sympy.sets.sets.Union\nmSet2 = [(0.5,1.5),(1.6,2.5)]\nmUncertain2, typeUncertain2 = tupleSetToUncertain(mSet2)\nunrolledMSet2 = list(mUncertain2.boundary)\nprint(\"MSET\", mSet)\nprint(\"MSET2\", mSet2)\n############################################################\n# hypothetical mSet2 and mUncertain2! please complete the hypothetical shit and make it runnable!\ndef checkCommon(subInterval, masterInterval):\n  return subInterval == sympy.Intersection(subInterval, masterInterval)\nmUncertains = [mUncertain, mUncertain2]\nsubIntervals = list(set(unrolledMSet2 + unrolledMSet))\nsubIntervals.sort()\nsubIntervals = zip(subIntervals[:-1], subIntervals[1:])\nsubIntervals = list(subIntervals)\n#  breakpoint()\n# for subIntervals, it's still not real interval but tuple at above line.\nreversedCats = {}\nimport functools\nsubIntervalUnion = functools.reduce(lambda a,b: a+b, mUncertains)",
+        "type": "code",
+        "location": "/tests/interval_set_math_operations/continual_sympy.py:35-66"
+    },
+    "3507": {
+        "file_id": 428,
+        "content": "Code snippet converts tuples representing intervals to uncertain sets, extracts and lists the boundary points of these sets, and performs operations on them. It then checks for common elements between the two sets and sorts them. The code uses Sympy library functions, functools.reduce, and zip to perform set intersections, unions, and sorting operations.",
+        "type": "comment"
+    },
+    "3508": {
+        "file_id": 428,
+        "content": "for subIntervalIndex, (start, end) in enumerate(subIntervals):\n  subIntervalCandidate = sympy.Interval(start, end)\n  reverseIndex = [] # there must be at least one such index.\n  for index, uncertainCandidate in enumerate(mUncertains):\n    if checkCommon(subIntervalCandidate, uncertainCandidate):\n      reverseIndex.append(index) # this is the index of the in-common set of the original set list\n  reversedCats.update({subIntervalIndex:reverseIndex}) # need to sort and index? or not to sort because this is already done?\nnormalCats = {}\nfor k,v in reversedCats.items():\n  v.sort()\n  v = tuple(v)\n  normalCats.update({v:normalCats.get(v, [])+[k]})\n# we only get interval, not the actural union period!\n# how to get interval elements out of union structure for hell sake?\nfinalCats = {}\nfor k,v in normalCats.items():\n  # now k is the original set index list, representing belonging of the below union.\n  #  print(subIntervals)\n  #  print(index)\n  #  print(v)\n  #  breakpoint()\n  mFinalUnionCandidate = [subIntervals[index] for index in v]",
+        "type": "code",
+        "location": "/tests/interval_set_math_operations/continual_sympy.py:68-92"
+    },
+    "3509": {
+        "file_id": 428,
+        "content": "Iterates through subIntervals and uncertainCandidates, stores indices of matching pairs in reverseIndex. Updates reversedCats with reversed order of subIntervalIndex and reverseIndex. Sorts the values in normalCats, creating a dictionary where keys are sorted reverseIndex and values are original set indices. Generates finalCats using original set indices from normalCats, storing them as values in mFinalUnionCandidate for further use.",
+        "type": "comment"
+    },
+    "3510": {
+        "file_id": 428,
+        "content": "  ## REPLACED ##\n  # mFinalUnionCandidate, _ = tupleSetToUncertain(mFinalUnionCandidate)\n  ##### union to tuple list, could be replaced #####\n  #mFinalUnionCandidateBoundaryList = list(mFinalUnionCandidate.boundary)\n  #left_bounds, right_bounds = mFinalUnionCandidateBoundaryList[0::2],mFinalUnionCandidateBoundaryList[1::2] # check it dammit! not sure how to step the list properly?\n  #mFinalIntervalListCandidate = list(zip(left_bounds, right_bounds))\n  # mFinalIntervalListCandidate = unionToTupleList(mFinalUnionCandidate)\n  ##### union to tuple list, could be replaced #####\n  ## REPLACED ##\n  # print(\"M_FINAL_UNION_CANDIDATE\",mFinalUnionCandidate)\n  mFinalIntervalListCandidate = mergeOverlappedInIntervalTupleList(mFinalUnionCandidate)\n  # print(\"M_FINAL_INTERVAL_LIST_CANDIDATE\", mFinalIntervalListCandidate)\n  # breakpoint()\n  finalCats.update({k:mFinalIntervalListCandidate.copy()})\n# this whole calculation could just be exponential. goddamn it?\n# before that, we need to get the \"empty\" out. but is that really necessary? i think it is, as an important feature.",
+        "type": "code",
+        "location": "/tests/interval_set_math_operations/continual_sympy.py:94-113"
+    },
+    "3511": {
+        "file_id": 428,
+        "content": "This code is performing interval union operations and potentially replacing the conversion of intervals to tuple lists. The author believes this process could be replaced with an exponential calculation, but first needs to remove any \"empty\" intervals that may not be necessary. The final result is stored in a dictionary called `finalCats`. The author also mentions potential issues with stepping the list properly and suggests revisiting it later.",
+        "type": "comment"
+    },
+    "3512": {
+        "file_id": 428,
+        "content": "#  subIntervalsStart, subIntervalsEnd = subIntervals[0][0], subIntervals[-1][-1]\n#\n#  relativeCompleteInterval = sympy.Interval(subIntervalsStart, subIntervalsEnd)\n#\n# subIntervalUnion\n#  emptyIntervalUnion = relativeCompleteInterval - subIntervalUnion # really uncertain if it is just a union or not.\n#  emptyIntervalTupleList = unionToTupleList(emptyIntervalUnion)\n#\n#  finalCats.update({\"empty\":emptyIntervalTupleList})\nfinalCats.update({\"empty\":finalCats[()]})\ndel finalCats[()]\nprint(\"_____FINAL CATS_____\")\nprint(finalCats)",
+        "type": "code",
+        "location": "/tests/interval_set_math_operations/continual_sympy.py:114-127"
+    },
+    "3513": {
+        "file_id": 428,
+        "content": "This code calculates the difference between a complete interval and a union of sub-intervals, converts it to a tuple list, and updates the \"empty\" category in a dictionary with the result. Finally, it prints the updated finalCats dictionary.",
+        "type": "comment"
+    },
+    "3514": {
+        "file_id": 429,
+        "content": "/tests/interval_set_math_operations/continual_less_sympy.py",
         "type": "filepath"
     },
-    "3571": {
-        "file_id": 426,
-        "content": "This line of code copies the 'keepalive' file to '/usr/local/bin/' directory, allowing it to be accessed and executed system-wide.",
+    "3515": {
+        "file_id": 429,
+        "content": "The code utilizes SymPy to handle intervals, merges overlapping ones, and reorganizes finalMappings and sorts finalCats before printing.",
         "type": "summary"
     },
-    "3572": {
-        "file_id": 426,
-        "content": "cp keepalive /usr/local/bin/",
+    "3516": {
+        "file_id": 429,
+        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\n# basically the same example.\n# assume no overlapping here.\nimport sympy\ndef unionToTupleList(myUnion):\n  unionBoundaries = list(myUnion.boundary)\n  unionBoundaries.sort()\n  leftBoundaries = unionBoundaries[::2]\n  rightBoundaries = unionBoundaries[1::2]\n  return list(zip(leftBoundaries, rightBoundaries))\ndef tupleSetToUncertain(mSet):\n  mUncertain = None\n  for start, end in mSet:\n    if mUncertain is None:\n      mUncertain = sympy.Interval(start,end)\n    else:\n      mUncertain += sympy.Interval(start,end)\n  typeUncertain = type(mUncertain)\n  return mUncertain, typeUncertain\ndef mergeOverlappedInIntervalTupleList(intervalTupleList):\n  mUncertain, _ = tupleSetToUncertain(intervalTupleList)\n  mUncertainBoundaryList = list(mUncertain.boundary)\n  mUncertainBoundaryList.sort()\n  mergedIntervalTupleList = list(zip(mUncertainBoundaryList[::2], mUncertainBoundaryList[1::2]))\n  return mergedIntervalTupleList\nmSet = mergeOverlappedInIntervalTupleList([(0,1), (2,3)])\nmSet2 = mergeOverlappedInIntervalTupleList([(0.5,1.5),(1.6,2.5)])",
         "type": "code",
-        "location": "/tests/keepalive_service/install.sh:1-1"
+        "location": "/tests/interval_set_math_operations/continual_less_sympy.py:1-33"
+    },
+    "3517": {
+        "file_id": 429,
+        "content": "This code defines functions for handling intervals and merging overlapping intervals. It uses SymPy library to perform interval operations. The \"unionToTupleList\" function converts a set of intervals into a list of left and right boundaries in ascending order. The \"tupleSetToUncertain\" function converts a tuple set of intervals into a single uncertain interval using SymPy. The \"mergeOverlappedInIntervalTupleList\" function merges overlapping intervals in the given tuple set and returns the merged result as a list of boundaries. Finally, it uses these functions to merge two example sets of intervals.",
+        "type": "comment"
+    },
+    "3518": {
+        "file_id": 429,
+        "content": "print(\"MSET\", mSet)\nprint(\"MSET2\", mSet2)\nmSetCandidates = [mSet, mSet2]\nmSetUnified = [x for y in mSetCandidates for x in y]\nleftBoundaryList = set([x[0] for x in mSetUnified])\nrightBoundaryList = set([x[1] for x in mSetUnified])\n# they may freaking overlap.\n# if want nearby-merge strategy, simply just expand all intervals, merge them with union and shrink the individual intervals inside union respectively.\nmarkers = {\"enter\":{k:[] for k in leftBoundaryList}, \"exit\":{k:[] for k in rightBoundaryList}}\nfor index, mSetCandidate in enumerate(mSetCandidates):\n  leftBoundaryListOfCandidate = [x[0] for x in mSetCandidate]\n  rightBoundaryListOfCandidate = [x[1] for x in mSetCandidate]\n  for leftBoundaryOfCandidate in leftBoundaryListOfCandidate:\n    markers[\"enter\"][leftBoundaryOfCandidate].append(index) # remap this thing!\n  for rightBoundaryOfCandidate in rightBoundaryListOfCandidate:\n    markers[\"exit\"][rightBoundaryOfCandidate].append(index) # remap this thing!\n# now, iterate through the boundaries of mSetUnified.",
+        "type": "code",
+        "location": "/tests/interval_set_math_operations/continual_less_sympy.py:35-55"
+    },
+    "3519": {
+        "file_id": 429,
+        "content": "This code initializes two sets of boundary lists, 'leftBoundaryList' and 'rightBoundaryList', from a merged list of intervals, 'mSetUnified'. It then creates a dictionary, 'markers', with two keys 'enter' and 'exit' to track the occurrences of these boundaries in each original interval, 'mSetCandidates'. The code remaps the indices of the 'mSetCandidates' where the left and right boundaries appear. This is done for every candidate in 'mSetCandidates', and the information is stored in 'markers'.",
+        "type": "comment"
+    },
+    "3520": {
+        "file_id": 429,
+        "content": "unifiedBoundaryList = leftBoundaryList.union(rightBoundaryList) # call me a set instead of a list please? now we must sort this thing\nunifiedBoundaryList = list(unifiedBoundaryList)\nunifiedBoundaryList.sort()\nunifiedBoundaryMarks = {}\nfinalMappings = {}\n# print(\"MARKERS\", markers)\n# breakpoint()\nfor index, boundary in enumerate(unifiedBoundaryList):\n  previousMark = unifiedBoundaryMarks.get(index-1, [])\n  enterList = markers[\"enter\"].get(boundary,[])\n  exitList = markers[\"exit\"].get(boundary,[])\n  currentMark = set(previousMark + enterList).difference(set(exitList))\n  currentMark = list(currentMark)\n  unifiedBoundaryMarks.update({index:currentMark})\n  # now, handle the change? or not?\n  # let's just deal those empty ones, shall we?\n  if previousMark == []: # inside it is empty range.\n  # elif currentMark == []:\n    if index == 0: continue # just the start, no need to note this down.\n    else:\n      finalMappings.update({\"empty\":finalMappings.get(\"empty\",[])+[(unifiedBoundaryList[index-1], boundary)]})\n    # the end of previous mark! this interval belongs to previousMark",
+        "type": "code",
+        "location": "/tests/interval_set_math_operations/continual_less_sympy.py:56-78"
+    },
+    "3521": {
+        "file_id": 429,
+        "content": "Code is iterating over unifiedBoundaryList, checking for changes in markers at each boundary. If a marker is empty or if the current boundary is the first one, it continues without noting anything down. Otherwise, it updates finalMappings with previous empty ranges.",
+        "type": "comment"
+    },
+    "3522": {
+        "file_id": 429,
+        "content": "  else:\n    key = previousMark.copy()\n    key.sort()\n    key = tuple(key)\n    finalMappings.update({key:finalMappings.get(key,[])+[(unifiedBoundaryList[index-1], boundary)]})\n    # also the end of previous mark! belongs to previousMark.\n### NOW THE FINAL OUTPUT ###\nfinalCats = {}\nfor key, value in finalMappings.items():\n  # value is an array containing subInterval tuples.\n  value = mergeOverlappedInIntervalTupleList(value)\n  finalCats.update({key: value})\nprint(\"______________FINAL CATS______________\")\nprint(finalCats)",
+        "type": "code",
+        "location": "/tests/interval_set_math_operations/continual_less_sympy.py:79-94"
+    },
+    "3523": {
+        "file_id": 429,
+        "content": "Updates finalMappings with previous mark, sorts and converts to tuple. Updates finalCats using merged overlapped intervals from finalMappings. Prints finalCats for output.",
+        "type": "comment"
+    },
+    "3524": {
+        "file_id": 430,
+        "content": "/tests/image_quality_tests/tiq2.py",
+        "type": "filepath"
+    },
+    "3525": {
+        "file_id": 430,
+        "content": "The code reads video frames, calculates image quality using BRISQUE algorithm, resizes and converts to grayscale. It then displays the resized frame on a GUI window and checks for user input (exiting upon 'q').",
+        "type": "summary"
+    },
+    "3526": {
+        "file_id": 430,
+        "content": "import imquality.brisque as brisque\nimport cv2\nimport PIL\nfrom brisque import BRISQUE\n# integrated svmutil.py and svm.py from that git repo.\n# really strange.\nbrisq = BRISQUE()\nvideo = cv2.VideoCapture(\"../../samples/video/dog_with_text.mp4\")\n_,frame = video.read()\n# frame = imutils.resize(frame,width=720) #why?\nindex = 0\nscore = -1\nperiod = 2\nwhile frame is not None:\n    _, frame = video.read()\n    index+=1\n    if frame is None:\n        print(\"VIDEO END.\")\n        break\n    # just get image quality.\n    # the speed is not so damn fast.\n    image = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)\n    # image = PIL.Image.fromarray(image)\n    if index%period == 0:\n        try:\n            score = brisq.get_score(image) # the lower the better, it was said.\n        except:\n            # this is super fast. but i doubt that.\n            # import traceback\n            # traceback.print_exc()\n            # breakpoint()\n            score = -1 # unknown.\n    cv2.putText(\n        frame,\n        \"[{}]\".format(str(score)[:5]),\n        (200,200),",
+        "type": "code",
+        "location": "/tests/image_quality_tests/tiq2.py:1-40"
+    },
+    "3527": {
+        "file_id": 430,
+        "content": "The code is reading frames from a video file and calculating the image quality using the BRISQUE algorithm. It prints the score for every 'period' number of frames, with a lower score indicating better image quality. If an error occurs while calculating the score, it assigns -1 (unknown) as the value. The code is also resizing the frame to a width of 720 pixels using imutils library and converting it to grayscale using cv2.cvtColor function.",
+        "type": "comment"
+    },
+    "3528": {
+        "file_id": 430,
+        "content": "        cv2.FONT_HERSHEY_SIMPLEX,\n        2,\n        (0,255,0),\n        3,\n        cv2.LINE_AA,\n    )\n    cv2.imshow('Output',frame)\n    key  =  cv2.waitKey(1) & 0xff\n    if key == ord('q'):\n        break",
+        "type": "code",
+        "location": "/tests/image_quality_tests/tiq2.py:41-50"
+    },
+    "3529": {
+        "file_id": 430,
+        "content": "This code is using OpenCV library to display an image on a GUI window with the title 'Output'. The image is drawn on it using a green color (0,255,0) and a simplex font. It checks for user input (key pressed) and if 'q' is entered, the loop breaks.",
+        "type": "comment"
+    },
+    "3530": {
+        "file_id": 431,
+        "content": "/tests/image_quality_tests/test_pyiqa.sh",
+        "type": "filepath"
+    },
+    "3531": {
+        "file_id": 431,
+        "content": "This code is running the pyiqa_inference.py script with the specified image and name argument, which downloads the necessary weights from Torch Hub directory for image quality testing.",
+        "type": "summary"
+    },
+    "3532": {
+        "file_id": 431,
+        "content": "python3 pyiqa_inference.py -n $1 -i sample.bmp\n# it is downloading weights to torch hub directory.",
+        "type": "code",
+        "location": "/tests/image_quality_tests/test_pyiqa.sh:1-2"
+    },
+    "3533": {
+        "file_id": 431,
+        "content": "This code is running the pyiqa_inference.py script with the specified image and name argument, which downloads the necessary weights from Torch Hub directory for image quality testing.",
+        "type": "comment"
+    },
+    "3534": {
+        "file_id": 432,
+        "content": "/tests/image_quality_tests/test_image_quality.py",
+        "type": "filepath"
+    },
+    "3535": {
+        "file_id": 432,
+        "content": "This code reads a video, extracts frames at periodic intervals, calculates the image quality using BRISQUE algorithm and displays it on the frame. The score is displayed in the lower-left corner of each frame, and the user can stop the loop by pressing 'q'.",
+        "type": "summary"
+    },
+    "3536": {
+        "file_id": 432,
+        "content": "# import imquality.brisque as brisque\nimport cv2\nimport PIL\nvideo = cv2.VideoCapture(\"../../samples/video/dog_with_text.mp4\")\n_,frame = video.read()\n# frame = imutils.resize(frame,width=720) #why?\nindex = 0\nscore = -1\nperiod = 20\nwhile frame is not None:\n    _, frame = video.read()\n    index+=1\n    if frame is None:\n        print(\"VIDEO END.\")\n        break\n    # just get image quality.\n    # the speed is not so damn fast.\n    image = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)\n    image = PIL.Image.fromarray(image)\n    if index%period == 0:\n        try:\n            score = brisque.score(image) # the lower the better, it was said.\n        except:\n            score = -1 # unknown.\n    cv2.putText(\n        frame,\n        \"[{}]\".format(str(score)[:5]),\n        (200,200),\n        cv2.FONT_HERSHEY_SIMPLEX,\n        2,\n        (0,255,0),\n        3,\n        cv2.LINE_AA,\n    )\n    cv2.imshow('Output',frame)\n    key  =  cv2.waitKey(1) & 0xff\n    if key == ord('q'):\n        break",
+        "type": "code",
+        "location": "/tests/image_quality_tests/test_image_quality.py:1-40"
+    },
+    "3537": {
+        "file_id": 432,
+        "content": "This code reads a video, extracts frames at periodic intervals, calculates the image quality using BRISQUE algorithm and displays it on the frame. The score is displayed in the lower-left corner of each frame, and the user can stop the loop by pressing 'q'.",
+        "type": "comment"
+    },
+    "3538": {
+        "file_id": 433,
+        "content": "/tests/image_quality_tests/t_pyiqa2.sh",
+        "type": "filepath"
+    },
+    "3539": {
+        "file_id": 433,
+        "content": "This code is piping the output of `pyiqa_test.py` into `test_pyiqa.sh`, filtering for lines containing \"taking time\", and returning those results.",
+        "type": "summary"
+    },
+    "3540": {
+        "file_id": 433,
+        "content": "python3 pyiqa_test.py | xargs -iabc bash test_pyiqa.sh abc 2>&1 | grep \"taking time\"",
+        "type": "code",
+        "location": "/tests/image_quality_tests/t_pyiqa2.sh:1-1"
+    },
+    "3541": {
+        "file_id": 433,
+        "content": "This code is piping the output of `pyiqa_test.py` into `test_pyiqa.sh`, filtering for lines containing \"taking time\", and returning those results.",
+        "type": "comment"
+    },
+    "3542": {
+        "file_id": 434,
+        "content": "/tests/image_quality_tests/README.md",
+        "type": "filepath"
+    },
+    "3543": {
+        "file_id": 434,
+        "content": "This code provides a solution to ensure image quality for model accuracy, examines ROI using DasiamRPN and siamMask, re-examines for potential loss of mark, applies motion analysis, suggests integrating TA-Lib for statistics, and recommends upscaling video with anime4k or other engines.",
+        "type": "summary"
+    },
+    "3544": {
+        "file_id": 434,
+        "content": "# princlple\nif the image quality is bad, then no matter what model we use we will get poor result.\n# solution\nuse image quality assessment to examine ROI tracked by DasiamRPN and make sure we will use the best sample and get most accurate result.\n# footnote\nDasiamRPN is a good tracker. so before abandon the tracking data re-examine the ROI for several times to see if it really lost its mark. so as the siamMask.\nYou can also examine the image quality by means of motion. if it heavily moves, we refuse to feed it into model.\nIntegrate TA-Lib for less boilerplates. i mean financial analysis can be applied anywhere. they are basically statistics. anything other than that might just be fake.\nwhere is your dog video?\n# further actions\nyou may upscale video using anime4k or other engines.",
+        "type": "code",
+        "location": "/tests/image_quality_tests/README.md:1-21"
+    },
+    "3545": {
+        "file_id": 434,
+        "content": "This code provides a solution to ensure image quality for model accuracy, examines ROI using DasiamRPN and siamMask, re-examines for potential loss of mark, applies motion analysis, suggests integrating TA-Lib for statistics, and recommends upscaling video with anime4k or other engines.",
+        "type": "comment"
+    },
+    "3546": {
+        "file_id": 435,
+        "content": "/tests/image_quality_tests/pyiqa_test.py",
+        "type": "filepath"
+    },
+    "3547": {
+        "file_id": 435,
+        "content": "This code is filtering out certain metric modes from the DEFAULT_CONFIGS dictionary, printing only those not in the allow_lists. The author comments that these methods may not be as useful and seems difficult to determine their effectiveness before downloading all models. They express confusion about the size of some model files.",
+        "type": "summary"
+    },
+    "3548": {
+        "file_id": 435,
+        "content": "from pyiqa.default_model_configs import DEFAULT_CONFIGS\nmlist = []\nfor key in DEFAULT_CONFIGS.keys():\n    config = DEFAULT_CONFIGS[key]\n    mode = config[\"metric_mode\"]\n    if mode == \"NR\":\n        mlist.append(key)\n# print(mlist)\n# forbid_lists = [\"ilniqe\",\"nima\"]\nallow_lists = [\"niqe\", \"brisque\", \"paq2piq\"]\nfor elem in mlist:\n    if elem not in allow_lists:\n        continue\n    print(elem)\n# i need to say these methods are not as useful as it was said.\n# the objective shall be EMA based.\n# ['niqe', 'ilniqe', 'brisque', 'nrqm', 'pi', 'musiq', 'musiq-ava', 'musiq-koniq', 'musiq-paq2piq', 'musiq-spaq', 'nima', 'paq2piq', 'dbcnn']\n# you may try them all?\n# it is really hard to say before we download all these models.\n# seems not really dependent on the model size?\n# we've got freaking huge shits.\n# like this one, for nima.\n# https://download.pytorch.org/models/vgg16-397923af.pth\n# what is this shit for anyway?",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pyiqa_test.py:1-31"
+    },
+    "3549": {
+        "file_id": 435,
+        "content": "This code is filtering out certain metric modes from the DEFAULT_CONFIGS dictionary, printing only those not in the allow_lists. The author comments that these methods may not be as useful and seems difficult to determine their effectiveness before downloading all models. They express confusion about the size of some model files.",
+        "type": "comment"
+    },
+    "3550": {
+        "file_id": 436,
+        "content": "/tests/image_quality_tests/pyiqa_inference.py",
+        "type": "filepath"
+    },
+    "3551": {
+        "file_id": 436,
+        "content": "This code uses pyiqa library to evaluate image quality and compare algorithms, averaging scores for multiple inputs and timing the process. It saves or prints results and handles missing files with errors.",
+        "type": "summary"
+    },
+    "3552": {
+        "file_id": 436,
+        "content": "import argparse\nimport glob\nimport os\nfrom PIL import Image\nfrom pyiqa.models.inference_model import InferenceModel\nmetric_name = None\ndef main():\n    global metric_name\n    \"\"\"Inference demo for pyiqa.\n    \"\"\"\n    parser = argparse.ArgumentParser()\n    parser.add_argument('-i', '--input', type=str, default=None, help='input image/folder path.')\n    parser.add_argument('-r', '--ref', type=str, default=None, help='reference image/folder path if needed.')\n    parser.add_argument(\n        '-m',\n        '--metric_mode',\n        type=str,\n        default='FR',\n        help='metric mode Full Reference or No Reference. options: FR|NR.')\n    parser.add_argument('-n', '--metric_name', type=str, default='PSNR', help='IQA metric name, case sensitive.')\n    parser.add_argument('--model_path', type=str, default=None, help='Weight path for CNN based models.')\n    parser.add_argument('--img_range', type=float, default=1.0, help='Max value of image tensor.')\n    parser.add_argument(\n        '--input_size', type=int, nargs='+', default=None, help='size of input image. (H, W) for tuple input.')",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pyiqa_inference.py:1-26"
+    },
+    "3553": {
+        "file_id": 436,
+        "content": "This code defines a main function for inference demo of the pyiqa library. It takes input, reference image or folder paths as arguments, and allows selection of metric mode (Full Reference or No Reference) and metric name (IQA metric). It also accepts optional parameters like model path, maximum value of image tensor, and input size.",
+        "type": "comment"
+    },
+    "3554": {
+        "file_id": 436,
+        "content": "    parser.add_argument(\n        '--mean', type=float, nargs='+', default=None, metavar='MEAN', help='Override mean pixel value of dataset')\n    parser.add_argument(\n        '--std', type=float, nargs='+', default=None, metavar='STD', help='Override std deviation of of dataset')\n    parser.add_argument('--save_file', type=str, default=None, help='path to save results.')\n    args = parser.parse_args()\n    metric_name = args.metric_name.lower()\n    # set up IQA model\n    iqa_model = InferenceModel(metric_name, args.metric_mode, args.model_path, args.img_range, args.input_size,\n                               args.mean, args.std)\n    metric_mode = iqa_model.metric_mode\n    if os.path.isfile(args.input):\n        input_paths = [args.input]\n        if args.ref is not None:\n            ref_paths = [args.ref]\n    else:\n        input_paths = sorted(glob.glob(os.path.join(args.input, '*')))\n        if args.ref is not None:\n            ref_paths = sorted(glob.glob(os.path.join(args.ref, '*')))\n    if args.save_file:\n        sf = open(args.save_file, 'w')",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pyiqa_inference.py:27-53"
+    },
+    "3555": {
+        "file_id": 436,
+        "content": "This code sets up an IQA (Image Quality Assessment) model for image quality evaluation. It takes in arguments such as the metric name, input and reference file paths, model path, image range, input size, mean, and std deviation values. If any file is missing, it throws an error. Finally, if a save file is specified, it opens the file for writing.",
+        "type": "comment"
+    },
+    "3556": {
+        "file_id": 436,
+        "content": "    avg_score = 0\n    test_img_num = len(input_paths)\n    for idx, img_path in enumerate(input_paths):\n        img_name = os.path.basename(img_path)\n        tar_img = Image.open(img_path)\n        if metric_mode == 'FR':\n            ref_img_path = ref_paths[idx]\n            ref_img = Image.open(ref_img_path)\n        else:\n            ref_img = None\n        score = iqa_model.test(tar_img, ref_img)\n        avg_score += score\n        print(f'{metric_name} score of {img_name} is: {score}')\n        if args.save_file:\n            sf.write(f'{img_name}\\t{score}\\n')\n    avg_score /= test_img_num\n    if test_img_num > 1:\n        print(f'Average {metric_name} score of {args.input} with {test_img_num} images is: {avg_score}')\n    if args.save_file:\n        sf.close()\n    if args.save_file:\n        print(f'Done! Results are in {args.save_file}.')\n    else:\n        print(f'Done!')\nimport timeit\nif __name__ == '__main__':\n    main() # to eliminate first time error.\n    repeatTime = 10 # just test\n    taketime = timeit.timeit(main,number=repeatTime)",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pyiqa_inference.py:55-85"
+    },
+    "3557": {
+        "file_id": 436,
+        "content": "This code calculates the image quality score using a pre-trained model. It takes input images and optionally references images, then averages the scores for each image if there are multiple inputs. The results can be saved to a file or simply printed out. It also times how long the process took.",
+        "type": "comment"
+    },
+    "3558": {
+        "file_id": 436,
+        "content": "    print(\"{} taking time:\".format(metric_name),taketime)\n###########SCOREBOARD##############\n# niqe taking time: 0.24909197200031485\n# brisque taking time: 0.1862209509999957\n# nrqm taking time: 18.15363560300466\n# pi taking time: 18.80046885000047\n# musiq taking time: 2.963457034995372\n# musiq-ava taking time: 2.9661162160045933\n# musiq-koniq taking time: 3.0705577400003676\n# musiq-paq2piq taking time: 2.957391322001058\n# musiq-spaq taking time: 2.948993805999635\n# paq2piq taking time: 1.4981017659956706\n# dbcnn taking time: 16.063134230993455",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pyiqa_inference.py:86-99"
+    },
+    "3559": {
+        "file_id": 436,
+        "content": "This code snippet measures the time taken by various image quality assessment algorithms. The output shows the names and respective times for each algorithm in descending order. It can be used to compare the efficiency of these algorithms when evaluating image quality.",
+        "type": "comment"
+    },
+    "3560": {
+        "file_id": 437,
+        "content": "/tests/image_quality_tests/pybrisque_test.py",
+        "type": "filepath"
+    },
+    "3561": {
+        "file_id": 437,
+        "content": "This code imports the BRISQUE class from the brisque module, integrates svmutil.py and svm.py files, initializes an instance of BRISQUE as brisq, gets a feature from an image path using brisq.get_feature(), assigns an image path to 'image_path' variable, retrieves a quality score for the image using brisq.get_score(image_path), and prints the obtained score which is very fast.",
+        "type": "summary"
+    },
+    "3562": {
+        "file_id": 437,
+        "content": "from brisque import BRISQUE\n# integrated svmutil.py and svm.py from that git repo.\n# really strange.\nbrisq = BRISQUE()\n# brisq.get_feature('/path')\nimage_path = \"/root/Desktop/works/pyjom/tests/image_quality_tests/sample.bmp\"\nscore = brisq.get_score(image_path)\nprint(\"score:\",score)\n# this is damn fast.",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pybrisque_test.py:1-12"
+    },
+    "3563": {
+        "file_id": 437,
+        "content": "This code imports the BRISQUE class from the brisque module, integrates svmutil.py and svm.py files, initializes an instance of BRISQUE as brisq, gets a feature from an image path using brisq.get_feature(), assigns an image path to 'image_path' variable, retrieves a quality score for the image using brisq.get_score(image_path), and prints the obtained score which is very fast.",
+        "type": "comment"
+    },
+    "3564": {
+        "file_id": 438,
+        "content": "/tests/image_quality_tests/pybrisque_init.sh",
+        "type": "filepath"
+    },
+    "3565": {
+        "file_id": 438,
+        "content": "Installing required dependencies and libraries for pybrisque Python package, including libsvm-dev, pip3 installing pybrisque, alternative options provided for faster installation.",
+        "type": "summary"
+    },
+    "3566": {
+        "file_id": 438,
+        "content": "apt-get install libsvm-dev\npip3 install pybrisque\n# pip3 install --process-dependency-links pybrisque\npip3 install git+https://github.com/Salinger/libsvm-python.git\n# which is faster?",
+        "type": "code",
+        "location": "/tests/image_quality_tests/pybrisque_init.sh:1-6"
+    },
+    "3567": {
+        "file_id": 438,
+        "content": "Installing required dependencies and libraries for pybrisque Python package, including libsvm-dev, pip3 installing pybrisque, alternative options provided for faster installation.",
+        "type": "comment"
+    },
+    "3568": {
+        "file_id": 439,
+        "content": "/tests/generator_yield_from_python_extract_element_one_by_one/test.py",
+        "type": "filepath"
+    },
+    "3569": {
+        "file_id": 439,
+        "content": "This code uses generators to iterate through numbers, cleaning up temporary files after use. It demonstrates using lambda functions for simplified iteration and exception handling for resource management. The code initializes generator2, calls generator3 with generator2 and a tempfile, checks if the file exists, closes the generator, and again checks if the file exists.",
+        "type": "summary"
+    },
+    "3570": {
+        "file_id": 439,
+        "content": "from lazero.filesystem.temp import tmpfile\nimport pathlib\nimport os\ndef checkFileExists(filePath, debug=False):\n    result = os.path.exists(filePath)\n    if debug:\n        print('exists?', result)\ndef generator(tempfile):\n    # for index in range(12): # 0 to 11 means 12\n    for index in range(11): # what if it is 11? -> StopIteration and shit get cleaned.\n        with tmpfile(tempfile):\n            pathlib.Path(tempfile).touch()\n            yield index\ndef generator2(tempfile):\n    yield from generator(tempfile)  # this is to simplifying the process of iteration.\ndef iterator(lambdaFunction, tempfile):\n    for _ in range(4):\n        result = lambdaFunction()\n        print(result) # cleaned after next FAILED iteration, which is what we need the most.\n        checkFileExists(tempfile, debug=True)\n        # cleaning after 'close' or next iteration.\ndef generator3(myGenerator, tempfile):\n    getNextNumber = lambda: myGenerator.__next__()\n    for _ in range(3):\n        iterator(getNextNumber, tempfile)\n        print(\"_\" * 30)",
+        "type": "code",
+        "location": "/tests/generator_yield_from_python_extract_element_one_by_one/test.py:1-35"
+    },
+    "3571": {
+        "file_id": 439,
+        "content": "This code defines a series of functions that utilize generators to generate and iterate through numbers, while also checking if the temporary file exists and cleaning it up after each iteration. The code demonstrates how generators can be used with lambda functions for simplified iteration, and how exception handling can be employed to clean up resources after use.",
+        "type": "comment"
+    },
+    "3572": {
+        "file_id": 439,
+        "content": "if __name__ == \"__main__\":\n    tempfile = \"tmp_test\"\n    if os.path.exists(tempfile):\n        os.remove(tempfile)\n    myGenerator = generator2(tempfile)\n    print(type(myGenerator))\n    breakpoint()\n    generator3(myGenerator, tempfile)  # good.\n    # not over yet.\n    checkFileExists(tempfile, debug=True)\n    myGenerator.close() # choose to close this so you would get this result.\n    checkFileExists(tempfile, debug=True)\n    # another test on generator, about tempfiles during iteration.",
+        "type": "code",
+        "location": "/tests/generator_yield_from_python_extract_element_one_by_one/test.py:38-50"
     },
     "3573": {
-        "file_id": 426,
-        "content": "This line of code copies the 'keepalive' file to '/usr/local/bin/' directory, allowing it to be accessed and executed system-wide.",
+        "file_id": 439,
+        "content": "Code initializes generator2 with a temporary file name and prints its type. Then, it calls generator3 passing the generator2 and tempfile as arguments. After that, it checks if the temporary file exists using checkFileExists function in debug mode. Finally, it closes the generator and again checks if the temporary file exists.",
         "type": "comment"
     },
     "3574": {
-        "file_id": 427,
-        "content": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/thread_based_program.py",
+        "file_id": 440,
+        "content": "/tests/idlefish_闲鱼_xianyu_spider_scraper_taobao_video_guangguang/README.md",
         "type": "filepath"
     },
     "3575": {
-        "file_id": 427,
-        "content": "This Python code creates a multithreaded, event-driven program using threading. It starts two threads for main execution and event handling, checking if the event breaks the loop. This basic approach demonstrates multithreading with event-based communication in Python.\n\nSummary in 30 words: Python code utilizes multithreading and event-driven programming to create a program with two threads, one for main execution and another for event handling, checking if an event breaks the loop, showcasing basic approach for multithreading communication.",
+        "file_id": 440,
+        "content": "This code snippet is a warning about potentially malicious files from a QQ group and the challenge of safely running a specific software (Wine). The comment suggests caution when dealing with such files.",
         "type": "summary"
     },
     "3576": {
-        "file_id": 427,
-        "content": "import threading\nevent = threading.Event()\nevent.clear()\n# is it event driven? can we launch repl after this?\ndef program(*args): # in elixir/erlang this is simpler.\n    print('running program')\n    while True:\n        if event.wait(0.00000001):\n            break # this is blocking. fuck. not like elixir in any kind.\n        else:\n            event.set()\n    event.clear()\n    print('begin execution')\n    print(\"arguments:\", args)\n    raise Exception('shit man')\n    event.set()\n    result = 'myresult'\ndef mainThread():\n    threading.Thread(target=program, args=(1,2), daemon=True).start()\n    print('waiting output? probably never.')\n    while True:\n        if event.wait(0.00000001):\n            break # are you sure this is the event you want?\n        else:\n            event.set()\n    print('result:',result) # another thread? are you sharing things?\n    print('main thread execution succeed')\nprint('starting main thread')\nthreading.Thread(target=mainThread, daemon=True).run()\nprint('starting repl')\n# be ready to re-execute the program?",
+        "file_id": 440,
+        "content": "the file from qq group might be virus. be careful!\ndamn wine. how to run this shit safely?",
         "type": "code",
-        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/thread_based_program.py:1-35"
+        "location": "/tests/idlefish_闲鱼_xianyu_spider_scraper_taobao_video_guangguang/README.md:1-3"
     },
     "3577": {
-        "file_id": 427,
-        "content": "This code creates an event-driven, multithreaded program using Python's threading module. It starts two threads: one for the main program execution and another for handling events. The main program runs indefinitely, checking if the event is set to break out of the loop. The main thread also sets the result variable. This code demonstrates a basic approach to multithreaded programming in Python with event-driven communication between threads.",
+        "file_id": 440,
+        "content": "This code snippet is a warning about potentially malicious files from a QQ group and the challenge of safely running a specific software (Wine). The comment suggests caution when dealing with such files.",
         "type": "comment"
     },
     "3578": {
-        "file_id": 427,
-        "content": "# do you want something like nodejs promises?\n# how to reload foreign files? fuck?",
-        "type": "code",
-        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/thread_based_program.py:36-37"
+        "file_id": 441,
+        "content": "/tests/moviepy_loop_video_till_target/test.py",
+        "type": "filepath"
     },
     "3579": {
-        "file_id": 427,
-        "content": "This code snippet seems to express frustration about handling promises in Node.js and the difficulty of reloading foreign files.",
-        "type": "comment"
+        "file_id": 441,
+        "content": "This code imports the \"main\" function from the \"loop_till_target\" module and sets the target duration of the video to 20 seconds. It uses a GIF file named \"cute_cat_gif\" as input, applies the main function to it, and saves the resulting video as \"cute_cat_gif_20_secs_plus.gif\". The code also checks if the final duration of the video is greater than or equal to the target duration using an assertion statement.",
+        "type": "summary"
     },
     "3580": {
-        "file_id": 428,
-        "content": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/sql_inline.py",
-        "type": "filepath"
+        "file_id": 441,
+        "content": "from loop_till_target import main\ntarget_secs = 20\nvideo_in = \"/root/Desktop/works/pyjom/samples/video/cute_cat_gif.gif\"\n# no right codec! fuck. GIF not supported?\nvideo_out = f\"/root/Desktop/works/pyjom/samples/video/cute_cat_gif_{target_secs}_secs_plus.gif\"\nfvd = main(video_in, target_secs, f_out=video_out, in_place=False,debug=True)\nassert fvd >= target_secs",
+        "type": "code",
+        "location": "/tests/moviepy_loop_video_till_target/test.py:1-11"
     },
     "3581": {
-        "file_id": 428,
-        "content": "The code is attempting to utilize the chalk library for creating SQL queries. It first defines a string \"a\" as a SELECT query and \"b\" as a CREATE query in Cypher format. Then, it imports the required modules from JavaScript and initializes the chalk library using \"./cypher_inline.js\". The code then creates an instance of chalk's Query class (q) and calls its myfunc method with some arguments. Finally, it prints the VALUE and type of both 'a' and 'b'.",
-        "type": "summary"
-    },
-    "3582": {
-        "file_id": 428,
-        "content": "a = \"select * from user\"\nb = \"create (n:person)\"  # cypher # not working!\nfrom javascript import require, globalThis\nchalk = require(\n    \"./cypher_inline.js\"chr\n)  # that might be some drop-in replacement for jinja? should they work together?\n# print(dir(chalk))\n# what the fuck?\nq = chalk.Query # use static method this time?\n# q = chalk.Query(1,2)\nval = q.myfunc(dict(somearg=1)) # this is similar to the original shit.\n# myfunc args: [ { somearg: 1 } ]\n# good?\n# val = chalk.myfunc()\nprint(\"VALUE\", list(val), type(val))  # it can be converted.\nval = q.otherfunc()\n# val = chalk.otherfunc()\nprint(\"VALUE\", val, type(val))  # it can be converted.",
-        "type": "code",
-        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/sql_inline.py:1-22"
-    },
-    "3583": {
-        "file_id": 428,
-        "content": "The code is attempting to utilize the chalk library for creating SQL queries. It first defines a string \"a\" as a SELECT query and \"b\" as a CREATE query in Cypher format. Then, it imports the required modules from JavaScript and initializes the chalk library using \"./cypher_inline.js\". The code then creates an instance of chalk's Query class (q) and calls its myfunc method with some arguments. Finally, it prints the VALUE and type of both 'a' and 'b'.",
+        "file_id": 441,
+        "content": "This code imports the \"main\" function from the \"loop_till_target\" module and sets the target duration of the video to 20 seconds. It uses a GIF file named \"cute_cat_gif\" as input, applies the main function to it, and saves the resulting video as \"cute_cat_gif_20_secs_plus.gif\". The code also checks if the final duration of the video is greater than or equal to the target duration using an assertion statement.",
         "type": "comment"
     },
-    "3584": {
-        "file_id": 429,
-        "content": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/mtest.py",
+    "3582": {
+        "file_id": 442,
+        "content": "/tests/moviepy_loop_video_till_target/loop_till_target.py",
         "type": "filepath"
     },
-    "3585": {
-        "file_id": 429,
-        "content": "The code defines an exception named \"my exception\" and lists the available attributes and methods for this exception class. It also defines a function named \"shit\" that raises an Exception with the message 'shit' and returns the string \"value\".",
+    "3583": {
+        "file_id": 442,
+        "content": "This code uses ffmpeg to create a video clip with repeating segments, splitting the input video into original and reversed parts, and concatenates them based on loop strategy. It replaces sections of the input video until reaching the target duration and saves the output at specified location.",
         "type": "summary"
     },
-    "3586": {
-        "file_id": 429,
-        "content": "e = Exception(\"my exception\")\n# print(dir(e))\n# ['__cause__', '__class__', '__context__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setstate__', '__sizeof__', '__str__', '__subclasshook__', '__suppress_context__', '__traceback__', 'args', 'with_traceback']\ndef shit():\n    raise Exception('shit')\n    return \"value\"",
+    "3584": {
+        "file_id": 442,
+        "content": "import os\n# moviepy's shit.\nfrom moviepy.editor import VideoFileClip  # , concatenate_videoclips\n# import moviepy.video.fx.all as vfx\ndef main(\n    f_in: str,\n    target_secs: float,\n    f_out: str = \"\",\n    in_place: bool = True,\n    debug: bool = False,\n    # accuracy_float:int=4\n    # audio:bool=False, # it will cause trouble?\n):\n    # print(\"___\")\n    # print(\"AUDIO?\",audio)\n    # print(\"IN PLACE?\",in_place)\n    # print(\"___\")\n    assert os.path.exists(f_in)\n    assert target_secs > 0\n    # target_secs_str =(\"{\"+f':.{accuracy_float}f'+\"}\").format(target_secs)\n    targetFilePath = f_out\n    if not in_place:\n        assert f_out != \"\"\n    else:\n        targetFilePath = f_in\n    clip = VideoFileClip(f_in)\n    # if not audio:\n    #     clip = clip.without_audio()\n    # newclip = clip.fx(vfx.time_mirror) # error?\n    # newclip = clip\n    import ffmpeg\n    file_input_split = ffmpeg.input(f_in).filter_multi_output(\n        \"split\"\n    )  # this is infinite split.\n    videoDuration = clip.duration\n    import math\n    import tempfile",
         "type": "code",
-        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/mtest.py:1-7"
+        "location": "/tests/moviepy_loop_video_till_target/loop_till_target.py:1-47"
+    },
+    "3585": {
+        "file_id": 442,
+        "content": "The code imports necessary libraries and defines a function \"main\" that takes input file, target duration, output file (optional), performs in-place editing (optional), and debug mode (optional). It asserts the existence of the input file and positive target duration. Depending on options, it either splits or mirrors the video using ffmpeg before processing.",
+        "type": "comment"
+    },
+    "3586": {
+        "file_id": 442,
+        "content": "    import shutil\n    fileExtension = f_in.split(\".\")[-1]\n    assert fileExtension != \"\"\n    loopStrategy = [\n        (-1) ** i for i in range(math.ceil(target_secs / videoDuration))\n    ]  # zero division error?\n    if debug:\n        print(\"Loop strategy:\")\n        print(loopStrategy)\n    clips = []\n    file_input_original = file_input_split[0].filter_multi_output(\"split\")\n    file_input_reverse = (\n        file_input_split[1].filter(\"reverse\").filter_multi_output(\"split\")\n    )\n    for index, signal in enumerate(loopStrategy):\n        mindex = index // 2\n        if signal == 1:\n            file_input = file_input_original[mindex]\n            clips.append(file_input)\n        else:\n            file_input_reverse2 = file_input_reverse[mindex]\n            clips.append(file_input_reverse2)\n    # final = concatenate_videoclips(clips)\n    final = ffmpeg.concat(*clips)\n    finalVideoDuration = len(loopStrategy) * videoDuration\n    with tempfile.NamedTemporaryFile(\n        \"w+\",\n        suffix=f\".{fileExtension}\",\n    ) as f:",
+        "type": "code",
+        "location": "/tests/moviepy_loop_video_till_target/loop_till_target.py:48-82"
     },
     "3587": {
-        "file_id": 429,
-        "content": "The code defines an exception named \"my exception\" and lists the available attributes and methods for this exception class. It also defines a function named \"shit\" that raises an Exception with the message 'shit' and returns the string \"value\".",
+        "file_id": 442,
+        "content": "This code is creating a video clip with repeating segments. It splits the input video into two parts, original and reversed. Then, it loops through a list of loop strategies to determine which segment (original or reversed) should be used for each iteration. The final video is created by concatenating these segments together using ffmpeg. The resulting video's duration will be determined by the length of the loop strategy list multiplied by the original video's duration.",
         "type": "comment"
     },
     "3588": {
-        "file_id": 430,
-        "content": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/hy_repl_normal.py",
-        "type": "filepath"
+        "file_id": 442,
+        "content": "        tmpFilePath = f.name\n        # warning! what is the audio shit?\n        # print(\"TMP FILE PATH?\",tmpFilePath)\n        # breakpoint()\n        # final.write_videofile(tmpFilePath, fps=clip.fps)\n        # finalVideoDuration = final.duration\n        final.output(tmpFilePath).run(overwrite_output=True)\n        shutil.copy(tmpFilePath, targetFilePath)\n    return finalVideoDuration\nif __name__ == \"__main__\":\n    import argparse\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"-i\", \"--input\", help=\"input file\", required=True, type=str)\n    parser.add_argument(\"-o\", \"--output\", help=\"output file\", default=\"\", type=str)\n    parser.add_argument(\n        \"-r\",\n        \"--replace\",\n        help=\"replace original input file\",\n        action=\"store_true\",\n        default=False,\n    )\n    # parser.add_argument(\n    #     \"-a\",\n    #     \"--audio\",\n    #     help=\"include audio from input\",\n    #     action=\"store_true\",\n    #     default=False,\n    # )\n    parser.add_argument(\n        \"-t\", \"--target\", help=\"target seconds\", required=True, type=float",
+        "type": "code",
+        "location": "/tests/moviepy_loop_video_till_target/loop_till_target.py:83-116"
     },
     "3589": {
-        "file_id": 430,
-        "content": "The code imports the HyREPL module from hy.cmdline and initializes an instance of it called \"repl\". It prints a message before running the REPL, then runs the REPL using the repl.run() method. After that, it prints another message after the REPL. The code aims to demonstrate a normal usage of HyREPL.",
-        "type": "summary"
+        "file_id": 442,
+        "content": "This code takes an input video file and replaces a specific section of the video with another video until a target duration is reached. The final output is saved at the specified output location.",
+        "type": "comment"
     },
     "3590": {
-        "file_id": 430,
-        "content": "import hy.cmdline\n# this is different. no access to hidden member.\nprint('message before repl')\nrepl = hy.cmdline.HyREPL() # this is not reliable. exit will exit this shit for good.\nrepl.run()\nprint('message after repl')\n# no message after repl?",
+        "file_id": 442,
+        "content": "    )\n    args = parser.parse_args()\n    if not args.replace:\n        assert args.output != \"\"\n    main(\n        args.input,\n        args.target,\n        f_out=args.output,\n        in_place=args.replace,\n        # audio=args.audio\n    )",
         "type": "code",
-        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/hy_repl_normal.py:1-7"
+        "location": "/tests/moviepy_loop_video_till_target/loop_till_target.py:117-128"
     },
     "3591": {
-        "file_id": 430,
-        "content": "The code imports the HyREPL module from hy.cmdline and initializes an instance of it called \"repl\". It prints a message before running the REPL, then runs the REPL using the repl.run() method. After that, it prints another message after the REPL. The code aims to demonstrate a normal usage of HyREPL.",
+        "file_id": 442,
+        "content": "The code initializes a parser, parses command line arguments, asserts the absence of replace flag or an output path specified, and then calls the main function with the input, target, output (if applicable), and replace (if applicable) arguments.",
         "type": "comment"
     },
     "3592": {
-        "file_id": 431,
-        "content": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/cypher_inline.js",
+        "file_id": 443,
+        "content": "/tests/ffmpeg_python_test/test.py",
         "type": "filepath"
     },
     "3593": {
-        "file_id": 431,
-        "content": "This code defines two functions for creating SQL statements and a Query class with unclear inline function usage, potentially due to JavaScript's inconsistent behavior. It also logs undefined variables to the console.",
+        "file_id": 443,
+        "content": "The code utilizes FFmpeg library to crop, resize, and pad videos before concatenating modified video streams with original audio using ffmpeg, addressing API complexity.",
         "type": "summary"
     },
     "3594": {
-        "file_id": 431,
-        "content": "// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Template_literals\n// official javascript driver\n// https://neo4j.com/developer/javascript/\nvar cypher = function(strArray, ...opts) { // this is bad.\n    console.log('input:', strArray, opts) // here we've got the thing.\n    // passed here. good.\n    // this will be good.\n    // suppose we put string, object into this thing.\n    // suppose we quote the thing.\n    return strArray;\n}\nvar sql = function(str) { return str; }\nvar myexpression = {obj:2}; // not supplied to cypher?\n// create (n)-[:married]->(r) [object Object]\n// wtf?\nvar myexpression2 = '3';\nvar b = `create (n)-[:married]->(r) ${myexpression}`\nconsole.log(b) // create (n)-[:married]->(r) 2\n    // this will format the thing.\nvar a = cypher `create (n:person{name:${myexpression}})-[:married]->(r) ${myexpression2}`; // well that's good.\nconsole.log(a);\nconst query = sql `SELECT * FROM users`;\nconsole.log(query);\n// function otherfunc(){\n//     console.log('calling otherfunc')\n//     return 'other func'",
+        "file_id": 443,
+        "content": "import ffmpeg\ndef basicTrimVideoProcess():\n    input_source = \"/root/Desktop/works/pyjom/samples/video/karaoke_effects_source.mp4\"\n    stream = ffmpeg.input(input_source,ss=4, to=10) # from 4 to 10 seconds?\n    # stream = ffmpeg.hflip(stream)\n    # we just need to crop this.\n    stream = ffmpeg.output(stream, 'output.mp4')\n    ffmpeg.run(stream, overwrite_output=True)\ndef getRandomCrop(width, height):\n    import random\n    randomGenerator = lambda: random.uniform(0.3, 0.8)\n    newWidth, newHeight = int(randomGenerator()*width), int(randomGenerator()*height)\n    newX, newY = random.randint(0, width-newWidth-1), random.randint(0, height-newHeight-1) # maybe we need to reserve that.\n    return newX, newY, newWidth, newHeight\n# pipCrop in some span?\ndef cropVideoRegion():\n    # this lasts for 6 seconds.\n    # what is the shape of your thing?\n    # just use simple concat. right?\n    # 334x188\n    from MediaInfo import MediaInfo\n    info = MediaInfo(filename = 'output.mp4')\n    infoData = info.getInfo()\n    # print(infoData)",
         "type": "code",
-        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/cypher_inline.js:2-28"
+        "location": "/tests/ffmpeg_python_test/test.py:1-30"
     },
     "3595": {
-        "file_id": 431,
-        "content": "The code defines two functions, `cypher` and `sql`, which create SQL statements using template literals. The `cypher` function takes a string array and optional parameters, while the `sql` function only takes a single string parameter. The code demonstrates how to use these functions by creating a Cypher query with placeholders for dynamic values and executing a SELECT query.",
+        "file_id": 443,
+        "content": "The code imports the ffmpeg library and defines three functions. The first function, `basicTrimVideoProcess()`, trims a video file from 4 to 10 seconds and outputs it as 'output.mp4'. The second function, `getRandomCrop(width, height)`, generates random crop values for a given image width and height using the random module. The third function, `cropVideoRegion()`, uses MediaInfo to get information about the video file, potentially for cropping.",
         "type": "comment"
     },
     "3596": {
-        "file_id": 431,
-        "content": "// }\n// function myfunc() {\n//     otherfunc()\n//     return query;\n// }\n// // __export__\n// // console.log(module.loaded) // false\n// // export all functions?\n// module.exports = {otherfunc, myfunc} // also some bloated shit.\n// which one you want? damn...\n// you want some object?\n// what if they are interdependent?\n// this is some other strange shit.\n// exports = {\n//         otherfunc: () => {\n//             console.log('calling otherfunc');\n//             return 'otherfunc'\n//         },\n//         myfunc: () => {\n//             exports.otherfunc() // strange shit.\n//             return query;\n//         }\n//     }\n//     // console.log(module)\n// module.exports = exports // must use this to export things.\n// this is self-reference.\nclass Query {\n    constructor(a, b) {\n        this.a = a\n        this.b = b\n    }\n    static otherfunc() {\n        // otherfunc() {\n        console.log('calling otherfunc');\n        return 'otherfunc'\n    }\n    static myfunc(...args) {\n        // static myfunc() {\n            console.log('myfunc args:',args)",
+        "file_id": 443,
+        "content": "    # breakpoint()\n    defaultWidth = infoData[\"videoWidth\"]\n    defaultHeight = infoData[\"videoHeight\"]\n    # not only crop, but ZOOM!\n    import math\n    x, y, width, height = getRandomCrop(defaultWidth, defaultHeight)\n    minRatio = min(defaultWidth/width, defaultHeight/height)\n    newWidth = math.floor(minRatio*width)\n    newHeight = math.floor(minRatio*height)\n    stream_0 = ffmpeg.input(\"output.mp4\",ss=0, to=2)\n    stream_0_audio = stream_0.audio\n    stream_0_video = stream_0.video.crop(x,y,width, height).filter(\"scale\", newWidth, newHeight).filter(\"pad\",x=math.floor((defaultWidth-newWidth)/2), y=math.floor((defaultHeight-newHeight)/2), width=defaultWidth, height=defaultHeight,color=\"black\")\n    x, y, width, height = getRandomCrop(defaultWidth, defaultHeight)\n    minRatio = min(defaultWidth/width, defaultHeight/height)\n    newWidth = math.floor(minRatio*width)\n    newHeight = math.floor(minRatio*height)\n    stream_1 = ffmpeg.input(\"output.mp4\",ss=2, to=4)\n    stream_1_audio = stream_1.audio\n    st",
         "type": "code",
-        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/cypher_inline.js:29-71"
+        "location": "/tests/ffmpeg_python_test/test.py:31-53"
     },
     "3597": {
-        "file_id": 431,
-        "content": "The code defines a class \"Query\" with two static methods: \"otherfunc\" and \"myfunc\". \"otherfunc\" is called within \"myfunc\", creating an interdependence between the two functions. The code exports the entire class, using self-reference for the static methods.",
+        "file_id": 443,
+        "content": "This code is performing a double crop and zoom operation on an input video file named \"output.mp4\". It reads the default width and height from infoData, then applies random cropping and scaling to create two separate video streams (stream_0 and stream_1) using ffmpeg library. Finally, it pads the scaled and cropped videos with a black border before proceeding.",
         "type": "comment"
     },
     "3598": {
-        "file_id": 431,
-        "content": "        Query.otherfunc() // strange shit.\n            // this.otherfunc() // still working for static functions.\n            // javascript is a beast.\n        return query;\n    }\n}\nmodule.exports = { Query }\n    // console.log(.cypher)\n    // console.log('QUERY?',globalThis.Query, this.sql) // all undefinded.",
+        "file_id": 443,
+        "content": "ream_1_video = stream_1.video.crop(x, y, width, height).filter(\"scale\", newWidth, newHeight).filter(\"pad\",x=math.floor((defaultWidth-newWidth)/2), y=math.floor((defaultHeight-newHeight)/2), width=defaultWidth, height=defaultHeight,color=\"black\")\n    x, y, width, height = getRandomCrop(defaultWidth, defaultHeight)\n    minRatio = min(defaultWidth/width, defaultHeight/height)\n    newWidth = math.floor(minRatio*width)\n    newHeight = math.floor(minRatio*height)\n    stream_2 = ffmpeg.input(\"output.mp4\",ss=4, to=6)\n    stream_2_audio = stream_2.audio\n    stream_2_video = stream_2.video.crop(x,y,width, height).filter(\"scale\", newWidth, newHeight).filter(\"pad\",x=math.floor((defaultWidth-newWidth)/2), y=math.floor((defaultHeight-newHeight)/2), width=defaultWidth, height=defaultHeight,color=\"black\")\n    # stream_0 = stream_0.output(\"pipCrop.mp4\")\n    video_stream = ffmpeg.concat(stream_0_video, stream_1_video, stream_2_video)\n    audio_stream = ffmpeg.concat(stream_0_audio,stream_1_audio, stream_2_audio,v=0, a=1)",
         "type": "code",
-        "location": "/tests/neo4j_cypher_builder_template_why_you_suddenly_want_to_create_exceptions_and_find_solutions_to_hot_fix_reloading_and_edit_and_continue/cypher_inline.js:72-80"
+        "location": "/tests/ffmpeg_python_test/test.py:53-66"
     },
     "3599": {
-        "file_id": 431,
-        "content": "This code defines a Query class with a strange inline function call and exports it. The otherfunc() is called inside the Query class, but its purpose is unclear. JavaScript's behavior for static functions versus instance methods seems inconsistent here. The code also logs variables to the console, but they are all undefined.",
+        "file_id": 443,
+        "content": "This code is cropping and resizing video streams from different input sources, applying padding if necessary. It then concatenates the modified video streams and the original audio streams into a single output file. The process involves getting random crop parameters, scaling and padding videos to maintain aspect ratio, and finally concatenating the streams.",
         "type": "comment"
     }
 }

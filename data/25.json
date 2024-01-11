@@ -1,536 +1,537 @@
 {
     "2500": {
-        "file_id": 267,
-        "content": "import json\ndef jsonWalk(jsonObj,location=[]):\n    # this is not tuple. better convert it first?\n    # mlocation = copy.deepcopy(location)\n    if type(jsonObj) == dict:\n        for key in jsonObj:\n            content = jsonObj[key]\n            if type(content) not in [dict,list,tuple]: \n                yield location+[key], content\n            else:\n                # you really ok with this?\n                for mkey, mcontent in jsonWalk(content,location+[key]):\n                    yield mkey, mcontent\n    elif type(jsonObj) in [list,tuple]:\n        for key,content in enumerate(jsonObj):\n        # content = jsonObj[key]\n            if type(content) not in [dict,list,tuple]:\n                yield location+[key], content\n            else:\n                for mkey, mcontent in jsonWalk(content,location+[key]):\n                    yield mkey, mcontent\n    else:\n        raise Exception(\"Not a JSON compatible object: {}\".format(type(jsonObj)))\ndef jsonLocate(jsonObj,location=[]):\n    # print(\"object:\",jsonObj)\n    # print(\"location:\",location)",
+        "file_id": 266,
+        "content": "# get video metadata first. we may filter unwanted videos by metadata.\n# let's just view here:\n# https://github.com/SocialSisterYi/bilibili-API-collect\n# i found new format of video shortlink:\n# https://b23.tv/BV1zW4y1p7RT\n# https://b23.tv/<bvid>\nvideoLinks = [\n    \"https://www.bilibili.com/video/BV1e54y1y7qy\",  # 女攻男受 emm\n    \"https://www.bilibili.com/video/BV1P441197oV\",  # in which you shall never find anything interesting. no related video.\n    \"https://www.bilibili.com/video/BV1Fs411k7e9\", # multiple chapters, you shall not find this interesting.\n    \"https://www.bilibili.com/video/av5842509\" # aid version of video link.\n]\n# import fake_useragent\n# ua = fake_useragent.UserAgent()\nimport re\nfrom pymaybe import maybe\nimport requests\nfrom urllib.parse import urlencode\ndef extractBVID(chars:str):\n    bvid = maybe(re.findall(r\"/(BV[a-zA-Z0-9]+)\",chars))[0]\n    return bvid\ndef extractAID(chars:str):\n    aid = maybe(re.findall(r\"/av([0-9]+)\",chars))[0]\n    return aid\n## remember the video is always scrapable via av id.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_science_subtitle_with_cn_voice/commons.py:1-29"
+        "location": "/tests/anime_highlight_cuts/theme_collector/anime_compilation_video_metadata.py:1-31"
     },
     "2501": {
-        "file_id": 267,
-        "content": "This code defines two functions, `jsonWalk` and `jsonLocate`, which recursively traverse a JSON object and yield the location and value of each item. It handles dictionaries, lists, and tuples while raising an exception for non-JSON compatible types.",
+        "file_id": 266,
+        "content": "This code retrieves video metadata from bilibili, a Chinese video hosting platform. It uses various video link formats and extracts unique identifiers (BVID or AID) to obtain metadata for further filtering unwanted videos. The code also imports relevant libraries and defines two functions to extract BVID and AID from the video links.",
         "type": "comment"
     },
     "2502": {
-        "file_id": 267,
-        "content": "    if location!=[]:\n        return jsonLocate(jsonObj[location[0]],location[1:])\n    return jsonObj\njson.__dict__.update({\"walk\":jsonWalk,\"locate\":jsonLocate})\ndef list_startswith(a,b):\n    value = 0\n    if len(a) < len(b): return False\n    for i,v in enumerate(b):\n        v0 = a[i]\n        if v == v0:\n            value +=1\n    return value == len(b)\ndef list_endswith(a,b):\n    value = 0\n    if len(a) < len(b): return False\n    c = a[-len(b):]\n    for i,v in enumerate(b):\n        v0 = c[i]\n        if v == v0:\n            value +=1\n    return value == len(b)\n# list.__dict__.update({\"startswith\": list_startswith,\"endswith\": list_endswith})",
+        "file_id": 266,
+        "content": "## av5842509\n# https://api.bilibili.com/x/web-interface/view?aid=<AID>\n# https://api.bilibili.com/x/web-interface/view?bvid=<BVID>\n# videoDownloadPath = \"\"\n# shit!\n# why i need to download whole damn video? i need to cut it into bite-sized video!\n# for some video there's no possibility to determine the source.\n# let's see the video metadata.\n# import os\n# os.system(f'yt-dlp --dump-metadata --output metadata.json \"{videoLinks[0]}\"') # working?\n# bullshit. we shall get the video metadata first.\nurl = \"https://api.bilibili.com/x/web-interface/view\"\ntags_url = \"https://api.bilibili.com/x/tag/archive/tags\"\nrelated_url = \"https://api.bilibili.com/x/web-interface/archive/related\"\nfor videoLink in videoLinks:\n    bvid = extractBVID(videoLink)\n    if bvid:\n        params = {\"bvid\": bvid}\n    else:\n        aid = extractAID(videoLink)\n        if aid:\n            params = {\"aid\": aid}\n        else:\n            print(\"no valid bilibili video id found.\")\n            print(\"skipping video link:\", videoLink)\n            continue",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_science_subtitle_with_cn_voice/commons.py:30-57"
+        "location": "/tests/anime_highlight_cuts/theme_collector/anime_compilation_video_metadata.py:32-66"
     },
     "2503": {
-        "file_id": 267,
-        "content": "The code contains functions for checking if a list starts or ends with another list, but they are not added to the list class. It also updates json's dictionary with \"walk\" and \"locate\" functions.",
+        "file_id": 266,
+        "content": "The code is trying to collect metadata for Bilibili videos using APIs and may download the video if needed. It first checks if there is a valid BVID or AID, then retrieves the video's metadata and possibly related tags. However, it encounters issues with determining the source and currently has a workaround using yt-dlp to get metadata but notes that this method isn't working properly.",
         "type": "comment"
     },
     "2504": {
-        "file_id": 268,
-        "content": "/tests/bilibili_practices/bilibili_dollar/fetch_related_content.py",
-        "type": "filepath"
+        "file_id": 266,
+        "content": "    # print(\"PARAMS?\",params)\n    # shit.\n    r = requests.get(f\"{url}?{urlencode(params)}\") # why? what the fuck?\n    r_tags = requests.get(f\"{tags_url}?{urlencode(params)}\")\n    # r = requests.get(url,data=params,headers={\"User-Agent\":ua.random})\n    r_related = requests.get(f'{related_url}?{urlencode(params)}')\n    # r = requests.get(\"https://api.bilibili.com/x/web-interface/view?bvid=BV1e54y1y7qy\")\n    r.raise_for_status()\n    r_tags.raise_for_status()\n    r_related.raise_for_status()\n    # \"need_jump_bv\":false\n    # bvid only?\n    response_json = r.json()\n    response_tags_json = r_tags.json()\n    response_related_json = r_related.json()\n    # it must be json.\n    import rich\n    # rich.print(response_json)\n    assert response_json['code'] == 0\n    assert response_tags_json['code'] == 0\n    assert response_related_json['code'] == 0\n    data = response_json['data']\n    tags_data = response_tags_json['data']\n    related_data = response_related_json['data']\n    ## parsing video stats.\n    title = data['title']",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/theme_collector/anime_compilation_video_metadata.py:68-97"
     },
     "2505": {
-        "file_id": 268,
-        "content": "The code imports the \"VideosSearch\" class from the \"youtube-search-python\" package and uses it to search for videos related to drawing realistic US Dollars. It fetches the first 10 results, then prints each video's title, ID, author name, channel ID, and view count.",
-        "type": "summary"
+        "file_id": 266,
+        "content": "This code retrieves video metadata from Bilibili API using Python's `requests` library. It makes three separate requests for the video, tags, and related videos data. The responses are then parsed to extract relevant information such as video title, and the JSON responses are validated to ensure a successful response with status code 0.",
+        "type": "comment"
     },
     "2506": {
-        "file_id": 268,
-        "content": "#!pip3 install youtube-search-python\nfrom youtubesearchpython import VideosSearch\n# videosSearch = VideosSearch('画人民币', limit = 10)\nvideosSearch = VideosSearch('Draw realistic US Dollar', limit = 10)\n# videosSearch = VideosSearch('NoCopyrightSounds', limit = 2)\n# print(videosSearch.result())\ndata = videosSearch.result()\nfor elem in data[\"result\"]:\n    title = elem[\"title\"]\n    videoId = elem[\"id\"]\n    contentType = elem[\"type\"]\n    authorName = elem[\"channel\"][\"name\"]\n    channelId = elem[\"channel\"][\"id\"]\n    viewCount = elem[\"viewCount\"][\"text\"]\n    print(\"title\",title)\n    print(\"videoId\",videoId)\n    print(\"author\",authorName)\n    print(\"channel ID\",channelId)\n    print(\"viewCount\",viewCount)\n    print(\"_______________________________________\")",
+        "file_id": 266,
+        "content": "    pic = data['pic']\n    tid,tname = data['tid'],data['tname']\n    # 27, \"综合\"\n    # 253, \"动漫杂谈\"\n    dynamic = data['dynamic'] # we can copy that.\n    desc = data['desc']\n    owner_mid = data['owner']['mid']\n    state = data['state']\n    assert state == 0 # make sure this video is downloadable.\n    stat =  data['stat']\n    view  = stat['view']\n    reply = stat['reply']\n    danmaku = stat['danmaku']\n    favorite = stat['favorite']\n    coin  = stat['coin']\n    share = stat['share']\n    like  = stat['like']\n    pages = data['pages']\n    page_count = len(pages) # data['videos']\n    for page in pages:\n        page_index = page['page']\n        page_name = page['part']\n        page_dimension = page['dimension']\n        page_width, page_height, page_rotate = page_dimension['width'], page_dimension['height'], page_dimension['rotate']\n        page_duration = page['duration']\n    # subtitle = data['subtitle']\n    # let's just skip.\n    ## parsing tags info.\n    for tag in tags_data:\n        tag_id = tag['tag_id']\n        tag_name = tag['tag_name']",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_dollar/fetch_related_content.py:1-23"
+        "location": "/tests/anime_highlight_cuts/theme_collector/anime_compilation_video_metadata.py:98-135"
     },
     "2507": {
-        "file_id": 268,
-        "content": "The code imports the \"VideosSearch\" class from the \"youtube-search-python\" package and uses it to search for videos related to drawing realistic US Dollars. It fetches the first 10 results, then prints each video's title, ID, author name, channel ID, and view count.",
+        "file_id": 266,
+        "content": "This code is fetching data from an API and extracting various information such as video ID, title, thumbnail URLs, description, owner's mid, video statistics (views, replies, danmaku, favorites, coins, shares, likes), and page dimensions. It also skips parsing subtitle info and processes tags data. The code checks if the state is 0 to ensure the video can be downloaded.",
         "type": "comment"
     },
     "2508": {
-        "file_id": 269,
-        "content": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py",
-        "type": "filepath"
+        "file_id": 266,
+        "content": "        tag_used = tag['count']['use']\n        tag_attention = tag['count']['atten']\n        # introduction of tag.\n        tag_content = tag['content']\n        tag_short_content = tag['short_content']\n    ## extract related video info.\n    related_video_counts = len(related_data)\n    for related_video in related_data:\n        related_aid = related_video['aid']\n        related_bvid = related_video['bvid']\n        related_tid = related_video['tid']\n        related_tname = related_video['tname']\n        related_pic = related_video['pic']\n        related_title = related_video['title']\n        related_page_count = related_video['videos'] # make sure this is 1?\n        related_desc = related_video['desc']\n        related_state = related_video['state']\n        if related_state != 0: continue\n        related_duration = related_video['duration']\n        related_owner_mid = related_video['owner']['mid']\n        related_stat = related_video['stat']\n        related_dynamic = related_video['dynamic']\n        # well, we've got non-standard dimensions.",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/theme_collector/anime_compilation_video_metadata.py:136-160"
     },
     "2509": {
-        "file_id": 269,
-        "content": "This code converts text to speech audio using PaddleSpeech, merges and normalizes audio segments, generates voice and video files, and exports final videos with background music.",
-        "type": "summary"
+        "file_id": 266,
+        "content": "This code section is gathering data related to a video, including tag information, count of times the tags were used or caught attention, and details about related videos. It checks if the related state is not 0 before proceeding to gather more information like duration, owner's mid, statistics, etc.",
+        "type": "comment"
     },
     "2510": {
-        "file_id": 269,
-        "content": "import os\nfrom test_common import *\ndef split_sentences(sent):\n    spliters = \"\\n，。、\"\n    cursent = \"\"\n    results = []\n    for elem in sent:\n        cursent += elem\n        if elem in spliters:\n            results.append(cursent)\n            cursent = \"\"\n    if len(cursent) > 0:\n        results.append(cursent)\n    return results\ndef get_speech(sent,output):\n    assert output.endswith(\".wav\")\n    with open(\"temp.txt\", \"w+\",encoding=\"utf-8\") as f:\n        f.write(sent)\n    os.system(\"cat temp.txt | paddlespeech tts --output {}\".format(output))\nfrom pydub import AudioSegment\nfrom functional_gen_typo_video_seq import gen_video\ndef merge_audio(asegs):\n    audio_3 = AudioSegment.empty() #shit\n    for seg in asegs:\n        try:\n            audio_3 = audio_3.append(seg,crossfade=100) # also shit.\n        except:\n            audio_3 = audio_3.append(seg,crossfade=0) # also shit.\n    return audio_3\n    # audio_3.export(\"audio_3.wav\", format=\"wav\")\nif __name__ == \"__main__\":\n    sents = split_sentences(demo_text)\n    # breakpoint()",
+        "file_id": 266,
+        "content": "        related_dimension = related_video['dimension']\n        # no tag here? you might want more!\n    breakpoint()",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:1-38"
+        "location": "/tests/anime_highlight_cuts/theme_collector/anime_compilation_video_metadata.py:161-163"
     },
     "2511": {
-        "file_id": 269,
-        "content": "This code performs text-to-speech (TTS) conversion and merges audio segments. It first splits a given sentence into individual sentences, then uses PaddleSpeech to convert the text to speech audio, which is saved with .wav extension. The resulting audio segments are merged using PyDub's AudioSegment module, allowing for seamless crossfades between audio chunks.",
+        "file_id": 266,
+        "content": "Checking video dimension and no tag found, further processing or error handling might be required.",
         "type": "comment"
     },
     "2512": {
-        "file_id": 269,
-        "content": "    voice_dir = \"voice\"\n    video_dir = \"video\"\n    os.system(\"rm -rf {}\".format(voice_dir))\n    os.system(\"rm -rf {}\".format(video_dir))\n    os.mkdir(\"{}\".format(voice_dir))\n    os.mkdir(\"{}\".format(video_dir))\n    index = 0\n    voice_clips = []\n    video_names = []\n    for i,sent in enumerate(sents):\n        print(\"READING:\",sent)\n        aname = \"{}/{}.wav\".format(voice_dir,i)\n        get_speech(sent,aname)\n        seg = AudioSegment.from_wav(aname)\n        duration = seg.duration_seconds\n        voice_clips.append(seg)\n        # get the duration you fuck.\n        # breakpoint()\n        lsent = len(sent)\n        current_indexs = list(range(index,index+lsent))\n        index += lsent\n        # you can generate video for it.\n        vname = \"{}/{}.mp4\".format(video_dir,i)\n        gen_video(vname,current_indexs,duration)\n        video_names.append(vname)\n    # and finally?\n    final_video = \"{}/final_video.mp4\".format(video_dir)\n    final_audio = \"{}/final_audio.wav\".format(voice_dir)\n    audio_merged = merge_audio(voice_clips)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:39-68"
+        "file_id": 267,
+        "content": "/tests/anime_highlight_cuts/theme_collector/anilist_to_anidb.py",
+        "type": "filepath"
     },
     "2513": {
-        "file_id": 269,
-        "content": "This code clears the \"voice\" and \"video\" directories, creates new ones, reads each sentence from the input, converts it to audio, generates a video for each sentence, appends the corresponding audio clip and video name to their respective lists, and then merges all audio clips. The final video and audio files are named accordingly.",
-        "type": "comment"
+        "file_id": 267,
+        "content": "The code is fetching anime information from Anilist using the AnilistPython API and storing anilist_ids for specific anime. It then prints the anime details, including name_romaji and name_english, and separates them with a horizontal line. The code also mentions a potential step to search for the same anime in anidb but it is not implemented in this snippet.",
+        "type": "summary"
     },
     "2514": {
-        "file_id": 269,
-        "content": "    bgm_path = \"/root/Desktop/works/bilibili_tarot/some_bgm.mp3\"\n    bgm = AudioSegment.from_mp3(bgm_path)\n    # duration2 = audio_merged.duration_seconds\n    # bgm = bgm[:duration2*1000] # really?\n    # breakpoint()\n    # audio_merged = audio_merged.overlay(audio_merged,bgm,loop=True)  #wtf?\n    audio_merged = audio_merged.overlay(bgm,loop=True)\n    # audio_merged = audio_merged.normalize()\n    # is it needed?\n    # shit.\n    audio_merged.export(final_audio, format=\"wav\")\n    final_video2 = \"{}/final_video2.mp4\".format(video_dir)\n    with open(\"mylist.txt\",\"w+\") as f:\n        for n in video_names:\n            f.write(\"file \"+n+\"\\n\")\n    os.system(\"ffmpeg -f concat -safe 0 -i mylist.txt -c copy {}\".format(final_video))\n    os.system(\"ffmpeg -i {} -i {} -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 {}\".format(final_video,final_audio,final_video2))",
+        "file_id": 267,
+        "content": "anilist_ids = [\n    112788,  # 海边的异邦人\n    14813,  # Yahari Ore no Seishun Love Come wa Machigatteiru.\n]\n# first let's get name.\nfrom AnilistPython import Anilist\nanilist = Anilist()\nfor anilist_id in anilist_ids:\n    anime = anilist.get_anime_with_id(anilist_id)\n    # what about alias?\n    print(anime)\n    print(\"=\" * 20)\n    romaji = anime.get(\"name_romaji\", None)\n    english = anime.get(\"name_english\", None)\n    # genres = anime.get(\"genres\", []) # not so important. we don't have understanding.\n    # and you will search again.\n    # what is this manual select?\n    # anime2 = anilist.get_anime(romaji) # shit?\n    # print(anime2) # it will just be the same. no shit.\n    # print(\"=\" * 20)\n    # well let's search in anidb. get different names.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:69-87"
+        "location": "/tests/anime_highlight_cuts/theme_collector/anilist_to_anidb.py:1-25"
     },
     "2515": {
-        "file_id": 269,
-        "content": "The code imports audio files, merges them, normalizes the volume, and exports the final audio as a wav file. It then creates a mylist.txt file containing the video names, and uses ffmpeg to concatenate videos with the background music and export the final video2 in mp4 format.",
+        "file_id": 267,
+        "content": "The code is fetching anime information from Anilist using the AnilistPython API and storing anilist_ids for specific anime. It then prints the anime details, including name_romaji and name_english, and separates them with a horizontal line. The code also mentions a potential step to search for the same anime in anidb but it is not implemented in this snippet.",
         "type": "comment"
     },
     "2516": {
-        "file_id": 270,
-        "content": "/tests/bilibili_practices/bilibili_tarot/test_common.py",
+        "file_id": 268,
+        "content": "/tests/anime_highlight_cuts/theme_collector/anidb_search_parse.py",
         "type": "filepath"
     },
     "2517": {
-        "file_id": 270,
-        "content": "The code sets the http and https proxies to empty strings, preventing any proxy usage, and assigns a demo text for use in testing.",
+        "file_id": 268,
+        "content": "This code searches AniDB for anime using a specified query and fake user agent, extracting title and link from the resulting HTML table. It then uses pandas to convert the table data into a DataFrame, retrieves video data as dictionaries, and prints keys of each dictionary.",
         "type": "summary"
     },
     "2518": {
-        "file_id": 270,
-        "content": "import os\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\ndemo_text = \"事情的开始，行动的改变，熟练的技术及技巧，贯彻我的意志，运用自然的力量来达到野心。\"",
+        "file_id": 268,
+        "content": "url = \"https://anidb.net/anime/\"\n# query = \"Yahari Ore no Seishun Lovecome wa Machigatte Iru.\"\nquery = \"Yahari Ore no Seishun Love Come wa Machigatteiru.\"  # this will guide you to something different.\nparams = {\"adb.search\": query, \"do.update\": \"Search\", \"noalias\": 1}\nimport pandas\nimport requests\nimport fake_useragent\nua = fake_useragent.UserAgent()\nr = requests.get(\n    url, params=params, headers={\"User-Agent\": ua.random}\n)  # beautiful. really?\nstatus_code = r.status_code\nprint(\"STATUS CODE?\", status_code)\nassert status_code == 200\ntext = r.text\nfrom bs4 import BeautifulSoup\nsoup = BeautifulSoup(text, \"html.parser\")\n# print(soup) # forbidden? wtf?\n# breakpoint()\nimport pandas\n# table = soup.find('table')\ntable = soup.find(\"table\", attrs={\"class\": \"animelist\"})\nif not table:\n    print(\"table not found.\")\n    # you may want to change user agent.\n    breakpoint()\n    # or it is just a page jump. directly to your anime.\nelse:\n    table_str = str(table)\n    # ['No', 'Image', 'Title', 'Award', 'Type', 'Eps', 'Rating', 'Average', 'Reviews', 'User', 'Aired', 'Ended']",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/test_common.py:1-6"
+        "location": "/tests/anime_highlight_cuts/theme_collector/anidb_search_parse.py:1-38"
     },
     "2519": {
-        "file_id": 270,
-        "content": "The code sets the http and https proxies to empty strings, preventing any proxy usage, and assigns a demo text for use in testing.",
+        "file_id": 268,
+        "content": "This code is searching for anime on AniDB using the specified query. It makes a GET request with the query and fake user agent to ensure an accurate search result. The code checks if a table containing the search results is found, and if not, it may suggest changing the user agent or the page could be a page jump directly to the anime. The code uses BeautifulSoup to parse the HTML content of the response.",
         "type": "comment"
     },
     "2520": {
-        "file_id": 271,
-        "content": "/tests/bilibili_practices/bilibili_tarot/test_command.sh",
-        "type": "filepath"
+        "file_id": 268,
+        "content": "    # where is the damn link?\n    for title in table.find_all(\"td\", attrs={\"data-label\": \"Title\"}):\n        title_ref = table.find(\"a\")\n        title_text = title_ref.text\n        title_link = title_ref[\"href\"]\n        print(f\"[{title_link}] - {title_text}\")\n    data = pandas.read_html(table_str)[0]  # must be the first table.\n    # now you have it. sorted?\n    # print(data)\n    # breakpoint()\n    for index, videoDataFrame in data.iterrows():\n        videoData = videoDataFrame.to_dict()\n        print(videoData.keys())\n        # Main Title?\n        breakpoint()\n        # title = videoData['Title']\n        # # where's the damn link? we don't need such thing.\n        # aired, ended = videoData['Aired'], videoData['Ended']\n        # print(f'[{index}] - {title}')",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/theme_collector/anidb_search_parse.py:39-57"
     },
     "2521": {
-        "file_id": 271,
-        "content": "This code is using the melt command to combine multiple screenshots into a single video file with transitions. It uses the \"composite\" and \"mix\" transitions, applies distortion effects, and outputs the final result at 60 FPS. The output is saved as a consumer XML file.",
-        "type": "summary"
-    },
-    "2522": {
-        "file_id": 271,
-        "content": "melt -track \"color:#000000\" out=0 -track /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0000.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -track -blank :0.570312 /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0001.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -track -blank :1.140625 /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0002.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -track -blank :1.710938 /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0003.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -transition composite distort=0 a_track=0 b_track=1 -transition mix a_track=0 b_track=1 -transition composite distort=0 a_track=0 b_track=2 -transition mix a_track=0 b_track=2 -transition composite distort=0 a_track=0 b_track=3 -transition mix a_track=0 b_track=3 -transition composite distort=0 a_track=0 b_track=4 -transition mix a_track=0 b_track=4 -consumer xml",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/test_command.sh:1-1"
-    },
-    "2523": {
-        "file_id": 271,
-        "content": "This code is using the melt command to combine multiple screenshots into a single video file with transitions. It uses the \"composite\" and \"mix\" transitions, applies distortion effects, and outputs the final result at 60 FPS. The output is saved as a consumer XML file.",
+        "file_id": 268,
+        "content": "The code is searching for a specific table on an anime website, extracting the title and link from each row. It then reads the HTML table into a pandas DataFrame, iterates over the rows to obtain the video data as a dictionary, and finally prints the keys of each video's data dictionary.",
         "type": "comment"
     },
-    "2524": {
-        "file_id": 272,
-        "content": "/tests/bilibili_practices/bilibili_tarot/temp.txt",
+    "2522": {
+        "file_id": 269,
+        "content": "/tests/anime_highlight_cuts/theme_collector/anidb_anime_parse.py",
         "type": "filepath"
     },
-    "2525": {
-        "file_id": 272,
-        "content": "This code appears to be a message encouraging users to follow and continue, possibly in the context of social media or a platform like Bilibili. It could be used as a prompt for engagement or interaction.",
+    "2523": {
+        "file_id": 269,
+        "content": "Code imports libraries and functions, uses BeautifulSoup to parse AniDB webpage for specific elements, handles potential null values with 'maybe' function, and reads data into a DataFrame using pandas.",
         "type": "summary"
     },
-    "2526": {
-        "file_id": 272,
-        "content": "点个关注再走吧～",
+    "2524": {
+        "file_id": 269,
+        "content": "# -*- parsing: pep505 -*-\n# import pep505\n# pep505.activate()\n# shit?\nurl = \"https://anidb.net/anime/9310\"\n# from pymonad.maybe import Nothing, Just\n# https://github.com/acaos/python-pep505\nfrom pymaybe import maybe\n# def checkNothing(value):\n#     if value in [None, 0, -1, [], {}, ()]:\n#         return Nothing\n#     return Just(value)\nimport requests\nimport fake_useragent\nua = fake_useragent.UserAgent()\n# r = requests.get(url, headers={\"User-Agent\": ua.random})\n# r.raise_for_status()\n# # assert r.status_code == 200\n# text = r.text\n# with open(\"anidb_info.html\", \"w+\") as f:\n#     f.write(text)\nwith open(\"anidb_info.html\", \"r\") as f:\n    text = f.read()\nfrom bs4 import BeautifulSoup\nsoup = BeautifulSoup(text, \"html.parser\")\n# must be non-empty.\nsimilarAnime = soup.find(attrs={\"id\": \"similaranime\"})\nindirectRelated = soup.find(attrs={\"id\": \"relations_indirect\"})\ndirectRelated = soup.find(attrs={\"id\": \"relations_direct\"})  # it could be none.\ntables = soup.find_all(\"table\")  # shit.\n# null safety?\n# pep 505:\n# https://peps.python.org/pep-0505/",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/temp.txt:1-1"
+        "location": "/tests/anime_highlight_cuts/theme_collector/anidb_anime_parse.py:1-43"
+    },
+    "2525": {
+        "file_id": 269,
+        "content": "The code is importing necessary libraries and functions, parsing a webpage's HTML using BeautifulSoup, and finding specific elements on the page. It appears to be scraping data from AniDB for similar or related anime information. The use of 'maybe' might indicate null safety measures are being implemented, possibly for handling potential None values in the data.",
+        "type": "comment"
+    },
+    "2526": {
+        "file_id": 269,
+        "content": "# videoInfo = checkNothing(soup.find(\"div\", attrs={\"class\": [\"pane\", \"info\"]})).maybe(\n#     Nothing, lambda x: x.find(\"table\")\n# )\nvideoInfo = maybe(soup.find(\"div\", attrs={\"class\": [\"pane\", \"info\"]})).find(\"table\")\n# if videoInfo:\n# videoInfo = videoInfo.find('table')\n# videoTitles = checkNothing(soup.find(\"div\", attrs={\"class\": [\"pane\", \"titles\"]})).maybe(\n#     Nothing, lambda x: x.find(\"table\")\n# )\nvideoTitles = maybe(soup.find(\"div\", attrs={\"class\": [\"pane\", \"titles\"]})).find(\"table\")\n# if videoTitles:\n# videoTitles = videoTitles.find('table')\n# i think monad is good.\n# import pandas\n# SAData = pandas.read_html(similarAnime)\n# print(SAData)\nbreakpoint()",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/theme_collector/anidb_anime_parse.py:45-67"
     },
     "2527": {
-        "file_id": 272,
-        "content": "This code appears to be a message encouraging users to follow and continue, possibly in the context of social media or a platform like Bilibili. It could be used as a prompt for engagement or interaction.",
+        "file_id": 269,
+        "content": "Code snippet is parsing HTML using BeautifulSoup to find specific elements (videoInfo and videoTitles) from a webpage. It uses maybe() function for handling potential missing or null values, and it imports pandas library to potentially read HTML data into a DataFrame.",
         "type": "comment"
     },
     "2528": {
-        "file_id": 273,
-        "content": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py",
+        "file_id": 270,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs",
         "type": "filepath"
     },
     "2529": {
-        "file_id": 273,
-        "content": "This code provides Tarot card interpretations for Rider-Waite deck, focusing on career, relationships, and personal growth. The Tower (XVI) represents change and urging embracing it for a better future.",
+        "file_id": 270,
+        "content": "The code downloads videos using Webtorrent, handles temporary directories and exceptions but has string concatenation issues. It suggests Unix domain sockets for performance improvement, uses FFmpeg to download segments, handles progress/errors and terminates upon torrent completion, though unpipe is unused and readstream may show progress issues.",
         "type": "summary"
     },
     "2530": {
-        "file_id": 273,
-        "content": "mdict = {0: \"\"\"【0】愚者（The Fool，0)\n正位释义：\n事情的开始，行动的改变，熟练的技术及技巧，贯彻我的意志，运用自然的力量来达到野心。\n逆位释义：\n意志力薄弱，起头难，走入错误的方向，知识不足，被骗和失败。\"\"\", 1: \"\"\"【1】魔术师（The Magician，I)\n牌面为罗马神话的诸神传信使墨丘利，有着自信的笑容和炯炯有神的眼睛。 牌的桌面摆了宇宙四要素∶权杖（火）、剑（风）、星币（土）、圣杯（水）魔术师头顶上有个无限的符号，腰带为一头尾相接的蛇，是精神永恒的象征。\n魔术师右手拿着权杖指向天空，左手指着地面，代表权力的交流和精神的赠与。魔术师脚底下为玫瑰和百合，表示人类的动机，反映神的意志，指挥天地。 玫瑰代表生，百合代表死亡。 魔术师为第一张牌，也暗示着你本身也是个魔术师，自己能操纵宇宙的力量。白色长袍代表纯洁的内心，深红色斗篷代表魔术师的活动意义深远。\"\"\", 2: \"\"\"【2】女祭司（The High Priestess，II)\n开发出内在的神秘潜力，前途将有所变化的预言，深刻地思考，敏锐的洞察力，准确的直觉。\n过于洁癖，无知，贪心，目光短浅，自尊心过高，偏差的判断，有勇无谋，自命不凡。\"\"\", 3: \"\"\"【3】女皇（The Empress，III)\n幸福，成功，收获，无忧无虑，圆满的家庭生活，良好的环境，美貌，艺术，与大自然接触，愉快的旅行，休闲。\n倒转解释：\n不活泼，缺乏上进心，散漫的生活习惯，无法解决的事情，不能看到成果，担于享乐，环境险恶，与家人发生纠纷。\"\"\", 4: \"\"\"【4】皇帝（The Emperor，IV)\n光荣，权力，胜利，握有领导权，坚强的意志，达成目标，父亲的责任，精神上的孤单。\n幼稚，无力，独裁，撒娇任性，平凡，没有自信，行动力不足，意志薄弱，被支配。\"\"\", 5: \"\"\"【5】教皇（The Hierophant，or the Pope，V)\n援助，同情，宽宏大量，可信任的人给予的劝告，良好的商量对象，得到精神上的满足，遵守规则，志愿者。信心十足，能正确理解事物本质，工作上外来压力过多，使你有被束缚的感觉。寻找新的工作方法，尽管会面对很大的阻力，但结果会证明这样做是值得的。爱情上屈从于他人的压力，只会按照对方的要求来盲目改变自己，自以为这是必要的付出，其实不过是被迫的选择。伴侣也不会对你保持忠诚，并很难满足双方真实的需要。\n错",
+        "file_id": 270,
+        "content": "// webtorrent@^1.5.8\n// version mismatch?\n// nope. check how webtorrent-cli works. your code sucks.\n// now: 2.0.1\n// you make countdowns. you use managed temporary directories. you use port within range.\n// you might want a single, unified server instance. in that case you will manage resources within server, which could be error prone?\nvar torrentPath=\"/Users/jamesbrown/Downloads/anime_download/[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p].torrent\"\nvar selectedFilePath=\"[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]/SPs/[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [CM01][Ma10p_1080p][x265_flac].mkv\" // this is the goddamnly short mkv.\n// var selectedFilePath=\"[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]/[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [OVA][Ma10p_1080p][x265_flac].mkv\" // this is long\n// require_esm = require('esm')(module)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py:1-31"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:2-18"
     },
     "2531": {
-        "file_id": 273,
-        "content": "```python\n# tarot descriptions, each key-value pair represents a tarot card with its meaning and interpretations\nmdict = {\n    0: \"Tarot 0: The Fool - start of something, change, mastery, will, natural power\",\n    1: \"Tarot 1: The Magician - magic, confidence, universal connection, command\",\n    2: \"Tarot 2: The High Priestess - intuition, inner potential, insight, misguided pride\",\n    3: \"Tarot 3: The Empress - harmony, success, fulfillment, family, environment, beauty\",\n    4: \"Tarot 4: The Emperor - authority, strength, victory, fatherhood, isolation\",\n    5: \"Tarot 5: The Hierophant - guidance, compassion, spiritual growth, rule-following, sacrifice\"\n}\n```",
+        "file_id": 270,
+        "content": "This code sets the torrent path and selected file path for a video download using Webtorrent. It uses managed temporary directories and considers using a single server instance, which could potentially manage resources within the server and lead to error-prone situations.",
         "type": "comment"
     },
     "2532": {
-        "file_id": 273,
-        "content": "误的讯息，恶意的规劝，上当，援助被中断，愿望无法达成，被人利用，被放弃。事业上多了些灵活的态度，不再刻板遵循旧有的方式，勇于创新形成自己独特的理念，为自己的真实想法而活、而工作。感情上开始正视自己对感情的真实感受与做法，尽管依旧会听取对方的意见，但以不会全盘接受。当你感到无法接受对方的意见时，会及时与其沟通，找出改善关系的做法。\"\"\", 6: \"\"\"【6】恋人（The Lovers，VI)\n撮合，爱情，流行，兴趣，充满希望的未来，魅力，增加朋友。感情和肉体对爱的渴望，它暗示恋情将向彼此关系更亲密的方向发展。事业上将面临重大的抉择，它将关系到你的未来前途。\n禁不起诱惑，纵欲过度，反覆无常，友情变淡，厌倦，争吵，华丽的打扮，优柔寡断。感情上表现幼稚，对成长虽有期待与希望，却希望永远躲避危险，逃避责任。事业上总保持着很高的戒心，让人感到很不舒服，不愿同你合作。\"\"\", 7: \"\"\"【7】战车（The Chariot，VII)\n努力而获得成功，胜利，克服障碍，行动力，自立，尝试，自我主张，年轻男子，交通工具，旅行运大吉。事业上显示出才能，办事卓有成效。自信而富理智的你将让客户更有信心，愿意与你共同合作。在感情上正在努力控制自己的情绪，而且控制得很好，这让你的感情发展得更顺利。\n争论失败，发生纠纷，阻滞，违返规则，诉诸暴力，顽固的男子，突然的失败，不良少年，挫折和自私自利。放弃以往在事业上所坚持的，结局将会更加完美。感情上失去方向，你已经没有以往的冷静，这让对方在心中产生了不信任感，也许你要反省一下自己的所作所为了。\"\"\", 8: \"\"\"【8】力量（Strength，VIII）\n大胆的行动，有勇气的决断，新发展，大转机，异动，以意志力战胜困难，健壮的女人。在事业上你不断突破自我，上司和客户都对你有充分的信心，成就接踵而来。在爱情上，你将发展一段真正亲密的感情，你们全心投入，相互倾诉，丝毫没有距离感。\n胆小，输给强者，经不起诱惑，屈服在权威与常识之下，没有实践便告放弃，虚荣，懦弱，没有耐性。内心的恐惧使你畏首畏尾，进而遭遇事业的瓶颈，感到失去了自信。在爱情上患得患失，失去清醒的判断。\"\"\", 9: \"\"\"【9】隐者（The Hermit，IX)\n隐藏的事实，个别的行动，倾听他人的意见，享受孤独，自己的丢化，有益的警戒，年长者，避开危险，祖父，乡间生活。你在事业黄金时期引退，旁人都不了解这不过是你在为下一次黄金时期的到来进行休息。感情方面你将深刻思考自己在这段感情中的角色和地位，并探索彼此之间的关系。",
+        "file_id": 270,
+        "content": "// const{WebTorrent} = require_esm('webtorrent').default\n// console.log('IMPORT PATH?',process.env.NODE_PATH)\n// this system sucks. it does not support string concatenation.\n// maybe you can execute command to symlink global node_modules automatically? nope in javascript but in shell script, or it will not run as expected, since the import statements are running before anything would. \nimport ffmpeg from 'fluent-ffmpeg'\nimport fs from 'fs'\n// try {\nfs.rmdirSync('./[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]',{recursive: true})\n// maybe we shall not catch this exception? handle it yourself!\n// }\n// catch(e) { // you can omit the (e)\n//     // console.log(\"GIVEN DIRECTORY DOES NOT EXIST\")\n//     // it will execute even if the directory does not exist.\n//     console.log(\"UNKNOWN ERROR WHILE REMOVING DIRECTORY:\")\n//     console.log(e)\n// }\n// fuck it. let's symlink the NODE_PATH to here.\n// https://github.com/nodejs/node/issues/38687\n// https://nodejs.org/api/esm.html#esm_no_node_path",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py:31-45"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:19-41"
     },
     "2533": {
-        "file_id": 273,
-        "content": "Code represents tarot card descriptions for the Rider-Waite tarot deck, with each numbered section corresponding to a specific tarot card. The descriptions provide insights into areas of life such as career, relationships, and personal growth based on the card's symbolism and interpretation.",
+        "file_id": 270,
+        "content": "This code attempts to import `WebTorrent` and `fluent-ffmpeg`, remove a directory, and symlink the NODE_PATH to the current location. It seems to be encountering issues with the system not supporting string concatenation in imports and handling exceptions.",
         "type": "comment"
     },
     "2534": {
-        "file_id": 273,
-        "content": "无视警，憎恨孤独，自卑，担心，幼稚思想，过于慎重导致失败，偏差，不宜旅行。在事业中过多的投入已经让你不愿面对其它事情，因而事业有了突破性的进展。在感情方面，用工作繁忙来逃避这段感情的发展，对伴侣态度冷淡，因为害怕感情的发展而在关键时刻退缩，使对方心寒。\"\"\", 10: \"\"\"【10】命运之轮（The Wheel of Fortune，X)\n关键性的事件，有新的机会，因的潮流，环境的变化，幸运的开端，状况好转，问题解决，幸运之神降临。命运之轮正转到了你人生最低迷的时刻，也许你有些无法接受，但是若能以平常心来看待，这无疑是你成长的最好时机，需要认真面对。感情方面所受到的挫折近乎让你崩溃，然而你还在不断努力。\n虽然你面前是无数的荆棘，但坚持过去将是平坦的大道。你会发现以前所付出的无谓努力，而今反而成了你前进的动力，先前的付出终于有了回报。命运之轮是由命运女神转动的，所以你俩之前的风风雨雨都将过去，关系将进入稳定的发展阶段。\n边疆的不行，挫折，计划泡汤，障碍，无法修正方向，往坏处发展，恶性循环，中断。\"\"\", 11: \"\"\"【11】正义（Justice，XI）\n公正、中立、诚实、心胸坦荡、表里如一、身兼二职、追求合理化、协调者、与法律有关、光明正大的交往、感情和睦。事业上你不会有其它太多的感觉，只是按照以前的计划认真地执行。你对感情生活相当满意，对于你的选择对方都是接受的态度。\n失衡、偏见、纷扰、诉讼、独断专行、问心有愧、无法两全、表里不一、男女性格不合、情感波折、无视社会道德的恋情。长时间的压抑使你在事业最关键的时刻倒下了，需要认真修整一番才能再次前进。感情上你一直忍让着，然而这次你却爆发了，开始指责对方的不是，你们的感情将会有很大的波折。\"\"\", 12: \"\"\"【12】倒吊人（The Hanged Man，XII)\n接受考验、行动受限、牺牲、不畏艰辛、不受利诱、有失必有得、吸取经验教训、浴火重生、广泛学习、奉献的爱。当牌面正立时，你的事业会有短暂的停顿，但你很清楚其中的原因，再次确认自己的目标，做好出发的准备。感情上同样需要反省的时间，你对爱情的牺牲对会给对方很大的触动，也会成为你们关系发展的催化剂。\n无谓的牺牲、骨折、厄运、不够努力、处于劣势、任性、利己主义者、缺乏耐心、受惩罚、逃避爱情、没有结果的恋情。当牌面倒立时，事业上缺乏远见，迷失了努力的目标。感情上你没有了为对方付出的念头，而对方对你的态度依旧，这使你更想逃避。你已经忽略了内心深处正确的判断力，这让你开始遇到很多失败。\"\"\", 13: \"\"\"【13】 死神（Death，XIII)",
+        "file_id": 270,
+        "content": "// https://nodejs.org/api/esm.html\n// no template string available. shit.\n// import { Readable } from 'stream'\nimport WebTorrent from 'webtorrent'\n// // const WebTorrent = await import('webtorrent')\nconsole.log(\"WEBTORRENT OBJECT?\",WebTorrent)\nconst client=new WebTorrent({dht: true}) // nothing reading out. guess this is fucked.\n// please cache files under some KNOWN directories. otherwise, i will be fucked.\nconst serverPort=8970\nconst instance=client.createServer()\ninstance.server.listen(serverPort) // not random port? not zero? \nconst config={}\n// https://github.com/webtorrent/webtorrent/blob/master/docs/api.md#clientaddtorrentid-opts-function-ontorrent-torrent-\nconfig.path=process.cwd() // download to current directory?\n// pass different temp directory name for different torrents to prevent name clash? but what about the streaming URL?\n// default=`/tmp/webtorrent/`\n// now i fucking got you!\n// add trackers?\n// config.announce=[\"\"]\nclient.add(torrentPath,config,(torrent) => {\n    var selectedFile=torrent.files.find(file => {",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py:47-61"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:42-72"
     },
     "2535": {
-        "file_id": 273,
-        "content": "Code snippet for Tarot card descriptions.",
+        "file_id": 270,
+        "content": "Code imports WebTorrent, creates a new client with DHT enabled, starts a server on port 8970, adds a torrent from the specified path using the default configuration, and searches for the desired file in the torrent's files.",
         "type": "comment"
     },
     "2536": {
-        "file_id": 273,
-        "content": "失败、接近毁灭、生病、失业、维持停滞状态、持续的损害、交易停止、枯燥的生活、别离、重新开始、双方有很深的鸿沟、恋情终止。事业上你将放弃一些得到的利益，并获得全新的发展机会。在感情上，你将会发生深刻的变化，将开始新的阶段，接受事实你们会有更加美好的旅程。\n抱有一线希望、起死回生、回心转意、摆脱低迷状态、挽回名誉、身体康复、突然改变计划、逃避现实、斩断情丝、与旧情人相逢。事业上你在试图“两全其美”，希望能够发生奇迹。在感情上，对方已经接受了改变，而你却在逃避现实，你俩的距离正在越来越大。\"\"\", 14: \"\"\"【14】节制（Temperance，XIV)\n单纯、调整、平顺、互惠互利、好感转为爱意、纯爱、深爱。你在事业上小心翼翼，因为处事理智让你的同事感到十分放心。当下你们的感情简简单单，一切都是这么的单纯、平静，正是因为彼此的沟通才让这段感情之路如此通畅。\n消耗、下降、疲劳、损失、不安、不融洽、爱情的配合度不佳。在事业上，你陷入了朝令夕改的怪圈，不妨效仿一下愚人勇往直前，或许能够取得更大的成功。感情上彼此虽然还在不断尝试着沟通，但每次之后总是感觉没有收获，正因为如此你们之间的距离才会越拉越大。\"\"\", 15: \"\"\"【15】恶魔（The Devil ，XV)\n被束缚、堕落、生病、恶意、屈服、欲望的俘虏、不可抗拒的诱惑、颓废的生活、举债度日、不可告人的秘密、私密恋情。你将在事业中得到相当大的名声与财富，你心中的事业就是一切，财富就是你的目标。感情上你们开始被彼此束缚，却不希望改善这种关系，情愿忍受彼此的牵连和不满。\n逃离拘束、解除困扰、治愈病痛、告别过去、暂停、别离、拒绝诱惑、舍弃私欲、别离时刻、爱恨交加的恋情。事业上理性开始支配欲望，找到真正值得努力的目标。感情上开始尝试与对方进行沟通，这让你俩的感情更加牢固。\"\"\", 16: \"\"\"【16】塔（The Tower，XVI)\n破产、逆境、被开除、急病、致命的打击、巨大的变动、受牵连、信念崩溃、玩火自焚、纷扰不断、突然分离，破灭的爱。事业上的困难显而易见，回避不是办法，要勇于挑战，尽管它貌似强大。在感情方面，突然的改变让你陷入深深的痛苦中，接受改变可以让你或你们双方在未来的人生旅途中走得更好。\n困境、内讧、紧迫的状态、状况不佳、趋于稳定、骄傲自大将付出代价、背水一战、分离的预感、爱情危机。事业上开始有稳定的迹象，你不要盲目抵抗改变的发生",
+        "file_id": 270,
+        "content": "        // console.log(\"FILENAME?\", file.name)\n        // it will only select the first file matching the criterion.\n        // return file.name.endsWith('.mkv')\n        return file.path==selectedFilePath\n    })\n    // console.log(\"SELECTED FILE?\")\n    // console.log(selectedFile)\n    // exit here?\n    // process.exit()\n    // now pass to fluent-ffmpeg.\n    // https://github.com/leeroybrun/webtorrent-transcode\n    setInterval(() => {console.log(\"SPEED?\",client.downloadSpeed)},2000) // why speed is zero now? wtf? are you finished?\n    // *******************READSTREAM RELATED*******************\n    // https://github.com/webtorrent/webtorrent/issues/2464\n    // const stream = Readable.from(selectedFile) // are you sure?\n    // this sucks. pipe is not seekable. consider something else? (like unix domain socket)\n    // var stream=selectedFile.createReadStream() // not working! fuck.\n    // // // var stream = fs.createReadStream(\"/Users/jamesbrown/Downloads/anime_download/[Sakurato] Onii-chan wa Oshimai! [01][AVC-8bit 1080p AAC][CHT].mp4\")",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py:63-77"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:73-95"
     },
     "2537": {
-        "file_id": 273,
-        "content": "这段代码是从pyjom/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py文件中截取的，用于描述塔（The Tower，XVI）这张毒诺牌的含义。在事业和感情方面都提到了突然的改变、困难、痛苦等内容，强调接受改变才能在未来的人生旅途中走得更好。",
+        "file_id": 270,
+        "content": "The code is filtering files based on their name or path to match a predetermined file. It then logs the download speed periodically and attempts to create a readable stream from the selected file. The comments indicate frustration with non-working solutions, suggesting alternative approaches like Unix domain sockets or other methods for better performance.",
         "type": "comment"
     },
     "2538": {
-        "file_id": 273,
-        "content": "，这只会导致更大的改变，无论你如何抵抗，改变终究会发生。在感情上双方的情绪终于平静下来，虽然沟通上还有些困难，但不会有太大的变化了，也许你做些让步，会让你们的感情更融洽。\"\"\", 17: \"\"\"【17】星星（The Star，XVII)\n前途光明、充满希望、想象力、创造力、幻想、满足愿望、水准提高、理想的对象、美好的恋情。代表当你在事业上得到希望的能量时，前途会无比光明。在感情方面，你对自己很有信心，对两人的关系也抱有乐观的态度，相信自己能把握主动权，并努力追求对方，你们很可能就是命中注定的那一对。\n挫折、失望、好高骛远、异想天开、仓皇失措、事与愿违、工作不顺心、情况悲观、秘密恋情、缺少爱的生活。在事业上，你不要全部依靠别人的给予，因为你还有希望在心中燃烧，只有靠自己才有真正的发展动力。感情方面你俩无法彼此信任，感觉无法把自己托付给对方，也许你们退一步，都冷静一下就能找出解决问题的途径，因为答案就在你们的心中。\"\"\", 18: \"\"\"【18】月亮（The Moon，XVIII)\n不安、迷惑、动摇、谎言、欺骗、鬼迷心窍、动荡的爱、三角关系。在事业上，你可能有些不满足，希望能够把自己内在的力量全使出来，于是你开始想要晚上的时间。感情方面，你很敏感害怕被伤害，尽管有伴侣的承诺，你仍然犹豫不决，甚至有逃避的想法。\n逃脱骗局、解除误会、状况好转、预知危险、等待、正视爱情的裂缝。在事业上，你因为外界的压力开始退缩了，并对自己的既定目标产生了怀疑。在感情上，你们之间的问题开始浮现，虽然有些痛，但是只要共同面对存在的困难，问题就解决一半了。\"\"\", 19: \"\"\"【19】太阳（The Sun，XIX)\n活跃、丰富的生命力、充满生机、精力充沛、工作顺利、贵人相助、幸福的婚姻、健康的交际。事业上会有贵人相助，将会有更好的发展机遇。在感情方面，你们已经走出坎坷的感情之路，前面将是洒满歌声和欢乐的坦途，你们将开始规划未来的生活。\n消沉、体力不佳、缺乏连续性、意气消沉、生活不安、人际关系不好、感情波动、离婚。事业上竞争心太急切了，把对手都吓跑了，然而也让合作伙伴感到害怕，或许你该放松些。感情上两人间出现一些小变化，开始在乎对方的态度和自己的付出，这些怀疑也许都是没必要的。\"\"\", 20: \"\"\"【20】审判（Judgement，XX)\n复活的喜悦、康复、坦白、好消息、好运气、初露锋芒、复苏的爱、重逢、爱的奇迹。当牌面正立时，事业上你超越了自我，在过去努力的基础上取得了成功。感情上双方都在认真学习和成长，虽然表面上的变化并不大，但内在的改变已经很大了。",
+        "file_id": 270,
+        "content": "    // stream.unpipe=(nodeStream) => { } //doing nothing?\n    // stream.on('error',function(err) {\n    //     console.log('STREAM ERROR?',err);\n    //     // just ignore it?\n    // })\n    // console.log(\"STREAM?\",stream)\n    // while(true) {\n    //     var buffer=stream.read(200)\n    //     console.log(\"READING:\",buffer)\n    // }\n    // var reading=false\n    // stream.on('readable',function() {\n    //     if(!reading) {\n    //         reading=true\n    //         console.log(\"STREAM READABLE\")\n    //         ffmpeg(stream).ffprobe((err,data) => {\n    //             if(err) {\n    //                 console.log(\"FFPROBE ERROR:\",err)\n    //             } else {\n    //                 console.log(\"FFPROBE METADATA:\",data)\n    //             }\n    //             process.exit()\n    //         })\n    //     }\n    // })\n    // duration is fake.\n    // ffmpeg(stream).ffprobe((err,data) => {\n    //     if(err) {\n    //         console.log(\"FFPROBE ERROR:\",err)\n    //     } else {\n    //         console.log(\"FFPROBE METADATA:\",data)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py:77-91"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:96-130"
     },
     "2539": {
-        "file_id": 273,
-        "content": "This Python code contains descriptions for the 17, 18, 19, and 20 tarot cards. It provides brief interpretations of each card's meaning in terms of future prospects, career, relationships, and personal growth.",
+        "file_id": 270,
+        "content": "This code appears to be attempting to read a stream using ffmpeg and retrieve metadata. It handles potential errors, but the unpipe function seems unused, and it might be designed for testing purposes or handling partial downloads. The while loop for continuous reading may not be functional as well.",
         "type": "comment"
     },
     "2540": {
-        "file_id": 273,
-        "content": "一蹶不振、幻灭、隐瞒、坏消息、无法决定、缺少目标、没有进展、消除、恋恋不舍。在事业上缺乏清晰的判断，试图用物质填充精神的空虚。在感情上，不断地回忆着过去的美好时光，不愿意去正视眼前的问题，你们的关系已经是貌合神离了。\"\"\", 21: \"\"\"【21】世界（The World，XXI)\n完成、成功、完美无缺、连续不断、精神亢奋、拥有毕生奋斗的目标、完成使命、幸运降临、快乐的结束、模范情侣。在事业上因为努力工作，所以回报丰厚。感情上，你们在彼此的承诺中持续着美好的关系。\n未完成、失败、准备不足、盲目接受、一时不顺利、半途而废、精神颓废、饱和状态、合谋、态度不够融洽、感情受挫。在事业的路上有巨大的障碍，你精神不振，丧失了挑战的动力。感情上，你们不再重视承诺，只是盲目接受对方。彼此最好能沟通一下，不要让痛苦继续纠缠着你们。\"\"\"}\nsmdict = {0: \"【权杖】（The Leangle)代表元素火，象征激情、能量和创造。\", 1: \"【星币】（The Garren)代表元素土，象征金钱、物质和享受。\",\n          2: \"【圣杯】（The Chalice)代表元素水，象征情感、关系、爱和灵感。\", 3: \"【宝剑】（The Blade)代表元素风，象征思想、智慧、交流和冲突。\"}\nsmdict2 = {1:\"COINS\",2:\"CUP\",3:\"SWORDS\",0:\"WANDS\"}\n#mdict 21, smdict 3\n# class py_solution:\ndef int_to_Roman(num):\n    lookup = [\n        (1000, 'M'),\n        (900, 'CM'),\n        (500, 'D'),\n        (400, 'CD'),\n        (100, 'C'),\n        (90, 'XC'),\n        (50, 'L'),\n        (40, 'XL'),\n        (10, 'X'),\n        (9, 'IX'),\n        (5, 'V'),\n        (4, 'IV'),\n        (1, 'I'),\n    ]\n    res = ''\n    for (n, roman) in lookup:\n        (d, num) = divmod(num, n)\n        res += roman * d",
+        "file_id": 270,
+        "content": "    //     }\n    //     // process.exit()\n    // })\n    // ffmpeg(stream).seekInput('0:10').duration(\"0:15\").on('progress',function(progress) {\n    //     // why not showing progress?\n    //     console.log('FFmpeg Processing: '+progress.percent+'% done');\n    // }).on('end',() => {\n    //     console.log(\"FFMPEG EXECUTION COMPLETE?\")\n    //     // let's rerun.\n    //     // instance.close()\n    //     client.destroy()\n    //     process.exit()\n    //     // the time range simply does not exist.\n    // }).outputOptions(['-c copy','-y']).output('output.mkv').run() // still not working?\n    // *******************READSTREAM RELATED*******************\n    // how about let's use url?\n    // how to urlencode?\n    // var urlSuffix = encodeURIComponent(selectedFilePath)\n    var fileRequestUrl=`http://localhost:${serverPort}`+selectedFile.streamURL\n    // console.log(\"STREAMING URL?\",fileRequestUrl)\n    // http://localhost:8970/webtorrent/421d78cadb5e1bb4fc1fec9dc2d6680e810c13c2/%5BKamigami&VCB-Studio%5D%20Yahari%",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py:93-125"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:131-158"
     },
     "2541": {
-        "file_id": 273,
-        "content": "This code is mapping the Tarot card descriptions and their corresponding numbers to different elements and card suits. It also includes a function int_to_Roman that converts an integer to its Roman numeral representation using lookup values for each Roman numeral value.",
+        "file_id": 270,
+        "content": "This code snippet attempts to download a video file, process it using FFmpeg and stream it over Webtorrent. It encodes the streaming URL for the video and logs progress during the FFmpeg processing. The code may have issues with the FFmpeg processing not showing progress and potential problems in the readstream implementation.",
         "type": "comment"
     },
     "2542": {
-        "file_id": 273,
-        "content": "    return res",
+        "file_id": 270,
+        "content": "20Ore%20no%20Seishun%20Lovecome%20wa%20Machigatte%20Iru.%20%5BMa10p_1080p%5D/SPs/%5BKamigami&VCB-Studio%5D%20Yahari%20Ore%20no%20Seishun%20Lovecome%20wa%20Machigatte%20Iru.%20%5BCM01%5D%5BMa10p_1080p%5D%5Bx265_flac%5D.mkv\n    //shit?\n    // ffmpeg(fileRequestUrl).ffprobe((err,data) => {\n    //     if(err) {\n    //         console.log(\"FFPROBE ERROR:\",err)\n    //     } else {\n    //         console.log(\"FFPROBE METADATA:\",data)\n    //         var duration=data.format.duration\n    //         console.log(\"VIDEO DURATION?\",duration)\n    //         // you'd better read this. you fuck!\n    //         // i ask for 10 secs.\n    //         // output still contains metadata. but do we have subtitles?\n    //         // seeking is not so accurate but in minutes? easy.\n    //         // for file under 1 minute, please do not seek ok? (seek locally?)\n    //         // do not seek for segments that are too short. seek larger segments!\n    ffmpeg(fileRequestUrl).seekInput('0:10').duration(\"0:15\").on('progress',function(progress) {",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_descriptions.py:126-126"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:158-176"
     },
     "2543": {
-        "file_id": 273,
-        "content": "This code is returning the result (res) after some operation or function execution. It indicates that the previous code block was performing a calculation, query, or transformation, and now it's ready to deliver the outcome.",
+        "file_id": 270,
+        "content": "This code uses FFmpeg to seek and download a video segment from the given URL. It seeks to 10 seconds, sets the duration to 15 seconds, and handles progress updates.",
         "type": "comment"
     },
     "2544": {
-        "file_id": 274,
-        "content": "/tests/bilibili_practices/bilibili_tarot/tarot_correspondences.py",
-        "type": "filepath"
+        "file_id": 270,
+        "content": "        console.log('FFmpeg Processing: '+progress.percent+'% done');\n    }).on('end',() => {\n        console.log(\"FFMPEG EXECUTION COMPLETE?\")\n        // let's rerun.\n        instance.close()\n        client.destroy()\n        process.exit()\n        // the time range simply does not exist.\n    }).outputOptions(['-c copy',\n        '-y']).output('output.mkv').run()\n    // not top-level function or async function. fuck.\n})",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:177-188"
     },
     "2545": {
-        "file_id": 274,
-        "content": "This code loads tarot card images, maps them to numbers, checks for matches in directories, and prints the major/minor tarot cards along with their corresponding values.",
-        "type": "summary"
-    },
-    "2546": {
-        "file_id": 274,
-        "content": "dirs =[\"tarot_pictures\",\"tarot_pictures2\"] \nimport os\nfrom tarot_descriptions import *\nmtarget_0 = {k:None for k in mdict.keys()}\nmtarget_1 = {k:None for k in smdict.keys()}\nfn = []\nfor d in dirs:\n    fnames = os.listdir(d)\n    fnames = [os.path.join(d,f) for f in fnames]\n    fn+= fnames\npopdict = []\nfor k in mtarget_0.keys():\n    if k == 0:\n        kv = \"0\"\n    else:\n        kv = int_to_Roman(k)\n    for f in fn:\n        fb = os.path.basename(f)\n        f0 = fb.split(\".\")[0].split(\"_\")[0]\n        if f0.upper() == kv:\n            mtarget_0[k] = f\n            break\n    if mtarget_0[k] is None:\n        popdict.append(k)\nfor k in popdict:\n    mtarget_0.pop(k)\npopdict = []\nfor k in mtarget_1.keys():\n    kv =  smdict2[k]\n    for f in fn:\n        fb = os.path.basename(f)\n        f0 = fb.split(\".\")[0].split(\"_\")[-1]\n        if kv.upper() in f0.upper():\n            mtarget_1[k] = f\n            break\n    if mtarget_1[k] is None:\n        popdict.append(k)\nfor k in popdict:\n    mtarget_1.pop(k)\n# print()\n# ########printing.\n# pretty good.",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_correspondences.py:1-48"
-    },
-    "2547": {
-        "file_id": 274,
-        "content": "This code is loading tarot card images and mapping them to their respective numbers. It first defines the directories containing the image files, then iterates over each directory, lists the files, and checks if the file name matches the corresponding tarot card number in Roman or Arabic numeral form. If a match is found, it assigns that image file to the respective dictionary (mtarget_0 for Arabic numbers, mtarget_1 for tarot card names). Finally, it removes any missing mappings from the dictionaries.",
+        "file_id": 270,
+        "content": "The code is closing the FFmpeg instance and destroying the client after a torrent download completes. It also logs progress updates during the download process and ends the program execution upon completion.",
         "type": "comment"
     },
+    "2546": {
+        "file_id": 271,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/torrent_analyzer.py",
+        "type": "filepath"
+    },
+    "2547": {
+        "file_id": 271,
+        "content": "The code snippet imports libraries, defines paths and analyzes a torrent file using torrent_parser. It prints the data, checks for multiple files, stores their names and lengths (if applicable), formats size, prints file details, writes filenames to JSON, and prepares the file for further processing.",
+        "type": "summary"
+    },
     "2548": {
-        "file_id": 274,
-        "content": "# if __name__ == \"__main__\":\n#     for k in mtarget_0.keys():\n#         print(\"MAJOR\",k,mtarget_0[k])\n#     for k in mtarget_1.keys():\n#         print(\"MINOR\",k,mtarget_1[k])",
+        "file_id": 271,
+        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nimport os\n# single file.\n# torrent_path = \"[桜都字幕組] 不當哥哥了！ _ Onii-chan wa Oshimai! [01][1080p][繁體內嵌].torrent\"\ntorrent_path = \"[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p].torrent\"\nbasepath = \"/Users/jamesbrown/Downloads/anime_download\"\ntorrent_path = os.path.join(basepath, torrent_path)\n# analyze this torrent file.\nimport torrent_parser as tp\ndata = tp.parse_torrent_file(torrent_path)\nimport rich\nrich.print(data)\n# will be complete name later?\nsingle_file = not('files' in data['info'].keys())\n# data['info']['name'] \n# length will be total length?\n# data['info']['length']\n# breakpoint()\n# does it preserve the order?\n# import humanize\n# well.\nfnames=[]\nimport json\nfrom humanfriendly import format_size\nif not single_file:\n    for index, fileInfo in enumerate(data['info']['files']):\n        aria2c_index = index+1\n        length = fileInfo['length']\n        path = fileInfo['path'] # multiple strings in a list\n        joined_path = \"/\".join(path)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/tarot_correspondences.py:49-53"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/torrent_analyzer.py:1-41"
     },
     "2549": {
-        "file_id": 274,
-        "content": "Code checks keys in mtarget_0 and mtarget_1 dictionaries, printing \"MAJOR\" followed by key and its value for mtarget_0, and \"MINOR\" followed by key and its value for mtarget_1.",
+        "file_id": 271,
+        "content": "Code snippet imports necessary libraries, defines a torrent file path and basepath for downloads, joins the paths, analyzes the torrent file using torrent_parser, prints the parsed data, checks if the torrent contains multiple files or not, stores the name and length of each file (if applicable), converts file paths to single string format, and finally prepares the file for further processing.",
         "type": "comment"
     },
     "2550": {
-        "file_id": 275,
-        "content": "/tests/bilibili_practices/bilibili_tarot/scriptable_generate_typography_with_voice_underline_subtitle.py",
-        "type": "filepath"
+        "file_id": 271,
+        "content": "        filesize_human_readable = format_size(length)\n        print(f\"[{aria2c_index}] ** [{filesize_human_readable}] ** {path[-1]}\")\n        # the index is right.\n        fnames.append(path[-1])\n        print(f\"FULLPATH: {joined_path}\")\nwith open(\"test_filenames.json\",'w+') as f:\n    f.write(json.dumps(fnames))",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/torrent_analyzer.py:42-49"
     },
     "2551": {
-        "file_id": 275,
-        "content": "This code imports necessary modules and sets up the environment for typography generation using voice underscore subtitle. It reads a demo text, creates a directory to save generated images, sets font and size, and draws each character on the screen with optional rotation and filling options.",
-        "type": "summary"
-    },
-    "2552": {
-        "file_id": 275,
-        "content": "from p5 import *\nimport os\n# from test_common import demo_text\ndemo_text = open(\"demo_text.log\",\"r\",encoding=\"utf-8\").read()\nos.system(\"rm screenshot*\")\ntarget_dir = \"demo_typography\"\nos.system(\"rm -rf {}\".format(target_dir))\nos.system(\"mkdir {}\".format(target_dir))\ntsize = 100\ncounterx = 0\nscrwidth = 1920\nxcoord = int(scrwidth/2) # how to get this shit?\nscrheight = 1080\nycoord = scrheight - tsize - 75\nlineNum = 0\n# what fucking ever.\ns = demo_text\ns0 = [\"\"]\ndef setup():\n    size(scrwidth,scrheight)\n    # text_font(create_font('./fonts/Fonts/博洋行书3500.ttf', size=tsize))\n    # text_font(create_font('./fonts/Fonts/书体坊兰亭体I.ttf', size=tsize))\n    text_font(create_font('./SimHei.ttf', size=tsize))\nimport random\ndef draw():\n    global counterx,xcoord,ycoord,s,s0,scrheight,scrwidth,lineNum,target_dir\n    #force override.\n    background(0)\n    if counterx > len(s)-1:\n        exit()\n    s1 = s[:counterx]\n    counterx+=1\n    mtext_width = text_width(s1)\n    try:\n        text9 = s1\n        # else:\n        #     text9 = \" \"\n        # l = len(s0)-1",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/scriptable_generate_typography_with_voice_underline_subtitle.py:1-46"
-    },
-    "2553": {
-        "file_id": 275,
-        "content": "This code is importing necessary modules and setting up the environment for generating typography with voice underscore subtitle. It reads a demo text, creates a directory to save the generated images, sets up font and size, and begins drawing each character from the text on the screen.",
+        "file_id": 271,
+        "content": "This code snippet formats the file size in human-readable format and prints it along with the aria2c index, file name, and full path. It then stores the filenames in a list and writes them to a JSON file named \"test_filenames.json\".",
         "type": "comment"
     },
+    "2552": {
+        "file_id": 272,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/subtitle_extractor.py",
+        "type": "filepath"
+    },
+    "2553": {
+        "file_id": 272,
+        "content": "This code references three different tools for extracting subtitles from a video file: mkvextract, ffmpeg, and optical character recognition (OCR). It suggests using the appropriate tool based on the source being processed, with the assumption that it's easier to extract subtitles from fixed locations in Bangumi videos.",
+        "type": "summary"
+    },
     "2554": {
-        "file_id": 275,
-        "content": "        # rotate = random.randint(-15,15)\n        # rotate = random.choice([random.randint(-20,-10),random.randint(10,20)])\n        rotate = 0\n        # r1 = random.randint(220,255)\n        # r2 = random.randint(220,255)\n        # r3 = random.randint(220,255)\n        # r4 = random.randint(220,255)\n        r1 = r2 = r3 = r4 = 255\n        fill(red=r1, green=r2, blue=r3, alpha=r4)\n        text(text9, (xcoord-int(mtext_width/2), ycoord,),rotate = rotate)  # add str() to key\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"SHIT HAPPENED\")\n        pass\n    save_frame(\"{}/screenshot.png\".format(target_dir))\nrun()\nprint(\"EXITED.\")",
+        "file_id": 272,
+        "content": "# use mkvextract:\n# https://github.com/jorti/extract-subs/blob/master/extract-subs.py\n# use ffmpeg:\n# https://github.com/fdenivac/ffextract-subtitles/blob/master/ffextract-subtitles.py\n# use ocr to extract subtitles. since this is bangumi, it is easy to extract from fixed location.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/scriptable_generate_typography_with_voice_underline_subtitle.py:47-65"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/subtitle_extractor.py:1-7"
     },
     "2555": {
-        "file_id": 275,
-        "content": "This code sets the rotate value to 0 and RGB values to 255 for filling text. It then displays the text at specified coordinates with optional rotation. If an exception occurs, it prints the traceback and a message before saving a screenshot. The program exits and prints \"EXITED.\"",
+        "file_id": 272,
+        "content": "This code references three different tools for extracting subtitles from a video file: mkvextract, ffmpeg, and optical character recognition (OCR). It suggests using the appropriate tool based on the source being processed, with the assumption that it's easier to extract subtitles from fixed locations in Bangumi videos.",
         "type": "comment"
     },
     "2556": {
-        "file_id": 276,
-        "content": "/tests/bilibili_practices/bilibili_tarot/scriptable_generate_typography_with_voice.py",
+        "file_id": 273,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_torrent_file_list.py",
         "type": "filepath"
     },
     "2557": {
-        "file_id": 276,
-        "content": "The code manages text display, handles line wrapping and background color updates, reads a file for processing, generates typography text with voice, applies random rotation and colors, saves screenshot or displays error message, then exits.",
+        "file_id": 273,
+        "content": "This code fetches data from the Nyaa.si website using requests library, parses it using NyaaPy's utils and torrent modules, and prints the parsed JSON data and the corresponding data class object.",
         "type": "summary"
     },
     "2558": {
-        "file_id": 276,
-        "content": "from p5 import *\nimport os\n# from test_common import demo_text\ndemo_text = open(\"demo_text.log\",\"r\",encoding=\"utf-8\").read()\nos.system(\"rm screenshot*\")\ntarget_dir = \"demo_typography\"\nos.system(\"rm -rf {}\".format(target_dir))\nos.system(\"mkdir {}\".format(target_dir))\ntsize = 70\ncounterx = 0\nxcoord = 20\nycoord = 75\nscrwidth = 1920\nscrheight = 1080\nlineNum = 0\n# what fucking ever.\ns = demo_text\ns0 = [\"\"]\ndef setup():\n    size(scrwidth,scrheight)\n    # text_font(create_font('./fonts/Fonts/博洋行书3500.ttf', size=tsize))\n    text_font(create_font('./fonts/Fonts/书体坊兰亭体I.ttf', size=tsize))\n    # text_font(create_font('./SimHei.ttf', size=tsize))\nimport random\ndef draw():\n    global counterx,xcoord,ycoord,s,s0,scrheight,scrwidth,lineNum,target_dir\n    if len(s0) ==1:\n        if len(s0[0]) == 0:\n            background(0)\n    if counterx > len(s)-1:\n        exit()\n    s1 = s[counterx]\n    returnFlag = False\n    if s1 == \"\\n\":\n        # this is return!\n        returnFlag = True\n        lineNum +=1\n        stemp0 = \"\" # this is nothing.\n        tw = text_width(stemp0)",
+        "file_id": 273,
+        "content": "url = \"https://nyaa.si/view/1627038\"\nimport requests\nfrom NyaaPy import utils, torrent\nr = requests.get(url)\nSITE = utils.TorrentSite.NYAASI\njson_data = utils.parse_single(request_text=r.text, site=SITE)\ndata_class = torrent.json_to_class(json_data)\nimport rich\n# json_data['seeders']\n# json_data['title']\n# json_data['files']\nrich.print(json_data)\nprint()\nprint(\"_\"*20)\nprint()\nrich.print(data_class)\nbreakpoint()",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/scriptable_generate_typography_with_voice.py:1-47"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_torrent_file_list.py:1-25"
     },
     "2559": {
-        "file_id": 276,
-        "content": "The code reads a text file, clears the target directory, sets up the screen size and font, and starts drawing characters onto the screen. It checks for line breaks and keeps track of the current position and text content. If there is no more text to process, it exits.",
+        "file_id": 273,
+        "content": "This code fetches data from the Nyaa.si website using requests library, parses it using NyaaPy's utils and torrent modules, and prints the parsed JSON data and the corresponding data class object.",
         "type": "comment"
     },
     "2560": {
-        "file_id": 276,
-        "content": "        th = tsize*(lineNum+1) + tsize*0.2*(lineNum)\n        if (ycoord+th> scrheight):\n            # stemp0 = s1\n            s0 = [stemp0]\n            clear()\n            background(0)\n            lineNum = 0\n        else:\n            s0.append(stemp0)\n    else:\n        stemp0 = s0[-1]+s1\n        tw = text_width(stemp0)\n        th = tsize*(lineNum+1) + tsize*0.2*lineNum\n        if (tw + xcoord+ tsize*0.5> scrwidth):\n            stemp0 = s1\n            s0.append(stemp0)\n            lineNum +=1\n            th = tsize*(lineNum+1) + tsize*0.2*lineNum\n            if (ycoord+th> scrheight):\n                # stemp0 = s1\n                s0 = [stemp0]\n                background(0)\n                lineNum = 0\n        else:\n            s0[-1]= stemp0\n        # no_loop()\n        # clear\n    # s0 = stemp0\n        # end all evil.\n    counterx+=1\n    # load_font(\"SimHei.ttf\")\n    # print(\"text w/h:\",tw,th)\n    # for l, text9 in enumerate(s0):\n    if len(s0) == 1 and len(s0[0])<=1: # whatever.\n        # breakpoint()\n        clear()\n        background(0)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/scriptable_generate_typography_with_voice.py:48-85"
+        "file_id": 274,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_api_connector.py",
+        "type": "filepath"
     },
     "2561": {
-        "file_id": 276,
-        "content": "This code is handling text wrapping and line breaking for a text display system. It checks the text width and height, splitting lines when necessary and adjusting the number of lines based on available space. The code also clears the screen and updates the background color when needed to ensure proper visuals.",
-        "type": "comment"
+        "file_id": 274,
+        "content": "The Python script uses requests and BeautifulSoup to search the Nyaa torrent site for anime with 7+ seeders, retrieves results, stores in \"output.html\", and checks if more pages exist using a template and NyaaPy library for torrent handling.",
+        "type": "summary"
     },
     "2562": {
-        "file_id": 276,
-        "content": "    # if not returnFlag:\n    # print(s0)\n    try:\n        text9 = s0[-1][-1]\n        # else:\n        #     text9 = \" \"\n        l = len(s0)-1\n        # rotate = random.randint(-15,15)\n        rotate = random.choice([random.randint(-20,-10),random.randint(10,20)])\n        r1 = random.randint(200,255)\n        r2 = random.randint(200,255)\n        r3 = random.randint(200,255)\n        r4 = random.randint(200,255)\n        fill(red=r1, green=r2, blue=r3, alpha=r4)\n        text(text9, (xcoord+text_width(s0[-1][:-1]), ycoord+ l*(tsize*1.2),),rotate = rotate)  # add str() to key\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"SHIT HAPPENED\")\n        pass\n    save_frame(\"{}/screenshot.png\".format(target_dir))\nrun()\nprint(\"EXITED.\")",
+        "file_id": 274,
+        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nimport requests\nurl = \"https://nyaa.si\" # change this to mirror sites.\nMIN_SEEDERS=7 # must be greater than this.\nquery = \"oniichan wa oshimai! 01\"\nsort_term = \"seeders\"\nanime_categories = {\n    \"Anime\": \"1_0\",\n    \"Anime - Anime Music Video\": \"1_1\",\n    \"Anime - English-translated\": \"1_2\",\n    \"Anime - Non-English-translated\": \"1_3\",\n    \"Anime - Raw\": \"1_4\",\n}\ncategory_code = anime_categories[\"Anime\"]  # anime\npage = 1  # start page: 1\nend_of_page = False\n# better not to use rss version since it will not sort terms.\nparams = dict(f=0, c=category_code, q=query, s=sort_term, o=\"desc\", p=page)\n# better parse it yourself first huh?\n# r = requests.get(url, params=params)\n# assert r.code == 200\n# text = r.text\nwith open(\"output.html\", \"r\") as f:\n    text = f.read()\nfrom bs4 import BeautifulSoup\n# with open(\"output.html\",'w+') as f:\n#    f.write(text)\nsoup = BeautifulSoup(text, \"html.parser\")\n# breakpoint()\nimport parse\ntemplate = \"Displaying results {start:d}-{end:d} out of {total:d} results.\"",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/scriptable_generate_typography_with_voice.py:86-109"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_api_connector.py:1-48"
     },
     "2563": {
-        "file_id": 276,
-        "content": "This code generates a typography text with voice and applies random rotation, colors, and adjusts position based on the length of the text. It saves a screenshot if no exception occurs, otherwise prints \"SHIT HAPPENED\" and continues. Finally, it exits and prints \"EXITED.\"",
+        "file_id": 274,
+        "content": "The code is a Python script that uses the requests library to make an API request to the Nyaa torrent site. It searches for a specific anime with 7 or more seeders, retrieves the results, and stores them in a file named \"output.html\". The BeautifulSoup library is used to parse the HTML response, and the parse module seems to be utilized for further processing.",
         "type": "comment"
     },
     "2564": {
-        "file_id": 277,
-        "content": "/tests/bilibili_practices/bilibili_tarot/pooling.py",
-        "type": "filepath"
+        "file_id": 274,
+        "content": "banner = soup.find(\"div\", class_=\"pagination-page-info\").text\npagination_info = banner.split(\"\\n\")[0]\npagination_info_result = parse.parse(template, pagination_info)\nif pagination_info_result:\n    if pagination_info_result[\"total\"] == pagination_info_result[\"end\"]:\n        print(\"Reached end of page.\")\n        end_of_page = True\nfrom NyaaPy import utils\nSITE = utils.TorrentSite.NYAASI\njson_info = utils.parse_nyaa(request_text=text, limit=None, site=SITE)\nimport rich\nrich.print(json_info)\n# breakpoint()\nfor videoInfo in json_info:\n    seeders = int(videoInfo['seeders'])\n    seeders_enough = seeders>=MIN_SEEDERS\n    print('seeders?',seeders)\n    print(\"seeders enough?\", seeders_enough)\n    # videoInfo['id'] -> \"https://nyaa.si/view/{}\"\n# you can also download torrent file for only file info.",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_api_connector.py:50-77"
     },
     "2565": {
-        "file_id": 277,
-        "content": "This code creates a \"final_output\" directory and moves files from specified directories (\"major\", \"minor\", \"typo_0\", and \"typo_1\") to it, appending their filenames with the directory name. It also moves two specific video files to the same directory.",
-        "type": "summary"
-    },
-    "2566": {
-        "file_id": 277,
-        "content": "dirs = [\"major\",\"minor\",\"typo_0\",\"typo_1\"]\nimport os\nimport shutil\nos.system(\"mkdir final_output\")\nfor d in dirs:\n    files = os.listdir(d)\n    for f in files:\n        fname = \"{}_{}\".format(d,f)\n        shutil.move(os.path.join(d,f),os.path.join(\"final_output\",fname))\nfor x in [\"intro_video.mp4\",\"outro_video.mp4\"]:\n    shutil.move(x,os.path.join(\"final_output\",x))",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/pooling.py:1-15"
-    },
-    "2567": {
-        "file_id": 277,
-        "content": "This code creates a \"final_output\" directory and moves files from specified directories (\"major\", \"minor\", \"typo_0\", and \"typo_1\") to it, appending their filenames with the directory name. It also moves two specific video files to the same directory.",
+        "file_id": 274,
+        "content": "The code retrieves the banner from a webpage, extracts pagination information, and checks if it has reached the end of the page. It then parses the response using a template and determines if there are enough seeders for each video info. The code prints the number of seeders and whether they are enough based on a minimum seeders threshold. The code uses the NyaaPy library for site-specific torrent handling.",
         "type": "comment"
     },
-    "2568": {
-        "file_id": 278,
-        "content": "/tests/bilibili_practices/bilibili_tarot/mylist.txt",
+    "2566": {
+        "file_id": 275,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/name_resolution_parsing_chapter_recognition.py",
         "type": "filepath"
     },
-    "2569": {
-        "file_id": 278,
-        "content": "This code appears to be a text file listing videos in a specific order, potentially for a media player or organization system. The video files are named \"video/0.mp4\" and \"video/1.mp4\".",
+    "2567": {
+        "file_id": 275,
+        "content": "The code utilizes ffmpeg to extract subtitles, sets anime series constants, filters series names, and reads filenames from a JSON. It checks for bangume names, identifies episode index location, compares with expected position, and prints the episode index or displays \"EPISODE?\" if not recognized.",
         "type": "summary"
     },
-    "2570": {
-        "file_id": 278,
-        "content": "file video/0.mp4\nfile video/1.mp4",
+    "2568": {
+        "file_id": 275,
+        "content": "subtitle_types = [\"ass\", \"srt\"]\nvideo_types = [\n    \"mkv\",\n    \"mov\",\n    \"mp4\",\n    \"flv\",\n    \"avi\",\n    \"ogv\",\n    \"webm\",\n    \"ts\",\n    \"wmv\",\n    \"webm\",\n    \"m4v\",\n    \"3gp\",\n]\n# use ffmpeg for subtitle extraction?\nfiletypes = {\"subtitle\": subtitle_types, \"video\": video_types}\nBangumi_Name = \"Yahari Ore no Seishun Lovecome wa Machigatte Iru.\".strip()\nepisodeIndex = 3\nchinese_simplified_sub_types = [\"chs\", \"简体\", \"简日\"]\nchinese_traditional_sub_types = [\"繁日\", \"繁体\", \"繁體\", \"cht\"]\nimport json\n# replace non-alphanumeric charcters.\nepisode_formatter = lambda episode_index: str(episode_index).zfill(2)\nimport re\n# also replace all double spaces.\ndef double_space_replacer(chars: str):\n    if \"  \" in chars:\n        chars = chars.replace(\"  \", \" \")\n        return double_space_replacer(chars)\n    else:\n        return chars\nalphanumeric_filter = lambda chars: double_space_replacer(\n    re.sub(r\"[^a-z0-9]\", \" \", chars)\n)\nbangume_name_lower_alphanumeric = alphanumeric_filter(Bangumi_Name.lower())\nwith open(\"test_filenames.json\", \"r\") as f:",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/mylist.txt:1-2"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/name_resolution_parsing_chapter_recognition.py:1-46"
+    },
+    "2569": {
+        "file_id": 275,
+        "content": "This code defines file types for subtitles and videos, uses ffmpeg for subtitle extraction, defines constants related to a specific anime series, applies an alphanumeric filter to the anime name, and reads filenames from a JSON file.",
+        "type": "comment"
+    },
+    "2570": {
+        "file_id": 275,
+        "content": "    fnames = json.loads(f.read())\nfor fname in fnames:\n    fname_lower = fname.lower()\n    fname_lower_alphanumeric = alphanumeric_filter(fname_lower)\n    file_extension = fname_lower.split(\".\")[-1]\n    current_file_type = \"unknown\"\n    for filetype, file_extensions in filetypes.items():\n        if file_extension in file_extensions:\n            current_file_type = filetype\n            break\n    print(f\"<{current_file_type}> {fname}\")\n    print(fname_lower_alphanumeric)\n    substring_location_start = fname_lower_alphanumeric.find(\n        bangume_name_lower_alphanumeric\n    )\n    if substring_location_start!=-1:\n        substring_location_end = substring_location_start + len(\n        bangume_name_lower_alphanumeric\n    )\n        assert fname_lower_alphanumeric[substring_location_start: substring_location_end] == bangume_name_lower_alphanumeric\n        episodeIndexLocation = fname_lower_alphanumeric.find(f\" {episode_formatter(episodeIndex)} \")\n        if episodeIndexLocation!=-1:\n            if episodeIndexLocation+1>=substring_location_end:",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/name_resolution_parsing_chapter_recognition.py:47-71"
     },
     "2571": {
-        "file_id": 278,
-        "content": "This code appears to be a text file listing videos in a specific order, potentially for a media player or organization system. The video files are named \"video/0.mp4\" and \"video/1.mp4\".",
+        "file_id": 275,
+        "content": "Reading file names from a JSON, filtering, and determining their types. Checking if the bangume name substring is present in the filename. Identifying the episode index location and comparing it with the expected position.",
         "type": "comment"
     },
     "2572": {
-        "file_id": 279,
-        "content": "/tests/bilibili_practices/bilibili_tarot/kill_xb.sh",
-        "type": "filepath"
+        "file_id": 275,
+        "content": "                print(\"EPISODE?\") # this is the index we want\n                print(episodeIndex)",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/name_resolution_parsing_chapter_recognition.py:72-73"
     },
     "2573": {
-        "file_id": 279,
-        "content": "This script kills processes named \"xvfb\" and \"scriptable_generate_typography\" by first listing all processes, filtering out grep processes, searching for the desired process names, printing their PIDs, and then sending a TERM signal to kill them.",
-        "type": "summary"
+        "file_id": 275,
+        "content": "Code snippet checks the episode index and prints it. If the desired index is not recognized, it displays \"EPISODE?\" for clarification.",
+        "type": "comment"
     },
     "2574": {
-        "file_id": 279,
-        "content": "ps aux | grep -v grep | grep xvfb | awk '{print $2}' | xargs -iabc kill -s TERM abc\nps aux | grep -v grep | grep scriptable_generate_typography | awk '{print $2}' | xargs -iabc kill -s TERM abc",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/kill_xb.sh:1-2"
+        "file_id": 276,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/name_fuzzy.py",
+        "type": "filepath"
     },
     "2575": {
-        "file_id": 279,
-        "content": "This script kills processes named \"xvfb\" and \"scriptable_generate_typography\" by first listing all processes, filtering out grep processes, searching for the desired process names, printing their PIDs, and then sending a TERM signal to kill them.",
-        "type": "comment"
+        "file_id": 276,
+        "content": "This code initializes two empty lists, 'filenames' and 'bangumi_names'. 'bangumi_names' contains two string values representing anime titles.",
+        "type": "summary"
     },
     "2576": {
-        "file_id": 280,
-        "content": "/tests/bilibili_practices/bilibili_tarot/kill_pdspc.sh",
-        "type": "filepath"
+        "file_id": 276,
+        "content": "filenames = []\nbangumi_names= [\"Yahari Ore no Seishun Lovecome wa Machigatte Iru.\",\"Yahari Ore no Seishun Love Come wa Machigatteiru.\"]",
+        "type": "code",
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/name_fuzzy.py:1-3"
     },
     "2577": {
-        "file_id": 280,
-        "content": "This command finds processes named \"paddlespeech\", gets their process IDs, and then kills them using the KILL signal.",
-        "type": "summary"
+        "file_id": 276,
+        "content": "This code initializes two empty lists, 'filenames' and 'bangumi_names'. 'bangumi_names' contains two string values representing anime titles.",
+        "type": "comment"
     },
     "2578": {
-        "file_id": 280,
-        "content": "ps aux | grep -v grep | grep paddlespeech | awk '{print $2}' | xargs -iabc kill -s KILL abc",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/kill_pdspc.sh:1-1"
-    },
-    "2579": {
-        "file_id": 280,
-        "content": "This command finds processes named \"paddlespeech\", gets their process IDs, and then kills them using the KILL signal.",
-        "type": "comment"
-    },
-    "2580": {
-        "file_id": 281,
-        "content": "/tests/bilibili_practices/bilibili_tarot/get_tarots.py",
+        "file_id": 277,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/make_node_symlink.sh",
         "type": "filepath"
     },
-    "2581": {
-        "file_id": 281,
-        "content": "The code retrieves Tarot card images from \"i0.hdslb.com\" domain, uses PaddleOCR for recognition, saves high certainty recognized files with new names.",
+    "2579": {
+        "file_id": 277,
+        "content": "This script creates a symbolic link named \"node_modules\" pointing to the $NODE_PATH, presumably to resolve or fix an issue with file locations.",
         "type": "summary"
     },
-    "2582": {
-        "file_id": 281,
-        "content": "links = [\"https://i0.hdslb.com/bfs/article/231a2286704d13675c25df228abed3d2ddbf2d00.jpg\",\"https://i0.hdslb.com/bfs/article/c841534b39133e4e96f8bbb19a4471843243c5d4.jpg\",\"https://i0.hdslb.com/bfs/article/7913498bb634b8a13c1b60dbdcaed4463fa17f50.jpg\",\"https://i0.hdslb.com/bfs/article/ec07923700f633578a681c56a008505893cf47a6.jpg\",\"https://i0.hdslb.com/bfs/article/c2691feff128c0b982d9d28ce798b3a3327fd161.jpg\",\"https://i0.hdslb.com/bfs/article/78d92d8abac6fbb8a1a3c9bcf44b76b9e2b709c9.jpg\",\"https://i0.hdslb.com/bfs/article/1d8bc016bd9593a1ffc7c6ace7a0b6e2795ba24a.jpg\",\"https://i0.hdslb.com/bfs/article/e9a3e50378caf80fa7f1584813e7d88ea5f4e4f3.jpg\",\"https://i0.hdslb.com/bfs/article/b73f8a8bc1f215af7e181e1e5f4a682d353dd7f5.jpg\",\"https://i0.hdslb.com/bfs/article/9ebb2bf93fcd4bf0c0dd413c378ebe6b6c4b436a.jpg\",\"https://i0.hdslb.com/bfs/article/063b2dee6bb57a5de4fd518d671e2fc384089705.jpg\",\"https://i0.hdslb.com/bfs/article/9061adbc1f3fe0a6a591e64972feeef126d405bd.jpg\",\"https://i0.hdslb.com/bfs/artic",
+    "2580": {
+        "file_id": 277,
+        "content": "ln -s $NODE_PATH node_modules # to fix shit.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/get_tarots.py:1-1"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/make_node_symlink.sh:1-1"
     },
-    "2583": {
-        "file_id": 281,
-        "content": "The code contains a list of URLs to images.",
+    "2581": {
+        "file_id": 277,
+        "content": "This script creates a symbolic link named \"node_modules\" pointing to the $NODE_PATH, presumably to resolve or fix an issue with file locations.",
         "type": "comment"
     },
+    "2582": {
+        "file_id": 278,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/kill_aria2c.sh",
+        "type": "filepath"
+    },
+    "2583": {
+        "file_id": 278,
+        "content": "This command is killing the aria2c process with a SIGINT signal, specifically targeting the specified anime episode titled 'Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]' from the Kamigami & VCB-Studio group.",
+        "type": "summary"
+    },
     "2584": {
-        "file_id": 281,
-        "content": "le/16a5af1e204e9d99e29ce567da625fe4cbf97654.jpg\",\"https://i0.hdslb.com/bfs/article/064628af3ba2caad6da4f256c1203a2e5abc84d5.jpg\",\"https://i0.hdslb.com/bfs/article/e91f4d2080851dcd3b7d95b5899c3819379e7419.jpg\",\"https://i0.hdslb.com/bfs/article/ed7503d3465cc98c4f33c7269d4003dff5c0e30e.jpg\",\"https://i0.hdslb.com/bfs/article/30ead312e5de86bab22b1408cfd7e343f7a444ba.jpg\",\"https://i0.hdslb.com/bfs/article/8f099a8a276dcc0304d5ab8032bcca6df92fad45.jpg\",\"https://i0.hdslb.com/bfs/article/d64bde431d4696dc049ccc156689d00f8b56d3e4.jpg\",\"https://i0.hdslb.com/bfs/article/e7b7805ffb07eee969a18b543a342290e847a488.jpg\",\"https://i0.hdslb.com/bfs/article/f6aad92efa9a9db5ab650cc9d958899d3eb0ccc5.jpg\",\"https://i0.hdslb.com/bfs/article/e0ef8a4a11c3451a81e8f8a4aea0460f308aed6d.jpg\",\"https://i0.hdslb.com/bfs/article/7000095230b4d1e4e9c82f596228342a38fceb3b.jpg\"]\n# links = [\"https://i0.hdslb.com/bfs/article/328165fb5c73e4b9a11eb335a6ccbad144606495.jpg\",\"https://i0.hdslb.com/bfs/article/02db465212d3c374a43c60fa26",
+        "file_id": 278,
+        "content": "ps aux | grep '[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]' | grep -v grep | awk '{print $1}' | xargs -Iabc kill -s INT abc",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/get_tarots.py:1-4"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/kill_aria2c.sh:1-1"
     },
     "2585": {
-        "file_id": 281,
-        "content": "Code is listing a series of URLs for images, possibly used for retrieving image resources from the internet.",
+        "file_id": 278,
+        "content": "This command is killing the aria2c process with a SIGINT signal, specifically targeting the specified anime episode titled 'Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]' from the Kamigami & VCB-Studio group.",
         "type": "comment"
     },
     "2586": {
-        "file_id": 281,
-        "content": "25cc1caeaab796.png\",\"https://i0.hdslb.com/bfs/article/ef99b038b6c254b5ee3c77641a2d24523b2f2549.jpg\",\"https://i0.hdslb.com/bfs/article/6831c04615d8c2656bf9edb260b2692600506b12.jpg\",\"https://i0.hdslb.com/bfs/article/b6e798cc616440a2d8f0e3da08f2e47deb3dea5e.jpg\",\"https://i0.hdslb.com/bfs/article/d6a352ed8ef2662b249b31617d16cb7b49012980.jpg\",\"https://i0.hdslb.com/bfs/article/3ece6a53ffc6d1b934830771861087477def3754.jpg\",\"https://i0.hdslb.com/bfs/article/f0207ebb2a7d120ebd22cec39cf242888747f1aa.jpg\",\"https://i0.hdslb.com/bfs/article/fe80a0fcaecbca438a28dcf6d64b2fdfcf0395dd.jpg\",\"https://i0.hdslb.com/bfs/article/6b60f9321e1c902983020925b9cd77eeb90b0d37.jpg\",\"https://i0.hdslb.com/bfs/article/0e4460990f511fdbdd035872d9e4019d1a91a1c2.jpg\",\"https://i0.hdslb.com/bfs/article/92746eb9f9b399b7f959040e4e108099282c7e78.jpg\",\"https://i0.hdslb.com/bfs/article/41cbd61a4ff091d8a812f2c156b41a42e7cfbcee.jpg\",\"https://i0.hdslb.com/bfs/article/419c0b63e00243fd36a664625528817c5e9b56f9.jpg\",\"https://i0.hdslb.co",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/get_tarots.py:4-4"
+        "file_id": 279,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/dynamic_import.mjs",
+        "type": "filepath"
     },
     "2587": {
-        "file_id": 281,
-        "content": "This code contains a list of URLs for images, possibly used to display Tarot card art in an application.",
-        "type": "comment"
+        "file_id": 279,
+        "content": "Code imports and initializes two modules, FfmpegCommand and WebTorrent, using dynamic import. The code checks the data types of the imported functions, with FfmpegCommand being a function and WebTorrent appearing as a class in the console despite its data type being \"function\".",
+        "type": "summary"
     },
     "2588": {
-        "file_id": 281,
-        "content": "m/bfs/article/920f5219d12369d35025f415456a1c8f17af80f0.jpg\",\"https://i0.hdslb.com/bfs/article/f06e85b771817651287a5550a52ab2d407b9bdfd.jpg\",\"https://i0.hdslb.com/bfs/article/4c24e5879af822216e609aa6d7e0aab35fdea868.jpg\",\"https://i0.hdslb.com/bfs/article/3a016ea4f11e086547d5b3cafae7ab4014934415.jpg\",\"https://i0.hdslb.com/bfs/article/57185c84c272c0f9ee70a18a5a969236c43da5d9.jpg\",\"https://i0.hdslb.com/bfs/article/8d2de4ec7b46001041b1b9434f80a4db48cb0182.jpg\",\"https://i0.hdslb.com/bfs/article/780aef80d7246206a5bb4927e2834dc55286fb19.jpg\",\"https://i0.hdslb.com/bfs/article/246967f4d22e55c70666b4ac41205dd2c6cd3cde.jpg\",\"https://i0.hdslb.com/bfs/article/84f521382f7c02e6e4ea0daabb6e93192134372a.jpg\",\"https://i0.hdslb.com/bfs/article/7fd2ad226c81b31d397323891c8194d67f2fdf2b.jpg\",\"https://i0.hdslb.com/bfs/article/eee197d9172b1c38218ab642596b2990afcc383c.jpg\",\"https://i0.hdslb.com/bfs/article/736b5609c526379a8089a7741e19586eebeeb3e2.jpg\",\"https://i0.hdslb.com/bfs/article/93b97faaaa5a14242d21a2e592",
+        "file_id": 279,
+        "content": "const FfmpegCommand = (await import(`${process.env.NODE_PATH}/fluent-ffmpeg/index.js`)).default \nconst WebTorrent = (await import(`${process.env.NODE_PATH}/webtorrent/index.js`)).default \n// promise!\n// shit this ESM can directly use await statements.\nconsole.log(FfmpegCommand)\nconsole.log(typeof(FfmpegCommand)) // \"function\", with default name.\nconsole.log(WebTorrent)\nconsole.log(typeof(WebTorrent)) // \"function\"? why i see \"class\" in console.log?\n// this syntax is not recommended. autocompletion will not work.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/get_tarots.py:4-4"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/dynamic_import.mjs:1-12"
     },
     "2589": {
-        "file_id": 281,
-        "content": "This code is a list of URLs for different images, likely used in a web context. Each URL corresponds to an image file hosted on the \"i0.hdslb.com\" domain. The exact purpose or application context is not clear from this snippet alone.",
+        "file_id": 279,
+        "content": "Code imports and initializes two modules, FfmpegCommand and WebTorrent, using dynamic import. The code checks the data types of the imported functions, with FfmpegCommand being a function and WebTorrent appearing as a class in the console despite its data type being \"function\".",
         "type": "comment"
     },
     "2590": {
-        "file_id": 281,
-        "content": "b03b87fa0c5ff3.jpg\",\"https://i0.hdslb.com/bfs/article/ea528dc4bc964eaf9960fdc9d399b03f87db9ddb.jpg\"]\nimport requests\nimport cv2 # will it work?\nimport uuid\nimport shutil\nfrom test_common import *\n# import paddleocr\nfrom paddleocr import PaddleOCR,draw_ocr\nbasepath = \"tarot_pictures\"\n# basepath = \"tarot_pictures2\"\n# Paddleocr supports Chinese, English, French, German, Korean and Japanese.\n# You can set the parameter `lang` as `ch`, `en`, `french`, `german`, `korean`, `japan`\n# to switch the language model in order.\nocr = PaddleOCR(use_angle_cls=True, lang='en') # need to run only once to download and load model into memory\n# img_path = 'PaddleOCR/doc/imgs_en/img_12.jpg'\n# result = ocr.ocr(img_path, cls=True)\n# for line in result:\n#     print(line)\nos.system(\"rm -rf {}\".format(basepath))\nos.system(\"mkdir {}\".format(basepath))\nfor imglink in links:\n    print(\"DOWNLOADING:\",imglink)\n    while True:\n        try:\n            r = requests.get(imglink)\n            break\n        except:\n            continue\n    data = r.content # save as picture.",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/get_tarots.py:4-36"
+        "file_id": 280,
+        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/download_given_file_to_given_name.sh",
+        "type": "filepath"
     },
     "2591": {
-        "file_id": 281,
-        "content": "The code imports necessary libraries and initializes a PaddleOCR object. It then clears the specified directory and downloads images from provided links, one by one, until successful download is achieved.",
-        "type": "comment"
+        "file_id": 280,
+        "content": "This script downloads a torrent file using aria2c and removes temporary files once finished. The script sets the base path, torrent name, and file ID for the download. It also includes two different command variations for stopping the download after completion with timeout options. The commands use kill and grep to end the aria2c process with a signal and remove temporary files.",
+        "type": "summary"
     },
     "2592": {
-        "file_id": 281,
-        "content": "    tmpname = \"{}.jpg\".format(str(uuid.uuid4()))\n    tmpname = os.path.join(basepath,tmpname)\n    with open(tmpname,\"wb\") as f:\n        f.write(data)\n    new_name = []\n    picture = cv2.imread(tmpname)\n    result = ocr.ocr(picture, cls=True)\n    for line in result:\n        ((x1,y1),(x2,y2),(x3,y3),(x4,y4)), (string,certainty) = line\n        if certainty > 0.7:\n            new_name.append(string)\n    new_name = \"_\".join(new_name)\n    switch = len(new_name)>3\n    if switch:\n        new_name = \"{}.jpg\".format(new_name)\n        new_name = os.path.join(basepath,new_name)\n        print(\"NEWNAME:\",new_name)\n        shutil.move(tmpname,new_name)",
+        "file_id": 280,
+        "content": "# how to end downloading when finished?\n# using some command?\nBASE_PATH=\"/Users/jamesbrown/Downloads/anime_download\"\n# DOWNLOAD_FILE_PATH=\"$BASE_PATH/sample.webp\"\nTORRENT_NAME=\"[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]\"\n# torrent name might be different.\nTORRENT_PATH=\"$BASE_PATH/$TORRENT_NAME.torrent\"\n# echo \"ps aux | grep '$TORRENT_NAME' | grep -v grep | awk '{print \\$1}' | xargs -Iabc kill -s INT abc\" > kill_aria2c.sh\nFILE_ID=\"117\"\n# timeout set to what?\n# rm \"$DOWNLOAD_FILE_PATH\"\nrm -rf \"$TORRENT_NAME\"\nrm -rf \"$TORRENT_NAME.aria2\"\n# this will be ignored.\n# change directory to our temp directory.\n# this speed shall be precalculated.\n# \n# you may check integrity.\n# just count seeders.\n# aria2c -x 16 --select-file=\"$FILE_ID\" --seed-time=0 --file-allocation=none \"$TORRENT_PATH\"\n# aria2c -x 16 --select-file=\"$FILE_ID\" --seed-time=0 --file-allocation=none --lowest-speed-limit=300K --bt-stop-timeout=60 \"$TORRENT_PATH\"",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/get_tarots.py:37-54"
+        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/download_given_file_to_given_name.sh:1-27"
     },
     "2593": {
-        "file_id": 281,
-        "content": "This code generates a temporary file name, reads image data from 'data' variable into the file, and uses OpenCV to read the image. It then performs OCR (optical character recognition) on the image using the 'ocr' function. The recognized text lines are checked for certainty, and if it exceeds 0.7, the string is added to a new_name list. If the length of the new name is greater than 3 characters, it generates a final file name and moves the temporary file to its permanent location using 'shutil.move()'. It also prints \"NEWNAME:\" followed by the new file name to the console.",
+        "file_id": 280,
+        "content": "This script downloads a torrent file using aria2c and removes temporary files once finished. The script sets the base path, torrent name, and file ID for the download. It also includes two different command variations for stopping the download after completion with timeout options. The commands use kill and grep to end the aria2c process with a signal and remove temporary files.",
         "type": "comment"
     },
     "2594": {
-        "file_id": 282,
-        "content": "/tests/bilibili_practices/bilibili_tarot/get_foreground.py",
+        "file_id": 281,
+        "content": "/tests/conversation_talk_apis/api_tests.py",
         "type": "filepath"
     },
     "2595": {
-        "file_id": 282,
-        "content": "This code reads two image files, converts them to grayscale, and creates a mask where pixels with absolute difference less than 40 are set to 0 (black) and others are set to 255 (white). The resulting mask is displayed using OpenCV.",
+        "file_id": 281,
+        "content": "This code imports modules, disables proxies, and uses requests library to send POST requests to Weibo API's direct messaging endpoint. It creates and sends messages, retrieves responses in JSON format, interacts with Weibo and OwnThink APIs, checks user messages against responses, performs API tests using checkApi function for different chatbot instances.",
         "type": "summary"
     },
     "2596": {
-        "file_id": 282,
-        "content": "background = 'tarot_pictures2/BLANK.jpg'\nforeground = 'tarot_pictures2/ACE_OF_SWORDS.jpg'\nimport cv2\nimport numpy as np\npic1 = cv2.imread(background)\npic2 = cv2.imread(foreground)\nh2,w2,c2 = pic2.shape\npic1.resize(h2,w2,c2)\n# print(pic1.shape)\n# print(pic2.shape)\npic1_b = cv2.cvtColor(pic1, cv2.COLOR_BGR2GRAY)\npic2_b = cv2.cvtColor(pic2, cv2.COLOR_BGR2GRAY)\npic3 = np.where(abs(pic1_b-pic2_b)<40, 0,255).astype(np.uint8)\ncv2.imshow(\"mask\",pic3)\ncv2.waitKey(0)\n# print(pic3)\n# print(pic1.dtype)",
+        "file_id": 281,
+        "content": "import urllib.parse\nimport requests\n# disable all proxies.\nimport os\nimport time\nos.environ[\"http_proxy\"]=\"\"\nos.environ[\"https_proxy\"]=\"\"\n# do not use freaking proxy, otherwise QingYunKe will not respond.\ndef checkApi(func,message,name):\n    response_message = func(message)\n    if response_message!=None:\n        print(\"{} RESPONSE:\".format(name), response_message)\ndef chatAtri(msg: str, BASE='http://api.nekomimi.icu/v1/'):\n    url = BASE + 'chat?msg=%s' % msg\n    response = requests.get(url)\n    if response.status_code == 200:\n        data = response.json()\n        if data['status'] == 'success':\n            return data['message']\n    # return None\n    # nothing is returned if have error.\n    print(\"ATRI ERROR:\", response.status_code, response.json())\n# import subprocess\n# import json\ndef chatQingKeYun(msg: str, url=\"http://api.qingyunke.com/api.php?key=free&appid=0&msg=\"):\n    msg = urllib.parse.quote(msg)\n    myUrl = url+msg\n    # print(myUrl)\n    # output = subprocess.check_output([\"curl\", myUrl])\n    # data = json.loads(output.decode(\"utf-8\"))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/get_foreground.py:1-24"
+        "location": "/tests/conversation_talk_apis/api_tests.py:1-37"
     },
     "2597": {
-        "file_id": 282,
-        "content": "This code reads two image files, converts them to grayscale, and creates a mask where pixels with absolute difference less than 40 are set to 0 (black) and others are set to 255 (white). The resulting mask is displayed using OpenCV.",
+        "file_id": 281,
+        "content": "Code imports necessary modules, disables proxies, defines a function to check API responses, and includes two chat functions: 'chatAtri' for chatting with Atri using a Chinese language processing API, and 'chatQingKeYun' for chatting with QingYunKe using a free API key. The code also has a commented section that appears to be testing the use of subprocess and json modules but is not implemented yet.",
         "type": "comment"
     },
     "2598": {
-        "file_id": 283,
-        "content": "/tests/bilibili_practices/bilibili_tarot/get_figures.js",
-        "type": "filepath"
+        "file_id": 281,
+        "content": "    # import requests\n    data = requests.get(myUrl)\n    data = data.json()\n    print(data)\n    result = data['result']\n    assert result == 0  # 202 -> busy\n    content = data['content']\n    return content\n    # breakpoint()\ndef xiaobing(msg):\n    # 其实是新浪微博群发器 微博群发的逻辑类似于b站群发\n    # 刚关注的只能发一条消息\n    uid = '5175429989'\n    source = '209678993'\n    SUB = '_2A25PyitTDeRhGeBG7VAS8y_MwjmIHXVsvhubrDV8PUNbmtANLRfTkW9NRhxXNiVv6Qwut5wwnc8rys3cbJFAxVdX'\n    url_send = 'https://api.weibo.com/webim/2/direct_messages/new.json'\n    data = {\n        'text': msg,\n        'uid': uid,\n        'source': source\n    }\n    headers = {\n        'cookie': 'SUB='+SUB,\n        'Content-Type': 'application/x-www-form-urlencoded',\n        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36',\n        'Referer': 'https://api.weibo.com/chat/'\n    }\n    response = requests.post(url_send, data=data, headers=headers).json()\n    sendMsg = response['text']\n    time.sleep(1)\n    while True:",
+        "type": "code",
+        "location": "/tests/conversation_talk_apis/api_tests.py:38-69"
     },
     "2599": {
-        "file_id": 283,
-        "content": "This code retrieves all \"figure\" tags from the HTML document, extracts the URLs of the first image in each figure using their \"data-src\" attribute, removes the \"@\" symbol, and replaces \"//\" with \"https://\". Finally, it logs the extracted URLs as a JSON string to the console.",
-        "type": "summary"
+        "file_id": 281,
+        "content": "This code is using the requests library to send a POST request to the Weibo API's direct messaging endpoint. It creates a new message with the provided text, sends it to a specified user (uid), and retrieves the response from the API. The script includes necessary headers and uses JSON format for the data payload.",
+        "type": "comment"
     }
 }

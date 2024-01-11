@@ -1,547 +1,534 @@
 {
     "900": {
-        "file_id": 71,
-        "content": "                if duration == 1:\n                    oldTotalRectDict[uuid][\"meanDifference\"] = std_total\n                elif prev_std is None:\n                    oldTotalRectDict[uuid][\"meanDifference\"] = std_total\n                else:\n                    dur2 = duration - 1\n                    try:\n                        new_std = (dur2*prev_std + std_total)/duration # may freaking exceed limit.\n                    except:\n                        print(\"dur2\",dur2)\n                        print(\"prev_std\",prev_std)\n                        print(\"std_total\",std_total)\n                        print(\"duration\",duration)\n                        breakpoint()\n                    oldTotalRectDict[uuid][\"meanDifference\"] = new_std\n                oldTotalRectDict[uuid][\"endFrame\"] = currentFrameIndex\n        return oldTotalRectDict\n    total_rect_dict ={}\n    rect_dict_main_list = []\n    min_rect_life_display_thresh = config[\"min_rect_life_display_thresh\"] # a filter.\n    # mode = 1\n    line_thresh = config[\"line_thresh\"]",
+        "file_id": 80,
+        "content": "        template_args = {} if name not in args.keys() else args[name]\n        assert type(template_args) == dict\n        if name.startswith(\"meta_\"):\n            template_args.update({\"meta\": meta})  # you can access it by keys.\n        template_args.update({\"mediafile\": contentPath})\n        # print(\"template_args\")\n        # breakpoint()\n        medialang = Medialang(\n            script_path=template_path,\n            template=True,\n            template_args=template_args,  # config inside the template args. None to use the default.\n        )\n        script = medialang.prettify()\n        print(script)\n        # breakpoint()\n        data = medialang.execute()\n        # print(\"DATA\",data)\n        # breakpoint()\n        # # try:\n        data = data[0][0]  # language feature.\n        # what the fuck is wrong?\n        mdata.update({name: data})  # this is not so good, though.\n        # except:\n            # print('skipping marking data')\n    if semiauto:  # need some modification.\n        for key in semiauto_key_blacklist:",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:229-252"
+        "location": "/pyjom/modules/contentCensoring/autoCensor.py:32-57"
     },
     "901": {
-        "file_id": 71,
-        "content": "This code calculates the mean difference of a rectangular object's characteristics (like area or aspect ratio) over time, taking into account previous calculations and the duration of frames. It filters out any rectangles that have not met the minimum threshold for display duration.",
+        "file_id": 80,
+        "content": "This code takes a name and dictionary of arguments, checks if the name matches a specific key in the arguments dictionary. If it does, it adds \"meta\" and \"mediafile\" keys to the template_args dictionary, then creates an instance of Medialang with the script path, template set to True, and template_args. The script is prettified, executed, and the data returned. Lastly, the data is added to the mdata dictionary under the given name, unless there was an issue where it prints \"skipping marking data\". If semiauto is set, it goes through a loop for each key in semiauto_key_blacklist.",
         "type": "comment"
     },
     "902": {
-        "file_id": 71,
-        "content": "    includeBoundaryLines = config[\"includeBoundaryLines\"] # applied to those cornered crops.\n    # this will slow down the process. or maybe?\n    frameIndex = -1\n    prevFrame = None\n    # if mode == 1:\n    # import pybgs as bgs\n    algorithm = (\n    bgs.FrameDifference()\n    )  # this\n    framePeriod = config[\"framePeriod\"]\n    config_minRectArea = config[\"minRectArea\"]\n    frame_total_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))\n    # print(\"FRAME_TOTAL_COUNT:\",frame_total_count)\n    # breakpoint()\n    ocr_period = 10\n    ocr_result = []\n    # from .subtitleDetector import getPaddleOCR\n    from shapely.geometry import Point, Polygon\n    def checkPointInOcrRect(ocr_result,point,span=0):\n        xp,yp = point\n        p = Point(xp,yp)\n        for ocr_rect in ocr_result:\n            # print(\"OCR_RECT\", ocr_rect)\n            # breakpoint()\n            # if certainty < certainty_thresh: continue\n            p0,p1,p2,p3 = ocr_rect\n            p0 = (p0[0]-span,p0[1]-span)\n            p1 = (p1[0]+span,p1[1]-span)\n            p2 = (p2[0]+span,p2[1]+span)",
+        "file_id": 80,
+        "content": "            mdata.pop(key)\n    return mdata",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:253-281"
+        "location": "/pyjom/modules/contentCensoring/autoCensor.py:58-59"
     },
     "903": {
-        "file_id": 71,
-        "content": "This code appears to be part of a video processing pipeline. It initializes an object detection algorithm and uses Shapely's Polygon for point-in-polygon testing with PaddleOCR. The function checkPointInOcrRect checks if a given point lies within the polygons defined by the OCR results, potentially using a span or offset for more accurate detection. Frame border detection is performed through frame differencing with a configurable frame period and minimum rectangle area threshold.",
+        "file_id": 80,
+        "content": "Removing specified key-value pair from the dictionary and returning the updated dictionary.",
         "type": "comment"
     },
     "904": {
-        "file_id": 71,
-        "content": "            p3 = (p3[0]-span,p3[1]+span) # it is float.\n            plist = [(x[0],x[1]) for x in [p0,p1,p2,p3]]\n            poly = Polygon(plist)\n            if poly.contains(p):\n                return True\n        return False\n    def checkLineIntersectOcrRect(ocr_result,linepoint,linetype,span=0):\n        xp,yp = linepoint\n        # p = Point(xp,yp)\n        for ocr_rect in ocr_result:\n            # print(\"OCR_RECT\", ocr_rect)\n            # breakpoint()\n            # if certainty < certainty_thresh: continue\n            p0,p1,p2,p3 = ocr_rect\n            p0 = (p0[0]-span,p0[1]-span)\n            p1 = (p1[0]+span,p1[1]-span)\n            p2 = (p2[0]+span,p2[1]+span)\n            p3 = (p3[0]-span,p3[1]+span) # it is float.\n            plist = [(x[0],x[1]) for x in [p0,p1,p2,p3]]\n            if linetype == \"vertical\":\n                xlist = [x[0] for x in plist]\n                xmin,xmax = min(xlist),max(xlist)\n                if xp >=xmin and xp <= xmax:\n                    return True\n            else:\n                ylist = [x[1] for x in plist]",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:282-308"
+        "file_id": 81,
+        "content": "/pyjom/modules/feedbackCollecting/weiboFeedback.py",
+        "type": "filepath"
     },
     "905": {
-        "file_id": 71,
-        "content": "The function `frameborder_Detector()` checks if a given point is inside a polygon. The `checkLineIntersectOcrRect()` function detects whether a line intersects an OCR rectangle, considering both horizontal and vertical lines. It adjusts the coordinates of the OCR rectangle's points by subtracting or adding a span, then checks if the line intersects the adjusted rectangle.",
-        "type": "comment"
+        "file_id": 81,
+        "content": "This code fetches Weibo feedback data, extracts comment info, populates a dictionary with details, and appends meta and updated feedback to \"mfeedback\" for specified key.",
+        "type": "summary"
     },
     "906": {
-        "file_id": 71,
-        "content": "                ymin,ymax = min(ylist),max(ylist)\n                if yp >= ymin and yp <= ymax:\n                    return True\n            # poly = Polygon(plist)\n            # if poly.contains(p):\n            #     return True\n        return False\n    for _ in progressbar.progressbar(range(frame_total_count)):\n        ret, img = video.read()\n        # if frameIndex% ocr_period == 0:\n        #     ocr_result = getPaddleOCR(img,cls=True,rec=False)\n        if img is None:\n            # if mode == 1:\n            popKeys = []\n            for key in total_rect_dict.keys():\n                elem = total_rect_dict[key]\n                if elem[\"endFrame\"] is None:\n                    popKeys.append(key)\n            for key in popKeys:\n                total_rect_dict.pop(key) # remove premature rectangles.\n            break\n        else: frameIndex+=1\n        if not frameIndex % framePeriod == 0:\n            continue# do shit.\n        # if mode == 1:\n        diff_img_output = algorithm.apply(img)\n        # what about the freaking still image?",
+        "file_id": 81,
+        "content": "from pyjom.commons import *\nimport requests\nimport json\ndef weiboCheckFeedback(meta, with_user=False):\n    feedback = {\"comments\": []}\n    id_ = meta[\"id\"]\n    uid = meta[\"uid\"]\n    url = sinaWeiboApi[\"weibo_build_comments\"].format(100, id_, uid)\n    with requests.get(url) as r:# somwhow working but we usually have nothing to see.\n        mdata = r.text\n        mdata = json.loads(mdata)\n        if mdata[\"ok\"] == 1: # what is this ok?\n            for elem in mdata[\"data\"]:\n                elem0 = {}\n                elem0[\"text\"] = elem[\"text\"]\n                if with_user:\n                    userMeta = elem[\"user\"]\n                    userMeta = {k:userMeta[k] for k in [\"id\",\"name\"]}\n                    elem0[\"user\"] = userMeta\n                elem0[\"like_counts\"] = elem[\"like_counts\"]\n                elem0[\"comments\"] = []\n                for comm in elem[\n                    \"comments\"\n                ]:  # also have reply_comment, though i don't know what it really means here.\n                    comm0 = {}",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:309-336"
+        "location": "/pyjom/modules/feedbackCollecting/weiboFeedback.py:1-27"
     },
     "907": {
-        "file_id": 71,
-        "content": "The code is performing image detection and processing, using a video source to read frames. It checks if the frameIndex meets certain conditions and performs OCR (Optical Character Recognition) on specific frames. If a premature rectangle is detected in the total_rect_dict dictionary, it removes it. The code also applies an algorithm to the still image frames.",
+        "file_id": 81,
+        "content": "The code is fetching feedback data from a Weibo API and extracting comment information. It makes requests to the API, parses JSON responses, and populates a dictionary with the comment details including text, user (if specified), and like counts. Comments are nested within each post and reply comments are also present, but their significance is unclear.",
         "type": "comment"
     },
     "908": {
-        "file_id": 71,
-        "content": "        # Convert the img to grayscale\n        # gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)\n        # no need to use gray image.\n        # Apply edge detection method on the image\n        blurred = cv2.GaussianBlur(img, config[\"blurKernel\"], 0)\n        edges = cv2.Canny(blurred,20,210,apertureSize = 3) # great.\n        # why not applying edges directly to rectangles?\n        # This returns an array of r and theta values\n        # line_thresh =  200\n        # maintain a rectangle list. merge the alikes?\n        # if mode == 1:\n        lines = cv2.HoughLines(edges,1,np.pi/180,line_thresh)\n        if lines is None:\n            lines = []\n        angle_error = 0.00003   # this can only detect square things, absolute square.\n        # we need to know horizontal and vertical lines, when they cross we get points.\n        frameHeight, frameWidth = img.shape[:2]\n        # print(\"height: \", frameHeight)\n        # print(\"width: \", frameWidth)\n        mlines = {\"horizontal\":[], \"vertical\":[]}\n        if includeBoundaryLines:",
+        "file_id": 81,
+        "content": "                    comm0[\"text\"] = comm[\"text\"]\n                    if with_user:\n                        userMeta2 = comm[\"user\"]\n                        userMeta2 = {k:userMeta2[k] for k in [\"id\",\"name\"]} # we don't fancy things here\n                        comm0[\"user\"] = userMeta2\n                    comm0[\"like_count\"] = comm[\"like_count\"]\n                    elem0[\"comments\"].append(comm0)\n                feedback[\"comments\"].append(elem0)\n        else:\n            print(json.dumps(mdata,indent=4))\n            print(\"NOT OK WITH WEIBO FEEDBACK!\")\n        return feedback\n@decorator\ndef weiboFeedback(content,with_user=False):\n    mfeedback = {}  # ordered by the blog id.\n    # it will create shit after all. debug first.\n    for key in content:\n        mfeedback[key] = []\n        print(\"feedback key:\",key)\n        print(\"feedback value:\",content[key])\n        for blog in content[key]:\n            review = blog[\"review\"] # what is this heck?\n            meta = review[\"meta\"]\n            print(\"feedback meta:\")",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:337-362"
+        "location": "/pyjom/modules/feedbackCollecting/weiboFeedback.py:28-53"
     },
     "909": {
-        "file_id": 71,
-        "content": "This code snippet is performing edge detection on an image and applying the HoughLines transform to identify horizontal and vertical lines. It also includes an option for including boundary lines. The code converts the image to grayscale, applies Gaussian blur, and performs Canny edge detection. The resulting edges are then passed to the HoughLines transform to find lines, which are categorized as either \"horizontal\" or \"vertical\".",
+        "file_id": 81,
+        "content": "Function weiboFeedback takes content and optional with_user parameter, checks if there are feedback entries for each blog, appends comment elements to corresponding keys in mfeedback dictionary, and returns the feedback data.",
         "type": "comment"
     },
     "910": {
-        "file_id": 71,
-        "content": "            originPoint = (0,0)\n            cornerPoint = (frameWidth,frameHeight)\n            mlines[\"horizontal\"].append(originPoint)\n            mlines[\"horizontal\"].append(cornerPoint)\n            mlines[\"vertical\"].append(originPoint)\n            mlines[\"vertical\"].append(cornerPoint)\n        # lineTrans = {}\n        for line in lines:\n            for r_theta in line:\n                # breakpoint()\n                r,theta = r_theta.tolist()\n                # Stores the value of cos(theta) in a\n                # filter detected lines?\n                # theta filter:\n                if not abs(theta % (np.pi/2) )< angle_error:\n                    continue # this is filtering.\n                # print(\"line parameter:\",r,theta)\n                a = np.cos(theta)\n                # Stores the value of sin(theta) in b\n                b = np.sin(theta)\n                # x0 stores the value rcos(theta)\n                x0 = a*r\n                # y0 stores the value rsin(theta)\n                y0 = b*r\n                # x1 stores the rounded off value of (rcos(theta)-1000sin(theta))",
+        "file_id": 81,
+        "content": "            print(json.dumps(meta,indent=4))\n            feedback = review[\"feedback\"] # what is this update?\n            data = weiboCheckFeedback(meta,with_user=with_user)\n            feedback.update(data)\n            mfeedback[key].append({\"meta\": meta, \"feedback\": feedback})\n    return mfeedback",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:363-391"
+        "location": "/pyjom/modules/feedbackCollecting/weiboFeedback.py:54-59"
     },
     "911": {
-        "file_id": 71,
-        "content": "This code calculates the line parameters and applies a theta filter to eliminate lines that are close to being vertical or horizontal. It stores cos(theta) in 'a', sin(theta) in 'b', r*cos(theta) in 'x0', and r*sin(theta) in 'y0'. The theta filter ensures only appropriate angles are included, preventing false detections of vertical/horizontal lines.",
+        "file_id": 81,
+        "content": "This code prints the JSON representation of \"meta\" with indentation, retrieves feedback from the \"review\", updates \"feedback\" with data from \"weiboCheckFeedback\", and appends meta and updated feedback to \"mfeedback\" for the specified key.",
         "type": "comment"
     },
     "912": {
-        "file_id": 71,
-        "content": "                x1 = int(x0 + 1000*(-b))\n                # y1 stores the rounded off value of (rsin(theta)+1000cos(theta))\n                y1 = int(y0 + 1000*(a))\n                # x2 stores the rounded off value of (rcos(theta)+1000sin(theta))\n                x2 = int(x0 - 1000*(-b))\n                # y2 stores the rounded off value of (rsin(theta)-1000cos(theta))\n                y2 = int(y0 - 1000*(a))\n                # cv2.line draws a line in img from the point(x1,y1) to (x2,y2).\n                # (0,0,255) denotes the colour of the line to be\n                #drawn. In this case, it is red.\n                df_x = abs(x1-x2)\n                df_y = abs(y1-y2)\n                lineType = \"vertical\"\n                if df_x > df_y:\n                    lineType = \"horizontal\"\n                # we just need one single point and lineType.\n                linePoint = (x1,y1)\n                # for p_rect in rect:\n                mlines[lineType].append(linePoint)\n                # mlines2[lineType].append([(x1,y1), (x2,y2)])",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:392-417"
+        "file_id": 82,
+        "content": "/pyjom/modules/feedbackCollecting/dummyFeedback.py",
+        "type": "filepath"
     },
     "913": {
-        "file_id": 71,
-        "content": "This code calculates the coordinates of a line using trigonometry and draws it on an image in PyJOM's media language detector. It also determines the type of line (vertical or horizontal) based on the difference between its endpoints' x and y values. The line's starting point is stored in 'linePoint', and the lines are appended to the 'mlines' list according to their type.",
-        "type": "comment"
+        "file_id": 82,
+        "content": "The code imports necessary modules, defines a function `dummyFeedback` that takes 'content' as input, and prints the content while returning \"pending\". The decorator is used for function execution in a temporary directory.",
+        "type": "summary"
     },
     "914": {
-        "file_id": 71,
-        "content": "                # lineTrans.update({str((x1,y1)+lineType):(x2,y2)})\n                # cv2.line(img,(x1,y1), (x2,y2), (0,0,255),2)\n                # would not draw lines this time. draw found rects instead.\n        # get rectangle points. or just all possible rectangles?\n        yd,xd = diff_img_output.shape\n        # print(\"IMAGE SHAPE\",xd,yd)\n        rangeLimitRatio = 0.1\n        # rangeLimit = \n        visual=False\n        for lineType in mlines.keys():\n            dropIndexs = []\n            data0 =mlines[lineType]\n            if lineType == \"vertical\":\n                selectedPoints = [x[0] for x in data0]\n                rangeLimit = xd*rangeLimitRatio\n                selectedRanges = list_to_range(selectedPoints,rangeLimit)\n                # print(selectedRanges)\n                selectedRangesFlattened = [x for y in selectedRanges for x in y]\n                # print(selectedRangesFlattened)\n                data0 = [x for x in data0 if x[0] in selectedRangesFlattened]\n            else:\n                selectedPoints = [x[1] for x in data0]",
+        "file_id": 82,
+        "content": "from pyjom.commons import *\nfrom lazero.program.functools import iterateWithTempDirectory # you can also switch to 'AUTO'\n@decorator\n@iterateWithTempDirectory()\ndef dummyFeedback(\n    content # i think i need another function decorator for this. really? this will break pattern, for sure. temp files will be missing? so you need some tempdir decorator?\n):  # anyway, it is dummy. i don't expect nothing.\n    print(\"from poster:\", content)\n    return \"pending\"",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:418-439"
+        "location": "/pyjom/modules/feedbackCollecting/dummyFeedback.py:1-11"
     },
     "915": {
-        "file_id": 71,
-        "content": "This code is iterating over line types in the mlines dictionary, specifically targeting vertical and horizontal lines. For vertical lines, it selects points and determines a range limit for filtering out unnecessary data. It then applies this range to flatten the data and refine the list of valid points. For horizontal lines, it performs a similar process but selects different coordinates.",
+        "file_id": 82,
+        "content": "The code imports necessary modules, defines a function `dummyFeedback` that takes 'content' as input, and prints the content while returning \"pending\". The decorator is used for function execution in a temporary directory.",
         "type": "comment"
     },
     "916": {
-        "file_id": 71,
-        "content": "                rangeLimit = yd*rangeLimitRatio\n                selectedRanges = list_to_range(selectedPoints,rangeLimit)\n                selectedRangesFlattened = [x for y in selectedRanges for x in y]\n                data0 = [x for x in data0 if x[1] in selectedRangesFlattened]\n            # for index, linePoint in enumerate(data0):\n            #     # linePoint = mlines[lineType]\n            #     if checkLineIntersectOcrRect(ocr_result,linePoint,lineType): dropIndexs.append(index)\n            # newdata0 = [data0[i] for i in range(len(data0)) if i not in dropIndexs]\n            newdata0 = data0\n            mlines[lineType] = newdata0\n            if visual:\n                for linePoint in newdata0:\n                    (x1,y1) = linePoint\n                    # (x2,y2) = lineTrans[str((x1,y1))+lineType]\n                    if lineType == \"vertical\":\n                        x2 = x1\n                        y2 = yd\n                    else:\n                        x2 = xd\n                        y2 = y1\n                    cv2.line(img,(x1,y1), (x2,y2), (0,0,255),2)",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:440-460"
+        "file_id": 83,
+        "content": "/pyjom/modules/feedbackCollecting/__init__.py",
+        "type": "filepath"
     },
     "917": {
-        "file_id": 71,
-        "content": "This code section is responsible for updating the line data based on a specified range and removing any lines that intersect with the OCR result. It then generates a new list of line points and visualizes them on the image, if visualization is enabled.",
-        "type": "comment"
+        "file_id": 83,
+        "content": "The code imports all functions and classes from the 'dummyFeedback' module and 'weiboFeedback' module into the current file, allowing for their use within this module.",
+        "type": "summary"
     },
     "918": {
-        "file_id": 71,
-        "content": "        # enumerate all possible lines.\n        if len(mlines[\"horizontal\"]) < 2 or len(mlines[\"vertical\"]) < 2:\n            # print(\"unable to form rectangles.\")\n            continue\n        else:\n            rects =[] # list of rectangles\n            eliminateRatio = 0.3\n            for line_h1, line_h2 in itertools.combinations(mlines[\"horizontal\"],2): # this is a problem.\n                ymin, ymax = list(sorted([line_h1[1],line_h2[1]]))\n                yspan = ymax-ymin\n                if yspan < yd*eliminateRatio:\n                    continue\n                for line_v1, line_v2 in itertools.combinations(mlines[\"vertical\"], 2): # this is a problem.\n                    xmin, xmax = list(sorted([line_v1[0],line_v2[0]]))\n                    rect = ((xmin,ymin),(xmax,ymax))\n                    # pr1,pr2 = rect\n                    # for p_rect in rect:\n                    #     if checkPointInOcrRect(ocr_result,p_rect): continue # skip those traitors.\n                    xspan = xmax-xmin\n                    if xspan < xd*eliminateRatio:",
+        "file_id": 83,
+        "content": "from pyjom.modules.feedbackCollecting.dummyFeedback import *\nfrom pyjom.modules.feedbackCollecting.weiboFeedback import *",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:461-481"
+        "location": "/pyjom/modules/feedbackCollecting/__init__.py:1-2"
     },
     "919": {
-        "file_id": 71,
-        "content": "This code snippet combines horizontal and vertical lines to form rectangles. If there are less than two horizontal or vertical lines, the process is skipped. For each pair of horizontal lines and pairs of vertical lines, it checks if the aspect ratio is above a certain threshold before proceeding.",
+        "file_id": 83,
+        "content": "The code imports all functions and classes from the 'dummyFeedback' module and 'weiboFeedback' module into the current file, allowing for their use within this module.",
         "type": "comment"
     },
     "920": {
-        "file_id": 71,
-        "content": "                        continue\n                    rects.append(rect)\n            # for index,elem in enumerate(rect_dict_main_list):\n            rect_dict_main_list = rectSurge(rect_dict_main_list,rects,diff_img_output)\n            # print(\"RECT DICT MAIN LIST:\")\n            # print(rect_dict_main_list) # maybe i want this shit?\n            total_rect_dict = updateTotalRects(total_rect_dict,rect_dict_main_list,frameIndex,diff_img_output,minRectArea=config_minRectArea)\n            mdisplayed_rect_count = 0\n            for rect_dict in rect_dict_main_list:\n                life = rect_dict[\"life\"]\n                if life < min_rect_life_display_thresh:\n                    continue # this is needed.\n                # draw shit now.\n                mdisplayed_rect_count +=1\n                (xmin,ymin),(xmax,ymax) = rect_dict[\"rect\"]\n                cv2.rectangle(img,(xmin,ymin),(xmax,ymax) , (255,0,0), 2)\n            #     (xmin,ymin),(xmax,ymax) = rect\n            #     rect_area = (xmax-xmin) * (ymax-ymin)",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:482-500"
+        "file_id": 84,
+        "content": "/pyjom/modules/methodIdentifier/dummyIdentifier.py",
+        "type": "filepath"
     },
     "921": {
-        "file_id": 71,
-        "content": "The code iterates through a list of rectangles, appends them to the rects list if their life is above a certain threshold. It then updates the total_rect_dict and displays rectangles with a life above a minimum threshold on the image. The rectangles are drawn as bounding boxes using cv2.rectangle function.",
-        "type": "comment"
+        "file_id": 84,
+        "content": "The code defines a function `dummyId()` that generates a unique UUID and a class `dummyIdentifier` with instance variables and methods to store fix information related to various components of a system.",
+        "type": "summary"
     },
     "922": {
-        "file_id": 71,
-        "content": "            #     print(\"rect found:\",rect,rect_area)\n            prevFrame = img.copy()\n            # print(\"total rects:\",mdisplayed_rect_count)\n        if visual:\n            cv2.imshow('linesDetected.jpg', img)\n            # cv2.imshow(\"edges.jpg\",edges) # not for fun.\n            if cv2.waitKey(20) == ord(\"q\"):\n                print(\"QUIT INTERFACE.\")\n                break\n    # All the changes made in the input image are finally\n    # written on a new image houghlines.jpg\n    # if mode == 1:\n    print(\"FINAL RESULT:\")\n    for key in total_rect_dict.keys():\n        elem = total_rect_dict[key]\n        print(\"RECT UUID\",key)\n        print(\"RECT CONTENT\",elem)\n    popKeys = []\n    for key in total_rect_dict.keys():\n        elem = total_rect_dict[key]\n        if elem[\"endFrame\"] is None:\n            popKeys.append(key)\n    for key in popKeys:\n        total_rect_dict.pop(key) # remove premature rectangles.\n    # break\n    return total_rect_dict\ndef framedifference_talib_FrameIterator(mediapath,**config):\n    algorithm = (",
+        "file_id": 84,
+        "content": "def dummyId():\n    import uuid\n    return uuid.uuid4()\nclass dummyIdentifier:\n    def __init__(self, uuid):\n        self.uuid = uuid\n        self.data = {}\n    def typeFix(self, typeFix):\n        self.data[\"typeFix\"] = typeFix\n    def topicFix(self, topicFix):\n        self.data[\"topicFix\"] = topicFix\n    def infoFix(self, infoFix):\n        self.data[\"infoFix\"] = infoFix\n    def producerFix(self, producerFix):\n        self.data[\"producerFix\"] = producerFix\n    def posterFix(self, posterFix):\n        self.data[\"posterFix\"] = posterFix\n    def feedbackFix(self, feedbackFix):\n        self.data[\"feedbackFix\"] = feedbackFix\n    def updatorFix(self, updatorFix):\n        self.data[\"updatorFix\"] = updatorFix\n    def fetcherFix(self, fetcherFix):\n        self.data[\"fetcherFix\"] = fetcherFix\n    def processorFix(self, processorFix):\n        self.data[\"processorFix\"] = processorFix\n    def optimizerFix(self, optimizerFix):\n        self.data[\"optimizerFix\"] = optimizerFix\n    def reviewerFix(self, reviewerFix):\n        self.data[\"reviewerFix\"] = reviewerFix",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:501-529"
+        "location": "/pyjom/modules/methodIdentifier/dummyIdentifier.py:1-43"
     },
     "923": {
-        "file_id": 71,
-        "content": "The code is detecting frames in an image using computer vision techniques. It creates a rectangle around each frame, counts the total number of rectangles displayed, and displays the image with detected frames. The program checks for user input to quit and then removes any prematurely ended rectangles from the dictionary before returning the final list of rectangles. The function is part of a larger algorithm for frame detection and iteration using talib library in PyJOM.",
+        "file_id": 84,
+        "content": "The code defines a function `dummyId()` that generates a unique UUID and a class `dummyIdentifier` with instance variables and methods to store fix information related to various components of a system.",
         "type": "comment"
     },
     "924": {
-        "file_id": 71,
-        "content": "        bgs.FrameDifference()\n    )  # this is not stable since we have more boundaries. shall we group things?\n    video_file = (\n        mediapath  # this is doggy video without borders.\n    )\n    # video_file = \"../../samples/video/LiEIfnsvn.mp4\" # this one with cropped boundaries.\n    capture = cv2.VideoCapture(video_file)\n    while not capture.isOpened():\n        capture = cv2.VideoCapture(video_file)\n        # cv2.waitKey(1000)\n        # print(\"Wait for the header\")\n    pos_frame = capture.get(1)\n    past_frames = config[\"past_frames\"]\n    def getAppendArray(mx1, min_x, past_frames=past_frames):\n        return np.append(mx1[-past_frames:], min_x)\n    def getFrameAppend(frameArray, pointArray, past_frames=past_frames):\n        mx1, mx2, my1, my2 = [\n            getAppendArray(a, b, past_frames=past_frames)\n            for a, b in zip(frameArray, pointArray)\n        ]\n        return mx1, mx2, my1, my2\n    timeperiod = config[\"timeperiod\"]\n    def getStreamAvg(a, timeperiod=timeperiod):  # to maintain stability.",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:530-559"
+        "file_id": 85,
+        "content": "/pyjom/modules/methodIdentifier/__init__.py",
+        "type": "filepath"
     },
     "925": {
-        "file_id": 71,
-        "content": "The code is initializing a video file and capturing frames from it. It uses various functions such as FrameDifference, getAppendArray, and getFrameAppend for processing the frames and points. The purpose is to maintain stability in the data by averaging over a certain time period using the getStreamAvg function.",
-        "type": "comment"
+        "file_id": 85,
+        "content": "This code imports all the contents from the \"dummyIdentifier\" module in the \"pyjom.modules.methodIdentifier\" package.",
+        "type": "summary"
     },
     "926": {
-        "file_id": 71,
-        "content": "        return talib.stream.EMA(a, timeperiod=timeperiod)\n    change_threshold = config[\"change_threshold\"]\n    def checkChange(frame_x1, val_x1, h, change_threshold=change_threshold):\n        return (abs(frame_x1 - val_x1) / h) > change_threshold  # really changed.\n    mx1, mx2, my1, my2 = [np.array([]) for _ in range(4)]\n    # past_frames = 19\n    #already set.\n    perc = config[\"perc\"]\n    frame_num = 0 # not to change.\n    # what is the time to update the frame?\n    frame_x1, frame_y1, frame_x2, frame_y2 = [None for _ in range(4)]\n    reputation = 0\n    max_reputation = config[\"max_reputation\"]\n    minVariance =config[\"minVariance\"]\n    frameDict = {}  # include index, start, end, coords.\n    frameIndex = 0\n    framePeriod = config[\"framePeriod\"]\n    frame_total_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))\n    # print(\"FRAME_TOTAL_COUNT:\",frame_total_count)\n    # breakpoint()\n    for _ in progressbar.progressbar(range(frame_total_count)):\n        flag, frame = capture.read()\n        if not frameIndex%framePeriod == 0:",
+        "file_id": 85,
+        "content": "from pyjom.modules.methodIdentifier.dummyIdentifier import *",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:560-588"
+        "location": "/pyjom/modules/methodIdentifier/__init__.py:1-1"
     },
     "927": {
-        "file_id": 71,
-        "content": "This code appears to be a part of a larger function or program. It initializes variables and loops through frames of a video, likely for analysis or processing purposes. The code uses the EMA (Exponential Moving Average) from the talib library and has conditions to check changes in frame values. It also sets up dictionaries and tracks the frame index and total count of frames in the video. Further understanding would require knowledge about the rest of the codebase and how this specific function contributes to its overall functionality.",
+        "file_id": 85,
+        "content": "This code imports all the contents from the \"dummyIdentifier\" module in the \"pyjom.modules.methodIdentifier\" package.",
         "type": "comment"
     },
     "928": {
-        "file_id": 71,
-        "content": "            continue # skip shit.\n        frameIndex += 1\n        if flag:\n            pos_frame = capture.get(1)  # this is getting previous frame without read again.\n            img_output = algorithm.apply(frame)\n            img_bgmodel = algorithm.getBackgroundModel()\n            _, contours = cv2.findContours(\n                img_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE\n            )\n            # maybe you should merge all active areas.\n            if contours is not None:\n                # continue\n                counted = False\n                for contour in contours:\n                    [x, y, w, h] = cv2.boundingRect(img_output)\n                    if not counted:\n                        min_x, min_y = x, y\n                        max_x, max_y = x + w, y + h\n                        counted = True\n                    else:\n                        min_x = min(min_x, x)\n                        min_y = min(min_y, y)\n                        max_x = max(max_x, x + w)\n                        max_y = max(max_y, y + h)",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:589-612"
+        "file_id": 86,
+        "content": "/pyjom/modules/informationGathering/weiboInfo.py",
+        "type": "filepath"
     },
     "929": {
-        "file_id": 71,
-        "content": "Continuing loop through frames and skipping invalid ones. Updates frame index and retrieves previous frame without re-reading. Applies an algorithm to the current frame and gets the background model. Finds contours in the processed frame using cv2 library, iterates through each contour, calculates bounding rectangles for detection areas, updates minimum/maximum coordinates if not counted, and continues until all contours are analyzed.",
-        "type": "comment"
+        "file_id": 86,
+        "content": "The code fetches and parses Weibo posts related to a keyword, extracting information like title, URL, author, images, and videos. It handles topic-related video searches and uses a generator function for expiry prevention.",
+        "type": "summary"
     },
     "930": {
-        "file_id": 71,
-        "content": "                        # only create one single bounding box.\n                # print(\"points:\",min_x, min_y, max_x,max_y)\n                this_w = max_x - min_x\n                this_h = max_y - min_y\n                thresh_x = max(minVariance, int(perc * (this_w)))\n                thresh_y = max(minVariance, int(perc * (this_h)))\n                mx1, mx2, my1, my2 = getFrameAppend(\n                    (mx1, mx2, my1, my2), (min_x, max_x, min_y, max_y)\n                )\n                val_x1, val_x2, val_y1, val_y2 = [\n                    getStreamAvg(a) for a in (mx1, mx2, my1, my2)\n                ]\n                # not a number. float\n                # will return False on any comparison, including equality.\n                if (\n                    abs(val_x1 - min_x) < thresh_x\n                    and abs(val_x2 - max_x) < thresh_x\n                    and abs(val_y1 - min_y) < thresh_y\n                    and abs(val_y2 - max_y) < thresh_y\n                ):\n                    needChange = False\n                    # this will create bounding rect.",
+        "file_id": 86,
+        "content": "from pyjom.commons import *\nimport requests\nimport random\nimport jieba\nimport json\nimport parse\nimport urllib.parse\ndef weiboLinkSearch(keyword):\n    links = []\n    myfilter = list(jieba.cut(keyword))\n    myfilter = [x for x in myfilter if chineseDetector(x)]\n    page = random.randint(\n        1, 100\n    )  # just a demo we do not know how to handle this one just yet.\n    url = sinaWeiboApi[\"search_with_page\"].format(keyword, page)\n    with requests.get(url) as r:\n        print(\"STATUS_CODE:\", r.status_code)\n        if r.status_code == 200:\n            content = r.content.decode(\"utf-8\")\n            content = parse.parse(\"initFeed({content})\", content)\n            content = content[\"content\"]\n            # import pyperclip\n            # pyperclip.copy(content)\n            # print(content)\n            content = json.loads(content)\n            data = content[\"data\"]\n            feed1 = data[\"feed1\"]\n            for elem in feed1:\n                url = elem[\"url\"]\n                title = elem[\"title\"]\n                fsum = 0",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:613-634"
+        "location": "/pyjom/modules/informationGathering/weiboInfo.py:1-33"
     },
     "931": {
-        "file_id": 71,
-        "content": "This code creates a single bounding box by calculating the threshold values based on the percentage and bounding box dimensions. It checks if the average stream values of the bounding box corners are within the calculated thresholds, and if so, it sets needChange to False, indicating that no change is needed in the bounding rect creation.",
+        "file_id": 86,
+        "content": "This code is fetching the latest 100 Weibo posts containing a specified keyword. It first tokenizes the keyword using jieba, removes non-Chinese characters using chineseDetector, and randomly selects a page number between 1 to 100. Then, it constructs a URL for Sina Weibo API's search endpoint with the selected page, retrieves the content from the URL using requests, parses the JSON response containing the latest feeds, and extracts the URL and title of each feed. The fetched data is stored in the variables 'url' and 'title', respectively.",
         "type": "comment"
     },
     "932": {
-        "file_id": 71,
-        "content": "                    # this cannot handle multiple active rects.\n                    reputation = max_reputation\n                    if frame_x1 == None:\n                        needChange = True\n                    elif (\n                        checkChange(frame_x1, val_x1, this_w)\n                        or checkChange(frame_x2, val_x2, this_w)\n                        or checkChange(frame_y1, val_y1, this_h)\n                        or checkChange(frame_y2, val_y2, this_h)\n                    ):\n                        needChange = True\n                        # the #2 must be of this reason.\n                    if needChange:\n                        frame_x1, frame_y1, frame_x2, frame_y2 = [\n                            int(a) for a in (min_x, min_y, max_x, max_y)\n                        ]\n                        print()\n                        print(\"########FRAME CHANGED########\")\n                        frame_num += 1\n                        frame_area = (frame_x2 - frame_x1) * (frame_y2 - frame_y1)\n                        # update the shit.",
+        "file_id": 86,
+        "content": "                for f in myfilter:\n                    if f in title:\n                        fsum += 1\n                if fsum == len(myfilter):\n                    links.append(url)\n            return links\ndef weiboStatusParser(content):\n    mtitle = None\n    if \"topic_struct\" in content.keys():\n        mtopic = [(x[\"topic_title\"], x[\"topic_url\"]) for x in content[\"topic_struct\"]]\n    else:\n        mtopic = None\n    mtext_raw = content[\"text_raw\"]\n    mtext = content[\"text\"]\n    mtime = content[\"created_at\"]\n    mauthor = content[\"user\"][\"screen_name\"]\n    mid = content[\"idstr\"]  # used for fetching comments.\n    mauthor_id = content[\"user\"][\"idstr\"]\n    mblogid = content[\"mblogid\"]\n    reposts_count = content[\"reposts_count\"]\n    comments_count = content[\"comments_count\"]\n    attitudes_count = content[\"attitudes_count\"]\n    mfeedback = {\n        \"reposts_count\": reposts_count,\n        \"comments_count\": comments_count,\n        \"attitudes_count\": attitudes_count,\n    }\n    mcontent = {\n        \"video\": None,\n        \"picture\": None,",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:635-655"
+        "location": "/pyjom/modules/informationGathering/weiboInfo.py:34-66"
     },
     "933": {
-        "file_id": 71,
-        "content": "This code checks if the frame boundaries have changed and updates them accordingly. If a change occurs, it increments the frame number and prints \"########FRAME CHANGED########\". The frame area is then calculated based on the updated frame boundaries.",
+        "file_id": 86,
+        "content": "This code parses a Weibo content, extracting relevant information such as title, author, text, timestamp, and feedback count. It checks for topic structures in the content and appends URLs to a list if specific filters are met. The code returns the parsed Weibo status data and related links.",
         "type": "comment"
     },
     "934": {
-        "file_id": 71,
-        "content": "                        coords = ((frame_x1, frame_y1), (frame_x2, frame_y2))\n                        frameDict[frame_num] = {\n                            \"coords\": coords,\n                            \"start\": frameIndex,\n                            \"end\": frameIndex,\n                        }\n                        print(\n                            \"FRAME INDEX: {}\".format(frame_num)\n                        )  # this is the indexable frame. not uuid.\n                        print(\"FRAME AREA: {}\".format(frame_area))\n                        print(\"FRAME COORDS: {}\".format(str(coords)))\n                    # allow us to introduce our new frame determinism.\n                else:\n                    if reputation > 0:\n                        reputation -= 1\n                if frame_x1 is not None and reputation > 0:\n                    # you may choose to keep cutting the frame? with delay though.\n                    cv2.rectangle(\n                        frame, (frame_x1, frame_y1), (frame_x2, frame_y2), (255, 0, 0), 2",
+        "file_id": 86,
+        "content": "        \"title\": mtitle,\n        \"topic\": mtopic,\n        \"text\": {\"raw\": mtext_raw, \"html\": mtext},\n        \"author\": mauthor,\n        \"meta\": {\"time\": mtime, \"id\": mid, \"mblogid\": mblogid, \"uid\": mauthor_id},\n        \"feedback\": mfeedback,\n    }\n    if len(content[\"pic_ids\"]) > 0 and content[\"pic_num\"] > 0:\n        print(\"picture count:\", content[\"pic_num\"])\n        content[\"picture\"] = []\n        for pid in content[\"pic_ids\"]:\n            pic_srcs = [\n                \"original\",\n                \"mw2000\",\n                \"largest\",\n                \"large\",\n                \"bmiddle\",\n                \"thumbnail\",\n            ]\n            picBase = content[\"pic_infos\"][pid]\n            picUrl = None\n            for src in pic_srcs:\n                if src in picBase.keys():\n                    picUrl = picBase[src]\n                    if \"url\" in picUrl.keys():\n                        picUrl = picUrl[\"url\"]\n                        if picUrl is not None:\n                            print(\"fetched picture [{}]\\n{}\".format(src, picUrl))",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:656-674"
+        "location": "/pyjom/modules/informationGathering/weiboInfo.py:67-94"
     },
     "935": {
-        "file_id": 71,
-        "content": "Code is detecting frames in an image, storing their coordinates and index range in a dictionary. If the frame's reputation is positive, it will reduce the reputation and continue cutting the frame if needed. It also prints information about the detected frame to the console.",
+        "file_id": 86,
+        "content": "This code is extracting and organizing information from a Weibo post. It creates a dictionary with various details including title, topic, text, author, time, id, etc. If there are pictures in the post, it fetches them based on different sizes and adds the URL to a list in the dictionary.",
         "type": "comment"
     },
     "936": {
-        "file_id": 71,
-        "content": "                    )\n                    frameDict[frame_num][\"end\"] = frameIndex\n                    # we mark the first and last time to display this frame.\n                # how to stablize this shit?\n            cv2.imshow(\"video\", frame)\n            # just video.\n            # cv2.imshow('img_output', img_output)\n            # cv2.imshow('img_bgmodel', img_bgmodel)\n        else:\n            # cv2.waitKey(1000) # what the heck?\n            break\n        # if 0xFF & cv2.waitKey(10) == 27:\n        #     break\n    # cv2.destroyAllWindows()\n    print(\"FINAL FRAME DETECTIONS:\")\n    print(frameDict)\n    return frameDict\n    # {1: {'coords': ((80, 199), (496, 825)), 'start': 13, 'end': 269}, 2: {'coords': ((80, 381), (483, 644)), 'start': 297, 'end': 601}}\ndef frameborder_default_configs(model=\"framedifference_talib\"):\n    assert model in [\"framedifference_talib\",\"huffline_horizontal_vertical\"]\n    if model == \"framedifference_talib\":\n        df_config = {\"past_frames\":19,\"timeperiod\":10, \"change_threshold\":0.2,\"perc\":0.03, \"max_reputation\": 3,\"framePeriod\":1,\"minVariance\" :10}",
+        "file_id": 86,
+        "content": "                            break\n            if picUrl is not None:\n                content[\"picture\"].append(picUrl)\n            # only select the clearest, if possible.\n    elif \"page_info\" in content.keys():\n        print(content[\"page_info\"])  # this is how you print it.\n        videoBase = content[\"page_info\"][\"media_info\"]\n        potential_links = [\n            \"stream_url_hd\",\n            \"mp4_hd_url\",\n            \"h265_mp4_hd\",\n            \"inch_4_mp4_hd\",\n            \"inch_5_mp4_hd\",\n            \"inch_5_5_mp4_hd\",\n            \"mp4_sd_url\",\n            \"stream_url\",\n            \"h265_mp4_ld\",\n            \"mp4_720p_mp4\",\n            \"hevc_mp4_720p\",\n        ]\n        h5_url = videoBase[\"h5_url\"]\n        download_link = [videoBase[x] for x in potential_links if videoBase[x] != \"\"][0]\n        mvideo_info = {\n            \"video_orientation\": videoBase[\"video_orientation\"],\n            \"h5_url\": h5_url,\n            \"download_link\": download_link,\n        }\n        mcontent[\"video\"] = mvideo_info\n        # print(list(videoBase.keys()))",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:675-699"
+        "location": "/pyjom/modules/informationGathering/weiboInfo.py:95-123"
     },
     "937": {
-        "file_id": 71,
-        "content": "This code is a part of the frameborder_Detector function, which detects frames with high frame borders. It uses OpenCV's imshow function to display the video and frames. The frameDict variable stores the frame numbers and their respective coordinates and timeframes. If a specific key is pressed, it breaks out of the loop. After detecting final frame detections, it returns the frameDict. This code also includes a default config function for different models.",
+        "file_id": 86,
+        "content": "The code checks if \"page_info\" exists in content and then proceeds to extract potential video links from the \"videoBase\". It creates a new dictionary, mvideo_info, containing the video orientation, h5_url, and download link. Finally, it adds this new dictionary to the content under the key \"video\".",
         "type": "comment"
     },
     "938": {
-        "file_id": 71,
-        "content": "    else:\n        df_config = {\"line_thresh\":150, # original 150\n        \"includeBoundaryLines\":True,\"blurKernel\":(5,5),\"angle_error\":0.00003,\"delta_thresh\":0.1,\"min_rect_life\":0,\"max_rect_life\":6,\"framePeriod\":1,\"min_rect_life_display_thresh\":3,\"minRectArea\":1}\n    return df_config\ndef frameborder_Detector(mediapaths, model=\"framedifference_talib\",config={}):\n    print(\"MODEL:\",model)\n    # breakpoint()\n    yconfig = copy.deepcopy(config)\n    # breakpoint()\n    # if config is None:\n    #     breakpoint()\n    #     config = {}\n    # any better detectors? deeplearning?\n    assert model in [\"framedifference_talib\",\"huffline_horizontal_vertical\"]\n    results = []\n    keyword = \"{}_detector\".format(model)\n    data_key = keyword # different than yolo.\n    for mediapath in mediapaths:\n        print(\"mediapath:\", mediapath)\n        # breakpoint()\n        mediatype = getFileType(mediapath)\n        print(\"subtitle of mediatype:\", mediatype)\n        assert mediatype in [\"video\", \"image\"]  # gif? anything like that?\n        if model == \"framedifference_talib\":",
+        "file_id": 86,
+        "content": "        if \"video_title\" not in videoBase.keys():\n            try:\n                mcontent[\"title\"] = videoBase[\"titles\"][0][\"title\"]\n            except:\n                try:\n                    mcontent[\"title\"] = videoBase[\"content2\"]\n                except:\n                    try:\n                        mcontent[\"title\"] = videoBase[\"video_title\"]\n                    except:\n                        try:\n                            mcontent[\"title\"] = videoBase[\"next_title\"]\n                        except:\n                            try:\n                                mcontent[\"title\"] = videoBase[\"cards\"][0][\"content2\"]\n                            except:\n                                mcontent[\"title\"] = videoBase[\"page_title\"]\n        else:\n            mcontent[\"title\"] = videoBase[\"video_title\"]\n    return mcontent\ndef weiboVideoSearch(keyword):\n    links = weiboLinkSearch(keyword)\n    # info = []\n    for link in links:  # use yleid here.\n        myId = link.split(\"/\")[-1]\n        # need cookie to do the job?",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:700-725"
+        "location": "/pyjom/modules/informationGathering/weiboInfo.py:124-151"
     },
     "939": {
-        "file_id": 71,
-        "content": "The code is defining a function called \"frameborder_Detector\" which takes in media paths and a model parameter. The function checks the model and applies different detection algorithms based on the input model. It also initializes a deepcopy of the configuration and checks if the model is either \"framedifference_talib\" or \"huffline_horizontal_vertical\". If not, it raises an assertion error. Finally, it iterates through the media paths and performs some actions specific to the given model.",
+        "file_id": 86,
+        "content": "The code attempts to fetch the video title from various possible keys in the 'videoBase' dictionary. If \"video_title\" doesn't exist, it tries alternative keys. It then returns the 'mcontent' dictionary containing the retrieved or default title. The function 'weiboVideoSearch' performs a keyword-based search for links and processes each link separately with a specific ID extraction method.",
         "type": "comment"
     },
     "940": {
-        "file_id": 71,
-        "content": "            assert mediatype == \"video\"\n            # advice you to check out only those areas with rectangles, not something else, if detected any rectangular area.\n            # but does that happen for normal videos? you might want huffline transforms.\n            # you can eliminate unwanted rectangles by time duration and huffline transforms.\n        result = {\"type\": mediatype, data_key: {}}\n        default_config = frameborder_default_configs(model)\n        xconfig = default_config\n        xconfig.update(yconfig) # override default configs.\n        # do not freaking assign directly after update.\n        config = xconfig\n        # print(\"YCONFIG:\", yconfig)\n        # breakpoint()\n        if mediatype == \"image\":\n            data = cv2.imread(mediapath)\n            data = keywordDecorator(huffline_stillImage_Identifier, **config)(data) # this is just oldfashioned function decorator\n            result[data_key].update({keyword: data})\n            result[data_key].update({\"config\": config})\n        else:",
+        "file_id": 86,
+        "content": "        videoLink = sinaWeiboApi[\"weibo_status_by_blogid\"].format(\n            myId\n        )  # sina got better grammar?\n        # videoLink = \"https://www.weibo.com/ajax/status/show?id=\"+myId\n        with requests.get(videoLink) as r:\n            print(\"fetching video link:\", videoLink)\n            print(\"STATUS_CODE:\", r.status_code)\n            if r.status_code == 200:\n                content = r.text\n                # print('response content:',content)\n                # this is not formatted. this is pure json i suppose.\n                # content = parse.parse(\"initFeed({content})\",content)\n                if content == None:\n                    print(\"skipping link:\", videoLink)\n                    continue\n                # content = content[\"content\"]\n                # with open(\"{}.json\".format(myId),\"w+\",encoding=\"utf-8\") as f:\n                #     f.write(content)\n                content = json.loads(content)\n                mcontent = weiboStatusParser(content)  # this is a generator, not a list.",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:726-744"
+        "location": "/pyjom/modules/informationGathering/weiboInfo.py:152-171"
     },
     "941": {
-        "file_id": 71,
-        "content": "This code is performing frame detection on video or image media. It checks if the mediatype is \"video\" and provides advice for checking only rectangular areas, suggesting huffline transforms to eliminate unwanted rectangles by time duration. If the mediatype is \"image\", it reads the image using cv2.imread, applies keywordDecorator with huffline_stillImage_Identifier and config, updates the result dictionary with the data and config.",
+        "file_id": 86,
+        "content": "Code fetches the video link using the Sina Weibo API and checks if the status code is 200. If successful, it retrieves the response content and parses it as JSON to extract relevant information. The extracted information is then processed by a generator function called weiboStatusParser.",
         "type": "comment"
     },
     "942": {
-        "file_id": 71,
-        "content": "            # you may not want videoFrameIterator.\n            if model == \"framedifference_talib\":\n                mdata= framedifference_talib_FrameIterator(\n                    mediapath,**config)\n            elif model == \"huffline_horizontal_vertical\":\n                mdata = huffline_horizontal_vertical_FrameIterator(mediapath,**config)\n            metadata = {\"config\": config}\n            result[data_key][keyword] = mdata\n            result[data_key].update(metadata)\n        results.append(result)\n    return results",
+        "file_id": 86,
+        "content": "                yield mcontent # this is a generator, not a list. how to get our feedback?\n        # return info\n        # make it into generator so links will not expire so damn fast.\ndef weiboInfoLogic(topic):\n    infoDict = {}\n    for elem in topic[\"entities\"]:\n        keyword = elem[\"chinese\"]\n        if keyword is not None:\n            info = weiboVideoSearch(keyword)\n            infoDict.update({keyword: info})\n    return infoDict\n@decorator\ndef weiboInfo(topic):\n    infoDict = weiboInfoLogic(topic)\n    return infoDict\n@decorator\ndef weiboFetcher(topic):\n    mtopic_bytes = json.dumps(topic).encode()\n    protocol = \"sinafetch://{}\".format(\n        urllib.parse.quote(mtopic_bytes)\n    )  # this is the posted_location, submit to feedback. containing the keyword in json.\n    # which is not desired since in this way we will not get the feedback.\n    infoDict = weiboInfoLogic(topic)\n    return protocol, infoDict",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:745-755"
+        "location": "/pyjom/modules/informationGathering/weiboInfo.py:172-201"
     },
     "943": {
-        "file_id": 71,
-        "content": "This code selects a specific detector model based on the input \"model\" parameter. If the model is \"framedifference_talib\", it creates an instance of framedifference_talib_FrameIterator, and if the model is \"huffline_horizontal_vertical\", it creates an instance of huffline_horizontal_vertical_FrameIterator. It then adds the created iterator to the result dictionary along with a metadata dictionary containing the original config parameters. The final results list is appended with this result dictionary.",
+        "file_id": 86,
+        "content": "The code defines a function `weiboInfoLogic` that searches for videos related to a given topic and returns the results in a dictionary. It also defines a decorator (not shown) that is applied to the `weiboInfo` and `weiboFetcher` functions. The `weiboInfo` function calls `weiboInfoLogic` to gather information about the topic, while the `weiboFetcher` function constructs a protocol for submitting the topic and also calls `weiboInfoLogic`. The code uses generator to make the links not expire quickly.",
         "type": "comment"
     },
     "944": {
-        "file_id": 72,
-        "content": "/pyjom/medialang/functions/detectors/entityDetector.py",
+        "file_id": 87,
+        "content": "/pyjom/modules/informationGathering/onlineFetcher.py",
         "type": "filepath"
     },
     "945": {
-        "file_id": 72,
-        "content": "The code performs text processing, device movement detection, and entity identification using Levenshtein's algorithm. It calculates string similarities, generates test results, compares content and location changes to find or create entity structures, initializes variables, detects and tracks entities, updates text detection results, merges entries based on similarity and temporal proximity, and returns a formatted result dictionary.",
+        "file_id": 87,
+        "content": "OnlineFetcher is a decorator for retrieving online media assets with specific criteria using lazero libraries. It chains functions, fetches URLs from frame metadata, creates download paths and skips unsuccessful downloads while handling exceptions during Giphy asset fetching.",
         "type": "summary"
     },
     "946": {
-        "file_id": 72,
-        "content": "from .mediaDetector import *\nimport Levenshtein\nimport string\nimport zhon.hanzi\nimport wordninja\ndef resplitedEnglish(string2,skipSpecial=True):\n    if skipSpecial:\n        header = string2[0]\n        if header in string.punctuation or header in zhon.hanzi.punctuation:\n            return string2 # this could be buggy.\n    result = wordninja.split(string2)\n    if len(result)>1:\n        mlist = zip(result[:-1], result[1:])\n        for a,b in mlist:\n            combined = \"{} {}\".format(a,b)\n            error = a+b\n            string2 = string2.replace(error,combined)\n    return string2 # really? this is not good. maybe you should provide some version of continuality, for channel id watermarks.\n    # @MA SECO. -> @MASECO\n# maybe you can read it here?\n# you need double language check. both chinese and english. or really?\ndef ocrEntityDetector(mdata):\n    alteredData = [] # we should do a demo. \n    return alteredData # now we are on the same page, paddleocr is using cuda 11.2 which is compatible to 11.3\ndef getMinLenStr(a,b):",
+        "file_id": 87,
+        "content": "from pyjom.commons import *\nfrom typing import Literal\nfrom lazero.network import download\nfrom lazero.filesystem import tmpdir\n@decorator\ndef OnlineFetcher(\n    infoList,\n    source: Literal[\"giphy\"] = \"giphy\",\n    frame_size_filter: dict = {\n        \"width\": {\"min\": 150, \"max\": 1000},\n        \"height\": {\"min\": 150, \"max\": 1000},\n    },\n    tempdir=\"/dev/shm/medialang/online\",\n    threads=20,\n    # threads=-0.5,\n    use_multithread=True,\n    timeout=120\n):\n    # how do you chain this shit up?\n    assert os.path.isabs(tempdir)\n    with tmpdir(path=tempdir) as TD:\n        assert os.path.isdir(tempdir)\n        assert os.path.exists(tempdir)\n        for info in infoList:  # generator most likely\n            if source == \"giphy\":\n                (source_id, frameMeta) = info\n                width, height = frameMeta[\"width\"], frameMeta[\"height\"]\n                asset_id = \"video_[{}_{}]_[{}x{}]\".format(source, source_id, width, height)\n                flag = frameSizeFilter(frameMeta, frame_size_filter)\n                if flag:",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:1-29"
+        "location": "/pyjom/modules/informationGathering/onlineFetcher.py:1-32"
     },
     "947": {
-        "file_id": 72,
-        "content": "The code includes a function \"resplitedEnglish\" that splits the given string into individual words, potentially skipping special characters. It uses wordninja for splitting and attempts to merge adjacent words if they have been mistakenly separated by special characters. Another function, \"ocrEntityDetector\", receives data as input and returns alteredData, but the code lacks implementation details. Lastly, there's a helper function \"getMinLenStr\" that takes two inputs 'a' and 'b', likely for comparison purposes.",
+        "file_id": 87,
+        "content": "The function, OnlineFetcher, is a decorator that takes in a list of information and retrieves online media assets based on certain criteria such as source, frame size filter, temporary directory path, number of threads for multithreading, and timeout duration. It uses the download and tmpdir functions from lazero libraries for network downloading and temporary directories respectively. The function is chained to perform these operations.",
         "type": "comment"
     },
     "948": {
-        "file_id": 72,
-        "content": "    la,lb = len(a),len(b)\n    if la < lb:return a\n    return b\ndef getBlockType(dlocation,dcontent):\n    if not dlocation:\n        if not dcontent: return \"stationary\"\n        else: return \"typing\"\n    else:\n        if not dcontent: return \"typing_moving\"\n        else: return \"moving\"\ndef getStringDistance(a,b):\n    return Levenshtein.distance(a,b)\ndef getStringSimilarity(a,b):\n    return Levenshtein.ratio(a,b)\ndef getChineseLen(string2):\n    counter  = 0\n    upperLimit, lowerLimit = 0x4e00, 0x9fff\n    for elem in string2:\n        ordNum = ord(elem)\n        if ordNum <= upperLimit and ordNum>=lowerLimit:\n            counter+=1\n    return counter\ndef getPunctualLen(string2):\n    counter = 0\n    chinesePunctuals = zhon.hanzi.punctuation\n    englishPunctuals = string.punctuation\n    standardString = chinesePunctuals+englishPunctuals\n    for elem in string2:\n        if elem in standardString:\n            counter+=2\n    return counter\ndef getEnglishLen(string2):\n    counter = 0\n    standardString = \"abcdefghijklmnopqrstuvwxyz\"",
+        "file_id": 87,
+        "content": "                    # this time it is selected.\n                    url = frameMeta[\"url\"]\n                    extension = url.split(\"?\")[0].split(\".\")[-1]\n                    basename = \".\".join([asset_id, extension])\n                    download_path = os.path.join(tempdir, basename)\n                    try:\n                        result = download(\n                            url,\n                            download_path,\n                            threads=threads,\n                            size_filter={\"min\": 0.4, \"max\": 50},\n                            use_multithread=use_multithread,\n                            timeout=timeout\n                        )\n                        if result:\n                            yield source_id, download_path\n                        else:\n                            print(\"not downloading source:\", source_id)\n                            print(\"skipping:\", frameMeta)\n                            # print(\"____WTF IS GOING ON WITH THE DOWNLOADER?____\")\n                            # breakpoint()",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:30-70"
+        "location": "/pyjom/modules/informationGathering/onlineFetcher.py:33-53"
     },
     "949": {
-        "file_id": 72,
-        "content": "This code defines several functions for text processing, including getting the length of Chinese characters, English punctuation marks, and English words. It also calculates string similarity and distance using Levenshtein's algorithm. The \"getBlockType\" function determines if the device is stationary or moving based on its location and content.",
+        "file_id": 87,
+        "content": "Code block fetches the URL from frame metadata, extracts extension and filename, creates download path, attempts to download file using specified parameters (threads, size filter, use_multithread, timeout), yields source ID and download path if successful, skips and logs if unsuccessful.",
         "type": "comment"
     },
     "950": {
-        "file_id": 72,
-        "content": "    standardString += standardString.upper()\n    standardString += \"0123456789\"\n    # it won't split. you may need double check the thing.\n    # standardString += \" \"\n    for elem in string2:\n        if elem in standardString:\n            counter+=1\n    return counter\ndef getMinMaxText(a,b):\n    mlist = [a,b]\n    clens = [getChineseLen(x) for x in mlist]\n    elens = [getEnglishLen(x) for x in mlist]\n    slens = [getPunctualLen(x) for x in mlist]\n    mlens = [x[0]+x[1]+x[2] for x in zip(clens,elens,slens)]\n    if len(a) > len(b):\n        if mlens[0] > mlens[1]:\n            return a\n        return b\n    else:\n        if mlens[0] < mlens[1]:\n            return b\n        return a\ndef pointDifference(a,b):\n    return [a[0] - b[0], a[1] - b[1]]\ndef makeOCREntity(ocrData,minMaxThresh = 24 ,# max difference is ten pixel. or it is considered as moving.\nstrDisThreshold = 2 ,# or considered as changing?\ncertThreshold = 0.6,\nchangingMinMaxThresh = 45,\nchangingstrDisThreshold = 3,\ntimeThreshold = 0.3 ,# i intentially set it.\nblockTimeThreshold = 0.3, # at least last this long?",
+        "file_id": 87,
+        "content": "                    except:\n                        import traceback\n                        traceback.print_exc()\n                        print(\"error fetching assets from giphy\")",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:71-104"
+        "location": "/pyjom/modules/informationGathering/onlineFetcher.py:54-57"
     },
     "951": {
-        "file_id": 72,
-        "content": "The code defines a series of functions for detecting changes in textual data, such as entity detection and calculating point differences. It also involves calculating Chinese, English, and punctuation lengths and uses them to determine if the text is changing or moving based on certain thresholds.",
+        "file_id": 87,
+        "content": "This code segment catches exceptions during asset fetching from Giphy and prints the error message along with stack trace.",
         "type": "comment"
     },
     "952": {
-        "file_id": 72,
-        "content": "strSimThreshold = 0.8):\n    testElemIds = {} # just show processed items.\n    for line in ocrData:\n        mtime,mframe,mresult = line[\"time\"],line[\"frame\"],line[\"paddleocr\"]\n        # print(\"______________________\")\n        # print(\"time:\",mtime)\n        # newlyAddedIds = [] # will directly added if not in.\n        # initiate things here.\n        for mid in testElemIds.keys(): # must trt\n            testElemIds[mid][\"hasIdentical\"] =False  #initialization.\n        for presult in mresult:\n            location, mtext = presult\n            p1, p2, p3, p4 = location\n            text, certainty = mtext\n            print(\"RECOGNIZED TEXT:\",text)\n            mtimestamp = {\"frame\":mframe,\"time\":mtime}\n            # print(\"location:\",location)\n            # print(\"text:\",text)\n            # print(\"certainty:\",certainty)\n            foundIdentical = False\n            for mid in testElemIds.keys():\n                myid = testElemIds[mid]\n                myLastLocation = myid[\"locations\"][-1]\n                px1,px2,px3,px4 = myLastLocation",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:105-128"
+        "file_id": 88,
+        "content": "/pyjom/modules/informationGathering/localFetcher.py",
+        "type": "filepath"
     },
     "953": {
-        "file_id": 72,
-        "content": "This code initializes variables and iterates through OCR data, specifically focusing on recognized text from each result. It checks if any previously identified elements have identical locations to the current element, updating a flag accordingly. The purpose seems to be detecting entities based on overlapping locations in different frames or times.",
-        "type": "comment"
+        "file_id": 88,
+        "content": "This code defines a function called filesystemFetcher that takes a topic as input. The function uses the protocol and path from the topic to create a URI. It also iterates over the content in the topic, determining the file type for each item using getLocalFileType. Finally, it adds this information to a list and returns the URI and the content.",
+        "type": "summary"
     },
     "954": {
-        "file_id": 72,
-        "content": "                myMinMax = max([max(pointDifference(a,b)) for a,b in zip(location,myLastLocation)])\n                myMinMaxs = [max([max(pointDifference(a,b)) for a,b in zip(location,myLL)]) for myLL in myid[\"locations\"]] # changing it. the max movement.\n                mLastTime = myid[\"timestamps\"][-1][\"time\"]\n                timeDelta = mLastTime - mtime\n                myLastContent = myid[\"contents\"][-1]\n                strDistance = getStringDistance(myLastContent,text)\n                strDistances = [getStringDistance(myLastContent,text) for myLC in myid[\"contents\"]]\n                strSim = getStringSimilarity(myLastContent,text)\n                strSims = [getStringSimilarity(myLC,text) for myLC in myid[\"contents\"]]\n                foundIdentical = False\n                movementMap = {\"location\":False,\"content\":False,\"continual\":False}\n                if timeDelta < timeThreshold:\n                    if myMinMax <= minMaxThresh and ((strDistance <= strDisThreshold) or (strSim >= strSimThreshold )) : # wrong logic.",
+        "file_id": 88,
+        "content": "from pyjom.commons import *\n@decorator\ndef filesystemFetcher(topic):\n    protocol = topic[\"protocol\"]\n    path = topic[\"path\"]\n    content = []\n    for fname in topic[\"content\"]:\n        ftype = getLocalFileType(fname)\n        content.append({\"type\": ftype, \"path\": fname})\n    # maybe using this protocol is a good start to pass things around?\"\n    return \"{}://{}\".format(protocol, path), content",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:129-142"
+        "location": "/pyjom/modules/informationGathering/localFetcher.py:1-13"
     },
     "955": {
-        "file_id": 72,
-        "content": "This code calculates the maximum movement and string similarity between consecutive entities, considering time deltas and thresholds. If the movement is within a threshold and the string distance or similarity meets specific criteria, it indicates an identical entity. However, the current logic for identifying identical entities may be incorrect.",
+        "file_id": 88,
+        "content": "This code defines a function called filesystemFetcher that takes a topic as input. The function uses the protocol and path from the topic to create a URI. It also iterates over the content in the topic, determining the file type for each item using getLocalFileType. Finally, it adds this information to a list and returns the URI and the content.",
         "type": "comment"
     },
     "956": {
-        "file_id": 72,
-        "content": "                        foundIdentical = True\n                        print(\"test result:\",myMinMax <= minMaxThresh ,(strDistance <= strDisThreshold) , (strSim >= strSimThreshold ))\n                        print(myMinMax,strDistance,strSim)\n                        print(minMaxThresh,strDisThreshold,strSimThreshold)\n                        print(\"line a\")\n                        pass\n                        # stricter limit, to know if really is movement?\n                    elif myMinMax <= changingMinMaxThresh:\n                        foundIdentical = True\n                        movementMap[\"location\"] = True\n                        if max(strDistances) <= strDisThreshold or max(strSims) >= strSimThreshold:\n                            # make sure it is globally the same.\n                            print(\"line b\")\n                            pass\n                        elif min(strDistances) <= changingstrDisThreshold:\n                            print(\"line c\")\n                            movementMap[\"content\"] = True",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:143-161"
+        "file_id": 89,
+        "content": "/pyjom/modules/informationGathering/dummyInfoGather.py",
+        "type": "filepath"
     },
     "957": {
-        "file_id": 72,
-        "content": "This code block is checking for identical entities or potential movements in a video. It uses thresholds to determine if the entity is the same, and if it's a movement, it checks if it's the same content or location. The code also prints test results and specific lines for debugging purposes.",
-        "type": "comment"
+        "file_id": 89,
+        "content": "This function, dummyInfo, returns a list of animals (husky, cats, and kitten) without any context. It is likely used in a broader program as a placeholder or dummy information gathering module.",
+        "type": "summary"
     },
     "958": {
-        "file_id": 72,
-        "content": "                        else: # consider something else\n                            print(\"line d\")\n                            foundIdentical = False\n                    elif strDistance <= changingstrDisThreshold or strSim >= strSimThreshold:\n                        foundIdentical = True\n                        print(\"line e\")\n                        movementMap[\"content\"] = True\n                        if max(myMinMaxs) <= minMaxThresh:\n                            print(\"line f\")\n                            pass\n                        elif min(myMinMaxs) <= changingMinMaxThresh:\n                            print(\"line g\")\n                            movementMap[\"location\"] = True\n                        else:\n                            print(\"line h\")\n                            foundIdentical = False\n                else:\n                    foundIdentical = False\n                if foundIdentical:\n                    print(\"FOUND IDENTICAL\",text,myLastContent)\n                    print(\"REASON\",movementMap)",
+        "file_id": 89,
+        "content": "from pyjom.commons import *\n@decorator\ndef dummyInfo(topic):\n    return [\"husky\", \"cats\", \"kitten\"]",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:162-183"
+        "location": "/pyjom/modules/informationGathering/dummyInfoGather.py:1-6"
     },
     "959": {
-        "file_id": 72,
-        "content": "This code checks if the text has a matching content or location change using string similarity and minimum-maximum thresholds. If a match is found, it prints \"FOUND IDENTICAL\" with the original text and reason for identification from the movementMap dictionary.",
+        "file_id": 89,
+        "content": "This function, dummyInfo, returns a list of animals (husky, cats, and kitten) without any context. It is likely used in a broader program as a placeholder or dummy information gathering module.",
         "type": "comment"
     },
     "960": {
-        "file_id": 72,
-        "content": "                    print(\"ID\",mid)\n                    print()\n                    # care about continuality here.\n                    if timeDelta < timeThreshold:\n                        movementMap[\"continual\"] = True\n                    if myid[\"hasIdentical\"] or timeDelta == 0: # eliminate duplicates.\n                        continue # do not check this.\n                    # print(\"found Identical:\",mid)\n                    testElemIds[mid][\"hasIdentical\"]=True\n                    testElemIds[mid][\"locations\"].append(location)\n                    testElemIds[mid][\"contents\"].append(text)\n                    testElemIds[mid][\"timestamps\"].append(mtimestamp)\n                    testElemIds[mid][\"movements\"].append(movementMap)\n                    break\n            if not foundIdentical:\n                if certainty > certThreshold:\n                    minitStruct = {str(uuid.uuid4()):{\"locations\":[copy.deepcopy(location)],\"contents\":[copy.deepcopy(text)],\"movements\":[],\"hasIdentical\":False,\"timestamps\":[mtimestamp]}}",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:184-200"
+        "file_id": 90,
+        "content": "/pyjom/modules/informationGathering/dummyFetcher.py",
+        "type": "filepath"
     },
     "961": {
-        "file_id": 72,
-        "content": "This code is searching for identical entities based on location, text content, and timestamps. If a duplicate is found or time difference is small, it continues to the next entity. If no duplicates are found and certainty level is high, it creates a new entity structure with unique ID, locations, contents, movements, and timestamps.",
-        "type": "comment"
+        "file_id": 90,
+        "content": "The code defines a function \"dummyFetcher\" which takes a topic as input and returns a protocol string along with a dictionary containing information about huskies. This could be used for passing data between different parts of the application.",
+        "type": "summary"
     },
     "962": {
-        "file_id": 72,
-        "content": "                    testElemIds.update(minitStruct) # do you really expect it? i mean it could have cracks.\n    # print(json.dumps(testElemIds,indent=4))\n    keys= list(testElemIds.keys())\n    print(\"keyNum:\",len(keys))\n    mfinal = {}\n    for key in keys:\n        mblocks = []\n        kElem = testElemIds[key]\n        # we try to compress this thing.\n        initBlock = {\"type\":\"stationary\",\"text\":None,\"location\":None,\"timespan\":{\"start\":None,\"end\":None}} # we will have shortest text.\n        for index, mtimestamp in enumerate(kElem[\"timestamps\"]):\n            thisText = kElem[\"contents\"][index]\n            thisLocation = kElem[\"locations\"][index]\n            if index == 0:\n                initBlock[\"timespan\"][\"start\"] = mtimestamp\n                initBlock[\"timespan\"][\"end\"] = mtimestamp\n                initBlock[\"text\"] = thisText\n                initBlock[\"location\"] = copy.deepcopy(thisLocation)\n            else:\n                movementMap = kElem[\"movements\"][index-1]\n                dlocation, dcontent, dtime = movementMap[\"location\"], movementMap[\"content\"], movementMap[\"continual\"]",
+        "file_id": 90,
+        "content": "from pyjom.commons import *\n@decorator\ndef dummyFetcher(topic):\n    # maybe using this protocol is a good start to pass things around?\"\n    return \"randomprotocol://randomcontent\", {\"husky\": {\"video\": \"<cute huskies>\"}}",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:201-221"
+        "location": "/pyjom/modules/informationGathering/dummyFetcher.py:1-7"
     },
     "963": {
-        "file_id": 72,
-        "content": "This code is initializing variables for block detection and compression. It creates an empty dictionary, loops through the timestamps and contents of elements, and assigns the first timestamp and content as the starting point of a stationary block. It also copies the location from the first content to the \"location\" field in the initBlock.",
+        "file_id": 90,
+        "content": "The code defines a function \"dummyFetcher\" which takes a topic as input and returns a protocol string along with a dictionary containing information about huskies. This could be used for passing data between different parts of the application.",
         "type": "comment"
     },
     "964": {
-        "file_id": 72,
-        "content": "                lastType = initBlock[\"type\"]\n                thisType = getBlockType(dlocation,dcontent)\n                if (not dtime) or (thisType != lastType):\n                    # will abandon all no matter what. cause it is not continual.\n                    mblocks.append(copy.deepcopy(initBlock))\n                    initBlock = {\"type\":thisType,\"timespan\":{\"start\":mtimestamp,\"end\":mtimestamp}} # get the content.\n                    if thisType in [\"stationary\", \"moving\"]:\n                        # lastText = initBlock[\"text\"]\n                        # mselectedText = getMinMaxText(lastText,thisText)\n                        initBlock.update({\"text\":thisText}) # not right. we select the best one.\n                    if thisType in [\"stationary\", \"typing\"]:\n                        initBlock.update({\"location\":copy.deepcopy(thisLocation)})\n                    if thisType in [\"typing_moving\",\"typing\"]:\n                        initBlock.update({\"texts\":[thisText]})\n                    if thisType in [\"moving\", \"typing_moving\"]:",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:222-237"
+        "file_id": 91,
+        "content": "/pyjom/modules/informationGathering/__init__.py",
+        "type": "filepath"
     },
     "965": {
-        "file_id": 72,
-        "content": "This code snippet initializes a new block for text detection whenever there is a change in type or no time stamp. The block's details are updated based on the current type, location, and texts. It also stores the previous and new types, with the option to select the best text if the type is \"stationary\" or \"moving\".",
-        "type": "comment"
+        "file_id": 91,
+        "content": "This code imports various modules for information gathering from different sources, such as dummy, Weibo, and online services. It includes functionality for fetching data locally or from the internet.",
+        "type": "summary"
     },
     "966": {
-        "file_id": 72,
-        "content": "                        initBlock.update({\"locations\":[copy.deepcopy(thisLocation)]})\n                else:\n                    initBlock[\"timespan\"][\"end\"] = mtimestamp\n                    if thisType in [\"moving\",\"typing_moving\"]:\n                        initBlock[\"locations\"].append(copy.deepcopy(thisLocation))\n                    if thisType in [\"typing_moving\",\"typing\"]:\n                        initBlock[\"texts\"].append(thisText)\n                    if thisType in [\"moving\",\"stationary\"]: # we don't change stationary/typing's location. or do we?\n                        mLastText = initBlock[\"text\"]\n                        initBlock[\"text\"] = getMinMaxText(mLastText,thisText)\n                        # initBlock[\"text\"] = getMinLenStr(mLastText,thisText)\n        mblocks.append(copy.deepcopy(initBlock))\n        mblocks2 = []\n        for block in mblocks:\n            start,end = block[\"timespan\"][\"start\"], block[\"timespan\"][\"end\"]\n            timedelta = end[\"time\"] - start[\"time\"]\n            if timedelta > blockTimeThreshold:",
+        "file_id": 91,
+        "content": "from pyjom.modules.informationGathering.dummyInfoGather import *\nfrom pyjom.modules.informationGathering.dummyFetcher import *\nfrom pyjom.modules.informationGathering.weiboInfo import *\nfrom pyjom.modules.informationGathering.localFetcher import *\nfrom pyjom.modules.informationGathering.onlineFetcher import *",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:238-254"
+        "location": "/pyjom/modules/informationGathering/__init__.py:1-5"
     },
     "967": {
-        "file_id": 72,
-        "content": "This code appears to be part of a function that detects and tracks entities such as text or movement. It updates the initialization block based on the detected entity type, appends locations or texts, creates a copy of the block for later use, and filters out blocks with duration shorter than the given threshold.",
+        "file_id": 91,
+        "content": "This code imports various modules for information gathering from different sources, such as dummy, Weibo, and online services. It includes functionality for fetching data locally or from the internet.",
         "type": "comment"
     },
     "968": {
-        "file_id": 72,
-        "content": "                mblocks2.append(block)\n        mfinal.update({key:mblocks2})\n    return mfinal\n    # print(json.dumps(mfinal,indent=4))\n    # print(\"___________\")\ndef staticOCRCombinator(myresult,simThreshold= 0.8):\n    # we use wordninja to do the english spliting.\n    # you can also get this working for non-static.\n    myNewResult = {}\n    lastWordResult = None\n    lastId = None\n    lastLocation = None\n    lastTimeStamp = {\"start\":{},\"end\":{}}\n    for key in myresult.keys():\n        melems = myresult[key]\n        for melem in melems:\n            mtype = melem[\"type\"]\n            if mtype in [\"stationary\", \"moving\"]:\n                mtext = melem[\"text\"] # maybe there are some moving things out there?\n            else:\n                mtext = melem[\"texts\"][0]\n            mtext = resplitedEnglish(mtext)\n            if lastWordResult is None:\n                lastWordResult = mtext\n                lastId = key\n                lastTimeStamp[\"start\"] = melem[\"timespan\"][\"start\"]\n                lastTimeStamp[\"end\"] = melem[\"timespan\"][\"end\"]",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:255-283"
+        "file_id": 92,
+        "content": "/pyjom/modules/globalUpdator/__init__.py",
+        "type": "filepath"
     },
     "969": {
-        "file_id": 72,
-        "content": "This function takes a dictionary of results and applies static OCR combining by processing each element in the dictionary. It uses WordNinja for English splitting, and stores last word result, id, location, and timestamp.",
-        "type": "comment"
+        "file_id": 92,
+        "content": "This code imports all the functions and classes from the \"dummyUpdator\" module in the \"pyjom.modules.globalUpdator.dummyUpdator\" package, allowing them to be used within this file or other parts of the program as needed.",
+        "type": "summary"
     },
     "970": {
-        "file_id": 72,
-        "content": "                if mtype in [\"stationary\", \"typing\"]:\n                    lastLocation = melem[\"location\"]\n                else:\n                    lastLocation = melem[\"locations\"][0]\n            else:\n                if getStringSimilarity(lastWordResult,mtext) > simThreshold:\n                    # merge the thing.\n                    lastTimeStamp[\"start\"] = list(sorted([melem[\"timespan\"][\"start\"],lastTimeStamp[\"start\"]],key=lambda x:x[\"time\"]))[0]\n                    lastTimeStamp[\"end\"] = list(sorted([melem[\"timespan\"][\"end\"],lastTimeStamp[\"end\"]],key=lambda x:-x[\"time\"]))[0]\n                else:\n                    myNewResult.update({lastId:{\"content\":lastWordResult,\"timespan\":lastTimeStamp,\"location\":lastLocation}})\n                    lastWordResult = mtext\n                    lastId = key\n                    if mtype in [\"stationary\", \"typing\"]:\n                        lastLocation = melem[\"location\"]\n                    else:\n                        lastLocation = melem[\"locations\"][0]\n                    lastTimeStamp[\"start\"] = melem[\"timespan\"][\"start\"]",
+        "file_id": 92,
+        "content": "from pyjom.modules.globalUpdator.dummyUpdator import *",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:284-301"
+        "location": "/pyjom/modules/globalUpdator/__init__.py:1-1"
     },
     "971": {
-        "file_id": 72,
-        "content": "This code is merging and updating text detection results based on similarity and temporal proximity. It keeps track of the last detected word, its location, and timestamp, updating or creating new result entries accordingly.",
+        "file_id": 92,
+        "content": "This code imports all the functions and classes from the \"dummyUpdator\" module in the \"pyjom.modules.globalUpdator.dummyUpdator\" package, allowing them to be used within this file or other parts of the program as needed.",
         "type": "comment"
     },
     "972": {
-        "file_id": 72,
-        "content": "                    lastTimeStamp[\"end\"] = melem[\"timespan\"][\"end\"]\n            # else:\n            #     print(\"found different type:\",mtype)\n            #     print(\"text:\",mtext)\n            #     print(\"element:\",melem)\n    myNewResult.update({lastId:{\"content\":lastWordResult,\"timespan\":lastTimeStamp,\"location\":lastLocation}})\n    print(\"process complete\")\n    return myNewResult",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:302-309"
-    },
-    "973": {
-        "file_id": 72,
-        "content": "Checking if the element matches the expected format, if not print relevant details and proceed with updating the result dictionary. Finally, print \"process complete\" and return the result dictionary.",
-        "type": "comment"
-    },
-    "974": {
-        "file_id": 73,
-        "content": "/pyjom/medialang/functions/detectors/blackoutDetector.py",
+        "file_id": 93,
+        "content": "/pyjom/modules/globalUpdator/dummyUpdator.py",
         "type": "filepath"
     },
-    "975": {
-        "file_id": 73,
-        "content": "This code detects blackouts in media by calculating scores per frame block and storing results. It works for videos and images, using OpenCV or videoFrameIterator. The code updates metadata dictionaries and appends updated results to a list before returning the final list of results.",
+    "973": {
+        "file_id": 93,
+        "content": "The code imports necessary modules, defines a function 'dummyUpdator' decorated with an unknown decorator and wrapped in 'iterateWithTempDirectory()'. It returns the string \"updated. since it is pending we will schedule another optimization\".",
         "type": "summary"
     },
-    "976": {
-        "file_id": 73,
-        "content": "from .mediaDetector import *\ndef blackoutIdentifier(frame_a, cut=3, threshold=30, method=\"average\"):\n    assert cut >= 1\n    methods = {\"average\": np.average, \"max\": np.max, \"min\": np.min}\n    mshape = frame_a.shape\n    width, height = mshape[:2]\n    mcut = int(min(width, height) / cut)\n    if len(mshape) == 3:\n        result = methods[method](result, axis=2)\n        shape0 = int(width / mcut)\n    shape1 = int(height / mcut)\n    diff = np.zeros((shape0, shape1)).tolist()\n    # mapping = {}\n    for x in range(shape0):\n        for y in range(shape1):\n            area = result[x * mcut : (x + 1) * mcut, y * mcut : (y + 1) * mcut]\n            score = (area < threshold).astype(int)\n            diff[x][y] = score.sum() / score.size\n    return {\n        \"blackout\": diff,\n        \"blocksize\": mcut,\n    }  # required for recovering center points.\ndef blackoutDetector(mediapaths, cut=3, threshold=30, method=\"average\", timestep=0.2):\n    # any better detectors? deeplearning?\n    results = []\n    data_key = \"blackout_score\"",
+    "974": {
+        "file_id": 93,
+        "content": "from pyjom.commons import *\nfrom lazero.program.functools import iterateWithTempDirectory\n@decorator\n@iterateWithTempDirectory()\ndef dummyUpdator(optimized_result):\n    return \"updated. since it is pending we will schedule another optimization\"",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/blackoutDetector.py:1-30"
+        "location": "/pyjom/modules/globalUpdator/dummyUpdator.py:1-7"
     },
-    "977": {
-        "file_id": 73,
-        "content": "blackoutIdentifier function: Calculates blackout score per block of a frame using average, max, or min method; accepts cut, threshold, and method parameters.\n\nblackoutDetector function: Detects blackouts across multiple media paths by calling blackoutIdentifier; stores results in 'data_key' for further use.",
+    "975": {
+        "file_id": 93,
+        "content": "The code imports necessary modules, defines a function 'dummyUpdator' decorated with an unknown decorator and wrapped in 'iterateWithTempDirectory()'. It returns the string \"updated. since it is pending we will schedule another optimization\".",
         "type": "comment"
     },
+    "976": {
+        "file_id": 94,
+        "content": "/pyjom/modules/contentReviewer/weiboSearchReviewer.py",
+        "type": "filepath"
+    },
+    "977": {
+        "file_id": 94,
+        "content": "This code snippet defines a function called weiboSearchReviewer that reviews content for keywords and censors elements using the weiboCensor function. It prints details, appends reviews to a dictionary, and returns mreview.",
+        "type": "summary"
+    },
     "978": {
-        "file_id": 73,
-        "content": "    for mediapath in mediapaths:\n        print(\"mediapath:\", mediapath)\n        mediatype = getFileType(mediapath)\n        print(\"subtitle of mediatype:\", mediatype)\n        assert mediatype in [\"video\", \"image\"]  # gif? anything like that?\n        result = {\"type\": mediatype, data_key: {}}\n        config = {\"cut\": cut, \"threshold\": threshold, \"method\": method}\n        if mediatype == \"image\":\n            data = cv2.imread(mediapath)\n            data = keywordDecorator(blackoutIdentifier, **config)(data)\n            result[data_key].update({\"blackout_detector\": data})\n            result[data_key].update({\"config\": config})\n        else:\n            keyword = \"blackout_detector\"\n            mdata, metadata = videoFrameIterator(\n                mediapath,\n                data_producer=keywordDecorator(blackoutIdentifier, **config),\n                framebatch=1,\n                timestep=timestep,\n                keyword=keyword,\n            )\n            metadata.update({\"config\": config})\n            result[data_key][keyword] = mdata",
+        "file_id": 94,
+        "content": "from pyjom.commons import *\nfrom pyjom.modules.contentCensoring.core import weiboCensor\nimport json\n@decorator\ndef weiboSearchReviewer(content, basedir=None, auto=False, semiauto=True,dummy_auto=True,template_names=[], args={}):\n    mreview = {}\n    for key in content.keys():\n        print(\"keyword:\", key)\n        print(\"_\" * 20)\n        mreview[key] = []\n        mcontent = content[key]\n        for elem in mcontent:\n            print(\"element inside:\")\n            print(\"_\" * 20)\n            meta = elem[\"meta\"]\n            feedback = elem[\"feedback\"]\n            _, pretty_printed = jsonPrettyPrint(elem)\n            print(pretty_printed)\n            review, source = weiboCensor(\n                elem, basedir=basedir, semiauto=semiauto, auto=auto, dummy_auto=dummy_auto,template_names=template_names ,args=args\n            )  # unnoticed source.\n            review[\"meta\"] = meta\n            review[\"feedback\"] = feedback\n            print(\"review:\", review)\n            mreview[key].append({\"review\": review, \"source\": source})",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/blackoutDetector.py:31-54"
+        "location": "/pyjom/modules/contentReviewer/weiboSearchReviewer.py:1-27"
     },
     "979": {
-        "file_id": 73,
-        "content": "This code iterates over mediapaths, detects media type (video or image), applies blackout detection configuration, and stores the result in a dictionary. For images, it uses OpenCV to read image data and apply keyword decorator for blackout identification. For videos, it uses videoFrameIterator with keyword decorator as data producer for frame-by-frame blackout detection.",
+        "file_id": 94,
+        "content": "This function, weiboSearchReviewer, reviews content for various keywords and calls the weiboCensor function to censor elements. It prints each keyword and element, and then appends the review and source of the review to a dictionary with the corresponding keyword as key. The reviewed content is stored in mreview.",
         "type": "comment"
     },
     "980": {
-        "file_id": 73,
-        "content": "            result[data_key].update(metadata)\n        results.append(result)\n    return results",
+        "file_id": 94,
+        "content": "    return mreview",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/blackoutDetector.py:55-57"
+        "location": "/pyjom/modules/contentReviewer/weiboSearchReviewer.py:28-28"
     },
     "981": {
-        "file_id": 73,
-        "content": "This code block takes a metadata dictionary and updates it to an existing data key in the result dictionary. After updating, it appends the updated result dictionary to the results list and returns the final list of results.",
+        "file_id": 94,
+        "content": "This code snippet is returning the variable \"mreview\" after performing some operation.",
         "type": "comment"
     },
     "982": {
-        "file_id": 74,
-        "content": "/pyjom/medialang/functions/detectors/__init__.py",
+        "file_id": 95,
+        "content": "/pyjom/modules/contentReviewer/localReviewer.py",
         "type": "filepath"
     },
     "983": {
-        "file_id": 74,
-        "content": "This code imports various detector functions, defines a medialang input function, and creates a dictionary of detectors for processing media data. It handles potential problematic inputs.",
+        "file_id": 95,
+        "content": "This code defines `filesystemReviewer` for content review, including `filesystemReviewerCoreAnalyzer` and `filesystemReviewerNoGenerator`. It handles analysis, censoring, and returns results. `localReviewer` is created for local processing with arguments args, template_names, and debug.",
         "type": "summary"
     },
     "984": {
-        "file_id": 74,
-        "content": "# from pyjom.medialang.functions.detectors.mediaDetector import *\nfrom .blackoutDetector import *\nfrom .subtitleDetector import *\nfrom .videoDiffDetector import *\nfrom .yolov5_Detector import *\nfrom .frameborder_Detector import *\n# maybe these shits are gonna ruin my life...\ndef getMedialangInputFixed(medialangPathsInput):\n    for fbase0 in medialangPathsInput:\n        if type(fbase0) == str:\n            yield fbase0\n        elif (\n            type(fbase0) == list\n            and len(fbase0) == 1\n            and type(fbase0[0] == dict)\n            and \"cache\" in fbase0[0].keys()\n        ):\n            yield fbase0[0][\"cache\"]\n        else:\n            print(\"weird medialang detector input\")\n            print(fbase0)\n        # then it must be the medialang shit.\ndef processInputWrapperFunction(function, wrapperFunction):\n    def mFunction(data, *args, **kwargs):\n        return function(wrapperFunction(data), *args, **kwargs)\n    return mFunction\nmedialangDetectors = {\n    \"subtitle_detector\": mediaSubtitleDetector,",
+        "file_id": 95,
+        "content": "from pyjom.commons import jsonPrettyPrint,decorator\nfrom pyjom.modules.contentCensoring.core import localCensor\nimport json\ndef filesystemReviewerCoreAnalyzer(\n    elem, auto=False, semiauto=True, dummy_auto=True, args={}, template_names=[], debug=True\n):\n    if debug:\n        print(\"element inside:\")\n        print(\"_\" * 20)\n        _, pretty_printed = jsonPrettyPrint(elem)\n        print(pretty_printed)\n    # print(\"ELEMENT\", elem)\n    # breakpoint()\n    review, source = localCensor(\n        elem,\n        auto=auto,\n        semiauto=semiauto,\n        dummy_auto=dummy_auto,\n        args=args,\n        template_names=template_names,\n    )  # unnoticed source.\n    if debug:\n        print(\"review:\")\n        # breakpoint()\n        print(json.dumps(review, indent=4))\n    reviewResult = {\"review\": review, \"source\": source}\n    return reviewResult\ndef filesystemReviewerNoGenerator(\n    content,**kwargs\n):\n    mreview = []\n    for elem in content:\n        reviewResult = filesystemReviewerCoreAnalyzer(\n            elem,**kwargs\n        )",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/__init__.py:1-36"
+        "location": "/pyjom/modules/contentReviewer/localReviewer.py:1-39"
     },
     "985": {
-        "file_id": 74,
-        "content": "This code imports various detector functions, defines a function for getting medialang input, and creates a dictionary of detectors. It seems to be part of a larger program used for processing media data. The comment on line 30 suggests that the code is concerned with potentially difficult or problematic inputs.",
+        "file_id": 95,
+        "content": "This code defines two functions for content reviewing: `filesystemReviewerCoreAnalyzer` and `filesystemReviewerNoGenerator`. The `filesystemReviewerCoreAnalyzer` function analyzes an element, applies content censoring with optional automation settings, and returns a review result containing the review and source. The `filesystemReviewerNoGenerator` function iterates over content elements, using `filesystemReviewerCoreAnalyzer` to analyze each element and return a list of review results.",
         "type": "comment"
     },
     "986": {
-        "file_id": 74,
-        "content": "    \"framediff_detector\": videoDiffDetector,\n    \"blackout_detector\": blackoutDetector,\n    \"yolov5_detector\": yolov5_Detector,\n    \"frameborder_detector\": frameborder_Detector,\n}\nmedialangDetectors = { # strange. i don't feel it.\n    key: processInputWrapperFunction(medialangDetectors[key], getMedialangInputFixed)\n    for key in medialangDetectors.keys()\n}",
+        "file_id": 95,
+        "content": "        mreview.append(reviewResult)\n    return mreview\ndef filesystemReviewerGenerator(\n    content, **kwargs\n):\n    # mreview = []\n    for elem in content:\n        reviewResult = filesystemReviewerCoreAnalyzer(\n            elem,**kwargs\n        )\n        yield reviewResult\n    #     mreview.append(reviewResult)\n    # return mreview\n@decorator\ndef filesystemReviewer(\n    content,\n    auto=False,\n    semiauto=True,\n    dummy_auto=True,\n    args={},\n    template_names=[],\n    generator: bool = False,\n    debug=True\n):\n    # print(content)\n    # print('generator flag', generator)\n    # link = content[\"link\"]\n    if not generator:\n        return filesystemReviewerNoGenerator(\n            content,\n            auto=auto,\n            semiauto=semiauto,\n            dummy_auto=dummy_auto,\n            args=args,\n            template_names=template_names,\n            debug=debug\n        )\n    else:\n        return filesystemReviewerGenerator(\n            content,\n            auto=auto,\n            semiauto=semiauto,\n            dummy_auto=dummy_auto,",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/__init__.py:37-46"
+        "location": "/pyjom/modules/contentReviewer/localReviewer.py:40-86"
     },
     "987": {
-        "file_id": 74,
-        "content": "This code initializes and processes media language detectors with input wrappers. It maps detector names to corresponding functions and applies a processing function to each detector for handling inputs.",
+        "file_id": 95,
+        "content": "This code defines a function `filesystemReviewer` which, depending on the generator flag parameter, returns either the result of `filesystemReviewerNoGenerator` or a review generator using the `filesystemReviewerGenerator` function. The review generator iterates over content elements and yields the results from each call to the `filesystemReviewerCoreAnalyzer`.",
         "type": "comment"
     },
     "988": {
-        "file_id": 75,
-        "content": "/pyjom/medialang/functions/detectors/subtitleDetector.py",
-        "type": "filepath"
+        "file_id": 95,
+        "content": "            args=args,\n            template_names=template_names,\n            debug=debug\n        )",
+        "type": "code",
+        "location": "/pyjom/modules/contentReviewer/localReviewer.py:87-90"
     },
     "989": {
-        "file_id": 75,
-        "content": "The `mediaSubtitleDetector` function uses PaddleOCR to detect subtitles in videos or images, processing media paths and storing results under 'subtitle_result'. It alters and updates metadata before appending the altered results to a list and returning them.",
-        "type": "summary"
-    },
-    "990": {
-        "file_id": 75,
-        "content": "from .mediaDetector import *\nfrom .entityDetector import ocrEntityDetector\ndef getPaddleOCR(mediapath, lang=\"ch\",use_angle_cls=True,cls=True,rec=True):\n    ocr = configOCR(use_angle_cls=use_angle_cls,cls=cls,rec=rec, lang=lang)\n    # print(mediapath)\n    # breakpoint()\n    result = ocr.ocr(mediapath,cls=cls,rec=rec)\n    # print(result)\n    # breakpoint()\n    return result\ndef stablePaddleOCR(mediapath, lang=\"ch\"):\n    data = getPaddleOCR(mediapath, lang=lang)\n    for ind, element in enumerate(data):\n        certainty = element[1][1]\n        # print(\"certainty:\",certainty)\n        data[ind][1] = (element[1][0], float(certainty))  # fix the float32 error.\n        # what is the fetched shit anyway?\n    return data\ndef mediaSubtitleDetector(\n    mediapaths,\n    videocr=False,\n    timestep=0.5,\n    videocr_config={\"lang\": \"chi_sim+eng\", \"sim_threshold\": 70, \"conf_threshold\": 65},\n):\n    # it must be video/image.\n    # we detect shit not to remove shit.\n    # this is separated.\n    results = []\n    data_key = \"subtitle_result\"",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/subtitleDetector.py:1-34"
-    },
-    "991": {
-        "file_id": 75,
-        "content": "Code snippet defines a `mediaSubtitleDetector` function that detects subtitles in videos or images. It utilizes the `getPaddleOCR` and `stablePaddleOCR` functions for OCR operations. The `getPaddleOCR` function takes media path, language, use_angle_cls, cls, and rec as input to configure OCR, perform OCR on the image, and return the result. The `stablePaddleOCR` function improves certainty values in the results and returns them. The `mediaSubtitleDetector` function processes a list of media paths, performs subtitle detection, and stores the results in the 'subtitle_result' key.",
+        "file_id": 95,
+        "content": "Creates a class instance of localReviewer, passing arguments args, template_names, and debug for processing content review locally.",
         "type": "comment"
     },
+    "990": {
+        "file_id": 96,
+        "content": "/pyjom/modules/contentReviewer/dummyReviewer.py",
+        "type": "filepath"
+    },
+    "991": {
+        "file_id": 96,
+        "content": "This code imports necessary modules and defines a decorator-wrapped function, 'dummyReviewer', which returns the string \"fantastic. another good day's work.\"",
+        "type": "summary"
+    },
     "992": {
-        "file_id": 75,
-        "content": "    for mediapath in mediapaths:\n        print(\"mediapath:\", mediapath)\n        mediatype = getFileType(mediapath)\n        print(\"subtitle of mediatype:\", mediatype)\n        assert mediatype in [\"video\", \"image\"]\n        result = {\"type\": mediatype, data_key: {}}\n        if mediatype == \"image\":\n            data = getPaddleOCR(mediapath)\n            result[data_key].update({\"paddleocr\": data})\n            # each line per sentence, coordinates.\n        else:\n            if videocr:\n                config = videocr_config\n                data = get_subtitles(\n                    mediapath, **config\n                )  # what is the speed of this? also the quality?\n                data = srt.parse(data)\n                data = [serializeSRT(x) for x in data]\n                result[data_key].update({\"videocr\": data})\n                result[data_key][\"config\"] = config\n            else:\n                keyword = \"paddleocr\" # we will try to merge alike ones.\n                mdata, metadata = videoFrameIterator(\n                    mediapath,",
+        "file_id": 96,
+        "content": "from pyjom.commons import *\n@decorator\ndef dummyReviewer(content):\n    return \"fantastic. another good day's work.\"",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/subtitleDetector.py:35-58"
+        "location": "/pyjom/modules/contentReviewer/dummyReviewer.py:1-6"
     },
     "993": {
-        "file_id": 75,
-        "content": "The code iterates through a list of media paths, checks the file type, and then fetches subtitles or performs OCR based on the file type. It uses PaddleOCR for image files and either the provided videocr or a default config for video files. The speed and quality of the subtitle detection are not mentioned in the code.",
+        "file_id": 96,
+        "content": "This code imports necessary modules and defines a decorator-wrapped function, 'dummyReviewer', which returns the string \"fantastic. another good day's work.\"",
         "type": "comment"
     },
     "994": {
-        "file_id": 75,
-        "content": "                    data_producer=stablePaddleOCR, \n                    timestep=timestep,\n                    keyword=keyword,\n                )\n                # we should process the mdata. alter it and change it.\n                # mdata = ocrEntityDetector(mdata) # we enable this step later.\n                result[data_key][keyword] = mdata\n                result[data_key].update(metadata)\n                # what is this frame?\n            # use traditional things.\n        results.append(result)\n    return results",
-        "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/subtitleDetector.py:59-70"
-    },
-    "995": {
-        "file_id": 75,
-        "content": "The code processes media data using stablePaddleOCR, potentially alters and changes mdata, and updates metadata for the result. The altered results are then appended to a list before being returned.",
-        "type": "comment"
-    },
-    "996": {
-        "file_id": 76,
-        "content": "/pyjom/medialang/functions/detectors/mediaDetector.py",
+        "file_id": 97,
+        "content": "/pyjom/modules/contentReviewer/__init__.py",
         "type": "filepath"
     },
-    "997": {
-        "file_id": 76,
-        "content": "The videoFrameIterator function initializes a video capture object, iterates through frames, checks arguments, raises exceptions, and reads frames using paddleocr. It stores metadata per batch, stops at no detection or end of video, and returns results in `mdata` and `metadata`.",
+    "995": {
+        "file_id": 97,
+        "content": "The code imports different reviewer classes from various modules within the pyjom package for content reviewing purposes, including dummyReviewer, weiboSearchReviewer, and several filesystemReviewer implementations.",
         "type": "summary"
     },
-    "998": {
-        "file_id": 76,
-        "content": "from pyjom.medialang.commons import *\nimport cv2\n# import numpy.core.multiarray # caused by numpy version errors. upgrade to resolve.\nfrom videocr import get_subtitles  # are you sure?\nimport srt\nimport progressbar\ndef videoFrameIterator(\n    mediapath, timestep=0.5, framebatch=1, data_producer=None, keyword=None\n):\n    assert data_producer is not None\n    assert type(keyword) == str\n    assert type(framebatch) == int\n    assert framebatch >= 1\n    # obviously not for motion detection, if i was saying.\n    cap = cv2.VideoCapture(mediapath)\n    mdata = []\n    fps = cap.get(cv2.CAP_PROP_FPS)\n    frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)  # no need of this to get the timecode.\n    frames = int(frames)\n    # timestep = timestep # unit in seconds.\n    if timestep != None:\n        frameStep = int(fps * timestep)\n    else:\n        frameStep = 1 # for None we do frame by frame analysis.\n        timestep = 1/fps # generate fake timestep. nothing special.\n    assert frameStep > 0\n    frameIndex = 0\n    # while(cap.isOpened()):",
+    "996": {
+        "file_id": 97,
+        "content": "from pyjom.modules.contentReviewer.dummyReviewer import *\nfrom pyjom.modules.contentReviewer.weiboSearchReviewer import *\nfrom pyjom.modules.contentReviewer.localReviewer import (\n    filesystemReviewerGenerator,\n    filesystemReviewerNoGenerator,\n    filesystemReviewerCoreAnalyzer,\n    filesystemReviewer,\n)",
         "type": "code",
-        "location": "/pyjom/medialang/functions/detectors/mediaDetector.py:1-31"
+        "location": "/pyjom/modules/contentReviewer/__init__.py:1-8"
+    },
+    "997": {
+        "file_id": 97,
+        "content": "The code imports different reviewer classes from various modules within the pyjom package for content reviewing purposes, including dummyReviewer, weiboSearchReviewer, and several filesystemReviewer implementations.",
+        "type": "comment"
+    },
+    "998": {
+        "file_id": 98,
+        "content": "/pyjom/modules/informationProcessing/onlineProcessor.py",
+        "type": "filepath"
     },
     "999": {
-        "file_id": 76,
-        "content": "This function, videoFrameIterator, initializes a video capture object and iterates through the frames of a video file while maintaining a timestep. The timestep determines how many frames to skip between captures and can be adjusted based on user needs. It also includes checks for proper arguments and raises exceptions if any are not met.",
-        "type": "comment"
+        "file_id": 98,
+        "content": "The OnlineProcessor function processes video elements, applies filters, and has functions for fps filtering and animal detection, with future audio handling planned.",
+        "type": "summary"
     }
 }

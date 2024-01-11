@@ -78,466 +78,462 @@
     },
     "2014": {
         "file_id": 201,
-        "content": "/tests/unittest_property_decorator.py",
+        "content": "/tests/unittest_paddlehub_animal_resnet.py",
         "type": "filepath"
     },
     "2015": {
         "file_id": 201,
-        "content": "This code defines a class with a property that increments its value each time accessed. It creates an object of the class, stores the property in a list twice, and prints the property's value three times, showing its dynamic nature.",
+        "content": "This code uses PaddleHub's Animal ResNet model to classify dogs and cats from video frames, post-processing the results to test accuracy with various images including non-animal ones.",
         "type": "summary"
     },
     "2016": {
         "file_id": 201,
-        "content": "# a dynamic property in set\nclass Obj:\n    def __init__(self):\n        self.val = 0\n    @property\n    def prop(self):\n        self.val += 1\n        return self.val\nobj = Obj()\n# mproperty = obj.prop\nmyData = [{\"a\": lambda: obj.prop}] * 2\nfor d in myData:\n    val = d[\"a\"]()\n    print(val)\n# for _ in range(3):\n#     print(obj.prop) # strange.",
+        "content": "# source = \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.gif\"  # check that kitty video!\nsource = \"/root/Desktop/works/pyjom/samples/video/cute_cat_gif.gif\"  # another kitty!\nfrom test_commons import *\nfrom pyjom.videotoolbox import getVideoFrameIteratorWithFPS\nfrom pyjom.imagetoolbox import resizeImageWithPadding\nimport paddlehub as hub\nimport cv2\ndef labelFileReader(filename):\n    with open(filename, \"r\") as f:\n        content = f.read()\n        content = content.split(\"\\n\")\n        content = [elem.replace(\"\\n\", \"\").strip() for elem in content]\n        content = [elem for elem in content if len(elem) > 0]\n    return content\ndog_suffixs = [\"狗\", \"犬\", \"梗\"]\ncat_suffixs = [\"猫\"]  # ends with this, and not containing forbidden words.\ndog_labels = labelFileReader(\n    \"/root/Desktop/works/pyjom/tests/animals_paddlehub_classification_resnet/dogs.txt\"\n)\ncat_labels = labelFileReader(\n    \"/root/Desktop/works/pyjom/tests/animals_paddlehub_classification_resnet/cats.txt\"\n)\nforbidden_words = [\n    \"灵猫\",\n    \"熊猫\",",
         "type": "code",
-        "location": "/tests/unittest_property_decorator.py:1-22"
+        "location": "/tests/unittest_paddlehub_animal_resnet.py:1-32"
     },
     "2017": {
         "file_id": 201,
-        "content": "This code defines a class with a property that increments its value each time accessed. It creates an object of the class, stores the property in a list twice, and prints the property's value three times, showing its dynamic nature.",
+        "content": "This code imports necessary libraries and defines constants for labels and forbidden words. It reads the dog and cat labels from separate text files, and later on, it will use these labels to classify animals in a video. The forbidden words are likely used to exclude certain categories of animals that may appear similar to cats or dogs but should not be confused with them.",
         "type": "comment"
     },
     "2018": {
+        "file_id": 201,
+        "content": "    \"猫狮\",\n    \"猫头鹰\",\n    \"丁丁猫儿\",\n    \"绿猫鸟\",\n    \"猫鼬\",\n    \"猫鱼\",\n    \"玻璃猫\",\n    \"猫眼\",\n    \"猫蛱蝶\",\n]\ndef dog_cat_name_recognizer(name):\n    if name in dog_labels:\n        return \"dog\"\n    elif name in cat_labels:\n        return \"cat\"\n    elif name not in forbidden_words:\n        for dog_suffix in dog_suffixs:\n            if name.endswith(dog_suffix):\n                return \"dog\"\n        for cat_suffix in cat_suffixs:\n            if name.endswith(cat_suffix):\n                return \"cat\"\n    return None\nfrom lazero.utils.logger import sprint\nclassifier = hub.Module(name=\"resnet50_vd_animals\")\n# 'ResNet50vdAnimals' object has no attribute 'gpu_predictor'\n# no gpu? really?\n# test_flag = \"video\"\ntest_flag = \"image\"\ndef paddleAnimalDetectionResultToList(result):\n    resultDict = result[0]\n    resultList = [(key, value) for key, value in resultDict.items()]\n    resultList.sort(key=lambda item: -item[1])\n    return resultList\ndef translateResultListToDogCatList(resultList):\n    final_result_list = []\n    for name, confidence in resultList:",
+        "type": "code",
+        "location": "/tests/unittest_paddlehub_animal_resnet.py:33-78"
+    },
+    "2019": {
+        "file_id": 201,
+        "content": "Function dog_cat_name_recognizer identifies if a given name is of a dog or cat by checking it against pre-defined labels. If the name does not fit into these categories, it further checks for common suffixes to classify as either a dog or cat. The code imports necessary modules and sets up variables for testing purposes before defining functions for post-processing the result and translating it into a dog/cat list format.",
+        "type": "comment"
+    },
+    "2020": {
+        "file_id": 201,
+        "content": "        new_name = dog_cat_name_recognizer(name)\n        final_result_list.append((new_name, confidence))\n    return final_result_list\nif test_flag == \"video\":\n    for frame in getVideoFrameIteratorWithFPS(source, -1, -1, fps=1):\n        padded_resized_frame = resizeImageWithPadding(\n            frame, 224, 224, border_type=\"replicate\"\n        )  # pass the test only if three of these containing 'cats'\n        result = classifier.classification(\n            images=[padded_resized_frame], top_k=3, use_gpu=False\n        )  # check it?\n        resultList = paddleAnimalDetectionResultToList(result)\n        final_result_list = translateResultListToDogCatList(resultList)\n        sprint(\"RESULT LIST:\", final_result_list)\n        # RESULT: [{'美国银色短毛猫': 0.23492032289505005, '虎斑猫': 0.14728288352489471, '美国银虎斑猫': 0.13097935914993286}]\n        # so what is the major categories?\n        # thanks to chinese, we are never confused.\n        # check the labels, shall we?\n        # what about samoyed?\n        # sprint(\"RESULT:\", result)",
+        "type": "code",
+        "location": "/tests/unittest_paddlehub_animal_resnet.py:79-100"
+    },
+    "2021": {
+        "file_id": 201,
+        "content": "This code is using PaddleHub's Animal ResNet model to classify frames from a video source, identifying either dogs or cats. The final results are translated to a list of dog and cat names along with their respective confidences. This code checks the major categories in the final result and verifies if \"samoyed\" is included.",
+        "type": "comment"
+    },
+    "2022": {
+        "file_id": 201,
+        "content": "        breakpoint()\nelif test_flag == \"image\":\n    # source = \"/root/Desktop/works/pyjom/samples/image/samoyed.jpeg\"\n    # [('dog', 0.8835851550102234), ('dog', 0.08754527568817139), ('dog', 0.008648859336972237)]\n    # source = \"/root/Desktop/works/pyjom/samples/image/dog_saturday_night.jpg\"\n    #  [(None, 0.33663231134414673), ('dog', 0.32254937291145325), ('dog', 0.0494903139770031)]\n    # not animal? wtf?\n    # source = \"/root/Desktop/works/pyjom/samples/image/porn_shemale.jpeg\" # definitely not animal\n    # [(None, 0.9894463419914246), ('dog', 1.564090962347109e-05), ('dog', 1.3550661606132053e-05)]\n    # source = \"/root/Desktop/works/pyjom/samples/image/is_this_duck.bmp\"\n    # [(None, 0.9864748120307922), ('dog', 1.2670795513258781e-05), (None, 9.569253961672075e-06)]\n    # source = \"/root/Desktop/works/pyjom/samples/image/pig_really.bmp\" # it's really a dog\n    # [(None, 0.35919442772865295), ('dog', 0.16199783980846405), ('dog', 0.07987158000469208)]\n    # source = \"/root/Desktop/works/pyjom/samples/image/miku_on_green.png\"",
+        "type": "code",
+        "location": "/tests/unittest_paddlehub_animal_resnet.py:101-114"
+    },
+    "2023": {
+        "file_id": 201,
+        "content": "The code includes various image source paths and the corresponding classification outputs. The script seems to be testing the accuracy of an animal recognition model by inputting different images, including some non-animal images for reference. Some images are misclassified or not classified at all, highlighting potential areas for improvement in the model.",
+        "type": "comment"
+    },
+    "2024": {
+        "file_id": 201,
+        "content": "    # besides calculating \"DOG\" or \"CAT\" we are also concerned about \"NONE\"\n    # [(None, 0.9998186230659485), (None, 1.7534730432089418e-06), (None, 7.280816021193459e-07)]\n    # source = \"/root/Desktop/works/pyjom/samples/image/dog_with_text.jpg\" # no dog\n    #  [(None, 0.9998675584793091), ('dog', 2.565316492564307e-07), (None, 1.562129767762599e-07)]\n    source = \"/root/Desktop/works/pyjom/samples/image/dog_with_text2.png\"  # has dog\n    #  [(None, 0.8876796960830688), ('dog', 0.0498274527490139), ('dog', 0.02175540290772915)]\n    # a little, but not focused.\n    frame = cv2.imread(source)\n    padded_resized_frame = resizeImageWithPadding(\n        frame, 224, 224, border_type=\"replicate\"\n    )\n    result = classifier.classification(\n        images=[padded_resized_frame], top_k=3, use_gpu=False\n    )\n    resultList = paddleAnimalDetectionResultToList(result)\n    final_result_list = translateResultListToDogCatList(resultList)\n    sprint(\"FINAL RESULT LIST:\", final_result_list)\n    breakpoint()\nelse:\n    raise Exception(\"unknown test flag: %s\" % test_flag)",
+        "type": "code",
+        "location": "/tests/unittest_paddlehub_animal_resnet.py:115-134"
+    },
+    "2025": {
+        "file_id": 201,
+        "content": "This code is testing the accuracy of an image classifier for detecting \"dog\" or \"cat\", while also considering the possibility of \"none\". The code reads an image, resizes and pads it, then uses a classifier to predict its categories. It translates the results into a list of \"dog\" or \"cat\" and displays the final result.",
+        "type": "comment"
+    },
+    "2026": {
         "file_id": 202,
         "content": "/tests/unittest_online_topic_generator_giphy.py",
         "type": "filepath"
     },
-    "2019": {
+    "2027": {
         "file_id": 202,
         "content": "This code generates online topics, downloads assets, filters videos based on duration, FPS, color centrality, and processes them sequentially through specified filters. It checks validity using various functions, skips/deletes invalid or abandoned files.",
         "type": "summary"
     },
-    "2020": {
+    "2028": {
         "file_id": 202,
         "content": "from test_commons import *\nfrom pyjom.modules.topicGenerator import OnlineTopicGenerator\nfrom pyjom.modules.informationGathering import OnlineFetcher\nfrom lazero.utils import sprint\nfrom lazero.network import download, waitForServerUp\nfrom lazero.filesystem import tmpdir\nclash_refresher_port = 8677\nclash_refresher_url = \"http://127.0.0.1:{}\".format(clash_refresher_port)\nwaitForServerUp(clash_refresher_port, \"clash update controller\")\nelems, function_label = OnlineTopicGenerator()\nsprint(\"FUNCTION LABEL:\", function_label)\n# # 'pyjom.commons.OnlineTopicGenerator'\n# breakpoint()\ntmpPath = \"/dev/shm/medialang/online_test\"\nimport os\nproxy_url = \"http://127.0.0.1:8381\"\ndef set_proxy():\n    os.environ[\"http_proxy\"] = proxy_url\n    os.environ[\"https_proxy\"] = proxy_url\nflag = \"topic_with_fetcher\"\nwith tmpdir(path=tmpPath) as testDir:\n    print(\"TESTDIR:\", testDir)\n    if flag == \"only_topic_generator\":\n        # print(\"HERE??\",1)\n        for asset_id, meta in elems:\n            print(\"X\", asset_id, meta)\n            url = meta[\"url\"]",
         "type": "code",
         "location": "/tests/unittest_online_topic_generator_giphy.py:1-36"
     },
-    "2021": {
+    "2029": {
         "file_id": 202,
         "content": "This code sets up an online topic generator and uses it to generate elements. It also defines a function to set a proxy, creates a temporary directory for testing, and checks if only the topic generator is needed. It then iterates through the generated elements, printing their IDs and URLs.",
         "type": "comment"
     },
-    "2022": {
+    "2030": {
         "file_id": 202,
         "content": "            extension = url.split(\"?\")[0].split(\".\")[-1]\n            basename = \".\".join([asset_id, extension])\n            download_path = os.path.join(tmpPath, basename)\n            try:\n                download(\n                    url,\n                    download_path,\n                    threads=6,\n                    size_filter={\"min\": 0.4, \"max\": 50},\n                    use_multithread=True,\n                )\n            except:\n                print(\"Error when download file\")\n            # X ('sr8jYZVVsCmxddga8w', {'height': 480, 'width': 474, 'url': 'https://media0.giphy.com/media/sr8jYZVVsCmxddga8w/giphy.gif'})\n            # breakpoint()\n            # seems good. now we check the cat/dog.\n    elif flag == \"topic_with_fetcher\":\n        sprint(\"checking online fetcher\")\n        # print(\"HERE??\",2)\n        set_proxy()\n        newElems, label = OnlineFetcher(\n            elems, tempdir=tmpPath\n        )  # infinite video generators.\n        for elem in newElems:\n            waitForServerUp(clash_refresher_port, \"clash update controller\")",
         "type": "code",
         "location": "/tests/unittest_online_topic_generator_giphy.py:37-61"
     },
-    "2023": {
+    "2031": {
         "file_id": 202,
         "content": "This code block is downloading an asset from a specified URL, with options for size and multithreading. If any error occurs during the download process, it prints an error message. Then, it checks the topic of an online generator using OnlineFetcher, setting a proxy before executing it. This involves creating new elements and waiting for the server to be updated. The purpose seems to be related to topic-based online generation and video fetching.",
         "type": "comment"
     },
-    "2024": {
+    "2032": {
         "file_id": 202,
         "content": "            sprint(elem)\n            (item_id, local_video_location) = elem\n            # what is the freaking response?\n            from caer.video.frames_and_fps import get_duration, get_fps_float\n            # duration = get_duration(local_video_location)\n            from pyjom.commons import checkMinMaxDict\n            duration_filter = {\"min\": 0.6, \"max\": 9}\n            fps_filter = {\"min\": 7, \"max\": 60}\n            # fps_float = get_fps_float(local_video_location)\n            # duration_valid = checkMinMaxDict(duration,duration_filter)\n            # fps_valid = checkMinMaxDict(fps_float,fps_filter)\n            from pyjom.videotoolbox import (\n                getVideoColorCentrality,\n                checkVideoColorCentrality,\n                getEffectiveFPS,\n                NSFWVideoFilter,\n                yolov5_bezier_paddlehub_resnet50_dog_cat_video_filter,\n                dummyFilterFunction,  # just for dog and cat, no other animals.\n            )\n            video_color_filter = {\n                \"centrality\": {\"max\": 0.30},",
         "type": "code",
         "location": "/tests/unittest_online_topic_generator_giphy.py:62-85"
     },
-    "2025": {
+    "2033": {
         "file_id": 202,
         "content": "This code snippet is filtering video elements based on their duration, FPS (frames per second), and color centrality. It uses the `get_duration`, `get_fps_float`, `checkMinMaxDict` functions from different modules. Additionally, it imports video processing tools like `getVideoColorCentrality`, `checkVideoColorCentrality`, `getEffectiveFPS`, and some specific filters such as `NSFWVideoFilter`, `yolov5_bezier_paddlehub_resnet50_dog_cat_video_filter`. It defines a threshold for the video's color centrality (\"max\": 0.30).",
         "type": "comment"
     },
-    "2026": {
+    "2034": {
         "file_id": 202,
         "content": "                \"max_nearby_center_percentage\": {\"max\": 0.20},\n            }\n            video_effective_fps_filter = {\"min\": 7}\n            valid = True\n            mList = [\n                [get_duration, duration_filter, checkMinMaxDict, \"duration\"],\n                [get_fps_float, fps_filter, checkMinMaxDict, \"fps\"],\n                [\n                    yolov5_bezier_paddlehub_resnet50_dog_cat_video_filter,\n                    None,\n                    dummyFilterFunction,\n                    \"DogCat\",\n                ],\n                [\n                    getVideoColorCentrality,\n                    video_color_filter,\n                    checkVideoColorCentrality,\n                    \"video_color_centrality\",\n                ],\n                [\n                    getEffectiveFPS,\n                    video_effective_fps_filter,\n                    checkMinMaxDict,\n                    \"EffectiveFPS\",\n                ],  # also, the dog/cat detector! fuck.\n                [NSFWVideoFilter, None, dummyFilterFunction, \"NSFW\"],",
         "type": "code",
         "location": "/tests/unittest_online_topic_generator_giphy.py:86-111"
     },
-    "2027": {
+    "2035": {
         "file_id": 202,
         "content": "This code defines a list of filters and their parameters for processing video clips. Each filter is applied sequentially, checking if the clip meets specific criteria such as duration, FPS, color centrality, effectiveness, and whether it contains explicit content. The filters are specified by functions, with optional minimum/maximum thresholds or additional checks.",
         "type": "comment"
     },
-    "2028": {
+    "2036": {
         "file_id": 202,
         "content": "            ]\n            for function, mFilter, filterFunction, flag in mList:\n                mValue = function(local_video_location)\n                valid = filterFunction(mValue, mFilter)\n                if not valid:\n                    print(\"skipping due to invalid %s: %s\" % (flag, mValue))\n                    print(\"%s filter:\" % flag, mFilter)\n                    break\n            if not valid:\n                print(\"abandon video:\", item_id)\n            breakpoint()\n            if not valid:\n                if os.path.exists(local_video_location):\n                    print(\"removing abandoned video:\", local_video_location)\n                    os.remove(local_video_location)\n                # if you abandon that, better delete it!\n            # do time duration check, effective fps check, color centrality check, then the dog/cat check\n            # what's next? find some audio files? or just use one audio?\n    # print(\"HERE??\",3)\n    # print('flag', flag)",
         "type": "code",
         "location": "/tests/unittest_online_topic_generator_giphy.py:112-131"
     },
-    "2029": {
+    "2037": {
         "file_id": 202,
         "content": "This code is filtering a video based on various flags and conditions. It checks for validity by using different functions and filters, and skips or deletes the file if it's invalid or abandoned. The process involves duration, FPS, color centrality, dog/cat detection, and potentially audio files.",
         "type": "comment"
     },
-    "2030": {
-        "file_id": 203,
-        "content": "/tests/unittest_sqlalchemy_1.3_alternative_wrapper_peewee.py",
-        "type": "filepath"
-    },
-    "2031": {
-        "file_id": 203,
-        "content": "The code initializes a Peewee SQLite database, defines models, performs CRUD operations, checks Bilibili videos, and handles non-existent usernames. It skips error handling for exceptions.",
-        "type": "summary"
-    },
-    "2032": {
-        "file_id": 203,
-        "content": "# now we try to create and persist a database.\n# do not delete it. we will check again.\n# the data we put into are some timestamps.\n# some peewee by the same guy who developed some database.\n# https://github.com/coleifer/peewee\n# 1.3.24 original sqlalchemy version, for our dearly chatterbot.\n# currently: 1.4.42\n# warning! might be incompatible.\nfrom peewee import *\n# some patch on /usr/local/lib/python3.9/dist-packages/peewee.py:3142\n# is it just a single file? no other files?\n# @property\n# def Model(self): # this is interesting. does it work as expected?\n#     class BaseModel(Model):\n#         class Meta:\n#             database = self\n#     return BaseModel\ndb = SqliteDatabase(\"my_database.db\")  # this database exists in local filesystem.\nclass User(db.Model):\n    username = CharField(unique=True)\n    # what about let's modify this shit?\nclass Account(db.Model):\n    # charlie_account.user_id to get username?\n    user = ForeignKeyField(User)  # what is this??\n    # if you don't set field, the user_id will be the default User.id",
-        "type": "code",
-        "location": "/tests/unittest_sqlalchemy_1.3_alternative_wrapper_peewee.py:1-39"
-    },
-    "2033": {
-        "file_id": 203,
-        "content": "This code sets up a Peewee SQLite database named \"my_database.db\" and defines two models: User and Account. The User model has a unique username field, while the Account model references the User model through a ForeignKeyField.",
-        "type": "comment"
-    },
-    "2034": {
-        "file_id": 203,
-        "content": "    # user = ForeignKeyField(User, field=User.username) # what is this??\n    password = (\n        CharField()\n    )  # you need to create a new table. do not modify this in place.\n    # maybe you want tinydb or something else.\n# User.bind(db) # this can dynamically change the database. maybe.\nclass User2(Model):  # what is this model for? empty?\n    username = CharField(unique=True)\nimport datetime\nclass BilibiliVideo(db.Model):\n    bvid = CharField(unique=True)\n    visible = BooleanField()\n    last_check = DateTimeField(\n        default=datetime.datetime.now\n    )  # this is default callable. will be managed as expected\n    # poster = ForeignKeyField(User) # is it my account anyway?\n# db.connect()\n# if using context manager, it will auto connect. no need to do shit.\n# are you sure you want to comment out the db.connect?\n# actually no need to connect this. it will auto connect.\ndb.create_tables(\n    [User, Account, BilibiliVideo]\n)  # it is the same damn database. but shit has happened already.\n# it is the foreign key reference.",
-        "type": "code",
-        "location": "/tests/unittest_sqlalchemy_1.3_alternative_wrapper_peewee.py:40-71"
-    },
-    "2035": {
-        "file_id": 203,
-        "content": "Code snippet is for creating tables and defining fields in a Peewee database. User2 seems empty, ForeignKeyField references are used, and db.connect() can be omitted with context manager.",
-        "type": "comment"
-    },
-    "2036": {
-        "file_id": 203,
-        "content": "# charlie = User.create(username='charlie') # fail the unique check. will raise exception.\ncharlie, flag = User.get_or_create(username=\"charlie\")  # will work without exception.\n# print(charlie)\n# breakpoint()\n# why we can pass a function instead of the object?\n# last_check = datetime.datetime.now()\nvideo_record, flag = BilibiliVideo.get_or_create(bvid=\"BV123\", visible=False)\n# print(video_record) # it will be good.\n# breakpoint()\nnext_check_time = datetime.datetime.now() - datetime.timedelta(\n    minutes=20\n)  # every 20 minutes check these things.\n# but for those which are already recognized as visible, we may not want to check these video till we select/search them. this is to reserve bandwidth.\nprint(\"NEXT CHECK TIME:\", next_check_time)\nresults_0 = BilibiliVideo.select().where(\n    BilibiliVideo.last_check < datetime.datetime.now()\n)  # needs to check\nresults_1 = BilibiliVideo.select().where(\n    BilibiliVideo.last_check > datetime.datetime.now()\n)  # no need to check\nprint(results_0)\nprint(results_1)  # these are just raw sql statements. have't executed yet.",
-        "type": "code",
-        "location": "/tests/unittest_sqlalchemy_1.3_alternative_wrapper_peewee.py:73-102"
-    },
-    "2037": {
-        "file_id": 203,
-        "content": "This code uses the `get_or_create` method to create or retrieve a User object with a specific username. It also retrieves a BilibiliVideo object based on a BVID, checks the last check time for videos, and selects videos that need to be checked or those that don't need to be checked. The results are printed for reference.",
-        "type": "comment"
-    },
     "2038": {
         "file_id": 203,
-        "content": "breakpoint()\n# warning: our table name is lowercased. may cause trouble.\n# but many sql statements are lower cased. case insensitive. at least my data are not case insensitive.\ncharlie_account, flag = Account.get_or_create(\n    user=charlie, password=\"abcd\"\n)  # this is not unique. warning!\nprint(charlie_account)\n# breakpoint()\n# charlie = User.update(username='michael') # no insertion?\n# use get_or_create here.\nmichael = User.get_or_create(username=\"michael\")\n# (data, flag)\ndata = User.get()  # this can only get one such instance?\n# get one single instance, aka: first.\n# print(data)\n# breakpoint()\nselection = User.select()  # still iterable?\n# breakpoint()\n# let's bind some database.\n# User2.bind(db)\n# if i don't bind the database what would happen?\n# error!\n# you need create such table first.\n# User2.create_table()\ndb.create_tables([User2])\nUser2.get_or_create(username=\"abcdef\")\nprint([x for x in User2.select()])\nusername = \"nonexistant\"\n# try:\nanswer = User2.get_or_none(User2.username == username)  # still raise exception huh?",
-        "type": "code",
-        "location": "/tests/unittest_sqlalchemy_1.3_alternative_wrapper_peewee.py:103-139"
+        "content": "/tests/unittest_music_recognition.py",
+        "type": "filepath"
     },
     "2039": {
         "file_id": 203,
-        "content": "This code defines a Peewee model for a User class and performs CRUD operations like getting, creating, updating, and deleting users. It also demonstrates binding the database and creating tables. The code uses try-except to handle nonexistent usernames and raises an exception if no record is found.",
-        "type": "comment"
+        "content": "This code tests the music recognition functionality of different backends (songrec, shazamio, and midomi) by calling the recognizeMusicFromFile function and logging the results. The filepath variable stores the path to the test audio file. The methods list determines which backends will be tested. After each test, there is a 3-second pause before moving on to the next backend.",
+        "type": "summary"
     },
     "2040": {
         "file_id": 203,
-        "content": "print(\"ANSWER:\", answer)  # great this is simpler.\nif answer is None:\n    print(\"username does not exist:\", username)\n# except Exception as e:\n#     # print('exception type:', type(e))\n#     print('username does not exist:', username)\n#     # exception type: <class '__main__.User2DoesNotExist'>",
+        "content": "from test_commons import *\nfrom pyjom.musictoolbox import recognizeMusicFromFile\nfrom lazero.utils.logger import sprint\nfilepath = (\n    # \"/root/Desktop/works/pyjom/tests/music_recognization/exciting_bgm_cut_10seconds.mp3\"\n    \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3\"\n)\n# methods = [\"midomi\"]\nmethods = [\"songrec\", \"shazamio\", \"midomi\"]\nimport time\nfor method in methods:\n    result = recognizeMusicFromFile(filepath, backend=method, debug=True)\n    sprint(\"RESULT:\", result)\n    time.sleep(3)",
         "type": "code",
-        "location": "/tests/unittest_sqlalchemy_1.3_alternative_wrapper_peewee.py:140-146"
+        "location": "/tests/unittest_music_recognition.py:1-16"
     },
     "2041": {
         "file_id": 203,
-        "content": "This code is printing an answer and checking if it's None. If the answer is None, it prints that the username does not exist. It skips error handling for exceptions.",
+        "content": "This code tests the music recognition functionality of different backends (songrec, shazamio, and midomi) by calling the recognizeMusicFromFile function and logging the results. The filepath variable stores the path to the test audio file. The methods list determines which backends will be tested. After each test, there is a 3-second pause before moving on to the next backend.",
         "type": "comment"
     },
     "2042": {
         "file_id": 204,
-        "content": "/tests/unittest_photo_histogram_match_0.2.py",
+        "content": "/tests/unittest_property_decorator.py",
         "type": "filepath"
     },
     "2043": {
         "file_id": 204,
-        "content": "This code performs image processing tasks, including text removal using inpainting and color distribution transfer between images. It displays all processed images before waiting for a key press.",
+        "content": "This code defines a class with a property that increments its value each time accessed. It creates an object of the class, stores the property in a list twice, and prints the property's value three times, showing its dynamic nature.",
         "type": "summary"
     },
     "2044": {
         "file_id": 204,
-        "content": "# USAGE\n# python example.py --source images/ocean_sunset.jpg --target images/ocean_day.jpg\nimage_0 = \"/root/Desktop/works/pyjom/samples/image/dog_with_text2.png\"\nimage_1 = \"/root/Desktop/works/pyjom/samples/image/cute_cat.bmp\"\n# from lazero.utils.importers import cv2_custom_build_init\nfrom test_commons import *\n# cv2_custom_build_init()\n# import the necessary packages\nfrom color_transfer import color_transfer\nimport cv2\ndef show_image(title, image, width=300):\n    # resize the image to have a constant width, just to\n    # make displaying the images take up less screen real\n    # estate\n    r = width / float(image.shape[1])\n    dim = (width, int(image.shape[0] * r))\n    resized = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)\n    # show the resized image\n    cv2.imshow(title, resized)\n# load the images\nsource = cv2.imread(image_0)\ntarget = cv2.imread(image_1)\n# we inpaint this one from the beginning.\nfrom pyjom.imagetoolbox import (\n    getImageTextAreaRatio,\n    imageFourCornersInpainting,\n)  # also for image text removal.",
+        "content": "# a dynamic property in set\nclass Obj:\n    def __init__(self):\n        self.val = 0\n    @property\n    def prop(self):\n        self.val += 1\n        return self.val\nobj = Obj()\n# mproperty = obj.prop\nmyData = [{\"a\": lambda: obj.prop}] * 2\nfor d in myData:\n    val = d[\"a\"]()\n    print(val)\n# for _ in range(3):\n#     print(obj.prop) # strange.",
         "type": "code",
-        "location": "/tests/unittest_photo_histogram_match_0.2.py:1-38"
+        "location": "/tests/unittest_property_decorator.py:1-22"
     },
     "2045": {
         "file_id": 204,
-        "content": "The code imports necessary packages, loads two images (source and target), and uses imageFourCornersInpainting for text removal from the source image. It also defines a function show_image to display resized images with constant width for efficient screen usage.",
+        "content": "This code defines a class with a property that increments its value each time accessed. It creates an object of the class, stores the property in a list twice, and prints the property's value three times, showing its dynamic nature.",
         "type": "comment"
     },
     "2046": {
-        "file_id": 204,
-        "content": "target = getImageTextAreaRatio(target, inpaint=True)\ntarget = imageFourCornersInpainting(target)\n# also remove the selected area.\n# transfer the color distribution from the source image\n# to the target image\ntransfer = color_transfer(source, target)\nimport numpy as np\ntransfer_02 = (target * 0.8 + transfer * 0.2).astype(np.uint8)\ntransfer_02_flip = cv2.flip(transfer_02, 1)\n# show the images and wait for a key press\nshow_image(\"Source\", source)\nshow_image(\"Target\", target)\nshow_image(\"Transfer\", transfer)\nshow_image(\"Transfer_02\", transfer_02)\nshow_image(\"Transfer_02_flip\", transfer_02_flip)\ncv2.waitKey(0)",
-        "type": "code",
-        "location": "/tests/unittest_photo_histogram_match_0.2.py:40-60"
-    },
-    "2047": {
-        "file_id": 204,
-        "content": "This code performs image processing tasks. It applies inpainting to the target image, transfers color distribution from source to target, creates a new transfer image with blending, flips one of the images, and displays all images before waiting for a key press.",
-        "type": "comment"
-    },
-    "2048": {
         "file_id": 205,
-        "content": "/tests/unittest_update_peewee_while_get.py",
-        "type": "filepath"
-    },
-    "2049": {
-        "file_id": 205,
-        "content": "Creating a Peewee database, defining a BilibiliUser model, and updating a specific user's username.",
-        "type": "summary"
-    },
-    "2050": {
-        "file_id": 205,
-        "content": "dbpath = \"test.db\"\nfrom peewee import *\nclass BilibiliUser(Model):\n    username = CharField()\n    user_id = IntegerField(unique=True)\n    is_mine = BooleanField(default=False)\n    followers = IntegerField(\n        null=True\n    )  # how to get that? every time you get some video you do this shit? will get you blocked.\n    # well you can check it later.\n    avatar = CharField(null=True)  # warning! charfield max length is 255\ndb = SqliteDatabase(dbpath)\ndb.create_tables([BilibiliUser])\nimport uuid\nusername = str(uuid.uuid4())\n# u, _ = BilibiliUser.get_and_update_or_create(username=username, user_id=1)\nBilibiliUser.update(username=username).where(BilibiliUser.user_id == 1).execute()\n# why don't you update? need i delete it manually?\nu = BilibiliUser.get(user_id=1)\nprint(\"current username:\", username)\nprint(\"fetched username:\", u.username)",
-        "type": "code",
-        "location": "/tests/unittest_update_peewee_while_get.py:1-30"
-    },
-    "2051": {
-        "file_id": 205,
-        "content": "Creating a Peewee database, defining a BilibiliUser model, and updating a specific user's username.",
-        "type": "comment"
-    },
-    "2052": {
-        "file_id": 206,
-        "content": "/tests/unittest_video_cover_extraction_dog_cat_detections.py",
-        "type": "filepath"
-    },
-    "2053": {
-        "file_id": 206,
-        "content": "This script initializes a YOLOv5 model for object detection, focusing on dogs and cats, using image processing techniques to enhance accuracy. It may have difficulties categorizing certain objects and displays \"NO COVER FOUND.\" if no suitable cover is detected.",
-        "type": "summary"
-    },
-    "2054": {
-        "file_id": 206,
-        "content": "import torch\nimport os\nfrom lazero.utils.importers import cv2_custom_build_init\n# order:\n# detect if dog/cat is there, satisfying the qualification\n# remove watermark, remove text, remove potential watermark around corners using inpainting\n# use ffmpeg cropdetect, if has significant area change then no further processing\n# if no significant area change, use this blur detection to get the main area\n# remove watermark again?? around corners?\n# then reuse the dog detection and get the crop from processed/cropped image.\ncv2_custom_build_init()\nimport cv2\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# Model\n# localModelDir = (\n#     \"/root/Desktop/works/pyjom/pyjom/models/yolov5/ultralytics_yolov5_master/\"\n# )\n# # import os\n# os.environ[\n#     \"YOLOV5_MODEL_DIR\"\n# ] = \"/root/Desktop/works/pyjom/pyjom/models/yolov5/\"  # this is strange. must be a hack in the localModelDir\n# model = torch.hub.load(\n#     localModelDir, \"yolov5s\", source=\"local\"\n# )  # or yolov5m, yolov5l, yolov5x, custom\nfrom test_commons import *",
-        "type": "code",
-        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:1-31"
-    },
-    "2055": {
-        "file_id": 206,
-        "content": "This code is initializing a YOLOv5 model for object detection, specifically detecting dogs and cats. It also sets environment variables to disable proxies, imports necessary libraries, and defines the model path. The code aims to remove watermarks, text, and potentially blurred corners from images, crop detected animals, and possibly re-detect them to get the crop from the processed image.",
-        "type": "comment"
-    },
-    "2056": {
-        "file_id": 206,
-        "content": "from pyjom.commons import configYolov5\nmodel = configYolov5()\ndog_or_cat = \"dog\"\n# Images\n# img = '/media/root/help/pyjom/samples/image/miku_on_green.png'  # or file, Path, PIL, OpenCV, numpy, list\n# img = \"/root/Desktop/works/pyjom/samples/image/dog_with_text.jpg\"\nimgPath = \"/root/Desktop/works/pyjom/samples/image/dog_blue_sky.png\"\nimg = cv2.imread(imgPath)\ndefaultHeight, defaultWidth = img.shape[:2]\ntotal_area = defaultHeight * defaultWidth\n# Inference\nresults = model(img)\n# print(results)\n# # Results\n# breakpoint()\nanimal_detection_dataframe = results.pandas().xyxy[0]\n# results.show()\n# # results.print() # or .show(),\narea = (animal_detection_dataframe[\"xmax\"] - animal_detection_dataframe[\"xmin\"]) * (\n    animal_detection_dataframe[\"ymax\"] - animal_detection_dataframe[\"ymin\"]\n)\nanimal_detection_dataframe[\"area_ratio\"] = area / total_area\narea_threshold = 0.08  # min area?\nconfidence_threshold = 0.7  # this is image quality maybe.\ny_expansion_rate = 0.03  # to make the starting point on y axis less \"headless\"",
-        "type": "code",
-        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:32-67"
-    },
-    "2057": {
-        "file_id": 206,
-        "content": "The code imports a YOLOv5 configuration, sets the target animal to \"dog\", and reads an image file. It then performs inference using the model on the image and stores the results in the `results` variable. The code extracts the object detection data from `results`, calculates the area ratio for each detected object, and applies thresholds to filter out objects with low confidence or small areas.",
-        "type": "comment"
-    },
-    "2058": {
-        "file_id": 206,
-        "content": "df = animal_detection_dataframe\nnew_df = df.loc[\n    (df[\"area_ratio\"] >= area_threshold)\n    & (df[\"confidence\"] >= confidence_threshold)\n    & (df[\"name\"] == dog_or_cat)\n].sort_values(\n    by=[\"confidence\"]\n)  # this one is for 0.13\n# count = new_df.count(axis=0)\ncount = len(new_df)\n# print(\"COUNT: %d\" % count)\ndefaultCropWidth, defaultCropHeight = 1920, 1080\n# this is just to maintain the ratio.\n# you shall find the code elsewhere?\nallowedHeight = min(int(defaultWidth / defaultCropWidth * defaultHeight), defaultHeight)\nif count >= 1:\n    selected_col = new_df.iloc[0]  # it is a dict-like object.\n    # print(new_df)\n    # breakpoint()\n    selected_col_dict = dict(selected_col)\n    # these are floating point shits.\n    # {'xmin': 1149.520263671875, 'ymin': 331.6445007324219, 'xmax': 1752.586181640625, 'ymax': 1082.3826904296875, 'confidence': 0.9185908436775208, 'class': 16, 'name': 'dog', 'area_ratio': 0.13691652620239364}\n    x0, y0, x1, y1 = [\n        int(selected_col[key]) for key in [\"xmin\", \"ymin\", \"xmax\", \"ymax\"]",
-        "type": "code",
-        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:69-98"
-    },
-    "2059": {
-        "file_id": 206,
-        "content": "The code filters the animal detection dataframe based on area ratio, confidence threshold, and dog or cat name. It then sorts the filtered dataframe by confidence. If there is at least one row in the filtered dataframe, it selects the first row as 'selected_col'. The selected column contains values for xmin, ymin, xmax, ymax, confidence, class (dog or cat), and area_ratio. These values are used to extract a region of interest from an image by converting them into coordinates and then cropping the image accordingly.",
-        "type": "comment"
-    },
-    "2060": {
-        "file_id": 206,
-        "content": "    ]\n    y0_altered = max(int(y0 - (y1 - y0) * y_expansion_rate), 0)\n    height_current = min((y1 - y0_altered), allowedHeight)  # reasonable?\n    width_current = min(\n        int((height_current / defaultCropHeight) * defaultCropWidth), defaultWidth\n    )  # just for safety. not for mathematical accuracy.\n    # height_current = min(allowedHeight, int((width_current/defaultCropWidth)*defaultCropHeight))\n    # (x1+x0)/2-width_current/2\n    import random\n    x0_framework = random.randint(\n        max((x1 - width_current), 0), min((x0 + width_current), defaultWidth)\n    )\n    framework_XYWH = (x0_framework, y0_altered, width_current, height_current)\n    x_f, y_f, w_f, h_f = framework_XYWH\n    croppedImageCover = img[y_f : y_f + h_f, x_f : x_f + w_f, :]\n    # breakpoint()\n    # resize image\n    croppedImageCoverResized = cv2.resize(\n        croppedImageCover, (defaultCropWidth, defaultCropHeight)\n    )\n    cv2.imshow(\"CROPPED IMAGE COVER\", croppedImageCover)\n    cv2.imshow(\"CROPPED IMAGE COVER RESIZED\", croppedImageCoverResized)",
-        "type": "code",
-        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:99-122"
-    },
-    "2061": {
-        "file_id": 206,
-        "content": "This code snippet is responsible for cropping an image and resizing it. It adjusts the cropping parameters to ensure a reasonable aspect ratio while maintaining mathematical safety. The random x0_framework value ensures that the cropped image falls within the allowed width, avoiding any potential out-of-bounds errors. The resulting images are then displayed using OpenCV's imshow function.",
-        "type": "comment"
-    },
-    "2062": {
-        "file_id": 206,
-        "content": "    # print(selected_col_dict)\n    # print(count)\n    # breakpoint()\n    cv2.waitKey(0)\nelse:\n    print(\"NO COVER FOUND.\")\n# # results.save()\n# # # print(type(results),dir(results))\n# breakpoint()\n# import cv2\n# image = cv2.imread(\"runs/detect/exp3/miku_on_green.jpg\")\n# cv2.imshow(\"NONE\",image)\n# # results.print()  # or .show(),\n# # hold it.\n# # image 1/1: 720x1280 1 bird # what the fuck is a bird?\n# # os.system(\"pause\")\n# # input()\n# this shit has been detected but not in the right category.",
-        "type": "code",
-        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:123-141"
-    },
-    "2063": {
-        "file_id": 206,
-        "content": "The code seems to be a part of an image processing script. It checks for the detection of objects (dog and cat) in images, potentially for cover extraction purposes. The code might have issues with the categorization of certain detected objects. If no suitable cover is found, it displays a \"NO COVER FOUND.\" message.",
-        "type": "comment"
-    },
-    "2064": {
-        "file_id": 207,
         "content": "/tests/unittest_tempfile_generator.py",
         "type": "filepath"
     },
-    "2065": {
-        "file_id": 207,
+    "2047": {
+        "file_id": 205,
         "content": "This code generates temporary files named with a \".data\" suffix and yields their names. The generated file paths are then printed, data is written to the files, and the content of these files is read and printed. Finally, it closes all temporary files.",
         "type": "summary"
     },
-    "2066": {
-        "file_id": 207,
+    "2048": {
+        "file_id": 205,
         "content": "import tempfile\ndef generateFile():\n    data = b\"abc\"\n    while True:\n        with tempfile.NamedTemporaryFile(\"wb\", suffix=\".data\") as f:\n            name = f.name\n            print(\"tempfile name:\", name)\n            f.write(data)\n            f.seek(0)  # strange.\n            # what the fuck?\n            # f.close()\n            yield name\nif __name__ == \"__main__\":\n    grt = generateFile()\n    filepath = grt.__next__()\n    for _ in range(2):\n        # good?\n        with open(filepath, \"rb\") as f:\n            content = f.read()\n            print(\"content in {}:\".format(filepath), content)",
         "type": "code",
         "location": "/tests/unittest_tempfile_generator.py:1-24"
     },
-    "2067": {
-        "file_id": 207,
+    "2049": {
+        "file_id": 205,
         "content": "This code generates temporary files named with a \".data\" suffix and yields their names. The generated file paths are then printed, data is written to the files, and the content of these files is read and printed. Finally, it closes all temporary files.",
         "type": "comment"
     },
-    "2068": {
+    "2050": {
+        "file_id": 206,
+        "content": "/tests/unittest_photo_histogram_match_0.2.py",
+        "type": "filepath"
+    },
+    "2051": {
+        "file_id": 206,
+        "content": "This code performs image processing tasks, including text removal using inpainting and color distribution transfer between images. It displays all processed images before waiting for a key press.",
+        "type": "summary"
+    },
+    "2052": {
+        "file_id": 206,
+        "content": "# USAGE\n# python example.py --source images/ocean_sunset.jpg --target images/ocean_day.jpg\nimage_0 = \"/root/Desktop/works/pyjom/samples/image/dog_with_text2.png\"\nimage_1 = \"/root/Desktop/works/pyjom/samples/image/cute_cat.bmp\"\n# from lazero.utils.importers import cv2_custom_build_init\nfrom test_commons import *\n# cv2_custom_build_init()\n# import the necessary packages\nfrom color_transfer import color_transfer\nimport cv2\ndef show_image(title, image, width=300):\n    # resize the image to have a constant width, just to\n    # make displaying the images take up less screen real\n    # estate\n    r = width / float(image.shape[1])\n    dim = (width, int(image.shape[0] * r))\n    resized = cv2.resize(image, dim, interpolation=cv2.INTER_AREA)\n    # show the resized image\n    cv2.imshow(title, resized)\n# load the images\nsource = cv2.imread(image_0)\ntarget = cv2.imread(image_1)\n# we inpaint this one from the beginning.\nfrom pyjom.imagetoolbox import (\n    getImageTextAreaRatio,\n    imageFourCornersInpainting,\n)  # also for image text removal.",
+        "type": "code",
+        "location": "/tests/unittest_photo_histogram_match_0.2.py:1-38"
+    },
+    "2053": {
+        "file_id": 206,
+        "content": "The code imports necessary packages, loads two images (source and target), and uses imageFourCornersInpainting for text removal from the source image. It also defines a function show_image to display resized images with constant width for efficient screen usage.",
+        "type": "comment"
+    },
+    "2054": {
+        "file_id": 206,
+        "content": "target = getImageTextAreaRatio(target, inpaint=True)\ntarget = imageFourCornersInpainting(target)\n# also remove the selected area.\n# transfer the color distribution from the source image\n# to the target image\ntransfer = color_transfer(source, target)\nimport numpy as np\ntransfer_02 = (target * 0.8 + transfer * 0.2).astype(np.uint8)\ntransfer_02_flip = cv2.flip(transfer_02, 1)\n# show the images and wait for a key press\nshow_image(\"Source\", source)\nshow_image(\"Target\", target)\nshow_image(\"Transfer\", transfer)\nshow_image(\"Transfer_02\", transfer_02)\nshow_image(\"Transfer_02_flip\", transfer_02_flip)\ncv2.waitKey(0)",
+        "type": "code",
+        "location": "/tests/unittest_photo_histogram_match_0.2.py:40-60"
+    },
+    "2055": {
+        "file_id": 206,
+        "content": "This code performs image processing tasks. It applies inpainting to the target image, transfers color distribution from source to target, creates a new transfer image with blending, flips one of the images, and displays all images before waiting for a key press.",
+        "type": "comment"
+    },
+    "2056": {
+        "file_id": 207,
+        "content": "/tests/unittest_update_peewee_while_get.py",
+        "type": "filepath"
+    },
+    "2057": {
+        "file_id": 207,
+        "content": "Creating a Peewee database, defining a BilibiliUser model, and updating a specific user's username.",
+        "type": "summary"
+    },
+    "2058": {
+        "file_id": 207,
+        "content": "dbpath = \"test.db\"\nfrom peewee import *\nclass BilibiliUser(Model):\n    username = CharField()\n    user_id = IntegerField(unique=True)\n    is_mine = BooleanField(default=False)\n    followers = IntegerField(\n        null=True\n    )  # how to get that? every time you get some video you do this shit? will get you blocked.\n    # well you can check it later.\n    avatar = CharField(null=True)  # warning! charfield max length is 255\ndb = SqliteDatabase(dbpath)\ndb.create_tables([BilibiliUser])\nimport uuid\nusername = str(uuid.uuid4())\n# u, _ = BilibiliUser.get_and_update_or_create(username=username, user_id=1)\nBilibiliUser.update(username=username).where(BilibiliUser.user_id == 1).execute()\n# why don't you update? need i delete it manually?\nu = BilibiliUser.get(user_id=1)\nprint(\"current username:\", username)\nprint(\"fetched username:\", u.username)",
+        "type": "code",
+        "location": "/tests/unittest_update_peewee_while_get.py:1-30"
+    },
+    "2059": {
+        "file_id": 207,
+        "content": "Creating a Peewee database, defining a BilibiliUser model, and updating a specific user's username.",
+        "type": "comment"
+    },
+    "2060": {
         "file_id": 208,
         "content": "/tests/unittest_translate_lyrictoolbox.py",
         "type": "filepath"
     },
-    "2069": {
+    "2061": {
         "file_id": 208,
         "content": "The code imports necessary modules, defines sources as a list of strings, and uses the translate function from pyjom.lyrictoolbox with deepl backend to obtain translations for each source in the list. The results are printed out using sprint.",
         "type": "summary"
     },
-    "2070": {
+    "2062": {
         "file_id": 208,
         "content": "from test_commons import *\nfrom pyjom.lyrictoolbox import translate\nfrom lazero.utils.logger import sprint\nsources = [\"are you ok\", \"are you happy\", \"are you good\", \"are you satisfied\"]\nfor source in sources:\n    result = translate(\n        source, backend=\"deepl\"\n    )  # this is cached. no matter what backend you use.\n    print(\"source:\", source)\n    sprint(\"result:\", result)",
         "type": "code",
         "location": "/tests/unittest_translate_lyrictoolbox.py:1-11"
     },
-    "2071": {
+    "2063": {
         "file_id": 208,
         "content": "The code imports necessary modules, defines sources as a list of strings, and uses the translate function from pyjom.lyrictoolbox with deepl backend to obtain translations for each source in the list. The results are printed out using sprint.",
         "type": "comment"
     },
+    "2064": {
+        "file_id": 209,
+        "content": "/tests/unittest_video_cover_extraction_dog_cat_detections.py",
+        "type": "filepath"
+    },
+    "2065": {
+        "file_id": 209,
+        "content": "This script initializes a YOLOv5 model for object detection, focusing on dogs and cats, using image processing techniques to enhance accuracy. It may have difficulties categorizing certain objects and displays \"NO COVER FOUND.\" if no suitable cover is detected.",
+        "type": "summary"
+    },
+    "2066": {
+        "file_id": 209,
+        "content": "import torch\nimport os\nfrom lazero.utils.importers import cv2_custom_build_init\n# order:\n# detect if dog/cat is there, satisfying the qualification\n# remove watermark, remove text, remove potential watermark around corners using inpainting\n# use ffmpeg cropdetect, if has significant area change then no further processing\n# if no significant area change, use this blur detection to get the main area\n# remove watermark again?? around corners?\n# then reuse the dog detection and get the crop from processed/cropped image.\ncv2_custom_build_init()\nimport cv2\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# Model\n# localModelDir = (\n#     \"/root/Desktop/works/pyjom/pyjom/models/yolov5/ultralytics_yolov5_master/\"\n# )\n# # import os\n# os.environ[\n#     \"YOLOV5_MODEL_DIR\"\n# ] = \"/root/Desktop/works/pyjom/pyjom/models/yolov5/\"  # this is strange. must be a hack in the localModelDir\n# model = torch.hub.load(\n#     localModelDir, \"yolov5s\", source=\"local\"\n# )  # or yolov5m, yolov5l, yolov5x, custom\nfrom test_commons import *",
+        "type": "code",
+        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:1-31"
+    },
+    "2067": {
+        "file_id": 209,
+        "content": "This code is initializing a YOLOv5 model for object detection, specifically detecting dogs and cats. It also sets environment variables to disable proxies, imports necessary libraries, and defines the model path. The code aims to remove watermarks, text, and potentially blurred corners from images, crop detected animals, and possibly re-detect them to get the crop from the processed image.",
+        "type": "comment"
+    },
+    "2068": {
+        "file_id": 209,
+        "content": "from pyjom.commons import configYolov5\nmodel = configYolov5()\ndog_or_cat = \"dog\"\n# Images\n# img = '/media/root/help/pyjom/samples/image/miku_on_green.png'  # or file, Path, PIL, OpenCV, numpy, list\n# img = \"/root/Desktop/works/pyjom/samples/image/dog_with_text.jpg\"\nimgPath = \"/root/Desktop/works/pyjom/samples/image/dog_blue_sky.png\"\nimg = cv2.imread(imgPath)\ndefaultHeight, defaultWidth = img.shape[:2]\ntotal_area = defaultHeight * defaultWidth\n# Inference\nresults = model(img)\n# print(results)\n# # Results\n# breakpoint()\nanimal_detection_dataframe = results.pandas().xyxy[0]\n# results.show()\n# # results.print() # or .show(),\narea = (animal_detection_dataframe[\"xmax\"] - animal_detection_dataframe[\"xmin\"]) * (\n    animal_detection_dataframe[\"ymax\"] - animal_detection_dataframe[\"ymin\"]\n)\nanimal_detection_dataframe[\"area_ratio\"] = area / total_area\narea_threshold = 0.08  # min area?\nconfidence_threshold = 0.7  # this is image quality maybe.\ny_expansion_rate = 0.03  # to make the starting point on y axis less \"headless\"",
+        "type": "code",
+        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:32-67"
+    },
+    "2069": {
+        "file_id": 209,
+        "content": "The code imports a YOLOv5 configuration, sets the target animal to \"dog\", and reads an image file. It then performs inference using the model on the image and stores the results in the `results` variable. The code extracts the object detection data from `results`, calculates the area ratio for each detected object, and applies thresholds to filter out objects with low confidence or small areas.",
+        "type": "comment"
+    },
+    "2070": {
+        "file_id": 209,
+        "content": "df = animal_detection_dataframe\nnew_df = df.loc[\n    (df[\"area_ratio\"] >= area_threshold)\n    & (df[\"confidence\"] >= confidence_threshold)\n    & (df[\"name\"] == dog_or_cat)\n].sort_values(\n    by=[\"confidence\"]\n)  # this one is for 0.13\n# count = new_df.count(axis=0)\ncount = len(new_df)\n# print(\"COUNT: %d\" % count)\ndefaultCropWidth, defaultCropHeight = 1920, 1080\n# this is just to maintain the ratio.\n# you shall find the code elsewhere?\nallowedHeight = min(int(defaultWidth / defaultCropWidth * defaultHeight), defaultHeight)\nif count >= 1:\n    selected_col = new_df.iloc[0]  # it is a dict-like object.\n    # print(new_df)\n    # breakpoint()\n    selected_col_dict = dict(selected_col)\n    # these are floating point shits.\n    # {'xmin': 1149.520263671875, 'ymin': 331.6445007324219, 'xmax': 1752.586181640625, 'ymax': 1082.3826904296875, 'confidence': 0.9185908436775208, 'class': 16, 'name': 'dog', 'area_ratio': 0.13691652620239364}\n    x0, y0, x1, y1 = [\n        int(selected_col[key]) for key in [\"xmin\", \"ymin\", \"xmax\", \"ymax\"]",
+        "type": "code",
+        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:69-98"
+    },
+    "2071": {
+        "file_id": 209,
+        "content": "The code filters the animal detection dataframe based on area ratio, confidence threshold, and dog or cat name. It then sorts the filtered dataframe by confidence. If there is at least one row in the filtered dataframe, it selects the first row as 'selected_col'. The selected column contains values for xmin, ymin, xmax, ymax, confidence, class (dog or cat), and area_ratio. These values are used to extract a region of interest from an image by converting them into coordinates and then cropping the image accordingly.",
+        "type": "comment"
+    },
     "2072": {
         "file_id": 209,
-        "content": "/tests/unittest_yolov5_dog_cat_filter_filesystemreviewer.py",
-        "type": "filepath"
+        "content": "    ]\n    y0_altered = max(int(y0 - (y1 - y0) * y_expansion_rate), 0)\n    height_current = min((y1 - y0_altered), allowedHeight)  # reasonable?\n    width_current = min(\n        int((height_current / defaultCropHeight) * defaultCropWidth), defaultWidth\n    )  # just for safety. not for mathematical accuracy.\n    # height_current = min(allowedHeight, int((width_current/defaultCropWidth)*defaultCropHeight))\n    # (x1+x0)/2-width_current/2\n    import random\n    x0_framework = random.randint(\n        max((x1 - width_current), 0), min((x0 + width_current), defaultWidth)\n    )\n    framework_XYWH = (x0_framework, y0_altered, width_current, height_current)\n    x_f, y_f, w_f, h_f = framework_XYWH\n    croppedImageCover = img[y_f : y_f + h_f, x_f : x_f + w_f, :]\n    # breakpoint()\n    # resize image\n    croppedImageCoverResized = cv2.resize(\n        croppedImageCover, (defaultCropWidth, defaultCropHeight)\n    )\n    cv2.imshow(\"CROPPED IMAGE COVER\", croppedImageCover)\n    cv2.imshow(\"CROPPED IMAGE COVER RESIZED\", croppedImageCoverResized)",
+        "type": "code",
+        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:99-122"
     },
     "2073": {
         "file_id": 209,
-        "content": "This function collects detection data, calculates confidence, applies filters, generates reports, and detects cats and dogs in videos using PaddleResnet50AnimalsClassifier and YOLOv5 model. It iterates through video paths, checks filters, and performs Bezier Curve and Resnet50 detector if needed.",
-        "type": "summary"
+        "content": "This code snippet is responsible for cropping an image and resizing it. It adjusts the cropping parameters to ensure a reasonable aspect ratio while maintaining mathematical safety. The random x0_framework value ensures that the cropped image falls within the allowed width, avoiding any potential out-of-bounds errors. The resulting images are then displayed using OpenCV's imshow function.",
+        "type": "comment"
     },
     "2074": {
         "file_id": 209,
-        "content": "from test_commons import *\nfrom pyjom.modules.contentReviewer import filesystemReviewer\nfrom pyjom.commons import keywordDecorator\nfrom lazero.utils.logger import sprint\nfrom pyjom.mathlib import superMean, superMax\ndef extractYolov5DetectionData(detectionData, mimetype=\"video\", debug=False):\n    # plan to get some calculations!\n    filepath, review_data = detectionData[\"review\"][\"review\"]\n    timeseries_data = review_data[\"yolov5_detector\"][\"yolov5\"][\"yolov5_detector\"]\n    data_dict = {}\n    if mimetype == \"video\":\n        dataList = []\n        for frameData in timeseries_data:\n            timestamp, frameNumber, frameDetectionData = [\n                frameData[key] for key in [\"time\", \"frame\", \"yolov5_detector\"]\n            ]\n            if debug:\n                sprint(\"timestamp:\", timestamp)\n            current_shot_detections = []\n            for elem in frameDetectionData:\n                location, confidence, identity = [\n                    elem[key] for key in [\"location\", \"confidence\", \"identity\"]",
+        "content": "    # print(selected_col_dict)\n    # print(count)\n    # breakpoint()\n    cv2.waitKey(0)\nelse:\n    print(\"NO COVER FOUND.\")\n# # results.save()\n# # # print(type(results),dir(results))\n# breakpoint()\n# import cv2\n# image = cv2.imread(\"runs/detect/exp3/miku_on_green.jpg\")\n# cv2.imshow(\"NONE\",image)\n# # results.print()  # or .show(),\n# # hold it.\n# # image 1/1: 720x1280 1 bird # what the fuck is a bird?\n# # os.system(\"pause\")\n# # input()\n# this shit has been detected but not in the right category.",
         "type": "code",
-        "location": "/tests/unittest_yolov5_dog_cat_filter_filesystemreviewer.py:1-26"
+        "location": "/tests/unittest_video_cover_extraction_dog_cat_detections.py:123-141"
     },
     "2075": {
         "file_id": 209,
-        "content": "The code defines a function called \"extractYolov5DetectionData\" which takes in detection data and mimetype as parameters. It extracts the filepath, review_data, and timeseries_data from the detection data. If the mimetype is video, it iterates through the frame data, collecting timestamp, frameNumber, and frameDetectionData for further processing. Debug messages are printed if necessary.",
+        "content": "The code seems to be a part of an image processing script. It checks for the detection of objects (dog and cat) in images, potentially for cover extraction purposes. The code might have issues with the categorization of certain detected objects. If no suitable cover is found, it displays a \"NO COVER FOUND.\" message.",
         "type": "comment"
     },
     "2076": {
-        "file_id": 209,
-        "content": "                ]\n                identity = identity[\"name\"]\n                if debug:\n                    print(\"location:\", location)\n                    print(\"confidence:\", confidence)\n                    sprint(\n                        \"identity:\", identity\n                    )  # we should use the identity name, instead of the identity dict, which is the original identity object.\n                current_shot_detections.append(\n                    {\n                        \"location\": location,\n                        \"confidence\": confidence,\n                        \"identity\": identity,\n                    }\n                )\n            dataList.append(\n                {\"timestamp\": timestamp, \"detections\": current_shot_detections}\n            )\n        data_dict.update({\"data\": dataList})\n    else:\n        frameDetectionData = timeseries_data\n        current_shot_detections = []\n        for elem in frameDetectionData:\n            location, confidence, identity = [\n                elem[key] for key in [\"location\", \"confidence\", \"identity\"]",
-        "type": "code",
-        "location": "/tests/unittest_yolov5_dog_cat_filter_filesystemreviewer.py:27-51"
+        "file_id": 210,
+        "content": "/tests/README.md",
+        "type": "filepath"
     },
     "2077": {
-        "file_id": 209,
-        "content": "This code appears to be part of a larger program that detects objects in frames, identifies them based on their location and confidence levels, and then stores the data in a list for each timestamp. If there is no existing frame detection data for the current timestamp, it updates with previous timeseries_data. This process repeats for each element in the frameDetectionData list, appending relevant information to current_shot_detections and then adding the full detections data to a final data dictionary under the \"data\" key.",
-        "type": "comment"
+        "file_id": 210,
+        "content": "This code snippet aims to integrate a recommendation system into the existing LLM (Large Language Model) and scrapers. By doing so, it intends to enhance the overall performance and efficiency of the language model and web scraping processes.",
+        "type": "summary"
     },
     "2078": {
-        "file_id": 209,
-        "content": "            ]\n            identity = identity[\"name\"]\n            if debug:\n                print(\"location:\", location)\n                print(\"confidence:\", confidence)\n                sprint(\"identity:\", identity)\n        data_dict.update(\n            {\"data\": current_shot_detections}\n        )  # just detections, not a list in time series order\n    data_dict.update({\"path\": filepath, \"type\": mimetype})\n    return data_dict\ndef calculateVideoMaxDetectionConfidence(\n    dataList, identities=[\"dog\", \"cat\"]\n):  # does it have a dog?\n    report = {identity: 0 for identity in identities}\n    for elem in dataList:\n        detections = elem[\"detections\"]\n        for detection in detections:\n            identity = detection[\"identity\"]\n            if identity in identities:\n                if report[identity] < detection[\"confidence\"]:\n                    report[identity] = detection[\"confidence\"]\n    return report\nfrom typing import Literal\nimport numpy as np\ndef calculateVideoMeanDetectionConfidence(\n    dataList: list,",
+        "file_id": 210,
+        "content": "use recommendation system to enhance our LLM/scrapers",
         "type": "code",
-        "location": "/tests/unittest_yolov5_dog_cat_filter_filesystemreviewer.py:52-84"
+        "location": "/tests/README.md:1-1"
     },
     "2079": {
-        "file_id": 209,
-        "content": "The code contains a function to calculate the maximum and mean detection confidence for specified identities in a video's data. It defines functions to update a dictionary with detections, identify elements by type and path, and determine the maximum and mean detection confidence for specified identity labels.",
+        "file_id": 210,
+        "content": "This code snippet aims to integrate a recommendation system into the existing LLM (Large Language Model) and scrapers. By doing so, it intends to enhance the overall performance and efficiency of the language model and web scraping processes.",
         "type": "comment"
     },
     "2080": {
-        "file_id": 209,
-        "content": "    identities=[\"dog\", \"cat\"],\n    framewise_strategy: Literal[\"mean\", \"max\"] = \"max\",\n    timespan_strategy: Literal[\"max\", \"mean\", \"mean_no_missing\"] = \"mean_no_missing\",\n):\n    report = {identity: [] for identity in identities}\n    # report = {}\n    for elem in dataList:  # iterate through selected frames\n        # sprint(\"ELEM\")\n        # sprint(elem)\n        # breakpoint()\n        detections = elem[\"detections\"]\n        frame_detection_dict_source = {}\n        # frame_detection_dict = {key:[] for key in identities}\n        for (\n            detection\n        ) in detections:  # in the same frame, iterate through different detections\n            identity = detection[\"identity\"]\n            if identity in identities:\n                frame_detection_dict_source[identity] = frame_detection_dict_source.get(\n                    identity, []\n                ) + [detection[\"confidence\"]]\n        frame_detection_dict = {}\n        for key in identities:\n            valueList = frame_detection_dict_source.get(key, [0])",
-        "type": "code",
-        "location": "/tests/unittest_yolov5_dog_cat_filter_filesystemreviewer.py:85-108"
+        "file_id": 211,
+        "content": "/tests/modify_package.sh",
+        "type": "filepath"
     },
     "2081": {
-        "file_id": 209,
-        "content": "The code iterates through selected frames, collects detections for specified identities (dog and cat), and populates a report with their respective confidence values. It also provides default options for frame-wise and timespan strategies.",
-        "type": "comment"
+        "file_id": 211,
+        "content": "This script searches for Python files (.py), then replaces specific module imports (\"from modules\", \"from main\", etc.) with their new corresponding pyjom paths using sed command.",
+        "type": "summary"
     },
     "2082": {
-        "file_id": 209,
-        "content": "            if framewise_strategy == \"mean\":\n                frame_detection_dict.update({key: superMean(valueList)})\n            elif framewise_strategy == \"max\":\n                frame_detection_dict.update({key: superMax(valueList)})\n        # now update the report dict.\n        for identity in identities:\n            value = frame_detection_dict.get(identity, 0)\n            if timespan_strategy == \"mean_no_missing\":\n                if value == 0:\n                    continue\n            report[identity].append(value)\n    final_report = {}\n    for identity in identities:\n        valueList = report.get(identity, [0])\n        if timespan_strategy in [\"mean_no_missing\", \"mean\"]:\n            final_report[identity] = superMean(valueList)\n        else:\n            final_report[identity] = superMax(valueList)\n    return final_report\nfrom pyjom.commons import checkMinMaxDict\ndef detectionConfidenceFilter(\n    detectionConfidence: dict,\n    filter_dict={\n        \"dog\": {\"min\": 0.5},\n        \"cat\": {\"min\": 0.5},\n    },  # both have certainty of 0.69 or something. consider to change this value higher?",
+        "file_id": 211,
+        "content": "find | grep -E \".py\\$\" | xargs -iabc sed -i \"s/from modules/from pyjom.modules/g\" abc\nfind | grep -E \".py\\$\" | xargs -iabc sed -i \"s/from main/from pyjom.main/g\" abc \nfind | grep -E \".py\\$\" | xargs -iabc sed -i \"s/from commons/from pyjom.commons/g\" abc\nfind | grep -E \".py\\$\" | xargs -iabc sed -i \"s/from config/from pyjom.config/g\" abc\nfind | grep -E \".py\\$\" | xargs -iabc sed -i \"s/from medialang/from pyjom.medialang/g\" abc\nfind | grep -E \".py\\$\" | xargs -iabc sed -i \"s/from primitives/from pyjom.primitives/g\" abc",
         "type": "code",
-        "location": "/tests/unittest_yolov5_dog_cat_filter_filesystemreviewer.py:109-138"
+        "location": "/pyjom/modify_package.sh:1-6"
     },
     "2083": {
-        "file_id": 209,
-        "content": "This function calculates the detection confidence for various categories (e.g., dog, cat) and applies filtering based on user-defined thresholds. It uses either mean or maximum strategies for aggregating detection results over time and handles missing values appropriately. The function returns a final report with the filtered results.",
+        "file_id": 211,
+        "content": "This script searches for Python files (.py), then replaces specific module imports (\"from modules\", \"from main\", etc.) with their new corresponding pyjom paths using sed command.",
         "type": "comment"
     },
     "2084": {
-        "file_id": 209,
-        "content": "    logic: Literal[\"AND\", \"OR\"] = \"OR\",\n):  # what is the logic here? and? or?\n    assert logic in [\"AND\", \"OR\"]\n    for identity in filter_dict.keys():\n        value = detectionConfidence.get(identity, 0)\n        key_filter = filter_dict[identity]\n        result = checkMinMaxDict(value, key_filter)\n        if result:\n            if logic == \"OR\":\n                return True\n        else:\n            if logic == \"AND\":\n                return False\n    if logic == \"AND\":\n        return True  # for 'AND' this will be True, but for 'OR' this will be False\n    elif logic == \"OR\":\n        return False\n    else:\n        raise Exception(\"Invalid logic: %s\" % logic)\ndef yolov5VideoDogCatDetector(\n    videoPath,\n    debug=False,\n    filter_dict={\n        \"dog\": {\"min\": 0.5},\n        \"cat\": {\"min\": 0.5},\n    },\n    logic: Literal[\"AND\", \"OR\"] = \"OR\",\n):\n    autoArgs = {\n        \"subtitle_detector\": {\"timestep\": 0.2},\n        \"yolov5_detector\": {\"model\": \"yolov5x\"},  # will this run? no OOM?\n    }  # threshold: 0.4\n    template_names = [\"yolov5_detector.mdl.j2\"]",
-        "type": "code",
-        "location": "/tests/unittest_yolov5_dog_cat_filter_filesystemreviewer.py:139-175"
+        "file_id": 212,
+        "content": "/tests/launch_test_enviroment.sh",
+        "type": "filepath"
     },
     "2085": {
-        "file_id": 209,
-        "content": "The function checks if the given logic is either 'AND' or 'OR'. It then iterates through a filter dictionary, extracting values and comparing them to a key_filter using the checkMinMaxDict() function. Depending on the logic, it returns True or False based on whether any of the filters pass for 'OR' or all of them pass for 'AND', respectively. The yolov5VideoDogCatDetector function initializes an autoArgs dictionary and template names list to be used in detecting dogs and cats from a videoPath, with an optional logic parameter set to \"OR\" by default.",
-        "type": "comment"
+        "file_id": 212,
+        "content": "The code is a shell script that launches various environments for testing and services, including servers, APIs, and multiple terminal instances for different tests. It includes commands to ensure proper execution without overlap or conflicts.",
+        "type": "summary"
     },
     "2086": {
-        "file_id": 209,
-        "content": "    semiauto = False\n    dummy_auto = False\n    reviewer = keywordDecorator(\n        filesystemReviewer,\n        auto=True,\n        semiauto=semiauto,\n        dummy_auto=dummy_auto,\n        template_names=template_names,\n        args={\"autoArgs\": autoArgs},\n    )\n    # videoPath = \"/root/Desktop/works/pyjom/samples/image/dog_with_text2.png\"\n    # fileList = [{\"type\": \"image\", \"path\": videoPath}]\n    fileList = [{\"type\": \"video\", \"path\": videoPath}]\n    # fileList = [{\"type\": \"video\", \"path\": videoPath} for videoPath in videoPaths]\n    # resultGenerator, function_id = reviewer(\n    #     fileList, generator=True, debug=False\n    # )  # or at least a generator?\n    resultList, function_id = reviewer(\n        fileList, generator=False, debug=False\n    )  # or at least a generator?\n    result = resultList[0]\n    detectionData = extractYolov5DetectionData(result, mimetype=fileList[0][\"type\"])\n    # sprint(\"DETECTION DATA:\")\n    # sprint(detectionData)\n    filepath = detectionData[\"path\"]\n    if debug:\n        sprint(\"FILEPATH: %s\" % filepath)",
+        "file_id": 212,
+        "content": "cd /root/Desktop/works/pyjom/tests/\npython3 launch_test_enviroment.py\n# # launch bilibili recommendation server\n# cd /root/Desktop/works/pyjom/tests/bilibili_video_recommendation_server\n# gnome-terminal -- python3 /root/Desktop/works/pyjom/tests/bilibili_video_recommendation_server/test.py\n# # launch qq cqhttp\n# cd /root/Desktop/works/pyjom/tests/qq_go_cqhttp\n# gnome-terminal -- bash /root/Desktop/works/pyjom/tests/qq_go_cqhttp/launch.sh\n# # make sure milvus is running.\n# cd /root/Desktop/works/pyjom/tests/video_phash_deduplication/\n# bash /root/Desktop/works/pyjom/tests/video_phash_deduplication/config_milvus.sh\n# # launch netease api server. we need it to download new music, currently.\n# # video phash is the last step among all filters.\n# cd /root/Desktop/works/pyjom/externals/NeteaseCloudMusicApi\n# gnome-terminal -- bash /root/Desktop/works/pyjom/externals/NeteaseCloudMusicApi/launch.sh # port is 4042. port 4000 is used. don't know why.\n# # how to check avaliability of netease cloud music api?\n# cd /root/Desktop/works/pyjom/tests/karaoke_effects/",
         "type": "code",
-        "location": "/tests/unittest_yolov5_dog_cat_filter_filesystemreviewer.py:176-207"
+        "location": "/tests/launch_test_enviroment.sh:1-23"
     },
     "2087": {
-        "file_id": 209,
-        "content": "This code initializes a reviewer function using the filesystemReviewer class and sets parameters such as auto, semiauto, dummy_auto, template_names, and args. It then uses this reviewer on a fileList (which could contain image or video paths) to generate resultList and function_id. The first result from resultList is extracted for further processing using extractYolov5DetectionData function, which takes the result and mimetype as parameters. The resulting detectionData is then processed further based on the debug setting.",
+        "file_id": 212,
+        "content": "The code is a shell script that launches various environments for testing and services, including a bilibili recommendation server, qq cqhttp, milvus, netease api server. It also includes commands to ensure the servers are running correctly and provides instructions on how to check the availability of the netease cloud music API.",
         "type": "comment"
     },
     "2088": {
-        "file_id": 209,
-        "content": "    filetype = detectionData[\"type\"]\n    dataList = detectionData[\"data\"]\n    detectionConfidence = calculateVideoMeanDetectionConfidence(dataList)\n    if debug:\n        sprint(\"DETECTION CONFIDENCE:\", detectionConfidence)\n    filter_result = detectionConfidenceFilter(\n        detectionConfidence, filter_dict=filter_dict, logic=logic\n    )\n    return filter_result\nimport paddlehub as hub\nfrom functools import lru_cache\n@lru_cache(maxsize=1)\ndef getPaddleResnet50AnimalsClassifier():\n    classifier = hub.Module(name=\"resnet50_vd_animals\")\n    return classifier\n@lru_cache(maxsize=3)\ndef labelFileReader(filename):\n    with open(filename, \"r\") as f:\n        content = f.read()\n        content = content.split(\"\\n\")\n        content = [elem.replace(\"\\n\", \"\").strip() for elem in content]\n        content = [elem for elem in content if len(elem) > 0]\n    return content\nfrom pyjom.mathlib import multiParameterExponentialNetwork\n# {'input_bias': 0.0830047243746045, 'skew': -0.4986098769473948}\ndef bezierPaddleHubResnet50VideoDogCatDetector(",
+        "file_id": 212,
+        "content": "# gnome-terminal -- bash /root/Desktop/works/pyjom/tests/karaoke_effects/load_translator.sh\n# sleep 1\n# cd /root/Desktop/works/pyjom/tests/redis_music_info_persistance\n# gnome-terminal -- bash /root/Desktop/works/pyjom/tests/redis_music_info_persistance/launch_redis.sh\n# sleep 1\n# cd /root/Desktop/works/pyjom/tests/random_giphy_gifs/\n# gnome-terminal -- node /root/Desktop/works/pyjom/tests/random_giphy_gifs/nodejs_server.js\n# sleep 1\n# cd /root/Desktop/works/pyjom/tests/nsfw_violence_drug_detection\n# gnome-terminal -- node /root/Desktop/works/pyjom/tests/nsfw_violence_drug_detection/nsfwjs_test.js",
         "type": "code",
-        "location": "/tests/unittest_yolov5_dog_cat_filter_filesystemreviewer.py:208-242"
+        "location": "/tests/launch_test_enviroment.sh:24-36"
     },
     "2089": {
-        "file_id": 209,
-        "content": "This function takes detection data and applies a confidence filter based on the video's mean detection confidence. It uses PaddleHub's ResNet50 animals classifier and label file reader to obtain classification results and labels for a video file, respectively. The code also imports multiParameterExponentialNetwork from mathlib and defines a bezierPaddleHubResnet50VideoDogCatDetector function.",
+        "file_id": 212,
+        "content": "The code launches multiple terminal instances and scripts for different tests, with each instance running a specific script in the project's directory. The \"sleep 1\" command introduces a pause between commands to allow the previous terminal instance to start before proceeding. This ensures proper execution of each test without overlap or conflicts.",
         "type": "comment"
     },
     "2090": {
-        "file_id": 209,
-        "content": "    videoPath,\n    input_bias=0.0830047243746045,\n    skew=-0.4986098769473948,\n    threshold=0.5,\n    debug=False,\n    logic: Literal[\"AND\", \"OR\"] = \"OR\",\n):\n    filter_dict = {\n        \"dog\": {\"min\": threshold},\n        \"cat\": {\"min\": threshold},\n    }\n    curve_function_kwargs = {\n        \"start\": (0, 0),\n        \"end\": (1, 1),\n        \"skew\": skew,\n    }  # maximize the output.\n    from pyjom.videotoolbox import getVideoFrameIteratorWithFPS\n    from pyjom.imagetoolbox import resizeImageWithPadding\n    dog_suffixs = [\"狗\", \"犬\", \"梗\"]\n    cat_suffixs = [\"猫\"]  # ends with this, and not containing forbidden words.\n    dog_labels = labelFileReader(\n        \"/root/Desktop/works/pyjom/tests/animals_paddlehub_classification_resnet/dogs.txt\"\n    )\n    cat_labels = labelFileReader(\n        \"/root/Desktop/works/pyjom/tests/animals_paddlehub_classification_resnet/cats.txt\"\n    )\n    forbidden_words = [\n        \"灵猫\",\n        \"熊猫\",\n        \"猫狮\",\n        \"猫头鹰\",\n        \"丁丁猫儿\",\n        \"绿猫鸟\",\n        \"猫鼬\",\n        \"猫鱼\",\n        \"玻璃猫\",",
-        "type": "code",
-        "location": "/tests/unittest_yolov5_dog_cat_filter_filesystemreviewer.py:243-280"
+        "file_id": 213,
+        "content": "/tests/launch_test_enviroment.py",
+        "type": "filepath"
     },
     "2091": {
-        "file_id": 209,
-        "content": "This code snippet defines a function that filters and processes video frames, detecting both dogs and cats. It takes in the path of the video file, input bias, skew value, threshold for detection, debug mode flag, and logic type (AND or OR). It applies different filters for dog and cat detection based on thresholds, and defines a curve function with given parameters. The code also imports necessary modules and reads label files for dog and cat detection.",
-        "type": "comment"
+        "file_id": 213,
+        "content": "The function launches programs, changes directory, and waits for sleep duration. It asserts file existence, handles errors, and runs commands using os.system(). The code sets up a test environment by launching processes and services, specifying options, handling errors, and providing debugging information.",
+        "type": "summary"
     },
     "2092": {
-        "file_id": 209,
-        "content": "        \"猫眼\",\n        \"猫蛱蝶\",\n    ]\n    def dog_cat_name_recognizer(name):\n        if name in dog_labels:\n            return \"dog\"\n        elif name in cat_labels:\n            return \"cat\"\n        elif name not in forbidden_words:\n            for dog_suffix in dog_suffixs:\n                if name.endswith(dog_suffix):\n                    return \"dog\"\n            for cat_suffix in cat_suffixs:\n                if name.endswith(cat_suffix):\n                    return \"cat\"\n        return None\n    classifier = getPaddleResnet50AnimalsClassifier()\n    def paddleAnimalDetectionResultToList(result):\n        resultDict = result[0]\n        resultList = [(key, value) for key, value in resultDict.items()]\n        resultList.sort(key=lambda item: -item[1])\n        return resultList\n    def translateResultListToDogCatList(resultList):\n        final_result_list = []\n        for name, confidence in resultList:\n            new_name = dog_cat_name_recognizer(name)\n            final_result_list.append((new_name, confidence))\n        return final_result_list",
+        "file_id": 213,
+        "content": "import time\nimport os\ndef launchProgramWithTerminal(\n    directory,\n    intepreter,\n    executable,\n    sleep=None,\n    no_terminal=False,\n    keep_on=True,  # preserve error log\n):\n    try:\n        if type(sleep) in [int, float]:\n            if sleep > 0:  # logic shortcut please?\n                time.sleep(sleep)\n            else:\n                raise Exception(\"negative or zero sleep duration:\", sleep)\n        directory = os.path.abspath(directory)\n        assert os.path.exists(directory)\n        os.chdir(directory)\n        executable_path = os.path.join(directory, executable)\n        assert os.path.exists(executable_path)\n        # mkeep_on = (\n        #     \"{}\"\n        #     if (not keep_on) or no_terminal\n        #     else \"bash -c \\\"{}; echo; echo 'error log above...'; date; bash;\\\"\"\n        # )\n        mkeep_on = (\n            \"{}\"\n            if not keep_on\n            else (\n                \"bash -c \\\"{}; if [[ '$!' -ne 0 ]] then; echo; echo 'error log above...'; date; bash; fi;\\\"\"\n                if no_terminal",
         "type": "code",
-        "location": "/tests/unittest_yolov5_dog_cat_filter_filesystemreviewer.py:281-312"
+        "location": "/tests/launch_test_enviroment.py:1-34"
     },
     "2093": {
-        "file_id": 209,
-        "content": "The code defines a function `dog_cat_name_recognizer` that identifies if the given name belongs to a dog or cat. It also initializes a PaddleResnet50AnimalsClassifier, creates functions `paddleAnimalDetectionResultToList`, and `translateResultListToDogCatList` for processing detection results into a sorted list of names with confidence scores and then translates the result to a dog or cat.",
+        "file_id": 213,
+        "content": "This function launches a program with its associated terminal, changes directory to the specified path, and optionally waits for a sleep duration. It asserts the existence of the executable file and handles error logs based on keep_on and no_terminal flags.",
         "type": "comment"
     },
     "2094": {
-        "file_id": 209,
-        "content": "    dataList = []\n    for frame in getVideoFrameIteratorWithFPS(videoPath, -1, -1, fps=1):\n        padded_resized_frame = resizeImageWithPadding(\n            frame, 224, 224, border_type=\"replicate\"\n        )  # pass the test only if three of these containing 'cats'\n        result = classifier.classification(\n            images=[padded_resized_frame], top_k=3, use_gpu=False\n        )  # check it?\n        resultList = paddleAnimalDetectionResultToList(result)\n        final_result_list = translateResultListToDogCatList(resultList)\n        if debug:\n            sprint(\"RESULT LIST:\", final_result_list)\n        detections = []\n        for index, (label, confidence) in enumerate(final_result_list):\n            scope = final_result_list[index:]\n            scope_confidences = [elem[1] for elem in scope if elem[0] == label]\n            output = multiParameterExponentialNetwork(\n                *scope_confidences,\n                input_bias=input_bias,\n                curve_function_kwargs=curve_function_kwargs\n            )",
+        "file_id": 213,
+        "content": "                else \"bash -c \\\"{}; echo; echo 'error log above...'; date; bash;\\\"\"\n            )\n        )\n        command = f'{\"gnome-terminal -- \" if not no_terminal else \"\"}{mkeep_on.format(f\"{intepreter} {executable_path}\")}'\n        return command\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"failed while launching program with parameters:\")\n        print(\n            f\"[D]:{directory}\\n[I]{intepreter}\\n[E]{executable}\\n[C]{dict(sleep=sleep, no_terminal=no_terminal)}\"\n        )\n        breakpoint()\n    return None\ndef executeCommand(command):\n    print(\"executing command:\", command)\n    os.system(command)\n# common paths\npyjom_directory = \"/root/Desktop/works/pyjom\"\npyjom_tests = os.path.join(pyjom_directory, \"tests\")\npyjom_externals = os.path.join(pyjom_directory, \"externals\")\nkeepalive_bin = '/usr/local/bin/keepalive'\n# interpreters\nnode_exec = \"/usr/bin/node\"\npython3_exec = \"/usr/bin/python3\"\nbash_exec = \"/bin/bash\"\nlaunchList = [\n    # launch billibili recommendation server",
         "type": "code",
-        "location": "/tests/unittest_yolov5_dog_cat_filter_filesystemreviewer.py:314-334"
+        "location": "/tests/launch_test_enviroment.py:35-70"
     },
     "2095": {
-        "file_id": 209,
-        "content": "This code extracts frames from a video file, performs object detection using a classifier to identify cats and dogs in each frame, and calculates a score for each label based on the detections. The resulting list of dog and cat detections is then processed by a function called `multiParameterExponentialNetwork`. This code appears to be part of an image classification process for identifying animals in video frames.",
+        "file_id": 213,
+        "content": "This code launches a program with specified parameters and optional Gnome Terminal. It handles potential errors by printing an exception traceback and breakpoint for debugging. The executeCommand function runs the generated command using os.system(). Common paths, interpreters, and a list of programs to launch are defined.",
         "type": "comment"
     },
     "2096": {
-        "file_id": 209,
-        "content": "            # treat each as a separate observation in this frame.\n            detections.append({\"identity\": label, \"confidence\": output})\n        dataList.append({\"detections\": detections})\n        # now we apply the thing? the yolov5 thing?\n    detectionConfidence = calculateVideoMeanDetectionConfidence(dataList)\n    filter_result = detectionConfidenceFilter(\n        detectionConfidence, filter_dict=filter_dict, logic=logic\n    )\n    # print(\"DATALIST\", dataList)\n    # print(\"DETECTION CONFIDENCE\", detectionConfidence)\n    # print(\"FILTER RESULT\", filter_result)\n    # breakpoint()\n    return filter_result\nvideoPaths = [\n    \"/root/Desktop/works/pyjom/samples/video/cute_cat_gif.mp4\",\n    \"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\",\n    \"/root/Desktop/works/pyjom/samples/video/cat_invalid_without_mestimate.mp4\",\n    \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.gif\",\n    \"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.mp4\",\n    \"/root/Desktop/works/pyjom/samples/video/kitty_flash_scaled.mp4\",",
+        "file_id": 213,
+        "content": "    # do this in qq task.\n    # [\n    #     [\n    #         os.path.join(pyjom_tests, \"bilibili_video_recommendation_server\"),\n    #         python3_exec,\n    #         \"test.py\",\n    #     ],\n    #     {},\n    # ],\n    # launch qq cqhttp\n    [[os.path.join(pyjom_tests, \"qq_go_cqhttp\"), bash_exec, \"launch.sh\"], {}],\n    # make sure milvus is running.\n    [\n        [\n            os.path.join(pyjom_tests, \"video_phash_deduplication\"),\n            bash_exec,\n            \"config_milvus.sh\",\n        ],\n        dict(no_terminal=True),\n    ],\n    # launch netease api server. we need it to download new music, currently.\n    # video phash is the last step among all filters.\n    [\n        [os.path.join(pyjom_externals, \"NeteaseCloudMusicApi\"), bash_exec, \"launch.sh\"],\n        {},\n    ],  # port is 4042. port 4000 is used. don't know why.\n    # how to check avaliability of netease cloud music api?\n    [\n        [os.path.join(pyjom_tests, \"karaoke_effects\"), bash_exec, \"load_translator.sh\"],\n        {},\n    ],\n    [\n        [\n            os.path.join(pyjom_tests, \"redis_music_info_persistance\"),",
         "type": "code",
-        "location": "/tests/unittest_yolov5_dog_cat_filter_filesystemreviewer.py:335-356"
+        "location": "/tests/launch_test_enviroment.py:71-104"
     },
     "2097": {
-        "file_id": 209,
-        "content": "This code appears to be part of a larger function that takes in video paths, processes each video file using YOLOv5 model for object detection, calculates the mean detection confidence per video, and then applies a filter to the detection confidences based on a specified filter dictionary and logic. The resulting filtered detection confidences are returned. The code seems to be part of a unit test case specifically for testing the dog/cat filter functionality.",
+        "file_id": 213,
+        "content": "This code is setting up a test environment by launching multiple processes and services. It includes tasks for the bilibili video recommendation server, QQ CQHTTP, Milvus database, Netease Cloud Music API, Karaoke effects, and Redis music info persistence. Each task consists of the location of the executable and any necessary arguments. The code ensures proper execution by specifying different options for each task.",
         "type": "comment"
     },
     "2098": {
-        "file_id": 209,
-        "content": "    \"/root/Desktop/works/pyjom/samples/video/nearly_duplicate_frames_detection_30fps.mp4\",\n]\nfor videoPath in videoPaths:  # this is for each file.\n    # sprint(result)\n    sprint(\"checking video: %s\" % videoPath)\n    filter_result = yolov5VideoDogCatDetector(\n        videoPath\n    )  # this is for short video. not for long video. long video needs to be sliced into smaller chunks\n    # sprint(\"FILTER PASSED?\", filter_result)\n    if not filter_result:\n        sprint(\"CHECKING WITH BEZIER CURVE AND RESNET50\")\n        filter_result = bezierPaddleHubResnet50VideoDogCatDetector(videoPath)\n    if not filter_result:\n        print(\"FILTER FAILED\")\n    else:\n        print(\"FILTER PASSED\")\n    # if not passed, hit it with the bezier curve and resnet50\n    # breakpoint()",
+        "file_id": 213,
+        "content": "            bash_exec,\n            \"launch_redis.sh\",\n        ],\n        dict(sleep=1),\n    ],\n    [\n        [os.path.join(pyjom_tests, \"random_giphy_gifs\"), node_exec, \"nodejs_server.js\"],\n        dict(sleep=1),\n    ],\n    [\n        [\n            os.path.join(pyjom_tests, \"nsfw_violence_drug_detection\"),\n            node_exec,\n            \"nsfwjs_test.js\",\n        ],\n        dict(sleep=1),\n    ],\n    # [\n    #     [\n    #         os.path.join(pyjom_tests, \"bezier_paddlehub_dogcat_detector_serving\"),\n    #         python3_exec,\n    #         \"server.py\",\n    #     ],\n    #     dict(sleep=1),\n    # ],\n]\nfor argumentList, kwargs in launchList:\n    try:\n        assert type(kwargs) == dict\n        [directory, intepreter, executable] = argumentList\n        command = launchProgramWithTerminal(directory, intepreter, executable, **kwargs)\n        if command is None:\n            raise Exception(\"command is None\")\n        else:\n            executeCommand(command)\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"error when decomposing program launch parameters\")",
         "type": "code",
-        "location": "/tests/unittest_yolov5_dog_cat_filter_filesystemreviewer.py:357-374"
+        "location": "/tests/launch_test_enviroment.py:105-145"
     },
     "2099": {
-        "file_id": 209,
-        "content": "Iterates through video paths, checks if Yolov5 detector passes the filter. If not, applies Bezier Curve and Resnet50 detector. Prints \"FILTER PASSED\" or \"FILTER FAILED\" based on results.",
+        "file_id": 213,
+        "content": "The code defines a list of argument lists and their corresponding keyword arguments, then iterates through each set of arguments to launch different programs using the specified interpreter and executable. It handles potential errors by catching exceptions and printing the traceback for debugging purposes.",
         "type": "comment"
     }
 }
