@@ -1,302 +1,303 @@
 {
     "5500": {
-        "file_id": 718,
-        "content": "/tests/topic_modeling/poc_english_preprocessing.py",
+        "file_id": 719,
+        "content": "/tests/title_rewrite_paraphrase/test_local.py",
         "type": "filepath"
     },
     "5501": {
-        "file_id": 718,
-        "content": "The code imports the spaCy English language model, tokenizes text, sets stopwords, applies Porter stemming, initializes a sentence splitter, and stores lemmatized words in a variable. The document is preprocessed by removing certain parts of speech and stop words, then stemmed using the PorterStemmer, resulting in Stem_words.",
+        "file_id": 719,
+        "content": "The code defines a paraphrasing function using tokenizer, model, sample and top_p options. The displayed elapsed time indicates acceptable performance for the task.",
         "type": "summary"
     },
     "5502": {
-        "file_id": 718,
-        "content": "# https://huggingface.co/spacy/en_core_web_sm\n# https://medium.com/analytics-vidhya/nlp-essentials-removing-stopwords-and-performing-text-normalization-using-nltk-and-spacy-in-python-2c4024d2e343\nfrom nltk.corpus import stopwords\nfrom nltk.tokenize import word_tokenize\nfrom nltk.stem import PorterStemmer\n# from lazero.utils import inspectObject\nfrom lazero.utils import sprint # print with spliter\n# metalazero belongs to lazero package.\nimport en_core_web_sm\nnlp = en_core_web_sm.load()\ndoc = nlp(\n    \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and fishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had indeed the vaguest idea where the wood and river in question were.\"\"\"\n)\n# the sentence spliter includes unwanted \"\\n\" char\nset(stopwords.words(\"english\"))\nstop_words = set([elem.lower() for elem in stopwords.words(\"english\")])\nlemma_word1 = []\n# this shit has the lang tag. it might be useful for language detection. really?",
+        "file_id": 719,
+        "content": "# 加载模型\nfrom transformers import T5Tokenizer, T5ForConditionalGeneration\nmodelID = \"ClueAI/PromptCLUE-base-v1-5\"\n# https://github.com/James4Ever0/transformers/blob/main/src/transformers/models/auto/configuration_auto.py\n# https://github.com/James4Ever0/transformers/blob/main/src/transformers/modeling_utils.py (need change)\ntokenizer = T5Tokenizer.from_pretrained(modelID, local_files_first=True)\nmodel = T5ForConditionalGeneration.from_pretrained(\n    modelID, local_files_first=True\n)  # oh shit! 1G model\n# print(\"TOKENIZER?\", tokenizer) # always cpu. no \"device\" attribute.\n# print(\"_\"*20)\n# print(\"MODEL?\", model.device)\n# breakpoint()\n# what are these devices? all default CPU?\ndef preprocess(text):\n    return text.replace(\"\\n\", \"_\")\ndef postprocess(text):\n    return text.replace(\"_\", \"\\n\")\ndef answer(text, sample=True, top_p=0.8, device=\"cpu\"):\n    \"\"\"sample：是否抽样。生成任务，可以设置为True;\n    top_p：0-1之间，生成的内容越多样\"\"\"\n    text = preprocess(text)\n    encoding = tokenizer(\n        text=[text], truncation=True, padding=True, max_length=768, return_tensors=\"pt\"",
         "type": "code",
-        "location": "/tests/topic_modeling/poc_english_preprocessing.py:1-27"
+        "location": "/tests/title_rewrite_paraphrase/test_local.py:1-33"
     },
     "5503": {
-        "file_id": 718,
-        "content": "This code imports necessary libraries and loads the English language model from spaCy, tokenizes text, sets stopwords, applies Porter stemming, initializes a sentence splitter, and defines a variable to hold lemmatized words.",
+        "file_id": 719,
+        "content": "Loading T5 tokenizer and model with specified ID from local files first. Preprocessing function replaces newline characters with underscores, while postprocessing does the opposite. Function answer generates text using tokenizer, model, sample option, top_p value, and specified device (default: CPU).",
         "type": "comment"
     },
     "5504": {
-        "file_id": 718,
-        "content": "for token in doc:\n    if token.pos_ in ['PRON','CCONJ','ADP','PART','PUNCT','AUX']:\n        continue\n    if token.text.lower() in stop_words:\n        continue\n    lemma_word1.append(token.text)\nsprint(lemma_word1)  # there is no such -PRON- thing.\n# 1st step.\nStem_words = []\nps = PorterStemmer()\nfor w in lemma_word1:\n    rootWord = ps.stem(w)\n    Stem_words.append(rootWord)\nsprint(Stem_words) # 3rd step",
+        "file_id": 719,
+        "content": "    ).to(device)\n    if not sample:\n        out = model.generate(\n            **encoding,\n            return_dict_in_generate=True,\n            output_scores=False,\n            max_length=128,\n            num_beams=4,\n            length_penalty=1\n        )\n    else:\n        out = model.generate(  # check \"generate_config\" in test.py?\n            **encoding,\n            return_dict_in_generate=True,\n            output_scores=False,\n            max_length=128,\n            min_length=5,\n            do_sample=True,\n            length_penalty=1,\n            num_beams=4,\n            top_p=top_p\n        )\n    out_text = tokenizer.batch_decode(out[\"sequences\"], skip_special_tokens=True)\n    return postprocess(out_text[0])\ndef my_function():\n    # Function code goes here\n    q = \"\"\"重写句子：\n支持几十个不同类型的任务，具有较好的零样本学习能力和少样本学习能力。\n答案：\n\"\"\"  # i think this model just doesn't get it.\n    output = answer(q)\n    print(\"Output:\", output)\nimport timeit\n# Time the function\nelapsed_time = timeit.timeit(my_function, number=1)\nprint(\"Elapsed time:\", elapsed_time)",
         "type": "code",
-        "location": "/tests/topic_modeling/poc_english_preprocessing.py:28-42"
+        "location": "/tests/title_rewrite_paraphrase/test_local.py:34-75"
     },
     "5505": {
-        "file_id": 718,
-        "content": "This code preprocesses a document by removing certain parts of speech and stop words, then applies stemming using the PorterStemmer to reduce words to their root form. The resulting list of stemmed words is stored in Stem_words.",
+        "file_id": 719,
+        "content": "The code defines a function that generates text using a model, specifically for the purpose of paraphrasing or rewriting sentences. The model takes an input sentence and outputs a generated response. The function also measures the elapsed time to execute the code.",
         "type": "comment"
     },
     "5506": {
         "file_id": 719,
-        "content": "/tests/topic_modeling/english_test.py",
-        "type": "filepath"
+        "content": "# Elapsed time: 10.513529631891288\n# not too bad?",
+        "type": "code",
+        "location": "/tests/title_rewrite_paraphrase/test_local.py:76-77"
     },
     "5507": {
         "file_id": 719,
+        "content": "These lines are displaying the elapsed time for a certain task or operation, and indicating that it was completed within an acceptable range. The comment suggests that the performance of this specific action is considered satisfactory by the developer.",
+        "type": "comment"
+    },
+    "5508": {
+        "file_id": 720,
+        "content": "/tests/topic_modeling/poc_english_preprocessing.py",
+        "type": "filepath"
+    },
+    "5509": {
+        "file_id": 720,
+        "content": "The code imports the spaCy English language model, tokenizes text, sets stopwords, applies Porter stemming, initializes a sentence splitter, and stores lemmatized words in a variable. The document is preprocessed by removing certain parts of speech and stop words, then stemmed using the PorterStemmer, resulting in Stem_words.",
+        "type": "summary"
+    },
+    "5510": {
+        "file_id": 720,
+        "content": "# https://huggingface.co/spacy/en_core_web_sm\n# https://medium.com/analytics-vidhya/nlp-essentials-removing-stopwords-and-performing-text-normalization-using-nltk-and-spacy-in-python-2c4024d2e343\nfrom nltk.corpus import stopwords\nfrom nltk.tokenize import word_tokenize\nfrom nltk.stem import PorterStemmer\n# from lazero.utils import inspectObject\nfrom lazero.utils import sprint # print with spliter\n# metalazero belongs to lazero package.\nimport en_core_web_sm\nnlp = en_core_web_sm.load()\ndoc = nlp(\n    \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and fishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had indeed the vaguest idea where the wood and river in question were.\"\"\"\n)\n# the sentence spliter includes unwanted \"\\n\" char\nset(stopwords.words(\"english\"))\nstop_words = set([elem.lower() for elem in stopwords.words(\"english\")])\nlemma_word1 = []\n# this shit has the lang tag. it might be useful for language detection. really?",
+        "type": "code",
+        "location": "/tests/topic_modeling/poc_english_preprocessing.py:1-27"
+    },
+    "5511": {
+        "file_id": 720,
+        "content": "This code imports necessary libraries and loads the English language model from spaCy, tokenizes text, sets stopwords, applies Porter stemming, initializes a sentence splitter, and defines a variable to hold lemmatized words.",
+        "type": "comment"
+    },
+    "5512": {
+        "file_id": 720,
+        "content": "for token in doc:\n    if token.pos_ in ['PRON','CCONJ','ADP','PART','PUNCT','AUX']:\n        continue\n    if token.text.lower() in stop_words:\n        continue\n    lemma_word1.append(token.text)\nsprint(lemma_word1)  # there is no such -PRON- thing.\n# 1st step.\nStem_words = []\nps = PorterStemmer()\nfor w in lemma_word1:\n    rootWord = ps.stem(w)\n    Stem_words.append(rootWord)\nsprint(Stem_words) # 3rd step",
+        "type": "code",
+        "location": "/tests/topic_modeling/poc_english_preprocessing.py:28-42"
+    },
+    "5513": {
+        "file_id": 720,
+        "content": "This code preprocesses a document by removing certain parts of speech and stop words, then applies stemming using the PorterStemmer to reduce words to their root form. The resulting list of stemmed words is stored in Stem_words.",
+        "type": "comment"
+    },
+    "5514": {
+        "file_id": 721,
+        "content": "/tests/topic_modeling/poc_english_topic_modeling.py",
+        "type": "filepath"
+    },
+    "5515": {
+        "file_id": 721,
+        "content": "This code imports libraries, applies language models and topic modeling techniques using CountVectorizer and LatentDirichletAllocation to analyze document content.",
+        "type": "summary"
+    },
+    "5516": {
+        "file_id": 721,
+        "content": "# https://huggingface.co/spacy/en_core_web_sm\n# https://medium.com/analytics-vidhya/nlp-essentials-removing-stopwords-and-performing-text-normalization-using-nltk-and-spacy-in-python-2c4024d2e343\nfrom nltk.corpus import stopwords\nfrom nltk.tokenize import word_tokenize\nfrom nltk.stem import PorterStemmer\n# from lazero.utils import inspectObject\nfrom lazero.utils import sprint  # print with spliter\n# metalazero belongs to lazero package.\nimport en_core_web_sm\nnlp = en_core_web_sm.load()\ndoc = nlp(\n    \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and fishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had indeed the vaguest idea where the wood and river in question were.\"\"\"\n)\n# the sentence spliter includes unwanted \"\\n\" char\nset(stopwords.words(\"english\"))\nstop_words = set([elem.lower() for elem in stopwords.words(\"english\")])\nlemma_word1 = []\n# this shit has the lang tag. it might be useful for language detection. really?",
+        "type": "code",
+        "location": "/tests/topic_modeling/poc_english_topic_modeling.py:1-27"
+    },
+    "5517": {
+        "file_id": 721,
+        "content": "The code is importing necessary libraries, such as stopwords and tokenize from nltk, PorterStemmer for stemming, and spacy's en_core_web_sm model. It then loads the model and applies it to a text. The code also defines stop words which will be used to filter out common words like \"the\" or \"and\" from the text. Additionally, it initializes an empty list for lemma word 1 and mentions the inclusion of language tags in some elements.",
+        "type": "comment"
+    },
+    "5518": {
+        "file_id": 721,
+        "content": "for token in doc:\n    if token.pos_ in [\"PRON\", \"CCONJ\", \"ADP\", \"PART\", \"PUNCT\", \"AUX\"]:\n        continue\n    if token.text.lower() in stop_words:\n        continue\n    lemma_word1.append(token.text)\nsprint(lemma_word1)  # there is no such -PRON- thing.\n# 1st step.\nStem_words = []\nps = PorterStemmer()\nfor w in lemma_word1:\n    rootWord = ps.stem(w)\n    Stem_words.append(rootWord)\nsprint(Stem_words)  # 3rd step\nStem_words += ((len(Stem_words) - 1) % 5) * [\"\"]  # padding\nimport numpy as np\nStem_words = np.array(Stem_words)\nStem_words = Stem_words.reshape(5, -1)\n# sprint(Stem_words)\n# row, col = Stem_words.shape\n# exit()\n# for reasons that shit can understand.\n# np.nditer is for iteration over every elem\ndataList = []\nfor row in Stem_words:\n    # print(row)\n    elem = \" \".join(row)\n    dataList.append(elem)\ndata = \"\\n\".join(dataList)\nfrom sklearn.feature_extraction.text import TfidfVectorizer\n# In[8]:\n# 创建一个CountVectoerizer实例\ntfidf = TfidfVectorizer(ngram_range=(1, 2))\n# 打开刚刚保存的txt文档\nfrom io import StringIO\nf = StringIO(data)",
+        "type": "code",
+        "location": "/tests/topic_modeling/poc_english_topic_modeling.py:28-71"
+    },
+    "5519": {
+        "file_id": 721,
+        "content": "The code preprocesses text data by removing certain tokens, stemming words, and padding the resulting list. It then converts the list of words into a string, creates a TF-IDF vectorizer with unigrams and bigrams, and reads the string as input using StringIO.",
+        "type": "comment"
+    },
+    "5520": {
+        "file_id": 721,
+        "content": "# 使用CountVectorizer拟合数据\nx_train = tfidf.fit_transform(f)\nfrom sklearn.decomposition import LatentDirichletAllocation\nlda = LatentDirichletAllocation(n_components=5)\nlda.fit(x_train)\ndef print_topics(model, feature_names, n_top_words):\n    # 首先是遍历模型中存储的话题序号和话题内容\n    for topic_idx, topic in enumerate(model.components_):\n        # 然后打印话题的序号以及指定数量的最高频的关键词\n        message = \"topic #%d:\" % topic_idx\n        mList = [feature_names[i] for i in topic.argsort()[: -n_top_words - 1 : -1]]\n        mListStr = \" \".join(\n            mList\n        )\n        message += mListStr\n        mSet  = set(mList) # the set contains word groups like 'river question'\n        cDict = {k:mList.count(k) for k in mSet}\n        mRealList = mListStr.split(\" \")\n        mRealList = [x.strip() for x in mRealList if len(x.strip()) > 1] # usually things shorter than 2 letters are no good.\n        mRealSet = set(mRealList)\n        cRealDict = {k:mRealList.count(k) for k in mRealSet}\n        print(\"MESSAGE\",message)\n        print(\"SET\", mSet)\n        print(\"COUNT DICT\", cDict) # pointless to count here?",
+        "type": "code",
+        "location": "/tests/topic_modeling/poc_english_topic_modeling.py:72-99"
+    },
+    "5521": {
+        "file_id": 721,
+        "content": "This code uses CountVectorizer to transform data and LatentDirichletAllocation to fit the transformed data, then defines a function print_topics that iterates over the topics in the model, prints their index, and displays the highest frequency words for each topic. It also calculates and prints the set of word groups, word count dictionary, and filtered list of meaningful words.",
+        "type": "comment"
+    },
+    "5522": {
+        "file_id": 721,
+        "content": "        print(\"RealSET\", mRealSet)\n        print(\"RealCOUNT DICT\", cRealDict)\n    print()\nn_top_words = 10\nprint_topics(lda, tfidf.get_feature_names(), n_top_words)",
+        "type": "code",
+        "location": "/tests/topic_modeling/poc_english_topic_modeling.py:100-106"
+    },
+    "5523": {
+        "file_id": 721,
+        "content": "This code section prints the real set (mRealSet) and count dictionary (cRealDict), then it displays the top words from LDA topic modeling using print_topics function. This helps in analyzing the distribution of topics across documents.",
+        "type": "comment"
+    },
+    "5524": {
+        "file_id": 722,
+        "content": "/tests/topic_modeling/english_test.py",
+        "type": "filepath"
+    },
+    "5525": {
+        "file_id": 722,
         "content": "This code utilizes NLTK, Spacy and TextBlob for text preprocessing, stemming, lemmatization, and token iteration. It processes tokens, collects POS and text values, stores them, and checks for \"-PRON-\" absence.",
         "type": "summary"
     },
-    "5508": {
-        "file_id": 719,
+    "5526": {
+        "file_id": 722,
         "content": "# https://huggingface.co/spacy/en_core_web_sm\n# https://medium.com/analytics-vidhya/nlp-essentials-removing-stopwords-and-performing-text-normalization-using-nltk-and-spacy-in-python-2c4024d2e343\nfrom nltk.corpus import stopwords\nfrom nltk.tokenize import word_tokenize\nfrom nltk.stem import PorterStemmer\nfrom lazero.utils import inspectObject\n# metalazero belongs to lazero package.\nset(stopwords.words(\"english\"))\ntext = \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and \nfishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had \nindeed the vaguest idea where the wood and river in question were.\"\"\"\nstop_words = set(stopwords.words(\"english\"))\nword_tokens = word_tokenize(text)\nfiltered_sentence = []\nfor w in word_tokens:\n    if w not in stop_words:\n        filtered_sentence.append(w)\nStem_words = []\nps = PorterStemmer()\nfor w in filtered_sentence:\n    rootWord = ps.stem(w)\n    Stem_words.append(rootWord)",
         "type": "code",
         "location": "/tests/topic_modeling/english_test.py:1-30"
     },
-    "5509": {
-        "file_id": 719,
+    "5527": {
+        "file_id": 722,
         "content": "This code uses NLTK and Spacy libraries to perform text preprocessing. It loads the English stopwords, tokenizes the input text, removes stopwords, applies stemming using PorterStemmer, and stores the resulting words in Stem_words list.",
         "type": "comment"
     },
-    "5510": {
-        "file_id": 719,
+    "5528": {
+        "file_id": 722,
         "content": "print(filtered_sentence) # 1st step\nprint(Stem_words) # 3rd step\n# from textblob lib import Word method\n# if textblobTest:\nfrom textblob import Word\ntext = \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and \nfishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had \nindeed the vaguest idea where the wood and river in question were.\"\"\"\nlem = []\nfor i in text.split():\n    word1 = Word(i).lemmatize(\"n\")\n    word2 = Word(word1).lemmatize(\"v\")\n    word3 = Word(word2).lemmatize(\"a\")\n    lem.append(Word(word3).lemmatize())\nprint(lem) # incorrect and shitty. don't know what is its use\nimport en_core_web_sm\nnlp = en_core_web_sm.load()\ndoc = nlp(\n    \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and fishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had indeed the vaguest idea where the wood and river in question were.\"\"\"",
         "type": "code",
         "location": "/tests/topic_modeling/english_test.py:31-56"
     },
-    "5511": {
-        "file_id": 719,
+    "5529": {
+        "file_id": 722,
         "content": "Code imports the TextBlob library and uses lemmatization to simplify words in a given text. It first prints the original list of lemmatized words, then loads the English language model from TextBlob, and applies it to the same text, likely resulting in similar but potentially different lemmatized words. The purpose of this code is unclear due to incorrect usage and possible redundancy.",
         "type": "comment"
     },
-    "5512": {
-        "file_id": 719,
+    "5530": {
+        "file_id": 722,
         "content": ")\n# the sentence spliter includes unwanted \"\\n\" char\nlemma_word1 = []\n# this shit has the lang tag. it might be useful for language detection. really?\nfor token in doc:\n    # print(\"LEMMA\", token.lemma_)\n    # not reliable.\n    # ['ancestors', 'check_flag', 'children', 'cluster', 'conjuncts', 'dep', 'dep_', 'doc', 'ent_id', 'ent_id_', 'ent_iob', 'ent_iob_', 'ent_kb_id', 'ent_kb_id_', 'ent_type', 'ent_type_', 'get_extension', 'has_dep', 'has_extension', 'has_head', 'has_morph', 'has_vector', 'head', 'i', 'idx', 'iob_strings', 'is_alpha', 'is_ancestor', 'is_ascii', 'is_bracket', 'is_currency', 'is_digit', 'is_left_punct', 'is_lower', 'is_oov', 'is_punct', 'is_quote', 'is_right_punct', 'is_sent_end', 'is_sent_start', 'is_space', 'is_stop', 'is_title', 'is_upper', 'lang', 'lang_', 'left_edge', 'lefts', 'lemma', 'lemma_', 'lex', 'lex_id', 'like_email', 'like_num', 'like_url', 'lower', 'lower_', 'morph', 'n_lefts', 'n_rights', 'nbor', 'norm', 'norm_', 'orth', 'orth_', 'pos', 'pos_', 'prefix', 'pref",
         "type": "code",
         "location": "/tests/topic_modeling/english_test.py:57-66"
     },
-    "5513": {
-        "file_id": 719,
+    "5531": {
+        "file_id": 722,
         "content": "This code segment seems to be part of a natural language processing (NLP) task. It appears to be iterating through each token in the given document and potentially performing some operations or extractions on them. The variable 'lemma_word1' is initially empty but will presumably store lemmatized words from the tokens, which could be useful for further analysis.",
         "type": "comment"
     },
-    "5514": {
-        "file_id": 719,
+    "5532": {
+        "file_id": 722,
         "content": "ix_', 'prob', 'rank', 'remove_extension', 'right_edge', 'rights', 'sent', 'sent_start', 'sentiment', 'set_extension', 'set_morph', 'shape', 'shape_', 'similarity', 'subtree', 'suffix', 'suffix_', 'tag', 'tag_', 'tensor', 'text', 'text_with_ws', 'vector', 'vector_norm', 'vocab', 'whitespace_']\n    # print(dir(token))\n    # breakpoint()\n    # inspectObject(token)\n    elem = (token.pos_, token.text)\n    # breakpoint()\n    lemma_word1.append(elem)\nprint(lemma_word1)  # there is no such -PRON- thing.\n# 2nd step.",
         "type": "code",
         "location": "/tests/topic_modeling/english_test.py:66-74"
     },
-    "5515": {
-        "file_id": 719,
+    "5533": {
+        "file_id": 722,
         "content": "The code appears to be processing tokens and collecting their pos (part of speech) and text values. These values are stored in the lemma_word1 list for further use, while a \"breakpoint()\" is included for debugging purposes, and a print statement shows that there is no \"-PRON-\" element present. The code continues with a 2nd step, implying further processing may follow.",
         "type": "comment"
     },
-    "5516": {
-        "file_id": 720,
-        "content": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_search_ajax.py",
-        "type": "filepath"
-    },
-    "5517": {
-        "file_id": 720,
-        "content": "This code parses Baidu Image Search results using two functions, extracting title snippets and image similarity, with potential img_sim issue. It retrieves image dimensions and appends to a dataframe before returning two dataframes in debug mode.",
-        "type": "summary"
-    },
-    "5518": {
-        "file_id": 720,
-        "content": "import pyjq\ndef getBaiduImageSearchAjaxInfoParsed(obj, debug=False):\n    commonFilter = \"select(.extData) | .extData.showInfo | select(. != null) | {titles, snippets, imgs_src, simi} | select (.titles !=null)\"\n    def standardJsonParser(obj):\n        command = \".data.cardData[] | {}\".format(commonFilter)\n        processed_obj = pyjq.first(command, obj)\n        return processed_obj\n    def hiddenJsParser(obj):\n        processed_obj = obj\n        for index in range(3):\n            data = pyjq.first(\".data.commonData.js[{}]\".format(index), obj2)\n            if not ('titles' in data and 'titles_url' in data):\n                continue\n            lines = data.split(\"\\n\")\n            for line in lines:\n                line = line.strip()\n                hint = \"var cardData = \"\n                # print(line)\n                if line.startswith(hint):\n                    import javascript\n                    cardData = javascript.eval_js(line.replace(hint,\"\")).valueOf()\n                    real_data = pyjq.first(commonFilter,cardData)",
-        "type": "code",
-        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_search_ajax.py:1-23"
-    },
-    "5519": {
-        "file_id": 720,
-        "content": "This code defines two functions: `standardJsonParser` and `hiddenJsParser`. The first function, `standardJsonParser`, processes the data using a common filter and returns the filtered results. The second function, `hiddenJsParser`, extracts data from hidden JavaScript strings and applies the same common filter to return the processed data. This code appears to be parsing Baidu Image Search AJAX information in different formats (standard JSON or hidden JavaScript).",
-        "type": "comment"
-    },
-    "5520": {
-        "file_id": 720,
-        "content": "                    # import pprint\n                    return real_data\n                    # pprint.pprint(real_data)\n    import pandas as pd\n    processed_obj = None\n    methods = [standardJsonParser,hiddenJsParser]\n    for method in methods:\n        try:\n            processed_obj = method(obj)\n            if processed_obj is not None:\n                break\n        except:\n            ...\n    if processed_obj is None:\n        if debug:\n            print('cannot parse info from obj')\n    # print(processed_obj)\n    # breakpoint()\n    # from pprint import pprint\n    # pprint(processed_obj)\n    title_snippets = pyjq.first(\"{titles, snippets}\", processed_obj)\n    img_sim = pyjq.first(\"(.simi[]|=tonumber )|{imgs_src, simi}\", processed_obj) # TODO: error! what is going on?\n    # img_sim[\"simi\"] = img_sim[\"simi\"] # what is this?\n    # [('titles', 15), ('snippets', 15), ('imgs_src', 43), ('simi', 43)]\n    # 15, 15, 43, 43\n    df_title_snippets = pd.DataFrame(title_snippets)\n    df_img_sim = pd.DataFrame(img_sim)\n    elem = df_img_sim[\"simi\"][0]",
-        "type": "code",
-        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_search_ajax.py:24-51"
-    },
-    "5521": {
-        "file_id": 720,
-        "content": "This code attempts to parse an object and extract title snippets and image similarity information. It uses various parsing methods, data frames for organization, and the pyjq library for data manipulation. The code also includes error handling and debugging options. However, there is a potential error in the img_sim variable parsing.",
-        "type": "comment"
-    },
-    "5522": {
-        "file_id": 720,
-        "content": "    if debug:\n        print(df_title_snippets.head())\n        print(df_img_sim.head())\n        print(type(elem), elem)  # str?\n    # breakpoint()\n    from urllib.parse import parse_qs\n    def getWidthHeight(url):\n        qs = url.split(\"?\")[-1]\n        mdict = parse_qs(qs)\n        # print(mdict)\n        # breakpoint()\n        width = int(mdict[\"w\"][0])\n        height = int(mdict[\"h\"][0])\n        area = width * height\n        return width, height, area\n    # pre_qs = df_img_sim['imgs_src'].split(\"?\")\n    width_height = df_img_sim[\"imgs_src\"].apply(\n        lambda v: pd.Series(getWidthHeight(v), index=[\"width\", \"height\", \"area\"])\n    )\n    df_img_sim_width_height = pd.concat([df_img_sim, width_height], axis=1, join=\"inner\")\n    # qs = parse_qs(pre_qs)\n    # print(qs)\n    if debug:\n        print(df_img_sim_width_height.head())\n    return df_title_snippets, df_img_sim_width_height\n# the \"js\" response may contain video info which may help with our reverse video search.\n# but the keyword also helps!\nif __name__ == \"__main__\":",
-        "type": "code",
-        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_search_ajax.py:53-85"
-    },
-    "5523": {
-        "file_id": 720,
-        "content": "This code snippet is parsing the Baidu search results and retrieving image width, height, and area information. It then appends these values to the dataframe df_img_sim_width_height and returns two dataframes: df_title_snippets and df_img_sim_width_height. The debug mode allows printing of important intermediate data for testing and validation.",
-        "type": "comment"
-    },
-    "5524": {
-        "file_id": 720,
-        "content": "    from lazero.filesystem.io import readJsonObjectFromFile\n    # obj = readJsonObjectFromFile(\"ajax_baidu.json\")\n    obj2 = readJsonObjectFromFile(\"jq_image_2.json\")\n    getBaiduImageSearchAjaxInfoParsed(obj2, debug=True)",
-        "type": "code",
-        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_search_ajax.py:86-89"
-    },
-    "5525": {
-        "file_id": 720,
-        "content": "This code imports the readJsonObjectFromFile function and reads two JSON files, \"ajax_baidu.json\" and \"jq_image_2.json\". The function getBaiduImageSearchAjaxInfoParsed is then called with the second file's content (obj2) and debug mode enabled.",
-        "type": "comment"
-    },
-    "5526": {
-        "file_id": 721,
-        "content": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_title_abstract.py",
-        "type": "filepath"
-    },
-    "5527": {
-        "file_id": 721,
-        "content": "This code reads a JSON file, cleans text, processes abstracts to generate phrases meeting minimum and maximum length requirements. It parses Baidu search result titles and abstracts for potential question-answering content using \"result_baidu.json\". Text preprocessing is performed, and the top 20 ranked candidate phrases are printed based on BM25 similarity and Chinese character portion in the query.",
-        "type": "summary"
-    },
-    "5528": {
-        "file_id": 721,
-        "content": "from lazero.filesystem.io import readJsonObjectFromFile\nfrom lazero.utils.mathlib import checkMinMaxDict\ndata = readJsonObjectFromFile(\"result_baidu.json\")\nimport string\nfrom zhon import hanzi\npunctuations = set(list(string.punctuation + hanzi.punctuation))\npermitted = [\" \"]\nfor perm in permitted:\n    if perm in punctuations:\n        punctuations.remove(perm)\ndef removeTimeInfo(phrase):\n    import re\n    timeinfos = re.findall(r\"\\d+年\\d+月\\d+日\", phrase)\n    for timeinfo in timeinfos:\n        phrase = phrase.replace(timeinfo, \"\")\n    return phrase\ndef processQueryResult(abstract, minMaxDict={\"min\": 8, \"max\": 24}):\n    for punc in punctuations:\n        abstract = abstract.replace(punc, \"\\n\")\n    abstract = abstract.split(\"\\n\")\n    for phrase in abstract:\n        phrase = removeTimeInfo(phrase)\n        phrase = phrase.strip()\n        if not checkMinMaxDict(len(phrase), minMaxDict):\n            continue\n        else:\n            yield phrase\ncandidates = []\nquery = \"python有个问题想请教一下 为什么我这个函数跑不通\"\n# use another model please?",
-        "type": "code",
-        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_title_abstract.py:1-41"
-    },
-    "5529": {
-        "file_id": 721,
-        "content": "This code reads a JSON file, removes time and punctuation information from text, and processes the abstract to yield phrases meeting minimum and maximum length requirements. The purpose is to parse Baidu search result titles and abstracts for potential question-answering content, using the \"result_baidu.json\" file as input. The code also includes a function to remove time information from text and ensures each phrase meets specific length criteria before yielding it. The query variable contains a sample input for testing or using with another model.",
-        "type": "comment"
-    },
-    "5530": {
-        "file_id": 721,
-        "content": "# haystack?\nfor elem in data:\n    title = elem.get(\"title\")\n    print(\"title: %s\" % title)\n    spliters = [\" - \", \"-\", \"_\", \"－\"]\n    for spliter in spliters:\n        title = title.replace(spliter, \"_\")\n    potentialWebsiteNames = title.split(\"_\")\n    title = potentialWebsiteNames[0].strip()\n    realWebsiteNames = []\n    if len(potentialWebsiteNames) > 1:\n        websiteNames = potentialWebsiteNames[1:]\n        for name in websiteNames:\n            name = name.strip()\n            if len(name) > 0:\n                realWebsiteNames.append(name)\n    abstract = elem.get(\"abstract\")\n    # print(abstract)\n    # breakpoint()\n    for name in realWebsiteNames:\n        abstract = abstract.replace(name, \"\")  # remove website names\n    for phrase in processQueryResult(abstract):\n        if phrase not in candidates and not phrase.endswith(\"\"):  # magic char.\n            candidates.append(phrase)  # what is your query?\nimport jieba\ndef getCuttedWords(phrase):\n    candidates = jieba.lcut(phrase.lower())\n    wordList = []\n    for word in candidates:",
-        "type": "code",
-        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_title_abstract.py:42-73"
-    },
-    "5531": {
-        "file_id": 721,
-        "content": "This code is iterating over a list of data items, extracting titles and abstracts. It cleans the titles by removing splitting characters like \"-\", \"_\", and \"－\" and then splits them into potential website names. It checks if there are additional website names in the title and removes them from the abstract. Then it cuts the abstract using Jieba's lcut function to generate candidates for further processing.",
-        "type": "comment"
-    },
-    "5532": {
-        "file_id": 721,
-        "content": "        word = word.strip()\n        if len(word) > 0:\n            wordList.append(word)\n    return wordList\ndef countCommonWords(phrase_1, phrase_2, wordCount=False):\n    words_1 = getCuttedWords(phrase_1)\n    words_2 = getCuttedWords(phrase_2)\n    # count for longest total length?\n    result = list(set(words_1) & set(words_2))\n    if wordCount:\n        return len(result)\n    else:\n        return len(\"\".join(result))\n# candidates = list(set(candidates))\n# https://pypi.org/project/rank-bm25/\n# candidates.sort(key=lambda phrase: -countCommonWords(phrase,query))\n# use bm25?\n# this sorting is wrong.\nfrom rank_bm25 import BM25Okapi\ntokenized_corpus = [getCuttedWords(phrase) for phrase in candidates]\ntokenized_query = getCuttedWords(query)\nbm25 = BM25Okapi(tokenized_corpus)\n# doc_scores = bm25.get_scores(tokenized_query)\ntop_k = 20\nprint(\"TOP\", top_k)\ntopKCandidates = bm25.get_top_n(tokenized_query, candidates, n=top_k)\n# count chinese chars.\n# count for english/chinese portion. (strange hack.)\nimport numpy as np\ndef calculateChinesePortion(phrase):",
-        "type": "code",
-        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_title_abstract.py:74-111"
-    },
-    "5533": {
-        "file_id": 721,
-        "content": "The code is performing text preprocessing, calculating the similarity between phrases, and ranking candidates using BM25 algorithm. It first tokenizes and cuts the words from the candidate phrases and the query. Then it calculates the common words between two phrases and uses this information to sort and rank the candidates. Finally, it applies the BM25Okapi algorithm to get the scores of each candidate based on their relevance to the query and selects the top 20 ranked candidates. The code also includes a function to calculate the Chinese portion in a phrase.",
-        "type": "comment"
-    },
     "5534": {
-        "file_id": 721,
-        "content": "    length = len(phrase)\n    mdata = []\n    isalpha, isascii, isdigit, ischinese = 0, 0, 0, 0\n    for char in phrase:\n        isalpha += int(char.isalpha())\n        isascii += int(char.isascii())\n        isdigit += int(char.isdigit())\n        ischinese += int(not (isalpha or isascii or isdigit))\n    mdata = np.array([isalpha, isascii, isdigit, ischinese]) / length\n    return mdata\nqueryChinesePortion = calculateChinesePortion(query)\nfrom scipy.spatial.distance import cosine\ntopKCandidates.sort(\n    key=lambda phrase: cosine(calculateChinesePortion(phrase), queryChinesePortion)\n)\n# topKCandidates.sort(key=lambda phrase: -len(phrase))\nfor elem in topKCandidates:\n    print(elem.__repr__())",
-        "type": "code",
-        "location": "/tests/search_engine_suggestion_based_qa_bot/parse_baidu_title_abstract.py:112-132"
+        "file_id": 723,
+        "content": "/tests/tkinter_tag_toggle_button/toggle_button.py",
+        "type": "filepath"
     },
     "5535": {
-        "file_id": 721,
-        "content": "The code calculates the proportion of Chinese characters in a query and uses it to sort a list of candidate phrases. It then prints each candidate phrase, sorted by their similarity to the query based on the Chinese character portion.",
-        "type": "comment"
-    },
-    "5536": {
-        "file_id": 722,
-        "content": "/tests/search_engine_suggestion_based_qa_bot/search_image_with_keywords.py",
-        "type": "filepath"
-    },
-    "5537": {
-        "file_id": 722,
-        "content": "This code imports a BaiduSpider class and uses it to search for an image related to the keyword \"绝对领域\". It then prints the result and checks if the 'title', 'url', and 'host' information is available.",
+        "file_id": 723,
+        "content": "This code uses Tkinter to create buttons for toggling video tags and feeds the information into the main logic using mlt xml format.",
         "type": "summary"
     },
-    "5538": {
-        "file_id": 722,
-        "content": "# not sure if it relates.\nfrom baiduspider import BaiduSpider\nspider=BaiduSpider()\nfrom pprint import pprint\nquery = \"绝对领域\"\nresult = spider.search_pic(query, pn= 1) # are we fucked?\n# yeah we have result.\nprint(result)\nresult.plain\nbreakpoint()\n# 'title', 'url', 'host'\n# can we search for gif?",
+    "5536": {
+        "file_id": 723,
+        "content": "# Import Module\nfrom tkinter import *\n# Create Object\nroot = Tk()\n# Add Title\nroot.title('On/Off Switch!')\n# Add Geometry\nroot.geometry(\"500x300\")\n# Keep track of the button state on/off\n#global is_on\nis_on = {\"myTag\":False,\"myTag2\":False,\"myTag3\":False}\n# Create Label\n# Define our switch function\ndef switch(key, buttons, index, is_on):\n    button = buttons[index]\n    if is_on[key]:\n        button.config(text=key ,bg = \"grey\",fg=\"black\")\n        is_on[key] = False\n    else:\n        button.config(text = key,bg = \"green\",fg=\"white\")\n        is_on[key] = True\n# Define Our Images\n# on = PhotoImage(file = \"on.png\")\n# off = PhotoImage(file = \"off.png\")\n# Create A Button\non_buttons = []\nmfunctions = []\n# for j in range(n):\n#     e = Button(my_w, text=j) \n#     e.grid(row=i, column=j) \ndef getSwitchLambda(text, on_buttons, index, is_on):\n    return lambda:switch(text, on_buttons, index, is_on)\nfor index, text in enumerate(is_on.keys()):\n    # print(\"TEXT:\", text)\n    on_buttons.append(Button(root, text=text, bd = 0,bg=\"grey\",fg=\"black\"))",
         "type": "code",
-        "location": "/tests/search_engine_suggestion_based_qa_bot/search_image_with_keywords.py:1-13"
+        "location": "/tests/tkinter_tag_toggle_button/toggle_button.py:1-46"
+    },
+    "5537": {
+        "file_id": 723,
+        "content": "Code imports the Tkinter module, creates a root window with title and geometry, defines a global dictionary to track button states, and defines a function to switch button text and colors based on its state. It also includes a placeholder for creating buttons with images for \"on\" and \"off\" states, but they are currently not implemented. A separate function is defined to create buttons with lambda functions that call the switch function when clicked. The loop creates buttons with their respective texts and sets initial state according to the dictionary.",
+        "type": "comment"
+    },
+    "5538": {
+        "file_id": 723,
+        "content": "    mfunctions.append(getSwitchLambda(text, on_buttons, index, is_on))\n    on_buttons[index].config(command=mfunctions[index])\n    on_buttons[index].grid(row=1, column=0+index)\n# for x in mfunctions: x()\n# def getLambda(x): return lambda:print(x)\n# # great. much fucking better.\n# for y in [getLambda(x) for x in range(3)]: y()\n# so that is what's weird about the freaking lambda!\n# on_button1 = Button(root, text=\"myTag2\", bd = 0,bg=\"grey\",fg=\"black\")\n# # on_button1.command = lambda:switch(key=\"myTag\", button=on_button1)\n# on_button1.config(command=lambda:switch(key=\"myTag2\", button=on_button1))\n# on_button1.pack(pady = 50)\n# Execute Tkinter\nroot.mainloop()\n# so we would also like to use shotcut to manually cut videos and feed that info into the main production logic, by means of mlt xml.",
+        "type": "code",
+        "location": "/tests/tkinter_tag_toggle_button/toggle_button.py:47-67"
     },
     "5539": {
-        "file_id": 722,
-        "content": "This code imports a BaiduSpider class and uses it to search for an image related to the keyword \"绝对领域\". It then prints the result and checks if the 'title', 'url', and 'host' information is available.",
+        "file_id": 723,
+        "content": "This code creates Tkinter buttons for toggling tags and configures them with lambda functions. It then executes the Tkinter event loop to display the buttons. The purpose is to allow users to manually cut videos and feed that information into the main production logic using mlt xml format.",
         "type": "comment"
     },
     "5540": {
-        "file_id": 723,
-        "content": "/tests/search_engine_suggestion_based_qa_bot/search_for_picture_embedding.py",
+        "file_id": 724,
+        "content": "/tests/blur_image_detection_mask/test_blur_detection.py",
         "type": "filepath"
     },
     "5541": {
-        "file_id": 723,
-        "content": "This code utilizes BaiDu image search API to find similar images and prints details, implements time delays for safety. It currently uses textrank model for improvements. The code is facing issues with `getBaiduImageSearchAjaxInfoParsed` function from `parse_baidu_search_ajax` module. It handles exceptions, provides URL structure info, and offers debugging support.",
+        "file_id": 724,
+        "content": "This code imports necessary modules, reads an image, applies blur detection algorithm using blur_detector.detectBlur(img), displays the original image and blur map using cv2.imshow(), and waits for user input before closing the windows with cv2.waitKey(0).",
         "type": "summary"
     },
     "5542": {
-        "file_id": 723,
-        "content": "# actually the clip model does well for this.\n# though you want to use bm25 based textrank\nimage = \"prettyGirl.jpeg\" # girl image\nfrom PicImageSearch.sync import BaiDu\nbaidu = BaiDu()\nresult = baidu.search(file=image)\n# print(result)\n# better not to query 'ajax' unless you want to get banned.\n# breakpoint()\n# you want to use phash, width, height for this.\nimport requests\nSLEEP= 1\nfor elem in result.raw:\n    elem = elem.__dict__\n    # print(elem)\n    # breakpoint()\n    thumbnail = elem.get('thumbnail')\n    simi = elem.get('similarity')\n    title = elem.get('title')\n    # url is not necessary since we almost can't get the picture.\n    ajaxUrl = elem['origin'].get('ajaxUrl')\n    import time\n    print(thumbnail, simi, title)\n    # print(thumbnail, simi, title, ajaxUrl)\n    time.sleep(SLEEP) # wait too long?\n    r = requests.get(ajaxUrl)\n    myJson = r.json()\n    # from lazero.filesystem.io import writeJsonObjectToFile\n    # writeJsonObjectToFile('jq_image_2.json',myJson)\n    # breakpoint()\n    # maybe no need to parse this thing.",
+        "file_id": 724,
+        "content": "from lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport blur_detector\nimport cv2\nimagePath = \"/root/Desktop/works/pyjom/samples/image/dog_blue_sky_split_line.png\"\nif __name__ == '__main__':\n    img = cv2.imread(imagePath,0)\n    blur_map = blur_detector.detectBlur(img, downsampling_factor=4, num_scales=4, scale_start=2, num_iterations_RF_filter=3)\n    cv2.imshow('ori_img', img)\n    cv2.imshow('blur_map', blur_map)\n    cv2.waitKey(0)",
         "type": "code",
-        "location": "/tests/search_engine_suggestion_based_qa_bot/search_for_picture_embedding.py:1-34"
+        "location": "/tests/blur_image_detection_mask/test_blur_detection.py:1-12"
     },
     "5543": {
-        "file_id": 723,
-        "content": "This code uses the BaiDu image search API to find similar images and their details. It prints thumbnail, similarity, title, and AJAX URL for each result. The code also includes time delays to avoid being banned. The clip model is mentioned for potential use in future improvements, but currently, bm25 based textrank is recommended. The code avoids querying 'ajax' to prevent potential bans.",
+        "file_id": 724,
+        "content": "This code imports necessary modules, reads an image, applies blur detection algorithm using blur_detector.detectBlur(img), displays the original image and blur map using cv2.imshow(), and waits for user input before closing the windows with cv2.waitKey(0).",
         "type": "comment"
     },
     "5544": {
-        "file_id": 723,
-        "content": "    # try: # TODO: skipping this parsing since multiple errors.\n    #     from parse_baidu_search_ajax import getBaiduImageSearchAjaxInfoParsed\n    #     title_some, url_meta_some= getBaiduImageSearchAjaxInfoParsed(myJson, debug=True)\n    #     # changed again?\n    # except:\n    #     import traceback\n    #     traceback.print_exc()\n    #     print(ajaxUrl)\n    #     print('error!')\n    #     breakpoint()\n    # breakpoint()\n# ['origin', 'raw', 'url']\n# result.raw[0].url is the original url. however you won't get the picture.\n# result.raw[0].thumbnail\n# 'origin', 'similarity', 'thumbnail', 'title', 'url'\n# result.raw[0].origin['ajaxUrl'] -> get more similar images of this one",
-        "type": "code",
-        "location": "/tests/search_engine_suggestion_based_qa_bot/search_for_picture_embedding.py:36-52"
-    },
-    "5545": {
-        "file_id": 723,
-        "content": "This code is trying to import the function `getBaiduImageSearchAjaxInfoParsed` from the module `parse_baidu_search_ajax`, but due to some errors, it's skipping this parsing process. It then handles any exceptions that may occur and prints the error message along with the URL. If an exception happens, it also calls a breakpoint to pause the code execution for debugging purposes. The code also provides information about the URL structure and how to access different parts of the URL, such as the original URL, thumbnail, and ajaxUrl to get more similar images.",
-        "type": "comment"
-    },
-    "5546": {
-        "file_id": 724,
-        "content": "/tests/search_engine_suggestion_based_qa_bot/test_fix.py",
+        "file_id": 725,
+        "content": "/tests/blur_image_detection_mask/BlurDetection_install/test.py",
         "type": "filepath"
     },
-    "5547": {
-        "file_id": 724,
-        "content": "This code snippet is from a Python script that uses the BaiduSpider module to search the web for information based on a query. It then prints the results in plain text format. The code also mentions an update needed in the baiduspider package and refers to specific pull requests on GitHub for further details.",
+    "5545": {
+        "file_id": 725,
+        "content": "The code detects and removes watermarks, crops images, performs inpainting, adjusts text area ratios, and displays images. It identifies contours and draws bounding boxes for detection.",
         "type": "summary"
     },
-    "5548": {
-        "file_id": 724,
-        "content": "query = \"python有个问题想请教一下 为什么我这个函数跑不通\"\nfrom baiduspider import BaiduSpider\nspider=BaiduSpider()\nfrom pprint import pprint\nresult = spider.search_web(query, pn= 1)\nprint(result.plain)\n# change the div class name.\n# change 'result-op' into 'result' at line 153\n# file: /usr/local/lib/python3.9/dist-packages/baiduspider/parser/__init__.py:153\n# https://github.com/BaiduSpider/BaiduSpider/pull/151\n# https://github.com/BaiduSpider/BaiduSpider/pull/151/files\n# breakpoint()\n# result.normal[0].url\n# also update the news extraction logic:\n# https://github.com/BaiduSpider/BaiduSpider/pull/127/files\n# 'des', 'origin', 'plain', 'snapshot', 'time', 'title', 'url'",
+    "5546": {
+        "file_id": 725,
+        "content": "# order:\n# detect if dog/cat is there, satisfying the qualification\n# remove watermark, remove text, remove potential watermark around corners using inpainting\n# use ffmpeg cropdetect, if has significant area change then no further processing\n# if no significant area change, use this blur detection to get the main area\n# remove watermark again?? around corners?\n# then reuse the dog detection and get the crop from processed/cropped image.\nimport os\n# from cv2 import waitKey\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\nimport numpy\n# import logger\nimport BlurDetection\n# img_path = raw_input(\"Please Enter Image Path: \")\n# img_path = \"/root/Desktop/works/pyjom/samples/image/dog_blue_sky_split_line.png\"\n# img_path = \"/root/Desktop/works/pyjom/samples/image/blur_sample.webp\"\nimg_path = \"/root/Desktop/works/pyjom/samples/image/blur_sample_2.webp\"\n# img_path = \"/root/Desktop/works/pyjom/samples/image/dog_with_black_borders.png\"\n# ffmpeg -loop 1 -i /root/Desktop/works/pyjom/samples/image/dog_with_black_borders.png -t 15 -vf cropdetect -f null -",
         "type": "code",
-        "location": "/tests/search_engine_suggestion_based_qa_bot/test_fix.py:1-18"
+        "location": "/tests/blur_image_detection_mask/BlurDetection_install/test.py:1-28"
+    },
+    "5547": {
+        "file_id": 725,
+        "content": "The code imports necessary libraries, initializes OpenCV, sets the image path, and starts by detecting if a dog or cat is present in the image. It then proceeds to remove watermarks, potentially using inpainting for corners, and checks for significant area changes with ffmpeg cropdetect. If no change, it uses blur detection for the main area. Finally, it may remove watermarks around corners again and reuses dog detection to get the final cropped image.",
+        "type": "comment"
+    },
+    "5548": {
+        "file_id": 725,
+        "content": "# img_path=\"/root/Desktop/works/pyjom/samples/image/husky_cry.png\"\nassert os.path.exists(img_path), \"img_path does not exists\"\nimg = cv2.imread(img_path)\nimport sys\nsys.path.append(\"/root/Desktop/works/pyjom/\")\nfrom pyjom.imagetoolbox import imageFourCornersInpainting, getImageTextAreaRatio\nimg = imageFourCornersInpainting(img)\nimg = getImageTextAreaRatio(img, inpaint=True, edgeDetection=True)\nimg_fft, val, blurry = BlurDetection.blur_detector(img)\nprint(\"this image {0} blurry\".format([\"isn't\", \"is\"][blurry]))\nmsk, result, blurry = BlurDetection.blur_mask(img, max_thresh=120)\ninv_msk = 255 - msk\n# import numpy as np\n# print(np.max(msk), np.min(msk))\n# print(msk.shape)\n# breakpoint()\ndef display(title, img, max_size=200000):\n    assert isinstance(img, numpy.ndarray), \"img must be a numpy array\"\n    assert isinstance(title, str), \"title must be a string\"\n    scale = numpy.sqrt(min(1.0, float(max_size) / (img.shape[0] * img.shape[1])))\n    print(\"image is being scaled by a factor of {0}\".format(scale))\n    shape = (int(scale * img.shape[1]), int(scale * img.shape[0]))",
+        "type": "code",
+        "location": "/tests/blur_image_detection_mask/BlurDetection_install/test.py:29-57"
     },
     "5549": {
-        "file_id": 724,
-        "content": "This code snippet is from a Python script that uses the BaiduSpider module to search the web for information based on a query. It then prints the results in plain text format. The code also mentions an update needed in the baiduspider package and refers to specific pull requests on GitHub for further details.",
+        "file_id": 725,
+        "content": "This code performs blur detection and inpainting on an image. It first checks if the image path exists, reads the image using OpenCV, appends the necessary directory to the system path, applies four-corners inpainting and text area ratio adjustment, determines the blurriness of the image, and then uses the BlurDetection class for blur detection and mask generation. Finally, it displays the image with optional scaling and prints the maximum and minimum values of the mask.",
         "type": "comment"
     },
     "5550": {
         "file_id": 725,
-        "content": "/tests/search_engine_suggestion_based_qa_bot/test.py",
-        "type": "filepath"
+        "content": "    img = cv2.resize(img, shape)\n    cv2.imshow(title, img)\n# BlurDetection.scripts.display('img', img)\ndisplay(\"img\", img)\n# display(\"msk\", msk)\ndisplay(\"inv_msk\", inv_msk)\n# Generate contours based on our mask\n# This function allows us to create a descending sorted list of contour areas.\n# def contour_area(contours):\n#     # create an empty list\n#     cnt_area = []\n#     # loop through all the contours\n#     for i in range(0, len(contours), 1):\n#         # for each contour, use OpenCV to calculate the area of the contour\n#         cnt_area.append(cv2.contourArea(contours[i]))\n#     # Sort our list of contour areas in descending order\n#     list.sort(cnt_area, reverse=True)\n#     return cnt_area\ndef draw_bounding_box_with_contour(\n    contours, image, area_threshold=20, debug=False\n):  # are you sure?\n    # this is the top-k approach.\n    # Call our function to get the list of contour areas\n    # cnt_area = contour_area(contours)\n    # Loop through each contour of our image\n    x0, y0, x1, y1 = [None] * 4\n    for i in range(0, len(contours), 1):",
+        "type": "code",
+        "location": "/tests/blur_image_detection_mask/BlurDetection_install/test.py:58-93"
     },
     "5551": {
         "file_id": 725,
-        "content": "The code utilizes BaiduSpider module to find related topics, generating suggestions and messages. It handles no-results scenarios and imports necessary modules, but may have issues with search results and requires implementation of ToAPI and Jina for further processing.",
-        "type": "summary"
+        "content": "Resizes image, displays it with cv2.imshow, and calls the display function for other images. Defines a contour_area function to calculate and sort contour areas in descending order. Draws bounding boxes around the largest contours with the draw_bounding_box_with_contour function.",
+        "type": "comment"
     },
     "5552": {
         "file_id": 725,
-        "content": "# we need suggestion, related topics, also search results.\n# can be used in title generation.\n# title/message as query (-> keyword -> suggested query) -> search results -> extract response/title\n# suggestion, trending topics/keywords\n# black hat seo, https://www.blackhatworld.com/forums/black-hat-seo.28/\n# paste your link 'elsewhere' 自动评论 自动发布信息 私信, submit your link to search engine somehow, visit your link from search engine somehow\n# seo without website\n# write a blog on github?\n# create short links and submit them to search engine\n# get query count, perform n-gram analysis\n# https://www.aeripret.com/ngrams-analysis-seo/\n# https://www.pemavor.com/seo-keyword-clustering-with-python/\n# i have bookmarked links for further use on macbook chrome.\nquery = \"python有个问题想请教一下 为什么我这个函数跑不通\"\nfrom baiduspider import BaiduSpider\nspider=BaiduSpider()\nfrom pprint import pprint\nresult = spider.search_web(query, pn= 1)\n# print(result)\n# nothing returned.\nimport random\n# result.related \nrelated = result.related\nnext_query = random.choice(related)",
+        "content": "        cnt = contours[i]\n        # Only draw the the largest number of boxes\n        if cv2.contourArea(cnt) > area_threshold:\n            # if (cv2.contourArea(cnt) > cnt_area[number_of_boxes]):\n            # Use OpenCV boundingRect function to get the details of the contour\n            x, y, w, h = cv2.boundingRect(cnt)\n            if x0 == None:\n                x0, y0, x1, y1 = x, y, x + w, y + h\n            if x < x0:\n                x0 = x\n            if y < y0:\n                y0 = y\n            if x + w > x1:\n                x1 = x + w\n            if y + h > y1:\n                y1 = y + h\n            # Draw the bounding box\n    if x0 is not None:\n        if debug:\n            image = cv2.rectangle(image, (x0, y0), (x1, y1), (0, 0, 255), 2)\n            cv2.imshow(\"with_bounding_box\", image)\n            cv2.waitKey(0)\n    if x0 is None:\n        height, width = image.shape[:2]\n        x0, y0, x1, y1 = 0, 0, width, height\n    return (x0, y0), (x1, y1)\n# BlurDetection.scripts.display('msk', msk)\ncontours, hierarchy = cv2.findContours(inv_msk, 1, 2)",
         "type": "code",
-        "location": "/tests/search_engine_suggestion_based_qa_bot/test.py:1-37"
+        "location": "/tests/blur_image_detection_mask/BlurDetection_install/test.py:94-126"
     },
     "5553": {
         "file_id": 725,
-        "content": "This code is using the BaiduSpider module to search for related topics based on a query. The search results are then used to generate suggestions and messages. The code handles cases where no relevant results are found, chooses a random related topic if necessary, and imports required modules.",
+        "content": "This code finds contours in an image, selects the largest one based on area threshold, and calculates the bounding box coordinates. It then draws a rectangle around the detected contour (if debug is enabled) and returns the bounding box coordinates. The code also initializes the bounding box parameters if they are None.",
         "type": "comment"
     },
     "5554": {
         "file_id": 725,
-        "content": "# next_query = 'python'\nprint('next query: %s' % next_query)\nfrom baidusearch.baidusearch import search\n# the abstract is bad\n# use toapi to make website into api.\n# https://github.com/gaojiuli/toapi\nresults = search(next_query, num_results=20)  # returns 20 or less results\n# # next_result = spider.search_web(next_query, pn= 1)\n# # print(next_result)\n# # print(results) #this is working.\n# # breakpoint()\n# import parse\n# use jina? hahaha...\nimport json\nstring = json.dumps(results, ensure_ascii=False, indent=4)\nwith open('result_baidu.json', 'w+') as f:\n    f.write(string)\n# no search result! fuck.\n# what is going on?\n# 'baike', 'blog', 'calc', 'gitee', 'music', 'news', 'normal', 'pages', 'plain', 'related', 'tieba', 'total', 'video'",
+        "content": "rectangle_boundingbox = draw_bounding_box_with_contour(contours, img, debug=True)\n# cv2.waitKey(0)",
         "type": "code",
-        "location": "/tests/search_engine_suggestion_based_qa_bot/test.py:38-61"
+        "location": "/tests/blur_image_detection_mask/BlurDetection_install/test.py:127-128"
     },
     "5555": {
         "file_id": 725,
-        "content": "This code is using BaiduSearch to search for the next query and saving the results as JSON in a file. It seems there might be some issues with the search results, and it also mentions using ToAPI and Jina for further processing but doesn't appear to have implemented them yet.",
+        "content": "The code snippet detects contours and draws a bounding box around them using the function draw_bounding_box_with_contour. It also displays an image window with cv2.waitKey(0) but it is commented out, so it's not currently being executed.",
         "type": "comment"
     }
 }

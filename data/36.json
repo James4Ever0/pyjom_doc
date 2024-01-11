@@ -1,532 +1,531 @@
 {
     "3600": {
-        "file_id": 434,
-        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\n# basically the same example.\n# assume no overlapping here.\nimport sympy\ndef unionToTupleList(myUnion):\n  unionBoundaries = list(myUnion.boundary)\n  unionBoundaries.sort()\n  leftBoundaries = unionBoundaries[::2]\n  rightBoundaries = unionBoundaries[1::2]\n  return list(zip(leftBoundaries, rightBoundaries))\ndef tupleSetToUncertain(mSet):\n  mUncertain = None\n  for start, end in mSet:\n    if mUncertain is None:\n      mUncertain = sympy.Interval(start,end)\n    else:\n      mUncertain += sympy.Interval(start,end)\n  typeUncertain = type(mUncertain)\n  return mUncertain, typeUncertain\ndef mergeOverlappedInIntervalTupleList(intervalTupleList):\n  mUncertain, _ = tupleSetToUncertain(intervalTupleList)\n  mUncertainBoundaryList = list(mUncertain.boundary)\n  mUncertainBoundaryList.sort()\n  mergedIntervalTupleList = list(zip(mUncertainBoundaryList[::2], mUncertainBoundaryList[1::2]))\n  return mergedIntervalTupleList\nmSet = mergeOverlappedInIntervalTupleList([(0,1), (2,3)])\nmSet2 = mergeOverlappedInIntervalTupleList([(0.5,1.5),(1.6,2.5)])",
+        "file_id": 445,
+        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nfrom appium import webdriver\nfrom appium.webdriver.common.appiumby import AppiumBy\ncapabilities = dict(\n    platformName='Android',\n    automationName='uiautomator2',\n    deviceName='Android',\n    appPackage='com.android.settings',\n    appActivity='.Settings',\n    language='en',\n    locale='US',\n    noSign=True\n)\nappium_server_url = 'http://localhost:4723'\ndriver = webdriver.Remote(appium_server_url, capabilities)\nel = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\"Battery\"]')\nel.click()\nif driver:\n    driver.quit()",
         "type": "code",
-        "location": "/tests/interval_set_math_operations/continual_less_sympy.py:1-33"
+        "location": "/tests/qq_share_autojs/appium_test.py:1-27"
     },
     "3601": {
-        "file_id": 434,
-        "content": "This code defines functions for handling intervals and merging overlapping intervals. It uses SymPy library to perform interval operations. The \"unionToTupleList\" function converts a set of intervals into a list of left and right boundaries in ascending order. The \"tupleSetToUncertain\" function converts a tuple set of intervals into a single uncertain interval using SymPy. The \"mergeOverlappedInIntervalTupleList\" function merges overlapping intervals in the given tuple set and returns the merged result as a list of boundaries. Finally, it uses these functions to merge two example sets of intervals.",
+        "file_id": 445,
+        "content": "Code sets up Appium test for Android device using the uiautomator2 automation, launches com.android.settings app, searches for \"Battery\" and clicks it, then quits the driver if open.",
         "type": "comment"
     },
     "3602": {
-        "file_id": 434,
-        "content": "print(\"MSET\", mSet)\nprint(\"MSET2\", mSet2)\nmSetCandidates = [mSet, mSet2]\nmSetUnified = [x for y in mSetCandidates for x in y]\nleftBoundaryList = set([x[0] for x in mSetUnified])\nrightBoundaryList = set([x[1] for x in mSetUnified])\n# they may freaking overlap.\n# if want nearby-merge strategy, simply just expand all intervals, merge them with union and shrink the individual intervals inside union respectively.\nmarkers = {\"enter\":{k:[] for k in leftBoundaryList}, \"exit\":{k:[] for k in rightBoundaryList}}\nfor index, mSetCandidate in enumerate(mSetCandidates):\n  leftBoundaryListOfCandidate = [x[0] for x in mSetCandidate]\n  rightBoundaryListOfCandidate = [x[1] for x in mSetCandidate]\n  for leftBoundaryOfCandidate in leftBoundaryListOfCandidate:\n    markers[\"enter\"][leftBoundaryOfCandidate].append(index) # remap this thing!\n  for rightBoundaryOfCandidate in rightBoundaryListOfCandidate:\n    markers[\"exit\"][rightBoundaryOfCandidate].append(index) # remap this thing!\n# now, iterate through the boundaries of mSetUnified.",
-        "type": "code",
-        "location": "/tests/interval_set_math_operations/continual_less_sympy.py:35-55"
+        "file_id": 446,
+        "content": "/tests/qq_share_autojs/adb_unlock.sh",
+        "type": "filepath"
     },
     "3603": {
-        "file_id": 434,
-        "content": "This code initializes two sets of boundary lists, 'leftBoundaryList' and 'rightBoundaryList', from a merged list of intervals, 'mSetUnified'. It then creates a dictionary, 'markers', with two keys 'enter' and 'exit' to track the occurrences of these boundaries in each original interval, 'mSetCandidates'. The code remaps the indices of the 'mSetCandidates' where the left and right boundaries appear. This is done for every candidate in 'mSetCandidates', and the information is stored in 'markers'.",
-        "type": "comment"
+        "file_id": 446,
+        "content": "This code uses ADB to simulate touch events on an Android device. It performs a power button press, a swipe gesture, enters text, and presses the back key.",
+        "type": "summary"
     },
     "3604": {
-        "file_id": 434,
-        "content": "unifiedBoundaryList = leftBoundaryList.union(rightBoundaryList) # call me a set instead of a list please? now we must sort this thing\nunifiedBoundaryList = list(unifiedBoundaryList)\nunifiedBoundaryList.sort()\nunifiedBoundaryMarks = {}\nfinalMappings = {}\n# print(\"MARKERS\", markers)\n# breakpoint()\nfor index, boundary in enumerate(unifiedBoundaryList):\n  previousMark = unifiedBoundaryMarks.get(index-1, [])\n  enterList = markers[\"enter\"].get(boundary,[])\n  exitList = markers[\"exit\"].get(boundary,[])\n  currentMark = set(previousMark + enterList).difference(set(exitList))\n  currentMark = list(currentMark)\n  unifiedBoundaryMarks.update({index:currentMark})\n  # now, handle the change? or not?\n  # let's just deal those empty ones, shall we?\n  if previousMark == []: # inside it is empty range.\n  # elif currentMark == []:\n    if index == 0: continue # just the start, no need to note this down.\n    else:\n      finalMappings.update({\"empty\":finalMappings.get(\"empty\",[])+[(unifiedBoundaryList[index-1], boundary)]})\n    # the end of previous mark! this interval belongs to previousMark",
+        "file_id": 446,
+        "content": "adb -s 192.168.10.3:5555 shell input keyevent 26\nadb -s 192.168.10.3:5555 shell input swipe 500 500 500 0\nadb -s 192.168.10.3:5555 shell input text \"Bumper\\&Mountains\"\nadb -s 192.168.10.3:5555 shell input keyevent 66",
         "type": "code",
-        "location": "/tests/interval_set_math_operations/continual_less_sympy.py:56-78"
+        "location": "/tests/qq_share_autojs/adb_unlock.sh:1-4"
     },
     "3605": {
-        "file_id": 434,
-        "content": "Code is iterating over unifiedBoundaryList, checking for changes in markers at each boundary. If a marker is empty or if the current boundary is the first one, it continues without noting anything down. Otherwise, it updates finalMappings with previous empty ranges.",
+        "file_id": 446,
+        "content": "This code uses ADB to simulate touch events on an Android device. It performs a power button press, a swipe gesture, enters text, and presses the back key.",
         "type": "comment"
     },
     "3606": {
-        "file_id": 434,
-        "content": "  else:\n    key = previousMark.copy()\n    key.sort()\n    key = tuple(key)\n    finalMappings.update({key:finalMappings.get(key,[])+[(unifiedBoundaryList[index-1], boundary)]})\n    # also the end of previous mark! belongs to previousMark.\n### NOW THE FINAL OUTPUT ###\nfinalCats = {}\nfor key, value in finalMappings.items():\n  # value is an array containing subInterval tuples.\n  value = mergeOverlappedInIntervalTupleList(value)\n  finalCats.update({key: value})\nprint(\"______________FINAL CATS______________\")\nprint(finalCats)",
-        "type": "code",
-        "location": "/tests/interval_set_math_operations/continual_less_sympy.py:79-94"
-    },
-    "3607": {
-        "file_id": 434,
-        "content": "Updates finalMappings with previous mark, sorts and converts to tuple. Updates finalCats using merged overlapped intervals from finalMappings. Prints finalCats for output.",
-        "type": "comment"
-    },
-    "3608": {
-        "file_id": 435,
-        "content": "/tests/interval_set_math_operations/continual_sympy.py",
+        "file_id": 447,
+        "content": "/tests/qq_share_autojs/adb_check_lock.sh",
         "type": "filepath"
     },
-    "3609": {
-        "file_id": 435,
-        "content": "The code uses Sympy to manipulate intervals, merges overlapping ones, performs set operations, and updates the \"empty\" category in a dictionary, eventually printing the updated finalCats dictionary.",
+    "3607": {
+        "file_id": 447,
+        "content": "This script checks if the phone is locked or unlocked by running \"adb -s 192.168.10.3:5555 shell dumpsys window | grep mDreamingLockscreen=false\" and then executes \"bash adb_unlock.sh\" if locked, otherwise exits. The check is performed in an infinite loop using a \"while true\" statement.",
         "type": "summary"
     },
-    "3610": {
-        "file_id": 435,
-        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nimport sympy\ndef unionToTupleList(myUnion):\n  #  seriously wrong. this will fuck up.\n  unionBoundaries = list(myUnion.boundary)\n  unionBoundaries.sort()\n  leftBoundaries = unionBoundaries[::2]\n  rightBoundaries = unionBoundaries[1::2]\n  return list(zip(leftBoundaries, rightBoundaries))\ndef tupleSetToUncertain(mSet):\n  mUncertain = None\n  for start, end in mSet:\n    if mUncertain is None:\n      mUncertain = sympy.Interval(start,end)\n    else:\n      mUncertain += sympy.Interval(start,end)\n  typeUncertain = type(mUncertain)\n  return mUncertain, typeUncertain\n# borrowed from above code.\ndef mergeOverlappedInIntervalTupleList(intervalTupleList):\n  mUncertain, _ = tupleSetToUncertain(intervalTupleList)\n  mUncertainBoundaryList = list(mUncertain.boundary)\n  mUncertainBoundaryList.sort()\n  #  print(mUncertain)\n  #  print(mUncertainBoundaryList)\n  mergedIntervalTupleList = list(zip(mUncertainBoundaryList[::2], mUncertainBoundaryList[1::2]))\n  # print(mergedIntervalTupleList)\n  return mergedIntervalTupleList",
+    "3608": {
+        "file_id": 447,
+        "content": "function checkScreen {\n  adb -s 192.168.10.3:5555 shell dumpsys window | grep mDreamingLockscreen=false\n  if [[ $? -eq 1 ]]; then\n    echo \"phone locked\"\n    bash adb_unlock.sh\n    sleep 2\n  else\n    echo \"phone unlocked\"\n    exit\n  fi\n}\nwhile true\ndo\n  checkScreen\ndone",
         "type": "code",
-        "location": "/tests/interval_set_math_operations/continual_sympy.py:1-33"
+        "location": "/tests/qq_share_autojs/adb_check_lock.sh:1-16"
     },
-    "3611": {
-        "file_id": 435,
-        "content": "This code defines functions to work with intervals and unions of intervals using Sympy. \"unionToTupleList\" converts a union of intervals into a tuple list, while \"tupleSetToUncertain\" converts a tuple set into an uncertain Sympy interval. \"mergeOverlappedInIntervalTupleList\" merges overlapping intervals in a tuple list to avoid redundancy.",
+    "3609": {
+        "file_id": 447,
+        "content": "This script checks if the phone is locked or unlocked by running \"adb -s 192.168.10.3:5555 shell dumpsys window | grep mDreamingLockscreen=false\" and then executes \"bash adb_unlock.sh\" if locked, otherwise exits. The check is performed in an infinite loop using a \"while true\" statement.",
         "type": "comment"
     },
+    "3610": {
+        "file_id": 448,
+        "content": "/tests/qq_share_autojs/adb_autox_launch.sh",
+        "type": "filepath"
+    },
+    "3611": {
+        "file_id": 448,
+        "content": "This code is using the 'adb' command to launch the 'ShortcutActivity' in AutoJS v6 on a specific device (192.168.10.3:5555). It starts an activity and passes an intent action with the path to the 'qq_share_auto.js' script as an extra parameter.",
+        "type": "summary"
+    },
     "3612": {
-        "file_id": 435,
-        "content": "mSet = [(0,1), (2,3)]\nmUncertain, typeUncertain = tupleSetToUncertain(mSet)\nunrolledMSet = list(mUncertain.boundary)\n# can be either sympy.sets.sets.Interval of sympy.sets.sets.Union\nmSet2 = [(0.5,1.5),(1.6,2.5)]\nmUncertain2, typeUncertain2 = tupleSetToUncertain(mSet2)\nunrolledMSet2 = list(mUncertain2.boundary)\nprint(\"MSET\", mSet)\nprint(\"MSET2\", mSet2)\n############################################################\n# hypothetical mSet2 and mUncertain2! please complete the hypothetical shit and make it runnable!\ndef checkCommon(subInterval, masterInterval):\n  return subInterval == sympy.Intersection(subInterval, masterInterval)\nmUncertains = [mUncertain, mUncertain2]\nsubIntervals = list(set(unrolledMSet2 + unrolledMSet))\nsubIntervals.sort()\nsubIntervals = zip(subIntervals[:-1], subIntervals[1:])\nsubIntervals = list(subIntervals)\n#  breakpoint()\n# for subIntervals, it's still not real interval but tuple at above line.\nreversedCats = {}\nimport functools\nsubIntervalUnion = functools.reduce(lambda a,b: a+b, mUncertains)",
+        "file_id": 448,
+        "content": "adb -s 192.168.10.3:5555 shell am start -n org.autojs.autoxjs.v6/org.autojs.autojs.external.shortcut.ShortcutActivity -a android.intent.action.MAIN -e path \"/storage/emulated/0/脚本/qq_share_auto.js\"",
         "type": "code",
-        "location": "/tests/interval_set_math_operations/continual_sympy.py:35-66"
+        "location": "/tests/qq_share_autojs/adb_autox_launch.sh:1-1"
     },
     "3613": {
-        "file_id": 435,
-        "content": "Code snippet converts tuples representing intervals to uncertain sets, extracts and lists the boundary points of these sets, and performs operations on them. It then checks for common elements between the two sets and sorts them. The code uses Sympy library functions, functools.reduce, and zip to perform set intersections, unions, and sorting operations.",
+        "file_id": 448,
+        "content": "This code is using the 'adb' command to launch the 'ShortcutActivity' in AutoJS v6 on a specific device (192.168.10.3:5555). It starts an activity and passes an intent action with the path to the 'qq_share_auto.js' script as an extra parameter.",
         "type": "comment"
     },
     "3614": {
-        "file_id": 435,
-        "content": "for subIntervalIndex, (start, end) in enumerate(subIntervals):\n  subIntervalCandidate = sympy.Interval(start, end)\n  reverseIndex = [] # there must be at least one such index.\n  for index, uncertainCandidate in enumerate(mUncertains):\n    if checkCommon(subIntervalCandidate, uncertainCandidate):\n      reverseIndex.append(index) # this is the index of the in-common set of the original set list\n  reversedCats.update({subIntervalIndex:reverseIndex}) # need to sort and index? or not to sort because this is already done?\nnormalCats = {}\nfor k,v in reversedCats.items():\n  v.sort()\n  v = tuple(v)\n  normalCats.update({v:normalCats.get(v, [])+[k]})\n# we only get interval, not the actural union period!\n# how to get interval elements out of union structure for hell sake?\nfinalCats = {}\nfor k,v in normalCats.items():\n  # now k is the original set index list, representing belonging of the below union.\n  #  print(subIntervals)\n  #  print(index)\n  #  print(v)\n  #  breakpoint()\n  mFinalUnionCandidate = [subIntervals[index] for index in v]",
-        "type": "code",
-        "location": "/tests/interval_set_math_operations/continual_sympy.py:68-92"
+        "file_id": 449,
+        "content": "/tests/qq_share_autojs/account_management.sh",
+        "type": "filepath"
     },
     "3615": {
-        "file_id": 435,
-        "content": "Iterates through subIntervals and uncertainCandidates, stores indices of matching pairs in reverseIndex. Updates reversedCats with reversed order of subIntervalIndex and reverseIndex. Sorts the values in normalCats, creating a dictionary where keys are sorted reverseIndex and values are original set indices. Generates finalCats using original set indices from normalCats, storing them as values in mFinalUnionCandidate for further use.",
-        "type": "comment"
+        "file_id": 449,
+        "content": "The code is starting the \"com.tencent.mobileqq.activity.AccountManageActivity\" activity, which likely pertains to account management in a mobile application named MobileQQ.",
+        "type": "summary"
     },
     "3616": {
-        "file_id": 435,
-        "content": "  ## REPLACED ##\n  # mFinalUnionCandidate, _ = tupleSetToUncertain(mFinalUnionCandidate)\n  ##### union to tuple list, could be replaced #####\n  #mFinalUnionCandidateBoundaryList = list(mFinalUnionCandidate.boundary)\n  #left_bounds, right_bounds = mFinalUnionCandidateBoundaryList[0::2],mFinalUnionCandidateBoundaryList[1::2] # check it dammit! not sure how to step the list properly?\n  #mFinalIntervalListCandidate = list(zip(left_bounds, right_bounds))\n  # mFinalIntervalListCandidate = unionToTupleList(mFinalUnionCandidate)\n  ##### union to tuple list, could be replaced #####\n  ## REPLACED ##\n  # print(\"M_FINAL_UNION_CANDIDATE\",mFinalUnionCandidate)\n  mFinalIntervalListCandidate = mergeOverlappedInIntervalTupleList(mFinalUnionCandidate)\n  # print(\"M_FINAL_INTERVAL_LIST_CANDIDATE\", mFinalIntervalListCandidate)\n  # breakpoint()\n  finalCats.update({k:mFinalIntervalListCandidate.copy()})\n# this whole calculation could just be exponential. goddamn it?\n# before that, we need to get the \"empty\" out. but is that really necessary? i think it is, as an important feature.",
+        "file_id": 449,
+        "content": "am start  com.tencent.mobileqq.activity.AccountManageActivity",
         "type": "code",
-        "location": "/tests/interval_set_math_operations/continual_sympy.py:94-113"
+        "location": "/tests/qq_share_autojs/account_management.sh:1-1"
     },
     "3617": {
-        "file_id": 435,
-        "content": "This code is performing interval union operations and potentially replacing the conversion of intervals to tuple lists. The author believes this process could be replaced with an exponential calculation, but first needs to remove any \"empty\" intervals that may not be necessary. The final result is stored in a dictionary called `finalCats`. The author also mentions potential issues with stepping the list properly and suggests revisiting it later.",
+        "file_id": 449,
+        "content": "The code is starting the \"com.tencent.mobileqq.activity.AccountManageActivity\" activity, which likely pertains to account management in a mobile application named MobileQQ.",
         "type": "comment"
     },
     "3618": {
-        "file_id": 435,
-        "content": "#  subIntervalsStart, subIntervalsEnd = subIntervals[0][0], subIntervals[-1][-1]\n#\n#  relativeCompleteInterval = sympy.Interval(subIntervalsStart, subIntervalsEnd)\n#\n# subIntervalUnion\n#  emptyIntervalUnion = relativeCompleteInterval - subIntervalUnion # really uncertain if it is just a union or not.\n#  emptyIntervalTupleList = unionToTupleList(emptyIntervalUnion)\n#\n#  finalCats.update({\"empty\":emptyIntervalTupleList})\nfinalCats.update({\"empty\":finalCats[()]})\ndel finalCats[()]\nprint(\"_____FINAL CATS_____\")\nprint(finalCats)",
-        "type": "code",
-        "location": "/tests/interval_set_math_operations/continual_sympy.py:114-127"
+        "file_id": 450,
+        "content": "/tests/qq_share_autojs/autojs_scripts/wesee_search.js",
+        "type": "filepath"
     },
     "3619": {
-        "file_id": 435,
-        "content": "This code calculates the difference between a complete interval and a union of sub-intervals, converts it to a tuple list, and updates the \"empty\" category in a dictionary with the result. Finally, it prints the updated finalCats dictionary.",
-        "type": "comment"
+        "file_id": 450,
+        "content": "This code initiates the WeSee app, starts the GlobalSearchActivity, and inputs the search term \"猫猫\" before triggering a search with KEYCODE_ENTER.",
+        "type": "summary"
     },
     "3620": {
-        "file_id": 436,
-        "content": "/tests/jina_deploy_free_gpu_cpu/README.md",
-        "type": "filepath"
+        "file_id": 450,
+        "content": "pkg=\"com.tencent.weishi\"\nact=\"com.tencent.oscar.module.discovery.ui.GlobalSearchActivity\"\napp.startActivity({root:true,\npackageName:pkg,className:act,\naction:\"View\"})\nwaitForActivity(act)\nsetText(\"猫猫\")\nKeyCode(\"KEYCODE_ENTER\")",
+        "type": "code",
+        "location": "/tests/qq_share_autojs/autojs_scripts/wesee_search.js:1-12"
     },
     "3621": {
-        "file_id": 436,
-        "content": "This code is a README for a test case, which aims to verify if Jina's computational resources can be used for free. It suggests creating a simple test case and potentially using this service indefinitely.",
-        "type": "summary"
-    },
-    "3622": {
-        "file_id": 436,
-        "content": "different from another 'jina' named test case, we are here to run things **for free**\nit is said that jina currently offer computational resources for free so why not just create a simple test case to verify that? maybe i can own this free service forever?",
-        "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/README.md:1-3"
-    },
-    "3623": {
-        "file_id": 436,
-        "content": "This code is a README for a test case, which aims to verify if Jina's computational resources can be used for free. It suggests creating a simple test case and potentially using this service indefinitely.",
+        "file_id": 450,
+        "content": "This code initiates the WeSee app, starts the GlobalSearchActivity, and inputs the search term \"猫猫\" before triggering a search with KEYCODE_ENTER.",
         "type": "comment"
     },
-    "3624": {
-        "file_id": 437,
-        "content": "/tests/jina_deploy_free_gpu_cpu/hello-jina/flow.yml",
+    "3622": {
+        "file_id": 451,
+        "content": "/tests/qq_share_autojs/autojs_scripts/taobao_gg_search.js",
         "type": "filepath"
     },
-    "3625": {
-        "file_id": 437,
-        "content": "This code defines a Jina Flow with a specific port and includes an executor named \"toyExecutor\" using the configuration from \"executor1/config.yml\".",
+    "3623": {
+        "file_id": 451,
+        "content": "This code reduces music volume, opens Taobao app with custom URL, handles session ID and video player settings using item ID, GG search request, and referer origin, while waiting for prompts and handling expired ones by polling, clicking \"I know\" button, setting specific text, searching for \"猫猫\", and managing volume settings.",
         "type": "summary"
     },
-    "3626": {
-        "file_id": 437,
-        "content": "jtype: Flow\nversion: '1'\nwith:\n  port: 54321\nexecutors:\n  - uses: executor1/config.yml\n    name: toyExecutor",
+    "3624": {
+        "file_id": 451,
+        "content": "package=\"com.taobao.taobao\";\nactivity=\"com.taobao.search.searchdoor.SearchDoorActivity\";\n//activity=\"com.taobao.search.searchdoor.MultipleSearchDoorActivity\";\nvar vol=device.getMusicVolume()\ndevice.setMusicVolume(0)\n// mute the thing please?\napp.startActivity({action:\"View\",\npackageName:package,className:activity,\nroot:true,\n//category:[\"com.taobao.intent.category.search.MULTI_SEARCHDOOR\"],\ndata:\"http://s.m.taobao.com/...\",})\n // not launching 淘宝逛逛\n /*\n 2221:2022-11-02 13:02:20.328 | startActivity { calling=com.taobao.taobao:-1--1, rc=10159-1987, iTS=false, requestCode=-1, startFlags=0, target=com.taobao.taobao/com.taobao.search.searchdoor.SearchDoorActivity<true>, intent=Intent { act=android.intent.action.VIEW dat=http://s.m.taobao.com/... pkg=com.taobao.taobao cmp=com.taobao.taobao/com.taobao.search.searchdoor.SearchDoorActivity (has extras) }, extras={ NAV_START_ACTIVITY_TIME:(java.lang.Long)1667365340316, ad_type:(java.lang.String)1.0, NAV_TO_URL_START_TIME:(java.lang.Long)1667365340268, referr",
         "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/hello-jina/flow.yml:1-7"
+        "location": "/tests/qq_share_autojs/autojs_scripts/taobao_gg_search.js:1-19"
+    },
+    "3625": {
+        "file_id": 451,
+        "content": "The code sets the music volume to 0 and then launches the Taobao app's search function by starting the specified activity with a specific URL. The intent action is VIEW, and it targets com.taobao.taobao/com.taobao.search.searchdoor.SearchDoorActivity.",
+        "type": "comment"
+    },
+    "3626": {
+        "file_id": 451,
+        "content": "er:(java.lang.String)http://market.m.taobao.com/app/tb-source-app/video-fullpage/pages/index2?wh_weex=false&wx_navbar_transparent=true&wx_navbar_hidden=true&id=380201806724&bizParameters=%7B%22itemIds%22%3A%22681366994883%22%2C%22contentId%22%3A%22380201806724%22%2C%22videoId%22%3A%22380201806724%22%7D&videoUrl=http%3A%2F%2Fcloud.video.taobao.com%2Fplay%2Fu%2F2208882892036%2Fp%2F1%2Fe%2F6%2Ft%2F1%2F380201806724.mp4&type=cainixihuansy&source=cainixihuansy&business_spm=a211r6.cjvideo&hideAccountInfo=false&extParams=%7B%2288_bucket%22%3A%220%22%7D&scm=1007.10088.311498.0&spm=a2141.1.guessitemtab_1.5&pvid=b9ca1499-6a25-4913-9b4a-a2c703576f45&utparam=%7B%22x_sid%22%3A%2252aa36213ede47006361f9b21dbc602d%22%2C%22card_subtype%22%3A%22xgc%22%2C%22up_pvid%22%3A%22f88bbfa6-c859-44a5-94bb-e0599c889e5a%22%2C%22x_sid_cpm%22%3A%22be353521ca7fc7006361f9b20c542845%22%2C%22x_object_type%22%3A%22VIDEO_916%22%2C%22x_ad_bucketid_cpm%22%3A%2212676854%2C17296858%22%2C%22hybrid_score%22%3A0.303358%2C%22x_biz%",
+        "type": "code",
+        "location": "/tests/qq_share_autojs/autojs_scripts/taobao_gg_search.js:19-19"
     },
     "3627": {
-        "file_id": 437,
-        "content": "This code defines a Jina Flow with a specific port and includes an executor named \"toyExecutor\" using the configuration from \"executor1/config.yml\".",
+        "file_id": 451,
+        "content": "This code appears to be a URL for a Taobao video page, containing various parameters and identifiers for tracking and customization purposes.",
         "type": "comment"
     },
     "3628": {
-        "file_id": 438,
-        "content": "/tests/jina_deploy_free_gpu_cpu/hello-jina/client.py",
-        "type": "filepath"
+        "file_id": 451,
+        "content": "22%3A%22VIDEO_916%22%2C%22sessionid%22%3A%22b9ca1499-6a25-4913-9b4a-a2c703576f45%22%2C%22tpp_buckets%22%3A%22%7E9%7EU2wG6g9N1IaCq1M7J1Ia11K6A2Tg4x4I02E6nIfMi-u9KM9NveH1FhPjhxK7AniKCnO3mIO8Kj2dCQ6NhoMCwioGO1X6ddGN2W5qOUcWe41W2PePv31PMlSe11O2XcVr31EA5_s41zO2NubdRr-Z851Q1I7Li2dFU4S93dGSkxl5dU2TcFf7dBN8Cf8d_2ImFqbdY2A1JvbdM1U1P3cdX1y4IlcdZ1L6w9ddyCN9ddBN9AeedJL7Htgd_2Qpx2jdCW2QgjdzC4w2kdDJ8B6ldF%7EwpwFaf9z%7EZb7wWs29B%7EJhwQ4f9-B22y65-1Gp2BfmB2%7EGdwGfh9O1K52Nj5GSg2RplCB4V3mIN61FhfdIGcW041AEuHshdEDn1Lj7dFY5y98dB1O4H29dz-hw3cdPL1MqbdDVj1V4mdZ2C1WfkdFEp-4mdOF1IemdU%7EXk1wC0d9G%7EPi3wJh59wNeUo1Xp%7Ezv1wYcn5wEt7Uv2dD2C7Li3dGqKuQp7dU4zk1AcedZ4W7W0idRp%7EWecwFq49HPt8Dv9dNZ82U8gdKNqS6kdQWIbkdYU4VskdQ%7EFt4wG8g9A%22%2C%22miniapphc_score%22%3A0.0%2C%22x_summary_trackInfo%22%3A%22380569870474---380569870474-new_vp_4_3-new_vp_4_3%22%2C%22pvid%22%3A%22b9ca1499-6a25-4913-9b4a-a2c703576f45%22%2C%22evo_buckets%22%3A%22evo263227_118977%23275047_321220%23286254_324141%23337973_477247evo%22%2C%22auction_sco",
+        "type": "code",
+        "location": "/tests/qq_share_autojs/autojs_scripts/taobao_gg_search.js:19-19"
     },
     "3629": {
-        "file_id": 438,
-        "content": "This code sets up a Jina client and continuously takes user input, sending it to a remote container for processing. It runs indefinitely until the user enters 'exit'. The host is dynamically generated based on the container ID and the client uses GRPCS protocol.",
-        "type": "summary"
+        "file_id": 451,
+        "content": "The code seems to be related to tracking information, session ID, and possibly video player settings for a specific platform or application.",
+        "type": "comment"
     },
     "3630": {
-        "file_id": 438,
-        "content": "from jina import Client, DocumentArray\n# host = 'grpc://0.0.0.0:54321'\n# host = 'grpcs://3fcd103a37.wolf.jina.ai'\ncontainer_id = '7f015443e8'\nhost = 'grpcs://{}.wolf.jina.ai'.format(container_id)\nif __name__ == '__main__':\n    c = Client(host=host)\n    while True:\n        docArray = DocumentArray.empty(1)\n        docArray[0].text = command = input(\"jina> \")\n        if command == 'exit':\n            print('exiting jina')\n            break\n        da = c.post('/', docArray)\n        response = da[0].text\n        # print(da.texts)\n        print(response)",
+        "file_id": 451,
+        "content": "re%22%3A0.0%2C%22scm%22%3A%221007.10088.311498.428654_37338_4631_438253_439584_428623_446528_434662_23752_438956_34262_433641_443307_25137_36851_22642_38173_25152_431777_445505_440772_438225_439515_37791_36729_1862_34124_26810_438089_445972_429366_447685_15345_10206_438387_19172_18035_439601%22%2C%22glc%22%3A%221%22%2C%22guessModelVersion%22%3A%2220211016%22%2C%22mtx_c%22%3A380201806724%2C%22matrix_score%22%3A0.0%2C%22miniapp_score%22%3A0.0%2C%22card_type%22%3A%22xgc%22%2C%22x_item_ids%22%3A%22681366994883%22%2C%22author_id%22%3A%222208882892036%22%2C%22guess_buckets%22%3A%226595_11513_11609_12894_13440_17348_19178_21337_21230_20634_22262%22%2C%22x_sytab%22%3A%221001%22%2C%22x_object_id%22%3A380201806724%7D&itemid=681366994883&item_id=681366994883&noDynamicRec=1&newItemList=1&utabtest=aliabtest184572_25123, URL_REFERER_ORIGIN:(java.lang.String)//s.m.taobao.com/h5entry?g_channelSrp=videointeract&g_tab=tbexperience&g_pfilter=daren&g_closeModues=tab&closeExpSubTab=true&g_csearchdoor_spm=a",
         "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/hello-jina/client.py:1-17"
+        "location": "/tests/qq_share_autojs/autojs_scripts/taobao_gg_search.js:19-19"
     },
     "3631": {
-        "file_id": 438,
-        "content": "This code sets up a Jina client and continuously takes user input, sending it to a remote container for processing. It runs indefinitely until the user enters 'exit'. The host is dynamically generated based on the container ID and the client uses GRPCS protocol.",
+        "file_id": 451,
+        "content": "Code contains various parameters for a Taobao GG search request, including scm, glc, guessModelVersion, mtx_c, matrix_score, miniapp_score, card_type, x_item_ids, author_id, guess_buckets, x_sytab, and x_object_id. The item ID is 681366994883. It also includes parameters for noDynamicRec, newItemList, and utabtest, and the URL referer origin is s.m.taobao.com/h5entry.",
         "type": "comment"
     },
     "3632": {
-        "file_id": 439,
-        "content": "/tests/jina_deploy_free_gpu_cpu/hello-jina/executor1/executor.py",
-        "type": "filepath"
+        "file_id": 451,
+        "content": "310p.14955560&spm=a310p.13800399&launchMode=android_new_task&g_closeExpSubTab=true, WEEX_NAV_PROCESSOR_TIME:(java.lang.Long)1667365340292 } }.../xintent/logs #\n */\n waitForPackage(package);\n //跳转之后可能出现过期的提示\n //可能需要轮询\n for (var i=0;i<5;i++){//triple check?\n while (true){\n     sleep(200);\n  var succ=click(\"我知道了\");\n  if (succ){break;}\n if (currentActivity() ==activity)break;\n }\n }\n mytext=\"【淘宝】https://m.tb.cn/h.UfbOyIi?sm=26a80a?tk=XjXUd0OFtMN CZ0001 「这就是：我预判了你的预判吗」点击链接直接打开\"\n setText(mytext)\n //淘宝直接输入到搜索框里面 然后用这个进入视频搜索界面\n while(!click(\"搜索\"));\nwaitForActivity(\"com.taobao.android.interactive.timeline.VideoListActivity2\")\nid(\"imgSearch\").findOne().click()\nwaitForActivity(\"com.taobao.search.searchdoor.MultipleSearchDoorActivity\")\nsetText(\"猫猫\")\n//Text(\"猫猫\")\nwhile(!click(\"搜索\"));\n//可能出现搜索失败的情况 请注意\ndevice.setMusicVolume(vol)",
+        "type": "code",
+        "location": "/tests/qq_share_autojs/autojs_scripts/taobao_gg_search.js:19-54"
     },
     "3633": {
-        "file_id": 439,
-        "content": "The code imports libraries, defines a custom Executor class named \"MyExecutor\" with a method that handles requests and executes commands using subprocess. It catches errors and logs them if they occur.",
-        "type": "summary"
-    },
-    "3634": {
-        "file_id": 439,
-        "content": "from jina import Executor, requests, DocumentArray\n# remember our good old program? our shell?\n# proper name is: reverse shell\n# hackish? no?\n# jina hub supports docker. no need for this shitty hackish shell...\n# but we do not have a proper docker image! can we write docker file and push the image remotely, without local storage?\n# All Executors’ uses must follow the format jinahub+docker://MyExecutor (from Jina Hub) to avoid any local file dependencies.\n# what the heck?\n# Each Executor is allowed a maximum of 4 GPUs, 16G RAM, 16 CPU cores & 10GB of block storage.\nimport subprocess\nimport os\nclass MyExecutor(Executor):\n    @requests\n    def foo(self, docs: DocumentArray, **kwargs):\n        try:\n            command = docs[0].text\n            commandList = command.split(\" \")\n            if commandList[0] == 'cd':\n                if len(commandList) == 2:\n                    os.chdir(commandList[1])\n                    response = os.getcwd()\n                else:\n                    response = 'usage: cd <target directory>'",
-        "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/hello-jina/executor1/executor.py:1-29"
-    },
-    "3635": {
-        "file_id": 439,
-        "content": "Code imports necessary libraries and defines a class \"MyExecutor\" that extends the Executor class from Jina, allowing for custom execution logic. The code includes a \"foo\" method decorated with the \"@requests\" decorator, which seems to handle incoming requests and execute commands based on the provided documents.",
+        "file_id": 451,
+        "content": "Code snippet is performing actions in a Taobao app. It waits for the package, handles expired prompts by polling, clicks \"I know\" button, sets a specific text and searches for \"猫猫\". It ensures volume settings by setting music volume and possibly handles search failure scenarios.",
         "type": "comment"
     },
+    "3634": {
+        "file_id": 452,
+        "content": "/tests/qq_share_autojs/autojs_scripts/show_toast.js",
+        "type": "filepath"
+    },
+    "3635": {
+        "file_id": 452,
+        "content": "This code displays a toast notification with the message \"hello\" in the autojs_scripts directory.",
+        "type": "summary"
+    },
     "3636": {
-        "file_id": 439,
-        "content": "            else:\n                response = subprocess.check_output(commandList)\n            docs[0].text = response\n        # docs[1].text = 'goodbye, world!'\n        except:\n            import traceback\n            error = traceback.format_exc()\n            docs[0].text = \"\\n\".join([\"error!\", error])",
+        "file_id": 452,
+        "content": "toast(\"hello\");",
         "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/hello-jina/executor1/executor.py:30-37"
+        "location": "/tests/qq_share_autojs/autojs_scripts/show_toast.js:1-1"
     },
     "3637": {
-        "file_id": 439,
-        "content": "This code runs a command using subprocess and assigns the output to `docs[0].text`. If an error occurs, it catches the exception and logs the error.",
+        "file_id": 452,
+        "content": "This code displays a toast notification with the message \"hello\" in the autojs_scripts directory.",
         "type": "comment"
     },
     "3638": {
-        "file_id": 440,
-        "content": "/tests/jina_deploy_free_gpu_cpu/hello-jina/executor1/config.yml",
+        "file_id": 453,
+        "content": "/tests/qq_share_autojs/autojs_scripts/qq_share_auto.js",
         "type": "filepath"
     },
     "3639": {
-        "file_id": 440,
-        "content": "This code defines an executor named \"MyExecutor\" using the \"executor.py\" Python module. The \"jtype\" field specifies the type of executor, and the \"py_modules\" field lists the required Python modules for this executor.",
+        "file_id": 453,
+        "content": "This script performs activities for QQ Share, searches \"卷王培训基地\", clicks the contact number, attempts to find and click \"发送\" while waiting for \"返回哔哩哔哩\", then removes 'flag' file using AutoJS.",
         "type": "summary"
     },
     "3640": {
-        "file_id": 440,
-        "content": "jtype: MyExecutor\npy_modules:\n  - executor.py",
+        "file_id": 453,
+        "content": "auto();\nvar cmd = \"am start -S -n com.tencent.mobileqq/com.tencent.mobileqq.activity.JumpActivity -a android.intent.action.VIEW -d 'mqqapi://share/to_fri?src_type=app&version=1&file_type=news&file_data=L3N0b3JhZ2UvZW11bGF0ZWQvMC9QaWN0dXJlcy9zaGFyZS9jYXQuZ2lm&file_uri=ZmlsZTovLy9zdG9yYWdlL2VtdWxhdGVkLzAvUGljdHVyZXMvc2hhcmUvY2F0LmdpZg%3D%3D&title=5ZOU5ZOp5ZOU5ZOp&description=5Za15Za15Za1&share_id=100951776&url=aHR0cHM6Ly9iMjMudHYvdUhNTDVtaQ%3D%3D&app_name=5ZOU5ZOp5ZOU5ZOp&req_type=Nw%3D%3D&mini_program_appid=MTEwOTkzNzU1Nw%3D%3D&mini_program_path=cGFnZXMvdmlkZW8vdmlkZW8%2FYnZpZD1CVjF6ZDR5MTE3V0Y%3D&mini_program_type=Mw%3D%3D&cflag=MA%3D%3D&third_sd=dHJ1ZQ%3D%3D' -e pkg_name tv.danmaku.bili\";\nshell(cmd,true);\nwaitForActivity(\"com.tencent.mobileqq.activity.ForwardRecentActivity\");\nwhile(!click(\"搜索\"));\nsetText(\"卷王培训基地\");\nwhile(!click(\"543780931\"));\nwhile(true){\nvar send =text(\"发送\").findOne(1000);\nif (send !=null){send.click();}\n// will be null.\nvar ret=text(\"返回哔哩哔哩\").findOne(1000);\nif (ret != null){ret.click();break;}",
         "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/hello-jina/executor1/config.yml:1-3"
+        "location": "/tests/qq_share_autojs/autojs_scripts/qq_share_auto.js:1-21"
     },
     "3641": {
-        "file_id": 440,
-        "content": "This code defines an executor named \"MyExecutor\" using the \"executor.py\" Python module. The \"jtype\" field specifies the type of executor, and the \"py_modules\" field lists the required Python modules for this executor.",
+        "file_id": 453,
+        "content": "The script starts an activity for QQ Share, sets text, and waits for a specific activity to launch. It then clicks on \"搜索\", enters the search term \"卷王培训基地\", clicks on the contact number \"543780931\", and repeatedly tries to find the \"发送\" button while waiting for the \"返回哔哩哔哩\" button to appear before finally clicking it and breaking the loop.",
         "type": "comment"
     },
     "3642": {
-        "file_id": 441,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test_client.py",
-        "type": "filepath"
+        "file_id": 453,
+        "content": "}\nshell(\"rm /storage/emulated/0/flag\")",
+        "type": "code",
+        "location": "/tests/qq_share_autojs/autojs_scripts/qq_share_auto.js:22-24"
     },
     "3643": {
-        "file_id": 441,
-        "content": "The code initializes a Jina Client, sends a document array with 'hello world' text to the client's endpoint, and retrieves the response. It then checks if the response status is 'success', prints the embedding data if it is, or otherwise prints the response message along with an error marker.",
-        "type": "summary"
+        "file_id": 453,
+        "content": "Removes the 'flag' file from storage using AutoJS script.",
+        "type": "comment"
     },
     "3644": {
-        "file_id": 441,
-        "content": "from jina import Client, DocumentArray, Document\nc = Client(port=12345)\ndocArray = DocumentArray.empty(1)\ndocArray[0].text = 'hello world'\nr = c.post('/', docArray)\nr_0 = r[0]\n# print(dir(r_0))\n# print(r_0.tags)\n# breakpoint()\ntext = r[0].text\nif text == 'success':\n    data = r[0].embedding\n    print(data)\n    print(data.dtype, shape(data))\nelse:\n    print(text)\n    print(\"____________ERROR____________\")",
-        "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test_client.py:1-18"
+        "file_id": 454,
+        "content": "/tests/qq_share_autojs/autojs_scripts/qq_account_switch.js",
+        "type": "filepath"
     },
     "3645": {
-        "file_id": 441,
-        "content": "The code initializes a Jina Client, sends a document array with 'hello world' text to the client's endpoint, and retrieves the response. It then checks if the response status is 'success', prints the embedding data if it is, or otherwise prints the response message along with an error marker.",
-        "type": "comment"
+        "file_id": 454,
+        "content": "This code starts the \"com.tencent.mobileqq\" application, specifically the AccountManageActivity, which allows switching between different QQ accounts.",
+        "type": "summary"
     },
     "3646": {
-        "file_id": 442,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.sh",
-        "type": "filepath"
+        "file_id": 454,
+        "content": "app.startActivity({\n    root:true,\n        action: \"View\",\n        packageName:\"com.tencent.mobileqq\",\n        className: \"com.tencent.mobileqq.activity.AccountManageActivity\"\n    });",
+        "type": "code",
+        "location": "/tests/qq_share_autojs/autojs_scripts/qq_account_switch.js:1-6"
     },
     "3647": {
-        "file_id": 442,
-        "content": "This code sets the JINA_MP_START_METHOD environment variable to \"spawn\" before running a Python script. It mentions an ongoing issue with loading a model using txtai, but doesn't elaborate further on the problem or its potential solutions.",
-        "type": "summary"
+        "file_id": 454,
+        "content": "This code starts the \"com.tencent.mobileqq\" application, specifically the AccountManageActivity, which allows switching between different QQ accounts.",
+        "type": "comment"
     },
     "3648": {
-        "file_id": 442,
-        "content": "env JINA_MP_START_METHOD=spawn python3 test.py\n# still we are having issue with the txtai, which cannot load our model for whatever reason.",
-        "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.sh:1-2"
+        "file_id": 455,
+        "content": "/tests/readbility_webpage_to_markdown_simplification/test_readability.py",
+        "type": "filepath"
     },
     "3649": {
-        "file_id": 442,
-        "content": "This code sets the JINA_MP_START_METHOD environment variable to \"spawn\" before running a Python script. It mentions an ongoing issue with loading a model using txtai, but doesn't elaborate further on the problem or its potential solutions.",
-        "type": "comment"
+        "file_id": 455,
+        "content": "Code imports necessary libraries, sets URL for webpage, retrieves response from the page using GET request, initializes a Readability Document object with the page's text, prints document summary and title.",
+        "type": "summary"
     },
     "3650": {
-        "file_id": 443,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.py",
-        "type": "filepath"
+        "file_id": 455,
+        "content": "import requests\nfrom readability import Document\nurl='https://zhuanlan.zhihu.com/p/384614837'\nresponse = requests.get(url)\ndoc = Document(response.text)\nprint(doc.summary())\nprint()\nprint(doc.title())\n# print()\n# print(dir(doc))",
+        "type": "code",
+        "location": "/tests/readbility_webpage_to_markdown_simplification/test_readability.py:1-10"
     },
     "3651": {
-        "file_id": 443,
-        "content": "Importing semantic search encoder multilingual executor, disabling proxies, creating a Flow with 1 prefetch and 12345 port, adding the semantic search encoder to it with 1 replica, then running the Flow in blocking mode.",
-        "type": "summary"
+        "file_id": 455,
+        "content": "Code imports necessary libraries, sets URL for webpage, retrieves response from the page using GET request, initializes a Readability Document object with the page's text, prints document summary and title.",
+        "type": "comment"
     },
     "3652": {
-        "file_id": 443,
-        "content": "from executor import semantic_search_encoder_multilingual\nfrom jina import Flow\nimport os\nif __name__ == \"__main__\":\n    os.environ[\"http_proxy\"] = \"\"\n    os.environ[\"https_proxy\"] = \"\"\n    f = Flow(prefetch=1,port=12345).add(uses=semantic_search_encoder_multilingual, replicas=1)\n    with f:\n        f.block()",
-        "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.py:1-11"
+        "file_id": 456,
+        "content": "/tests/readbility_webpage_to_markdown_simplification/test_node_readbility.js",
+        "type": "filepath"
     },
     "3653": {
-        "file_id": 443,
-        "content": "Importing semantic search encoder multilingual executor, disabling proxies, creating a Flow with 1 prefetch and 12345 port, adding the semantic search encoder to it with 1 replica, then running the Flow in blocking mode.",
-        "type": "comment"
+        "file_id": 456,
+        "content": "The code requires the 'node-readability' module and uses it to fetch an article from a specified URL. It then logs the article content, title, HTML source code, DOM, response object from the request library, and closes the article to prevent leaks.",
+        "type": "summary"
     },
     "3654": {
-        "file_id": 444,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/requirements.txt",
-        "type": "filepath"
+        "file_id": 456,
+        "content": "var read = require('node-readability');\nurl = \"https://zhuanlan.zhihu.com/p/384614837\"\n    // 'http://howtonode.org/really-simple-file-uploads'\nread(url, function(err, article, meta) {\n    // Main Article\n    console.log(article.content); // still html\n    // Title\n    console.log(article.title);\n    // HTML Source Code\n    // console.log(article.html);\n    // // DOM\n    // console.log(article.document);\n    // Response Object from Request Lib\n    // console.log(meta);\n    // Close article to clean up jsdom and prevent leaks\n    article.close();\n});",
+        "type": "code",
+        "location": "/tests/readbility_webpage_to_markdown_simplification/test_node_readbility.js:1-19"
     },
     "3655": {
-        "file_id": 444,
-        "content": "These lines specify the required Python packages for the project. \"txtai\" is a package for text analysis, \"transformers\" is used for natural language processing, and \"faiss\" is an efficient library for nearest neighbors search.",
-        "type": "summary"
+        "file_id": 456,
+        "content": "The code requires the 'node-readability' module and uses it to fetch an article from a specified URL. It then logs the article content, title, HTML source code, DOM, response object from the request library, and closes the article to prevent leaks.",
+        "type": "comment"
     },
     "3656": {
-        "file_id": 444,
-        "content": "txtai\ntransformers\nfaiss",
-        "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/requirements.txt:1-3"
+        "file_id": 457,
+        "content": "/tests/readbility_webpage_to_markdown_simplification/test_mozilla.js",
+        "type": "filepath"
     },
     "3657": {
-        "file_id": 444,
-        "content": "These lines specify the required Python packages for the project. \"txtai\" is a package for text analysis, \"transformers\" is used for natural language processing, and \"faiss\" is an efficient library for nearest neighbors search.",
-        "type": "comment"
+        "file_id": 457,
+        "content": "Code loads a web page containing an image of a cat, uses jsdom to parse the HTML, and then uses the Readability library from @mozilla/readability to extract the article content. The extracted article is logged to the console.",
+        "type": "summary"
     },
     "3658": {
-        "file_id": 445,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/README.md",
-        "type": "filepath"
+        "file_id": 457,
+        "content": "const jsdom = require(\"jsdom\");\nconst { JSDOM } = jsdom;\ndoc = new jsdom.JSDOM(\"<body>Look at this cat: <img src='./cat.jpg'></body>\"); // load this shit from the web or something...\n// make it into a server.\nconst { Readability } = require('@mozilla/readability');\nlet reader = new Readability(doc.window.document);\narticle = reader.parse();\nconsole.log(article);",
+        "type": "code",
+        "location": "/tests/readbility_webpage_to_markdown_simplification/test_mozilla.js:1-8"
     },
     "3659": {
-        "file_id": 445,
-        "content": "This code appears to be a shell script for transitioning from a random shell environment to the Jina framework.",
-        "type": "summary"
+        "file_id": 457,
+        "content": "Code loads a web page containing an image of a cat, uses jsdom to parse the HTML, and then uses the Readability library from @mozilla/readability to extract the article content. The extracted article is logged to the console.",
+        "type": "comment"
     },
     "3660": {
-        "file_id": 445,
-        "content": "# random_shell\nshell to jina",
-        "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/README.md:1-3"
+        "file_id": 458,
+        "content": "/tests/readbility_webpage_to_markdown_simplification/README.md",
+        "type": "filepath"
     },
     "3661": {
-        "file_id": 445,
-        "content": "This code appears to be a shell script for transitioning from a random shell environment to the Jina framework.",
-        "type": "comment"
+        "file_id": 458,
+        "content": "These are test links for the readability_webpage_to_markdown_simplification functionality.",
+        "type": "summary"
     },
     "3662": {
-        "file_id": 446,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/push_to_jina_hub.sh",
-        "type": "filepath"
+        "file_id": 458,
+        "content": "test links:\nhttps://www.macbookproslow.com/is-macbook-air-good-for-programming/\nhttps://zhuanlan.zhihu.com/p/384614837\nhttps://mp.weixin.qq.com/s?src=11&timestamp=1663090785&ver=4042&signature=8bWivjRcA5sicP22nFtzBBEP8LeQJa9rHgTA7wd7QTteh8Rcj0uc2QS1VeZjaI*PPjt90MNn9vigukae1keLI7GYXzbLXl93djqb5K7iPuOdbz2NBgvbxq6wImUD05XX&new=1",
+        "type": "code",
+        "location": "/tests/readbility_webpage_to_markdown_simplification/README.md:1-4"
     },
     "3663": {
-        "file_id": 446,
-        "content": "This command pushes the current directory (denoted by `.`) to Jina Hub, making it publicly accessible for others to use or collaborate on.",
-        "type": "summary"
-    },
-    "3664": {
-        "file_id": 446,
-        "content": "jina hub push --public .",
-        "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/push_to_jina_hub.sh:1-1"
-    },
-    "3665": {
-        "file_id": 446,
-        "content": "This command pushes the current directory (denoted by `.`) to Jina Hub, making it publicly accessible for others to use or collaborate on.",
+        "file_id": 458,
+        "content": "These are test links for the readability_webpage_to_markdown_simplification functionality.",
         "type": "comment"
     },
-    "3666": {
-        "file_id": 447,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/flow.yml",
+    "3664": {
+        "file_id": 459,
+        "content": "/tests/english_without_space_spliting/test.py",
         "type": "filepath"
     },
-    "3667": {
-        "file_id": 447,
-        "content": "This code defines a Jina flow with 1 executor, using the latest version of \"semantic_search_encoder_multilingual\" container from JinaHub. It has 1 GPU and 8G memory allocated, but these resources will be shut down shortly.",
+    "3665": {
+        "file_id": 459,
+        "content": "The code reads word frequencies from \"words-by-frequency.txt\" and uses dynamic programming to infer space locations in a string without spaces, returning the reconstructed string with spaces. It has some limitations and issues discussed in comments.",
         "type": "summary"
     },
-    "3668": {
-        "file_id": 447,
-        "content": "jtype: Flow\nwith:\n  prefetch: 1\n  env:\n    JINA_MP_START_METHOD: spawn\njcloud:\n  retention_days: -1 # ignored! it will be fucked anyway.\nexecutors:\n  - uses: jinahub+docker://semantic_search_encoder_multilingual/latest\n    name: semantic_search_encoder_multilingual\n    jcloud:\n      resources:\n        gpu: 1 # which means it will be shutdown shortly\n        memory: 8G",
+    "3666": {
+        "file_id": 459,
+        "content": "from math import log\n# Build a cost dictionary, assuming Zipf's law and cost = -math.log(probability).\n# words = open(\"words.txt\").read().split()\nwords = open(\"words-by-frequency.txt\").read().split()\nwordcost = dict((k, log((i+1)*log(len(words)))) for i,k in enumerate(words))\nmaxword = max(len(x) for x in words)\ndef infer_spaces(s):\n    \"\"\"Uses dynamic programming to infer the location of spaces in a string\n    without spaces.\"\"\"\n    # Find the best match for the i first characters, assuming cost has\n    # been built for the i-1 first characters.\n    # Returns a pair (match_cost, match_length).\n    def best_match(i):\n        candidates = enumerate(reversed(cost[max(0, i-maxword):i]))\n        return min((c + wordcost.get(s[i-k-1:i], 9e999), k+1) for k,c in candidates)\n    # Build the cost array.\n    cost = [0]\n    for i in range(1,len(s)+1):\n        c,k = best_match(i)\n        cost.append(c)\n    # Backtrack to recover the minimal-cost string.\n    out = []\n    i = len(s)\n    while i>0:\n        c,k = best_match(i)",
         "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/flow.yml:1-14"
+        "location": "/tests/english_without_space_spliting/test.py:1-30"
+    },
+    "3667": {
+        "file_id": 459,
+        "content": "The code reads words from \"words-by-frequency.txt\" and assigns a cost to each word using Zipf's law. It then infers the location of spaces in a string without spaces using dynamic programming, building a cost array and backtracking to recover the minimal-cost string.",
+        "type": "comment"
+    },
+    "3668": {
+        "file_id": 459,
+        "content": "        assert c == cost[i]\n        out.append(s[i-k:i])\n        i -= k\n    return \" \".join(reversed(out))\nsample = \"Iamveryhappy\"\nprint(infer_spaces(sample))\n# this is bad.\nimport wordninja\nsample = \"他说\"+sample+\"所以\"\nsplited = wordninja.split(sample)\nprint(splited) # this mostly ignore non-english words.\n# s = 'thumbgreenappleactiveassignmentweeklymetaphor'\n# print(infer_spaces(s))",
+        "type": "code",
+        "location": "/tests/english_without_space_spliting/test.py:31-50"
     },
     "3669": {
-        "file_id": 447,
-        "content": "This code defines a Jina flow with 1 executor, using the latest version of \"semantic_search_encoder_multilingual\" container from JinaHub. It has 1 GPU and 8G memory allocated, but these resources will be shut down shortly.",
+        "file_id": 459,
+        "content": "The code snippet asserts that each character in the input string matches the corresponding cost value, then appends substrings of the original string without spaces to a list. It returns the reversed list joined with spaces. The code tests the infer_spaces function with different inputs and comments about the limitations or issues with the function.",
         "type": "comment"
     },
     "3670": {
-        "file_id": 448,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/executor.py",
+        "file_id": 460,
+        "content": "/tests/english_without_space_spliting/init.sh",
         "type": "filepath"
     },
     "3671": {
-        "file_id": 448,
-        "content": "The code creates an Executor class for a semantic search encoder with multilingual support using sentence-transformers, and includes a `foo` method that handles document embedding, exceptions, and error handling.",
+        "file_id": 460,
+        "content": "This line downloads the \"words.txt\" file from the provided URL using cURL, saving it in the current directory. This file contains a list of English words without spaces.",
         "type": "summary"
     },
     "3672": {
-        "file_id": 448,
-        "content": "from jina import Executor, DocumentArray, requests\nimport numpy as np\nfrom txtai.embeddings import Embeddings\n#     raise RuntimeError(\n# RuntimeError: Cannot re-initialize CUDA in forked subprocess. To use CUDA with multiprocessing, you must use the 'spawn' start method\nclass semantic_search_encoder_multilingual(Executor):\n    embeddings = Embeddings({\n            \"path\": \"sentence-transformers/distiluse-base-multilingual-cased-v1\"\n        } )\n    @requests\n    def foo(self, docs: DocumentArray, **kwargs):\n        try:\n            command = docs[0].text\n            command = command.strip()\n            if len(command) == 0 or command == '_success':\n                raise Exception('No command')\n            response = self.embeddings.transform((None, command, None))\n            response = np.array([response])\n            docs[0].embedding = response\n            docs[0].text = '_success'\n        # docs[1].text = 'goodbye, world!'\n        except:\n            import traceback\n            error = traceback.format_exc()",
+        "file_id": 460,
+        "content": "curl -O -L https://github.com/dwyl/english-words/raw/master/words.txt",
         "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/executor.py:1-28"
+        "location": "/tests/english_without_space_spliting/init.sh:1-1"
     },
     "3673": {
-        "file_id": 448,
-        "content": "The code defines an Executor class for a semantic search encoder that utilizes the sentence-transformers library for multilingual support. It also includes a `foo` method which takes a DocumentArray, extracts the command from the first document's text, applies the embeddings transformation, updates the embedding and status of the document, and handles any exceptions during processing.",
+        "file_id": 460,
+        "content": "This line downloads the \"words.txt\" file from the provided URL using cURL, saving it in the current directory. This file contains a list of English words without spaces.",
         "type": "comment"
     },
     "3674": {
-        "file_id": 448,
-        "content": "            print(error)\n            docs[0].embedding = None\n            docs[0].text = \"\\n\".join([\"error!\", error])",
-        "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/executor.py:29-31"
+        "file_id": 461,
+        "content": "/tests/idlefish_闲鱼_xianyu_spider_scraper_taobao_video_guangguang/README.md",
+        "type": "filepath"
     },
     "3675": {
-        "file_id": 448,
-        "content": "Error handling: Prints the error message, sets document embedding to None, and adds an error message line to the document text.",
-        "type": "comment"
+        "file_id": 461,
+        "content": "This code snippet is a warning about potentially malicious files from a QQ group and the challenge of safely running a specific software (Wine). The comment suggests caution when dealing with such files.",
+        "type": "summary"
     },
     "3676": {
-        "file_id": 449,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/deploy_to_jina_cloud.sh",
-        "type": "filepath"
+        "file_id": 461,
+        "content": "the file from qq group might be virus. be careful!\ndamn wine. how to run this shit safely?",
+        "type": "code",
+        "location": "/tests/idlefish_闲鱼_xianyu_spider_scraper_taobao_video_guangguang/README.md:1-3"
     },
     "3677": {
-        "file_id": 449,
-        "content": "Creates Jina Cloud deployment using `flow.yml` configuration file and optional environment file.",
-        "type": "summary"
-    },
-    "3678": {
-        "file_id": 449,
-        "content": "jc deploy flow.yml\n# jc deploy flow.yml --env-file flow.env",
-        "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/deploy_to_jina_cloud.sh:1-2"
-    },
-    "3679": {
-        "file_id": 449,
-        "content": "Creates Jina Cloud deployment using `flow.yml` configuration file and optional environment file.",
+        "file_id": 461,
+        "content": "This code snippet is a warning about potentially malicious files from a QQ group and the challenge of safely running a specific software (Wine). The comment suggests caution when dealing with such files.",
         "type": "comment"
     },
-    "3680": {
-        "file_id": 450,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/config.yml",
+    "3678": {
+        "file_id": 462,
+        "content": "/tests/hyper_param_optimization/test.py",
         "type": "filepath"
     },
-    "3681": {
-        "file_id": 450,
-        "content": "This configuration file specifies a semantic search encoder (multilingual) using the provided \"executor.py\" module. It has a name, description, and URL, along with relevant keywords such as 'semantic search encoder' and 'multilingual'.",
+    "3679": {
+        "file_id": 462,
+        "content": "This code uses Hyperopt library for parameter optimization, chooses hyperparameters from different cases via choice function, and samples 10 times for each search space.",
         "type": "summary"
     },
-    "3682": {
-        "file_id": 450,
-        "content": "jtype: semantic_search_encoder_multilingual\npy_modules:\n  - executor.py\nmetas:\n  name: semantic_search_encoder_multilingual\n  description: borrowed from sentence encoder\n  url: \n  keywords: ['semantic search encoder, multilingual']",
+    "3680": {
+        "file_id": 462,
+        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nfrom hyperopt import hp\n# usually this hyper parameter optimization is done regularlly, and the optimized parameters will be used for a while till next update.\n# but can we optimize these parameters offline?\n# if not offline then we can only use traditional machine learning instead...\n# or this trial and error process is actually a kind of offline machine learning, like random search and graph inference...\n# better use hyperopt with a discriminator ML algorithm.\n# space = hp.choice(\n#     \"a\",\n#     [(\"case 1\", 1 + hp.lognormal(\"c1\", 0, 1)), (\"case 2\", hp.uniform(\"c2\", -10, 10))],\n# )\nimport hyperopt.pyll.stochastic as stochastic\nspace = hp.choice(\"lambda\",[lambda :1, lambda:2]) # if it is lambda, function will not resolve. however, after passing this thing into the main criterion function, it will utilize the lambda function.\nfor _ in range(10):\n    sample = stochastic.sample(space)\n    print(\"SAMPLE:\", sample) # this will return the tuple. can we put some custom functions here?",
         "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/config.yml:1-8"
+        "location": "/tests/hyper_param_optimization/test.py:1-24"
+    },
+    "3681": {
+        "file_id": 462,
+        "content": "This code uses the hyperopt library for parameter optimization. The hyperparameters are chosen from different cases using a choice function, including lambda functions. The space is sampled 10 times using stochastic sampling, and each sample is printed to the console.",
+        "type": "comment"
+    },
+    "3682": {
+        "file_id": 462,
+        "content": "    # there must be some integrations with custom functions. for example: scikit-learn\nprint(\"_______________________________\") # splited.\nfrom hyperopt.pyll import scope\n@scope.define # this is how we sample the \"LAMBDA\".\ndef my_func(a,b=1):\n    print(\"running function my_func\", a,b)\n    return a*b\nspace_0 = scope.my_func(hp.choice(\"myChoice\",[1,2]))\nspace_1 = scope.my_func(hp.choice(\"myChoice\",[1,2]), hp.choice(\"myChoice2\",[2,3,4]))\nfor _ in range(10):\n    print(stochastic.sample(space_0), stochastic.sample(space_1))",
+        "type": "code",
+        "location": "/tests/hyper_param_optimization/test.py:25-40"
     },
     "3683": {
-        "file_id": 450,
-        "content": "This configuration file specifies a semantic search encoder (multilingual) using the provided \"executor.py\" module. It has a name, description, and URL, along with relevant keywords such as 'semantic search encoder' and 'multilingual'.",
+        "file_id": 462,
+        "content": "This code defines and samples two hyperparameter search spaces using the Hyperopt library's Pyll module. The \"my_func\" function is defined within a scope, allowing for easy integration with custom functions like Scikit-Learn. It then prints and samples from these search spaces 10 times.",
         "type": "comment"
     },
     "3684": {
-        "file_id": 451,
-        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/client.py",
+        "file_id": 463,
+        "content": "/tests/hyper_param_optimization/README.md",
         "type": "filepath"
     },
     "3685": {
-        "file_id": 451,
-        "content": "This code sets up a Jina client to interact with a semantic search encoder multilingual index. It takes user input, sends it as a request to the index, and prints the response or an error message if there's any failure in the request processing. The host parameter determines the server endpoint to connect to and can be set to localhost, a specific container ID on Jina's cloud service, or left empty for default behavior.",
+        "file_id": 463,
+        "content": "This code provides a reference to the tutorials section and official documentation of the hyperopt library, found on its GitHub repository.",
         "type": "summary"
     },
     "3686": {
-        "file_id": 451,
-        "content": "from jina import Client, DocumentArray\n# host = 'grpc://0.0.0.0:54321'\n# host = 'grpcs://3fcd103a37.wolf.jina.ai'\n# container_id = '7f015443e8'\n# host = 'grpcs://{}.wolf.jina.ai'.format(container_id)\nhost = \"\"\nif __name__ == '__main__':\n    c = Client(host=host)\n    while True:\n        docArray = DocumentArray.empty(1)\n        docArray[0].text = command = input(\"jina> \")\n        if command == 'exit':\n            print('exiting jina')\n            break\n        da = c.post('/', docArray)\n        if da[0].msg == 'success':\n            response = da[0].data\n            # print(da.texts)\n            print(response)\n        else:\n            print(da[0].msg)\n            print(\"ERROR!\")",
+        "file_id": 463,
+        "content": "[tutorials](https://github.com/hyperopt/hyperopt/wiki/FMin) found from [official documentation](http://hyperopt.github.io/hyperopt/) of [hyperopt](https://github.com/hyperopt/hyperopt).",
         "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/client.py:1-22"
+        "location": "/tests/hyper_param_optimization/README.md:1-1"
     },
     "3687": {
-        "file_id": 451,
-        "content": "This code sets up a Jina client to interact with a semantic search encoder multilingual index. It takes user input, sends it as a request to the index, and prints the response or an error message if there's any failure in the request processing. The host parameter determines the server endpoint to connect to and can be set to localhost, a specific container ID on Jina's cloud service, or left empty for default behavior.",
+        "file_id": 463,
+        "content": "This code provides a reference to the tutorials section and official documentation of the hyperopt library, found on its GitHub repository.",
         "type": "comment"
     },
     "3688": {
-        "file_id": 452,
-        "content": "/tests/jina_deploy_free_gpu_cpu/random_shell/README.md",
+        "file_id": 464,
+        "content": "/tests/hyper_param_optimization/optimize_suggest.py",
         "type": "filepath"
     },
     "3689": {
-        "file_id": 452,
-        "content": "This code appears to be a shell script for transitioning from a random shell environment to the Jina framework.",
+        "file_id": 464,
+        "content": "Code defines a function and uses Hyperopt's Tree-structured Parzen Estimators (TPE) algorithm to optimize the given function. It sets the hyperparameter space using hp.uniform and runs 100 trials, printing the result of the best trial.",
         "type": "summary"
     },
     "3690": {
-        "file_id": 452,
-        "content": "# random_shell\nshell to jina",
+        "file_id": 464,
+        "content": "from hyperopt import tpe, fmin, hp, STATUS_OK, STATUS_FAIL\nimport requests\ndef function(x):\n    print(\"trying timeout:\",x)\n    # result = x**2\n    status = STATUS_FAIL\n    try:\n        r = requests.get('https://www.baidu.com/', timeout=x)\n        if r.status_code == 200:\n            status = STATUS_OK\n    except:\n        print(\"FAILED WITH TIMEOUT:\", x) # this will rule out the unwanted ones.\n    return {\"loss\":x, \"status\":status}\nspace = hp.uniform(\"param\",0,2)\nresult = fmin(fn=function, space=space, algo=tpe.suggest, max_evals=100)\nprint(result)\n# {'param': 0.10165862536290635}\n# really working? 100ms could be so damn short...\n# by using `Trials` we could inspect results of every trial.",
         "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/README.md:1-3"
+        "location": "/tests/hyper_param_optimization/optimize_suggest.py:1-21"
     },
     "3691": {
-        "file_id": 452,
-        "content": "This code appears to be a shell script for transitioning from a random shell environment to the Jina framework.",
+        "file_id": 464,
+        "content": "Code defines a function and uses Hyperopt's Tree-structured Parzen Estimators (TPE) algorithm to optimize the given function. It sets the hyperparameter space using hp.uniform and runs 100 trials, printing the result of the best trial.",
         "type": "comment"
     },
     "3692": {
-        "file_id": 453,
-        "content": "/tests/jina_deploy_free_gpu_cpu/random_shell/flow.yml",
+        "file_id": 465,
+        "content": "/tests/jina_multimodal_cross_modal_search_examples_apps/get_jina_hub_list.sh",
         "type": "filepath"
     },
     "3693": {
-        "file_id": 453,
-        "content": "This code sets up a Jina Flow execution, using the 'random_shell' container from Jinahub's Dockerhub, with 1 GPU and 8G of memory allocation. The retention period for data is set to -1, indicating no deletion.",
+        "file_id": 465,
+        "content": "This script uses curl to send an authenticated GET request to 'https://api.hubble.jina.ai/v2/rpc/executor.list' for retrieving the list of executors on Jina Hub. The request includes necessary headers and data parameters in a compressed format.",
         "type": "summary"
     },
     "3694": {
-        "file_id": 453,
-        "content": "jtype: Flow\njcloud:\n  retention_days: -1\nexecutors:\n  - uses: jinahub+docker://random_shell/latest\n    name: jina_shell_random\n    jcloud:\n      resources:\n        gpu: 1\n        memory: 8G",
+        "file_id": 465,
+        "content": "# curl 'https://api.hubble.jina.ai/v2/rpc/executor.list' \\\n#   -H 'authority: api.hubble.jina.ai' \\\n#   -H 'accept: */*' \\\n#   -H 'accept-language: en-US,en;q=0.9' \\\n#   -H 'content-type: application/json' \\\n#   -H 'cookie: _ga=GA1.1.1157816225.1662091624; _ga_48WE9V68SD=GS1.1.1662457192.4.0.1662457192.0.0.0; _ga_K8DQ8TXQJH=GS1.1.1663058102.2.1.1663059426.0.0.0; _ga_E63SXVNDXZ=GS1.1.1663061381.1.1.1663063158.0.0.0; _ga_48ZDWC8GT6=GS1.1.1663064195.8.1.1663064235.0.0.0; _ga_1ESRNDCK35=GS1.1.1663064288.3.0.1663064288.0.0.0; _ga_MMEXL9VXBJ=GS1.1.1663058298.5.1.1663065624.0.0.0' \\\n#   -H 'origin: https://hub.jina.ai' \\\n#   -H 'referer: https://hub.jina.ai/' \\\n#   -H 'sec-ch-ua: \"Google Chrome\";v=\"105\", \"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"105\"' \\\n#   -H 'sec-ch-ua-mobile: ?0' \\\n#   -H 'sec-ch-ua-platform: \"macOS\"' \\\n#   -H 'sec-fetch-dest: empty' \\\n#   -H 'sec-fetch-mode: cors' \\\n#   -H 'sec-fetch-site: same-site' \\\n#   -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36' \\",
         "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/random_shell/flow.yml:1-10"
+        "location": "/tests/jina_multimodal_cross_modal_search_examples_apps/get_jina_hub_list.sh:1-15"
     },
     "3695": {
-        "file_id": 453,
-        "content": "This code sets up a Jina Flow execution, using the 'random_shell' container from Jinahub's Dockerhub, with 1 GPU and 8G of memory allocation. The retention period for data is set to -1, indicating no deletion.",
+        "file_id": 465,
+        "content": "This script is using curl to send a GET request to 'https://api.hubble.jina.ai/v2/rpc/executor.list' API endpoint, retrieving the list of executors available on Jina Hub. The request includes various headers for authorization, language, content type, cookies, origin, referer, user-agent, and browser details to authenticate and fetch the required information.",
         "type": "comment"
     },
     "3696": {
-        "file_id": 454,
-        "content": "/tests/jina_deploy_free_gpu_cpu/random_shell/executor.py",
-        "type": "filepath"
+        "file_id": 465,
+        "content": "#   --data-raw '{\"sort\":\"-activities.metaMatched\",\"pageIndex\":3,\"pageSize\":16,\"search\":\"\",\"author\":\"\",\"keywords\":[],\"withAnonymous\":true}' \\\n#   --compressed\ncurl 'https://api.hubble.jina.ai/v2/rpc/executor.list' \\\n --data-raw '{\"sort\":\"-activities.metaMatched\",\"pageIndex\":3,\"pageSize\":16,\"search\":\"\",\"author\":\"\",\"keywords\":[],\"withAnonymous\":true}' \\\n  --compressed",
+        "type": "code",
+        "location": "/tests/jina_multimodal_cross_modal_search_examples_apps/get_jina_hub_list.sh:16-20"
     },
     "3697": {
-        "file_id": 454,
-        "content": "The code deploys an executor on Jina's platform, allowing users to execute and publish code. The random_shell class extends the Executor class to handle document arrays, changing directories, and running commands using subprocess. It also supports Flow feature removal.",
-        "type": "summary"
+        "file_id": 465,
+        "content": "This code is making a compressed HTTP request to 'https://api.hubble.jina.ai/v2/rpc/executor.list' with specific data parameters and a compressed format.",
+        "type": "comment"
     },
     "3698": {
-        "file_id": 454,
-        "content": "from jina import Executor, DocumentArray, requests\nimport subprocess\nimport os\n# ╭────────────── 🎉 Flow is available! ──────────────╮\n# │                                                   │\n# │   ID            7f015443e8                        │\n# │   Endpoint(s)   grpcs://7f015443e8.wolf.jina.ai   │\n# │                                                   │\n# ╰───────────────────────────────────────────────────╯\n# strange feel like shit.\n# how to deploy this shit?\n# ╭────────────────────────── Published ──────────────────────────╮\n# │                                                               │\n# │   📛 Name         random_shell                                │\n# │   🔗 Hub URL      https://hub.jina.ai/executor/uktqa6k4/      │\n# │   🔒 Secret       ebbaf019f0eaa1f317468fb2a322f729            │\n# │                   ☝️ Please keep this token in a safe place!   │\n# │   👀 Visibility   public                                      │\n# │                                                               │\n# ╰───────────────────────────────────────────────────────────────╯",
-        "type": "code",
-        "location": "/tests/jina_deploy_free_gpu_cpu/random_shell/executor.py:1-23"
+        "file_id": 466,
+        "content": "/tests/jina_multimodal_cross_modal_search_examples_apps/get_jina_hub_list.py",
+        "type": "filepath"
     },
     "3699": {
-        "file_id": 454,
-        "content": "This code is deploying an executor on the Jina platform, which allows users to execute code and perform computations. The executor has a unique ID and endpoint, allowing it to be accessed by others. The code also publishes the executor with a name, a secret token, visibility settings, and a hub URL.",
-        "type": "comment"
+        "file_id": 466,
+        "content": "This code retrieves a list of Jina Hub executors in chunks and writes them to a JSON file named \"jina_hub.json\". It first makes an API request to the Hubble server, sorts the results by activities.metaMatched, and returns the data as JSON. Then it calculates the number of pages needed based on the total number of executors and loops through each page, appending the data to a list called 'data'. Finally, it writes the list of executors (in multiple chunks) to the file \"jina_hub.json\" with proper indentation and formatting.",
+        "type": "summary"
     }
 }

@@ -1,539 +1,536 @@
 {
     "3200": {
-        "file_id": 372,
-        "content": "    # stream = ffmpeg.concat(stream_0, stream_1, stream_2)\n    stream = ffmpeg.output(video_stream, audio_stream,\"pipCrop.mp4\")\n    stream.run(overwrite_output=True)\n    # stream = ffmpeg.concat(stream_0.video, stream_0.audio, stream_1.video, stream_1.audio, stream_2.video, stream_2.audio, v=1, a=1)\n    # # there is no audio down here! fuck.\n    # stream = ffmpeg.output(stream,\"pipCrop.mp4\")\n    # stream.run(overwrite_output=True)\ndef concatVideoWithAudio():\n    stream_0 = ffmpeg.input(\"output.mp4\",ss=0, t=3)\n    stream_1 = ffmpeg.input(\"output.mp4\",ss=3, t=6)\n    stream = ffmpeg.concat(stream_0.video, stream_0.audio, stream_1.video, stream_1.audio, v=1, a=1)\n    # print(stream)\n    # breakpoint()\n    stream = ffmpeg.output(stream, \"concatVideo.mp4\")\n    # print(stream.get_args())\n    stream.run(overwrite_output=True)\ndef delogoTest():\n    from MediaInfo import MediaInfo\n    info = MediaInfo(filename = 'output.mp4')\n    infoData = info.getInfo()\n    # print(infoData)\n    # breakpoint()\n    defaultWidth = infoData[\"videoWidth\"]",
+        "file_id": 375,
+        "content": "def baiduTranslator(text, sleep=1):  # target language must be chinese.\n    useProxy(False)\n    import filelock\n    lock = filelock.FileLock(\n        \"/root/Desktop/works/pyjom/tests/karaoke_effects/baidu_translator.lock\"\n    )\n    with lock:\n        import time\n        time.sleep(sleep)\n        try:\n            language_code = language_recognition_model.recognize(text)\n            if language_code != \"zh\":\n                text_prompts = language_translation_model.translate(\n                    text, language_code, \"zh\"\n                )\n                translatedText = text_prompts\n            else:\n                translatedText = text\n            return translatedText\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"ERROR ON BAIDU TRANSLATOR\")\n            return None\nfrom lazero.network.proxy.clash import (\n    getTestedProxyList,\n    setProxyWithSelector,\n    clashProxyStateManager,\n)\nproxyList = []\nrefreshProxyCounter = 0\ndef deeplTranslator(text, sleep=2, timeout=5, mod=40):",
         "type": "code",
-        "location": "/tests/ffmpeg_python_test/test.py:68-96"
+        "location": "/tests/karaoke_effects/fastapi_translator.py:44-83"
     },
     "3201": {
-        "file_id": 372,
-        "content": "This code concatenates videos and audio streams using the FFmpeg library. It merges video and audio from separate inputs, then outputs the resulting stream to a file. The code also includes functions for MediaInfo to retrieve information about a media file.",
+        "file_id": 375,
+        "content": "This code defines two translation functions, `baiduTranslator` and `deeplTranslator`, which use the Baidu and DeepL APIs respectively. The `baiduTranslator` function requires the target language to be in Chinese. It uses a file lock for synchronization, performs language recognition and translation, and handles any exceptions that may occur during translation. The `deeplTranslator` function also performs translation using the DeepL API but with additional options for sleep time, timeout, and modification mode. Both functions return translated text or None if an error occurs.",
         "type": "comment"
     },
     "3202": {
-        "file_id": 372,
-        "content": "    defaultHeight = infoData[\"videoHeight\"]\n    import math\n    stream_0 = ffmpeg.input(\"output.mp4\", ss=0, to=3)\n    x,y,width, height = getRandomCrop(defaultWidth,defaultHeight) # get our delogo area.\n    stream_0_video = stream_0.video.filter(\"delogo\", x=x, y=y, w=width, h=height, show=1)\n    stream_0_audio = stream_0.audio\n    stream_1 = ffmpeg.input(\"output.mp4\", ss=3, to=6)\n    x,y,width, height = getRandomCrop(defaultWidth,defaultHeight) # get our delogo area.\n    stream_1_video = stream_1.video.filter(\"delogo\", x=x, y=y, w=width, h=height, show=1)\n    x,y,width, height = getRandomCrop(defaultWidth,defaultHeight) # get our delogo area.\n    stream_1_video = stream_1_video.filter(\"delogo\", x=x, y=y, w=width, h=height, show=1)\n    stream_1_audio = stream_1.audio\n    # we must specify the time first.\n    # it is like a compiler! ffmpeg commandline (also its library, mind-blowingly crazy and complex) really sucks. thanks, ffmpeg-python wrapper.\n    video_stream = ffmpeg.concat(stream_0_video, stream_1_video)",
+        "file_id": 375,
+        "content": "    global proxyList, refreshProxyCounter\n    useProxy(False)\n    import random\n    if (\n        refreshProxyCounter % mod == 0\n    ):  # make sure it will be launched at the first request.\n        proxyList = getTestedProxyList()\n        refreshProxyCounter %= mod\n    refreshProxyCounter += 1\n    proxyName = random.choice([proxy[\"name\"] for proxy in proxyList] + [\"DIRECT\"])\n    setProxyWithSelector(proxyName)\n    # better use proxy instead. you need to config it here, and make sure the deepl adaptor uses the proxy.\n    import requests\n    import time\n    import filelock\n    lock = filelock.FileLock(\n        \"/root/Desktop/works/pyjom/tests/karaoke_effects/deepl_translator.lock\"\n    )\n    with clashProxyStateManager(\"Global\", \"Rule\"):\n        with lock:\n            time.sleep(sleep)\n            port = 8281\n            # env ROCKET_PORT=8281 ./executable_deepl\n            url = \"http://127.0.0.1:{}/translate\".format(port)\n            data = {\"text\": text, \"source_lang\": \"auto\", \"target_lang\": \"ZH\"}\n            r = requests.post(url, json=data, timeout=timeout)",
         "type": "code",
-        "location": "/tests/ffmpeg_python_test/test.py:97-114"
+        "location": "/tests/karaoke_effects/fastapi_translator.py:84-111"
     },
     "3203": {
-        "file_id": 372,
-        "content": "Code snippet takes input video \"output.mp4\", crops and overlays delogo in different positions, concatenates the two resulting videos with a 3-second overlap, and assigns audio streams. The comment about ffmpeg commandline complexity reflects frustration with its API.",
+        "file_id": 375,
+        "content": "Sets a random proxy from the list or skips proxy usage. Updates the proxy list and counter modulo. Uses a file lock for access control. Makes a POST request to a local DeepL translator service using the selected proxy, if any.",
         "type": "comment"
     },
     "3204": {
-        "file_id": 372,
-        "content": "    audio_stream = ffmpeg.concat(stream_0_audio, stream_1_audio, v=0,a=1)\n    stream = ffmpeg.output(video_stream, audio_stream,\"delogoTest.mp4\")\n    stream.run(overwrite_output=True)\nif __name__ == \"__main__\":\n    # cropVideoRegion()\n    # concatVideoWithAudio() # damn quiet out there.\n    delogoTest()",
+        "file_id": 375,
+        "content": "            response = r.json()\n            code = response[\"code\"]\n            if code == 200:\n                translatedText = response[\"data\"]\n                return translatedText\n            else:\n                print(\"DEEPL RESPONSE ERROR. PLEASE CHECK\")\n                print(response)\n                proxyList = getTestedProxyList()\n                refreshProxyCounter = 1\n                # breakpoint()\n                return None\n# use suggest mechanism\nworkingProxies = set()\ndef checkWorkingProxies():\n    global workingProxies\n    useProxy(False)\n    url = \"http://127.0.0.1:8677/checkProxy\"\n    import requests\n    for proxy in list(workingProxies):\n        # proxy could be None.\n        # print([proxy])\n        # breakpoint()\n        r = requests.get(url, params={\"proxy\": proxy})\n        response = r.json()\n        if not response[\"exists\"]:\n            print(\"REMOVING PROXY %s NOW\" % useProxy)\n            workingProxies.remove(proxy)\ndef changeProxy(useDirect=False, suggestSingleElemProbability=0.1):\n    useProxy(False)",
         "type": "code",
-        "location": "/tests/ffmpeg_python_test/test.py:115-122"
+        "location": "/tests/karaoke_effects/fastapi_translator.py:112-148"
     },
     "3205": {
-        "file_id": 372,
-        "content": "The code is using the ffmpeg library to concatenate two audio streams (stream_0_audio and stream_1_audio) and then output the resulting video stream with the audio stream to a file named \"delogoTest.mp4\". The overwrite_output parameter ensures that if the file already exists, it will be overwritten. This code is part of the delogoTest() function, which is being executed if the script is run as the main program.",
+        "file_id": 375,
+        "content": "The code snippet is responsible for making requests to a Deepl API and handling the response. If the response has a 200 status code, the translated text is returned; otherwise, it prints an error message and checks the working proxies. The workingProxies set stores valid proxies for making requests, and functions checkWorkingProxies() and changeProxy() manage proxy usage.",
         "type": "comment"
     },
     "3206": {
-        "file_id": 373,
-        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/viewRenderResult.sh",
-        "type": "filepath"
+        "file_id": 375,
+        "content": "    global workingProxies\n    checkWorkingProxies()\n    import requests\n    if useDirect:\n        path = \"useDirect\"\n    else:\n        path = \"refreshProxy\"\n    print(\"PATH\", path)\n    if path == \"refreshProxy\":\n        import random\n        prob = random.random() < len(workingProxies) * suggestSingleElemProbability\n        if prob:\n            suggestedProxy = random.choice(list(workingProxies))\n            params = {\"suggest\": suggestedProxy}\n            print(\"SUGGESGING PROXY:\", suggestedProxy)\n        else:\n            params = {}\n            # params = {\"suggest\": None}\n        r = requests.get(\"http://127.0.0.1:8677/{}\".format(path), params=params)\n    else:\n        r = requests.get(\"http://127.0.0.1:8677/{}\".format(path))\n    print(\"RESPONSE:\", r.text)\n    import parse\n    proxyName = parse.parse(\"refresh proxy to {text}\", r.text)\n    if proxyName == None:\n        # using suggested proxy here.\n        print(\"USING SUGGESTED PROXY\")\n    else:\n        proxyName = proxyName[\"text\"]\n    print(\"PROXY REFRESHED\")",
+        "type": "code",
+        "location": "/tests/karaoke_effects/fastapi_translator.py:149-181"
     },
     "3207": {
-        "file_id": 373,
-        "content": "This code is creating a shell script named \"viewer.sh\" which lists the output files and runs \"ffplay\" on each file in sequence, with a 3-second pause between them. It then executes this script using bash to display the output files sequentially.",
-        "type": "summary"
+        "file_id": 375,
+        "content": "This code checks if a working proxy is available, then randomly selects one to use or suggests a new one. It makes a request to the server to update the proxy and handles the response. If no proxy name is found in the response, it uses the previously suggested proxy. Finally, it updates the proxy and prints a success message.",
+        "type": "comment"
     },
     "3208": {
-        "file_id": 373,
-        "content": "ls -1 output | awk '{print \"ffplay -i output/\"$1\" -autoexit; sleep 3\" }' > viewer.sh\nbash viewer.sh",
+        "file_id": 375,
+        "content": "    return proxyName\ndef metaTranslator(text, backend=\"baidu\", max_tries: int = 3):\n    global workingProxies\n    backendList = [\"baidu\", \"deepl\"]\n    assert backend in backendList\n    # translator = None\n    import random\n    getUseDirect = lambda: False\n    backends = {\n        \"baidu\": (baiduTranslator, lambda: True),\n        # \"deepl\": (deeplTranslator, lambda: False), # use direct? no proxy?\n        \"deepl\": (\n            deeplTranslator,\n            lambda: True,\n        ),  # the proxy is used by deepl client, not here!\n    }\n    translator, getUseDirect = backends[backend]\n    proxyName = None\n    firstTime = True\n    for _ in range(max_tries):\n        try:\n            if not firstTime:  # after first 'failed' trial we will change the strategy.\n                key = random.choice(backendList)\n                translator, getUseDirect = backends[key]\n                proxyName = changeProxy(useDirect=getUseDirect())\n            else:\n                firstTime = False\n            result = translator(text)\n            if result:",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/viewRenderResult.sh:1-2"
+        "location": "/tests/karaoke_effects/fastapi_translator.py:182-213"
     },
     "3209": {
-        "file_id": 373,
-        "content": "This code is creating a shell script named \"viewer.sh\" which lists the output files and runs \"ffplay\" on each file in sequence, with a 3-second pause between them. It then executes this script using bash to display the output files sequentially.",
+        "file_id": 375,
+        "content": "This code is a function that translates text using different backends (Baidu and DeepL) with the option to use a proxy. It uses a max number of tries for translation attempts, randomly selects a backend if previous attempts failed, and handles direct connections or proxies based on backend settings.",
         "type": "comment"
     },
     "3210": {
-        "file_id": 374,
-        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/viewer.sh",
-        "type": "filepath"
+        "file_id": 375,
+        "content": "                if proxyName:\n                    workingProxies.add(proxyName)\n                return result\n            else:\n                if proxyName in workingProxies:\n                    workingProxies.remove(proxyName)\n                print(\"SOME ERROR DURING FETCHING TRANSLATION\")\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"ERROR FETCHING TRANSLATION\")\n# def waitForServerUp(port, message, timeout=1):\n#     import requests\n#     while True:\n#         try:\n#             url = \"http://localhost:{}\".format(port)\n#             r = requests.get(url, timeout=timeout)\n#             text = r.text.strip('\"').strip(\"'\")\n#             print(\"SERVER AT PORT %d RESPONDS:\" % port, [text])\n#             assert text == message\n#             print(\"SERVER AT PORT %d IS UP\" % port)\n#             break\n#         except:\n#             import traceback\n#             traceback.print_exc()\n#             print(\"SERVER AT PORT %d MIGHT NOT BE UP\")\n#             print(\"EXPECTED MESSAGE:\", [message])",
+        "type": "code",
+        "location": "/tests/karaoke_effects/fastapi_translator.py:214-245"
     },
     "3211": {
-        "file_id": 374,
-        "content": "The code utilizes ffplay to sequentially play FLV files with a 3-second delay between each, then exits.",
-        "type": "summary"
+        "file_id": 375,
+        "content": "This code checks if a given proxy name is present in the working proxies list and performs actions accordingly. If there's an error during fetching translation, it prints an error message. The \"waitForServerUp\" function tests if a server at a specific port is up by sending requests and checking its response.",
+        "type": "comment"
     },
     "3212": {
-        "file_id": 374,
-        "content": "ffplay -i output/0.flv -autoexit; sleep 3\nffplay -i output/10.flv -autoexit; sleep 3\nffplay -i output/11.flv -autoexit; sleep 3\nffplay -i output/12.flv -autoexit; sleep 3\nffplay -i output/13.flv -autoexit; sleep 3\nffplay -i output/14.flv -autoexit; sleep 3\nffplay -i output/15.flv -autoexit; sleep 3\nffplay -i output/16.flv -autoexit; sleep 3\nffplay -i output/17.flv -autoexit; sleep 3\nffplay -i output/19.flv -autoexit; sleep 3\nffplay -i output/1.flv -autoexit; sleep 3\nffplay -i output/20.flv -autoexit; sleep 3\nffplay -i output/21.flv -autoexit; sleep 3\nffplay -i output/22.flv -autoexit; sleep 3\nffplay -i output/23.flv -autoexit; sleep 3\nffplay -i output/24.flv -autoexit; sleep 3\nffplay -i output/25.flv -autoexit; sleep 3\nffplay -i output/26.flv -autoexit; sleep 3\nffplay -i output/27.flv -autoexit; sleep 3\nffplay -i output/28.flv -autoexit; sleep 3\nffplay -i output/29.flv -autoexit; sleep 3\nffplay -i output/2.flv -autoexit; sleep 3\nffplay -i output/30.flv -autoexit; sleep 3\nffplay -i output/31.flv -autoexit; sleep 3",
+        "file_id": 375,
+        "content": "#             import time\n#             time.sleep(1)\n@app.get(\"/\")\ndef read_root():\n    # waitForServerUp(8677, \"clash update controller\")  # probe the clash updator\n    return \"unified translator hooked on some clash server\"\ntranslatedDict = {}\ntranslatedDictCacheLimit = 100\n@app.get(\"/translate\")\ndef read_item(backend: str, text: str):\n    global translatedDict\n    if len(list(translatedDict.keys())) > translatedDictCacheLimit:\n        mkeys = list(translatedDict.keys())\n        import random\n        random.shuffle(mkeys)\n        for key in mkeys[:translatedDictCacheLimit]:\n            del translatedDict[key]\n    code = 200\n    if not backend in [\"deepl\", \"baidu\"]:\n        code = 400\n        result = \"INVALID BACKEND\"\n    else:\n        if len(text) < 30 and text in translatedDict.keys():\n            result = translatedDict[text]\n        else:\n            result = metaTranslator(text, backend=backend)\n            if type(result) == str:\n                if len(result) < 30 and len(text) < 30:\n                    translatedDict.update({text: result})",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/viewer.sh:1-24"
+        "location": "/tests/karaoke_effects/fastapi_translator.py:246-283"
     },
     "3213": {
-        "file_id": 374,
-        "content": "This code uses ffplay to sequentially play videos from \"output/0.flv\" to \"output/31.flv\" with a 3-second delay between each video, then exits.",
+        "file_id": 375,
+        "content": "The code defines two API endpoints: a root endpoint returning \"unified translator hooked on some clash server\" and a \"/translate\" endpoint accepting a \"backend\" parameter (\"deepl\" or \"baidu\") and text to be translated. It caches up to 100 translations in a global dictionary, deleting the least recently used if exceeding cache limit. If the backend is invalid, it returns status code 400 with message \"INVALID BACKEND\". If the input text length is less than 30 and already translated, it returns that translation from cache; otherwise, it uses `metaTranslator` function to translate the text, storing the result in cache if valid.",
         "type": "comment"
     },
     "3214": {
-        "file_id": 374,
-        "content": "ffplay -i output/35.flv -autoexit; sleep 3\nffplay -i output/38.flv -autoexit; sleep 3\nffplay -i output/39.flv -autoexit; sleep 3\nffplay -i output/3.flv -autoexit; sleep 3\nffplay -i output/40.flv -autoexit; sleep 3\nffplay -i output/4.flv -autoexit; sleep 3\nffplay -i output/5.flv -autoexit; sleep 3\nffplay -i output/6.flv -autoexit; sleep 3\nffplay -i output/7.flv -autoexit; sleep 3\nffplay -i output/8.flv -autoexit; sleep 3",
+        "file_id": 375,
+        "content": "    return {\n        \"code\": (code if result not in [None, False, True, \"\"] else 400),\n        \"result\": (result if type(result) == str and result != \"\" else None),\n    }",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/viewer.sh:25-34"
+        "location": "/tests/karaoke_effects/fastapi_translator.py:284-287"
     },
     "3215": {
-        "file_id": 374,
-        "content": "This code plays and auto-exits various FLV files in order, with pauses between each playback.",
+        "file_id": 375,
+        "content": "This code snippet returns a dictionary containing the \"code\" and \"result\" keys. If the \"result\" is not None, False, True, or an empty string, it will be included in the result dictionary; otherwise, the code will be 400.",
         "type": "comment"
     },
     "3216": {
-        "file_id": 375,
-        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/render.sh",
+        "file_id": 376,
+        "content": "/tests/karaoke_effects/clash_auto_update.py",
         "type": "filepath"
     },
     "3217": {
-        "file_id": 375,
-        "content": "This code utilizes FFmpeg to extract three 3-second video clips from 'sample.mp4' at specific time points, saving them as separate output files numbered 60-62 in the 'output' directory.",
+        "file_id": 376,
+        "content": "This Flask application serves as a Clash proxy list server, updating every 30 minutes with two APIs. It includes three routes to manage proxies and runs on port 8677.",
         "type": "summary"
     },
     "3218": {
-        "file_id": 375,
-        "content": "ffmpeg -y -ss 00:00:00.100000 -to 00:00:07.733000 -i sample.mp4  output/0.flv\nffmpeg -y -ss 00:00:07.933000 -to 00:00:14.300000 -i sample.mp4  output/1.flv\nffmpeg -y -ss 00:00:14.500000 -to 00:00:15.767000 -i sample.mp4  output/2.flv\nffmpeg -y -ss 00:00:15.967000 -to 00:00:17.800000 -i sample.mp4  output/3.flv\nffmpeg -y -ss 00:00:18.000000 -to 00:00:20.967000 -i sample.mp4  output/4.flv\nffmpeg -y -ss 00:00:21.167000 -to 00:00:24.167000 -i sample.mp4  output/5.flv\nffmpeg -y -ss 00:00:24.367000 -to 00:00:27.467000 -i sample.mp4  output/6.flv\nffmpeg -y -ss 00:00:27.667000 -to 00:00:31.233000 -i sample.mp4  output/7.flv\nffmpeg -y -ss 00:00:31.433000 -to 00:00:33.300000 -i sample.mp4  output/8.flv\nffmpeg -y -ss 00:00:34.100000 -to 00:00:37.467000 -i sample.mp4  output/10.flv\nffmpeg -y -ss 00:00:37.667000 -to 00:00:40.633000 -i sample.mp4  output/11.flv\nffmpeg -y -ss 00:00:40.833000 -to 00:00:44.200000 -i sample.mp4  output/12.flv\nffmpeg -y -ss 00:00:44.400000 -to 00:00:50.600000 -i sample.mp4  output/13.flv",
+        "file_id": 376,
+        "content": "import yaml\n# you know this source is gone for good.\n# target = \"https://openit.ml/Clash.yaml\"\n# import yaml\n# import requests\nimport os\n# yes visit this site without any proxy.\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# CLASH_CONFIG_DOWNLOAD_URL=\"https://raw.kgithub.com/yu-steven/openit/main/Clash.yaml\" # it is down!\n# ALL_PROXIES_LOCATION=[\"proxies\", \"✋ 手动选择\", \"all\"]\n# PROXY_GROUP_EXCEPTIONS = [\"👉 例外网站\"]\n# PROXY_GROUP_SPECIALS =[\"☁️ 全球直连\", \"🌐 节点选择\"]\n# CLASH_CONFIG_DOWNLOAD_URL = \"https://subconverter.speedupvpn.com/sub?target=clash&url=https%3A%2F%2Fjsd.cdn.zzko.cn%2Fgh%2FPawdroid%2FFree-servers%40main%2Fsub&insert=false&emoji=true&list=false&tfo=false&scv=false&fdn=false&sort=false&new_name=true\" # change this to the direct link you sucker.\nimport urllib.parse\n# DIRECT_LINK = \"https://github.com/Pawdroid/Free-servers\"\nDIRECT_LINK = \"https://github.com/Pawdroid/Free-servers/raw/main/sub\"\n## looking for a clash file merger.\n## merge multiple clash files into one.\n## evil!\nCLASH_CONFIG",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/render.sh:1-13"
+        "location": "/tests/karaoke_effects/clash_auto_update.py:1-30"
     },
     "3219": {
-        "file_id": 375,
-        "content": "This code extracts and saves multiple clips from the sample.mp4 video file, each with varying start and end times, into separate output files numbered 0 to 13.ffmpeg command is used for extraction and '-y' flag overwrites existing outputs without prompting.",
+        "file_id": 376,
+        "content": "This code is importing necessary libraries and environment variables to download a Clash configuration file from the internet. It updates the URL to a new direct link, removes proxy restrictions, and aims to merge multiple Clash files into one configuration.",
         "type": "comment"
     },
     "3220": {
-        "file_id": 375,
-        "content": "ffmpeg -y -ss 00:00:50.800000 -to 00:00:56.266000 -i sample.mp4  output/14.flv\nffmpeg -y -ss 00:00:56.466000 -to 00:00:59.700000 -i sample.mp4  output/15.flv\nffmpeg -y -ss 00:00:59.900000 -to 00:01:01.900000 -i sample.mp4  output/16.flv\nffmpeg -y -ss 00:01:02.100000 -to 00:01:04.800000 -i sample.mp4  output/17.flv\nffmpeg -y -ss 00:01:05.800000 -to 00:01:07.100000 -i sample.mp4  output/19.flv\nffmpeg -y -ss 00:01:07.300000 -to 00:01:09.166000 -i sample.mp4  output/20.flv\nffmpeg -y -ss 00:01:09.366000 -to 00:01:10.466000 -i sample.mp4  output/21.flv\nffmpeg -y -ss 00:01:10.666000 -to 00:01:13.400000 -i sample.mp4  output/22.flv\nffmpeg -y -ss 00:01:13.600000 -to 00:01:15.100000 -i sample.mp4  output/23.flv\nffmpeg -y -ss 00:01:15.300000 -to 00:01:16.700000 -i sample.mp4  output/24.flv\nffmpeg -y -ss 00:01:16.900000 -to 00:01:20.166000 -i sample.mp4  output/25.flv\nffmpeg -y -ss 00:01:20.366000 -to 00:01:21.800000 -i sample.mp4  output/26.flv\nffmpeg -y -ss 00:01:22.000000 -to 00:01:23.266000 -i sample.mp4  output/27.flv",
+        "file_id": 376,
+        "content": "_DOWNLOAD_URL = f\"https://subconverter.speedupvpn.com/sub?target=clash&url={urllib.parse.quote_plus(DIRECT_LINK)}&insert=false&emoji=true&list=false&tfo=false&scv=false&fdn=false&sort=false&new_name=true\" # use quote_plus since the slash is not welcomed.\nALL_PROXIES_LOCATION = [\"proxies\", \"🔰 节点选择\", \"all\"]\nPROXY_GROUP_EXCEPTIONS = [\"🐟 漏网之鱼\"]\nPROXY_GROUP_SPECIALS = [\"🎯 全球直连\", \"🔰 节点选择\", \"♻️ 自动选择\"]\n# r = requests.get(target)\n# text = r.text\n# json_obj = yaml.safe_load(text)\n# port: 7890\n# socks5 port: 7891\n# controller: http://localhost:9090\n# PUT http://localhost:9090/providers/proxies/default\n# all_proxies_url = \"http://localhost:9090/proxies/\"\n# one_proxy_url = \"http://localhost:9090/proxies/{}\".format(proxy_name)\n# delay test url: http://localhost:9090/proxies/%F0%9F%87%A8%F0%9F%87%B3%20CN%2014%EF%BD%9Copenit.ml/delay?timeout=2000&url=https://www.baidu.com\nfrom loadSomeCustomClashYaml import goYamlToPyYaml, pyYamlToGoYaml\ndef jsonLocate(jsonObj, location=[]):\n    try:\n        if location != []:\n            return jsonLocate(jsonObj[location[0]], location[1:])",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/render.sh:14-26"
+        "location": "/tests/karaoke_effects/clash_auto_update.py:30-56"
     },
     "3221": {
-        "file_id": 375,
-        "content": "The code uses FFmpeg to extract multiple video clips from a single input file, each with varying start and end times. It creates output files numbered 14-27, representing separate sections of the original video.",
+        "file_id": 376,
+        "content": "Code fetches clash configuration data from a URL, extracts necessary information like controller URL and proxy port numbers, and handles exceptions for non-matching group names. The code also defines URLs for accessing the proxy list or specific proxies, and includes a delay test URL to check connection speed. A function `jsonLocate` is used for locating values within a JSON object using a given location path.",
         "type": "comment"
     },
     "3222": {
-        "file_id": 375,
-        "content": "ffmpeg -y -ss 00:01:23.466000 -to 00:01:26.633000 -i sample.mp4  output/28.flv\nffmpeg -y -ss 00:01:26.833000 -to 00:01:28.300000 -i sample.mp4  output/29.flv\nffmpeg -y -ss 00:01:28.500000 -to 00:01:29.700000 -i sample.mp4  output/30.flv\nffmpeg -y -ss 00:01:29.900000 -to 00:01:33.266000 -i sample.mp4  output/31.flv\nffmpeg -y -ss 00:01:35.500000 -to 00:01:36.266000 -i sample.mp4  output/35.flv\nffmpeg -y -ss 00:01:38.000000 -to 00:01:41.800000 -i sample.mp4  output/38.flv\nffmpeg -y -ss 00:01:42.000000 -to 00:01:42.800000 -i sample.mp4  output/39.flv\nffmpeg -y -ss 00:01:43.000000 -to 00:01:44.933000 -i sample.mp4  output/40.flv\nffmpeg -y -ss 00:01:45.133000 -to 00:01:47.933000 -i sample.mp4  output/41.flv\nffmpeg -y -ss 00:01:48.133000 -to 00:01:49.533000 -i sample.mp4  output/42.flv\nffmpeg -y -ss 00:01:49.733000 -to 00:01:52.533000 -i sample.mp4  output/43.flv\nffmpeg -y -ss 00:01:52.733000 -to 00:01:55.633000 -i sample.mp4  output/44.flv\nffmpeg -y -ss 00:01:55.833000 -to 00:01:59.666000 -i sample.mp4  output/45.flv",
+        "file_id": 376,
+        "content": "        return jsonObj\n    except:\n        print(\"KEY %s DOES NOT EXIST!\", \".\".join(location))\n        return None\ndef find_proxy_names(\n    test_url=\"http://localhost:9911/proxies/\", location=ALL_PROXIES_LOCATION\n):\n    import requests\n    r = requests.get(test_url)\n    import json\n    data = json.loads(r.text)\n    proxy_names = jsonLocate(data, location=location)\n    if proxy_names == None:\n        print(\"SOMEHOW WE FAILED TO FETCH THE PROXY LIST\")\n        return []\n    else:\n        return proxy_names\n## FIND DELAY ##\ndef find_tested_proxy_names(\n    timeout=3000,\n    urltest=\"https://m.tujia.com\",\n    test_url=\"http://localhost:9911/proxies/\",\n    location=ALL_PROXIES_LOCATION,\n    forbidden_names=[\"DIRECT\", \"REJECT\", \"GLOBAL\"],\n):\n    import requests\n    import json\n    proxy_names = find_proxy_names(test_url, location)\n    if proxy_names == []:\n        return []\n    def get_delay(name):\n        url = \"{}{}/delay?timeout={}&url={}\".format(test_url, name, timeout, urltest)\n        r = requests.get(url)\n        response_json = r.text",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/render.sh:27-39"
+        "location": "/tests/karaoke_effects/clash_auto_update.py:57-98"
     },
     "3223": {
-        "file_id": 375,
-        "content": "This code uses ffmpeg to extract individual video scenes from a given input file, \"sample.mp4\". It specifies the start and end times for each scene, and outputs separate .flv files named \"output/xx.flv\" where xx corresponds to the scene number.",
+        "file_id": 376,
+        "content": "The code defines a function to find tested proxy names, utilizes the requests library for API calls, and uses JSON to locate data. The find_proxy_names function retrieves a list of proxy names from a specific URL and location. If unsuccessful, it returns an empty list. The find_tested_proxy_names function finds tested proxy names by calling find_proxy_names and then checks delays for each proxy name using the 'get_delay' function.",
         "type": "comment"
     },
     "3224": {
-        "file_id": 375,
-        "content": "ffmpeg -y -ss 00:01:59.866000 -to 00:02:06.300000 -i sample.mp4  output/46.flv\nffmpeg -y -ss 00:02:06.500000 -to 00:02:12.599000 -i sample.mp4  output/47.flv\nffmpeg -y -ss 00:02:12.799000 -to 00:02:14.233000 -i sample.mp4  output/48.flv\nffmpeg -y -ss 00:02:14.433000 -to 00:02:18.066000 -i sample.mp4  output/49.flv\nffmpeg -y -ss 00:02:18.266000 -to 00:02:20.499000 -i sample.mp4  output/50.flv\nffmpeg -y -ss 00:02:21.299000 -to 00:02:22.666000 -i sample.mp4  output/52.flv\nffmpeg -y -ss 00:02:22.866000 -to 00:02:25.966000 -i sample.mp4  output/53.flv\nffmpeg -y -ss 00:02:26.166000 -to 00:02:31.066000 -i sample.mp4  output/54.flv\nffmpeg -y -ss 00:02:31.266000 -to 00:02:34.533000 -i sample.mp4  output/55.flv\nffmpeg -y -ss 00:02:34.733000 -to 00:02:39.366000 -i sample.mp4  output/56.flv\nffmpeg -y -ss 00:02:39.566000 -to 00:02:42.399000 -i sample.mp4  output/57.flv\nffmpeg -y -ss 00:02:42.599000 -to 00:02:45.433000 -i sample.mp4  output/58.flv\nffmpeg -y -ss 00:02:45.633000 -to 00:02:47.799000 -i sample.mp4  output/59.flv",
+        "file_id": 376,
+        "content": "        response_json = json.loads(response_json)\n        if \"delay\" in response_json.keys():\n            delay = response_json[\"delay\"]\n        else:\n            delay = None\n        return delay\n    direct_delay = get_delay(\"DIRECT\")\n    if direct_delay is None:\n        direct_delay = 300  # approximate delay 300ms\n    candidates = []\n    import progressbar  # 3 minutes.\n    for name in progressbar.progressbar(\n        [x for x in proxy_names if x not in forbidden_names]\n    ):\n        # if name in forbidden_names: continue\n        # delay = get_delay(name)\n        # if delay is not None:\n        candidates.append((name, 3))\n    print(\"PROXY CANDIDATES: %d\" % len(candidates))\n    for elem in candidates:\n        print(elem)\n    return candidates\ndef setClashProxy(proxy_name, control_port=9911):\n    import requests\n    import json\n    selector = \"GLOBAL\"\n    try:\n        r = requests.put(\n            \"http://localhost:{}/proxies/{}\".format(control_port, selector),\n            data=json.dumps({\"name\": proxy_name}, ensure_ascii=False).encode(),",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/render.sh:40-52"
+        "location": "/tests/karaoke_effects/clash_auto_update.py:99-133"
     },
     "3225": {
-        "file_id": 375,
-        "content": "The code uses FFmpeg to extract specific segments of the video file \"sample.mp4\", from different starting and ending timestamps, and save them as separate output files named \"output/[number].flv\". Each command is executed one after another, resulting in a total of 59 output files.",
+        "file_id": 376,
+        "content": "Function to get proxy delay and return a list of candidates for setting the Clash proxy. First, it retrieves the delay for each proxy name from direct or API response, then creates a list of candidate proxies with a default delay of 300ms if not available. Finally, prints the number of candidate proxies and their names, returning the list.",
         "type": "comment"
     },
     "3226": {
-        "file_id": 375,
-        "content": "ffmpeg -y -ss 00:02:47.999000 -to 00:02:50.966000 -i sample.mp4  output/60.flv\nffmpeg -y -ss 00:02:51.166000 -to 00:02:53.866000 -i sample.mp4  output/61.flv\nffmpeg -y -ss 00:02:54.066000 -to 00:02:58.799000 -i sample.mp4  output/62.flv",
+        "file_id": 376,
+        "content": "        )\n        assert r.status_code == 204\n        # assert r.status_code =\n    except:\n        import traceback\n        traceback.print_exc()\n        breakpoint()\n# with open(\"ClashBaseOpenIt.yaml\", 'r') as f:\n#     cachedDNSConfig = yaml.load(f,yaml.FullLoader)\ndef refineClashYaml(clashYamlPath=\"Clash3.yaml\", advanced=True):\n    with open(clashYamlPath, \"r\") as f:\n        data = f.read()\n    from loadSomeCustomClashYaml import goYamlToPyYaml, pyYamlToGoYaml\n    import yaml\n    data = goYamlToPyYaml(data)\n    data = yaml.safe_load(data)\n    data[\"port\"] = 8381\n    base_url = \"127.0.0.1:9911\"\n    data[\"external-controller\"] = base_url\n    if \"socks-port\" in data.keys():\n        del data[\"socks-port\"]\n    # breakpoint()\n    if advanced:\n        # print(data['proxies'])\n        key = \"proxy-groups\"\n        updatedProxy = []\n        updateIndex = 0\n        for index, proxy in enumerate(data[key]):\n            # breakpoint()\n            if proxy[\"name\"] in PROXY_GROUP_EXCEPTIONS:\n                # print(proxy)\n                # breakpoint()",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/render.sh:53-55"
+        "location": "/tests/karaoke_effects/clash_auto_update.py:134-173"
     },
     "3227": {
-        "file_id": 375,
-        "content": "The code uses FFmpeg to extract three segments of 3 seconds each, starting at different time points (02:51.166, 02:54.066, and 02:57.251), from the input video 'sample.mp4' and saves them as separate output files ('output/60.flv', 'output/61.flv', and 'output/62.flv').",
+        "file_id": 376,
+        "content": "This code defines a function `refineClashYaml` that takes a path to a Clash YAML configuration file and an optional \"advanced\" parameter. It opens the file, converts its contents from Go-style YAML to Python-friendly YAML, loads it using the `yaml.safe_load()` function, then modifies some fields (e.g., sets a new port and specifies a base URL). If \"advanced\" is True, it iterates through the \"proxy-groups\" section, removing certain proxies if they match a list of exceptions.",
         "type": "comment"
     },
     "3228": {
         "file_id": 376,
-        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/preview_clips.sh",
-        "type": "filepath"
+        "content": "                updateIndex = index\n                updatedProxy = proxy.copy()\n                updatedProxy[\"proxies\"] = [\n                    elem\n                    for elem in proxy[\"proxies\"]\n                    if elem not in PROXY_GROUP_SPECIALS\n                ]\n                updatedProxy[\"url\"] = \"https://media4.giphy.com\"\n                updatedProxy[\"interval\"] = 300\n                updatedProxy[\"tolerance\"] = 50\n                break\n        data[key][updateIndex] = updatedProxy\n        # for item in data['proxies']:\n        #     print(item)\n        # del data[\"rules\"]\n        # data[\"mode\"] = \"global\"\n    # data[\"dns\"] = cachedDNSConfig\n    data[\"dns\"] = {\n        \"enable\": True,\n        \"enhanced-mode\": \"redir-host\",\n        \"fake-ip-filter\": [\"*.lan\", \"localhost.ptlogin2.qq.com\"],\n        \"fake-ip-range\": \"198.18.0.1/16\",\n        \"fallback\": [\n            \"8.8.8.8\",\n            \"1.1.1.1\",\n            \"tls://dns.rubyfish.cn:853\",\n            \"tls://1.0.0.1:853\",\n            \"tls://dns.google:853\",",
+        "type": "code",
+        "location": "/tests/karaoke_effects/clash_auto_update.py:174-202"
     },
     "3229": {
         "file_id": 376,
-        "content": "This code plays and pauses \"sample.mp4\" with ffplay for analysis or scene extraction, introducing 3-second delays between playback sessions.",
-        "type": "summary"
+        "content": "This code updates the proxy settings and DNS configuration for a program. It removes special proxies, sets new URL, interval, and tolerance values, and enables DNS with specific configurations like enhanced mode and fake IP range.",
+        "type": "comment"
     },
     "3230": {
         "file_id": 376,
-        "content": "ffplay -ss 00:00:00.000 -t 7.833 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:07.833 -t 6.567 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:14.400 -t 1.467 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:15.867 -t 2.033 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:17.900 -t 3.167 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:21.067 -t 3.2 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:24.267 -t 3.3 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:27.567 -t 3.767 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:31.333 -t 2.067 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:33.400 -t 0.6 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:34.000 -t 3.567 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:37.567 -t 3.167 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:40.733 -t 3.567 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:44.300 -t 6.4 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:50.700 -t 5.667 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:00:56.366 -t 3.433 -i sample.mp4 -autoexit ",
+        "content": "            \"https://dns.rubyfish.cn/dns-query\",\n            \"https://cloudflare-dns.com/dns-query\",\n            \"https://dns.google/dns-query\",\n        ],\n        \"fallback-filter\": {\"geoip\": True, \"ipcidr\": [\"240.0.0.0/4\"]},\n        \"ipv6\": False,\n        \"listen\": \"0.0.0.0:61\",  # key?\n        \"nameserver\": [\n            \"223.5.5.5\",\n            \"180.76.76.76\",\n            \"119.29.29.29\",\n            \"117.50.10.10\",\n            \"114.114.114.114\",\n        ],\n    }\n    # data = pyYamlToGoYaml(data)\n    data_dump = yaml.safe_dump(data, allow_unicode=True)\n    data_dump = pyYamlToGoYaml(data_dump)\n    with open(clashYamlPath, \"w\") as f:\n        f.write(data_dump)\n    \"\"\"\n    import requests\n    import json\n    base_url =  \"http://127.0.0.1:9022\"\n    url = \"/proxies/\"\n    r = requests.put(base_url+url+\"GLOBAL\",data=json.dumps({\"name\":name},ensure_ascii=False).encode())\n    assert r.status_code == 204\n    \"\"\"\ndef getClashYaml(clashYamlPath=\"Clash3.yaml\", url: str = CLASH_CONFIG_DOWNLOAD_URL):\n    import requests\n    #",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/preview_clips.sh:1-31"
+        "location": "/tests/karaoke_effects/clash_auto_update.py:203-240"
     },
     "3231": {
         "file_id": 376,
-        "content": "This code plays and automatically exits various clips from the sample.mp4 video with specific start times and durations, followed by a 3-second pause between each clip playback.",
+        "content": "This code sets up a DNS server for Clash, a proxy tool. It provides a list of DNS servers and fallback filters to be used by the program. The data is converted to YAML format and written into a file named \"Clash3.yaml\". Then, it sends an HTTP PUT request to the Clash API endpoint to update the configuration.",
         "type": "comment"
     },
     "3232": {
         "file_id": 376,
-        "content": "sleep 3\nffplay -ss 00:00:59.800 -t 2.2 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:02.000 -t 2.9 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:04.900 -t 0.8 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:05.700 -t 1.5 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:07.200 -t 2.067 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:09.266 -t 1.3 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:10.566 -t 2.933 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:13.500 -t 1.7 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:15.200 -t 1.6 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:16.800 -t 3.467 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:20.266 -t 1.633 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:21.900 -t 1.467 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:23.366 -t 3.367 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:26.733 -t 1.667 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:28.400 -t 1.4 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:29.800 -t 3.567 -i sample.mp4 -autoexit ",
+        "content": " url = \"https://raw.githubusercontents.com/yu-steven/openit/main/Clash.yaml\" # some subtle difference!\n    # url = 'https://cdn.staticaly.com/gh/yu-steven/openit/main/Clash.yaml'\n    # url = \"https://raw.kgithub.com/yu-steven/openit/main/Clash.yaml\"\n    r = requests.get(url)\n    with open(clashYamlPath, \"w+\") as f:\n        f.write(r.text)\n    print(\"FETCHING CLASH YAML DONE.\")\n    print(\"SAVED AT %s\" % clashYamlPath)\nfrom lazero.program import asyncThread\n@asyncThread\ndef updateClashYaml(clashYamlPath=\"Clash3.yaml\", control_port=9911, advanced=True):\n    getClashYaml(clashYamlPath=clashYamlPath)\n    # if refine:\n    refineClashYaml(clashYamlPath=clashYamlPath, advanced=advanced)\n    import requests\n    import json\n    full_config_path = os.path.abspath(clashYamlPath)\n    try:\n        r = requests.put(\n            \"http://localhost:{}/configs\".format(control_port),\n            data=json.dumps({\"path\": full_config_path}, ensure_ascii=False).encode(),\n        )\n        # print('REPLY CONTENT:',r.content)\n        # breakpoint()",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/preview_clips.sh:32-63"
+        "location": "/tests/karaoke_effects/clash_auto_update.py:240-269"
     },
     "3233": {
         "file_id": 376,
-        "content": "This code uses ffplay to play predefined segments of a video file \"sample.mp4\" with specified start and stop times, allowing for analysis or extraction of specific scenes. The sleep commands introduce pauses between each command execution, ensuring the video segment plays before moving on to the next one.",
+        "content": "This code fetches the latest Clash YAML configuration file from a specified URL and saves it to a local file. It then updates the Clash configuration by sending the updated file path to the Clash control port. The function can be called asynchronously with optional arguments for the Clash YAML file name, control port, and advanced settings refinement.",
         "type": "comment"
     },
     "3234": {
         "file_id": 376,
-        "content": "sleep 3\nffplay -ss 00:01:33.366 -t 0.733 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:34.100 -t 0.6 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:34.700 -t 0.7 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:35.400 -t 0.967 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:36.366 -t 0.733 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:37.100 -t 0.8 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:37.900 -t 4.0 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:41.900 -t 1.0 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:42.900 -t 2.133 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:45.033 -t 3.0 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:48.033 -t 1.6 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:49.633 -t 3.0 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:52.633 -t 3.1 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:55.733 -t 4.033 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:01:59.766 -t 6.633 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:06.400 -t 6.3 -i sample.mp4 -autoexit ",
+        "content": "        assert r.status_code == 204\n        # might be the problem.\n        # TODO: check why the fuck clash server cannot decode the config in utf-8 'unexpected end of data'\n        print(\"SUCCESSFULLY UPDATED THIS PROXY LIST\")\n        return True\n    except:\n        import traceback\n        traceback.print_exc()\n        # breakpoint()\n        print(\"SOME ERROR WHILE FETCHING CLASH OPENIT SCRIPT\")\n        return False\n# this can act as a server as well?\n# simplicity in mind.\nimport schedule\nschedule.every(30).minutes.do(updateClashYaml)\nupdateClashYaml()\nfrom flask import Flask, request\nport = 8677\napp = Flask(__name__)\ndef checkProxyExists(proxy):\n    return proxy in find_proxy_names()\n# from typing import Union\n@app.route(\"/\", methods=[\"GET\"])\ndef serverHello():\n    try:\n        schedule.run_pending()\n    except:\n        pass\n    return \"clash update controller\"\n@app.route(\"/checkProxy\", methods=[\"GET\"])\ndef checkProxyAPI():\n    proxy = request.args[\"proxy\"]\n    print(\"CHECKING PROXY:\", proxy)\n    exists = checkProxyExists(proxy)",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/preview_clips.sh:64-95"
+        "location": "/tests/karaoke_effects/clash_auto_update.py:270-318"
     },
     "3235": {
         "file_id": 376,
-        "content": "The code is executing ffplay with different start times and durations to preview clips from a sample video file. It waits 3 seconds between each command execution.",
+        "content": "The code is a Flask application that acts as a server, updates the Clash proxy list every 30 minutes, and provides two APIs: one to check if a proxy exists in the list and another for fetching the Clash OpenIT script. An error message is displayed when there's an issue while fetching the script, and it prints the exception stack trace using traceback. The application runs on port 8677.",
         "type": "comment"
     },
     "3236": {
         "file_id": 376,
-        "content": "sleep 3\nffplay -ss 00:02:12.699 -t 1.633 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:14.333 -t 3.833 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:18.166 -t 2.433 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:20.599 -t 0.6 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:21.199 -t 1.567 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:22.766 -t 3.3 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:26.066 -t 5.1 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:31.166 -t 3.467 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:34.633 -t 4.833 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:39.466 -t 3.033 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:42.499 -t 3.033 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:45.533 -t 2.367 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:47.899 -t 3.167 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:51.066 -t 2.9 -i sample.mp4 -autoexit \nsleep 3\nffplay -ss 00:02:53.966 -t 4.933 -i sample.mp4 -autoexit \nsleep 3",
+        "content": "    return {\"exists\": exists}\n@app.route(\"/useDirect\", methods=[\"GET\"])\ndef useDirectAPI():\n    proxy_name = \"DIRECT\"\n    schedule.run_pending()\n    setClashProxy(proxy_name)\n    return \"refresh proxy to %s\" % proxy_name\n@app.route(\"/refreshProxy\", methods=[\"GET\"])\ndef refreshProxyAPI():\n    suggest = None\n    if \"suggest\" in request.args.keys():\n        suggest = request.args[\"suggest\"]\n        print(\"SUGGESTED PROXY:\", suggest)\n    schedule.run_pending()\n    if suggest:\n        if checkProxyExists(suggest):\n            setClashProxy(suggest)\n            return \"refresh suggested proxy to %s\" % suggest\n    proxy_names = find_proxy_names()\n    if proxy_names == []:\n        return \"failed to find a proxy\"\n    import random\n    proxy_name = random.choice(proxy_names)\n    setClashProxy(proxy_name)\n    return \"refresh proxy to %s\" % proxy_name\nif __name__ == \"__main__\":\n    app.run(port=port, threaded=True, use_reloader=False)",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/preview_clips.sh:96-126"
+        "location": "/tests/karaoke_effects/clash_auto_update.py:319-353"
     },
     "3237": {
         "file_id": 376,
-        "content": "The code uses the ffplay command to play specific segments of a video file, \"sample.mp4\", with varying start times and durations. The -autoexit flag ensures that each playback session ends automatically after completion. Sleep commands are used between ffplay calls, introducing delays of 3 seconds each time.",
+        "content": "The code defines three routes (\"/useDirect\", \"/refreshProxy\") and a function to set the Clash proxy. The \"/useDirect\" route sets the proxy directly to DIRECT. The \"/refreshProxy\" route, if a suggested proxy is provided in the request, sets it as the current proxy. If not, it randomly selects one from available proxies. The code also runs pending tasks and checks if a proxy exists before setting it.",
         "type": "comment"
     },
     "3238": {
         "file_id": 377,
-        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py",
+        "content": "/tests/karaoke_effects/pyonfx_test/view_best_example.sh",
         "type": "filepath"
     },
     "3239": {
         "file_id": 377,
-        "content": "The code reads CSV data, calculates statistics for video scene lengths, generates FFmpeg commands with duration threshold handling, filters and selects scenes based on even spacing criteria using random functions. The `getNeighborIndexs` function helps find neighboring values that meet specific thresholds.",
+        "content": "This command starts mpv player to display a karaoke video with subtitles. The \"Output.ass\" file contains the lyrics and timing information, and the \"karaoke_effects_source.mp4\" is the video being displayed.",
         "type": "summary"
     },
     "3240": {
         "file_id": 377,
-        "content": "import pandas\nmetric = \"video.stats.csv\"\nmetric = pandas.read_csv(metric)\nscenes = \"sample_scenes.csv\"\nwith open(scenes, \"r\") as f:\n    content = f.read()\n    lines = content.split(\"\\n\")\n    timecodeList = lines[0]\n    scenes = \"\\n\".join(lines[1:])\n    from io import StringIO\n    scenes = StringIO(scenes)\ntimecodeList = timecodeList.split(\",\")\ntimecodeList[0] = \"00:00:00.000\"\nscenes = pandas.read_csv(scenes)\nlengths = []\nsceneCuts = []\nfor index, row in scenes.iterrows():\n    # print(row)\n    # breakpoint()\n    start, end = row[\"Start Timecode\"], row[\"End Timecode\"]\n    length = row[\"Length (seconds)\"]\n    sceneCuts.append((start, end, length))\n    # print(start, end)\n    # please calculate the length!\n    lengths.append(length)\n    # print(length, type(length)) # float.\nflag = \"filter\"\nfilename = \"sample.mp4\"\nif flag == \"calculate_statistics\":\n    import numpy\n    std = numpy.std(lengths)\n    mean = numpy.mean(lengths)\n    print(std, mean)\n    # 1.6674874515595588 2.839698412698412\n    print(min(lengths), max(lengths))",
+        "content": "mpv --fs --no-audio --sub-file=\"/root/Desktop/works/pyjom/tests/karaoke_effects/pyonfx_test/examples/2 - Beginner/Output.ass\" \"/root/Desktop/works/pyjom/samples/video/karaoke_effects_source.mp4\"",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:1-46"
+        "location": "/tests/karaoke_effects/pyonfx_test/view_best_example.sh:1-1"
     },
     "3241": {
         "file_id": 377,
-        "content": "This code reads data from two CSV files and performs calculations on the \"Length (seconds)\" values for each scene in a video. It calculates the standard deviation, mean, minimum, and maximum of these lengths. The resulting values are then printed to the console.",
+        "content": "This command starts mpv player to display a karaoke video with subtitles. The \"Output.ass\" file contains the lyrics and timing information, and the \"karaoke_effects_source.mp4\" is the video being displayed.",
         "type": "comment"
     },
     "3242": {
-        "file_id": 377,
-        "content": "    min(lengths), max(lengths)\n    # 0.6 7.833\n    # strange though.\n    # shall we adjust this accordingly? how to generate this shit?\nelif flag == \"generate_ffplay\":\n    for (start, end, duration) in sceneCuts:\n        print(\"ffplay -ss %s -t %s -i %s -autoexit \" % (start, duration, filename))\n        print(\"sleep 3\")\nelif flag == \"render\":\n    import os\n    import datetime\n    durationThreshold = 0.6674874515595588\n    mTimeDelta = datetime.timedelta(milliseconds=100)  # 0.1 seconds\n    getTimeObject = lambda timeString: datetime.datetime.strptime(\n        timeString, \"%H:%M:%S.%f\"\n    )\n    getTimeString = lambda timeObject: timeObject.strftime(\"%H:%M:%S.%f\")\n    if not os.path.exists(\"output\"):\n        os.mkdir(\"output\")\n    for index, (start, end, duration) in enumerate(sceneCuts):\n        estimatedDuration = duration - 0.2\n        if estimatedDuration < durationThreshold:\n            continue\n        start2 = getTimeObject(start) + mTimeDelta\n        end2 = getTimeObject(end) - mTimeDelta\n        start2, end2 = getTimeString(start2), getTimeString(end2)",
-        "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:47-73"
+        "file_id": 378,
+        "content": "/tests/karaoke_effects/pyonfx_test/test.py",
+        "type": "filepath"
     },
     "3243": {
-        "file_id": 377,
-        "content": "This code segment is responsible for generating FFmpeg commands to play and render video scenes, with additional handling of scene duration threshold. It also checks if the output directory exists and creates it if necessary. The code adjusts start and end times by subtracting or adding 0.2 seconds from the original duration and compares the estimated duration to a given threshold before proceeding with FFmpeg commands.",
-        "type": "comment"
+        "file_id": 378,
+        "content": "The code initializes a variable 'lyricPath' with the path to the LRC file and imports modules 'pyonfx' and 'pylrc'.",
+        "type": "summary"
     },
     "3244": {
-        "file_id": 377,
-        "content": "        output = \"output/%d.flv\" % index\n        print(\"ffmpeg -y -ss %s -to %s -i %s %s\" % (start2, end2, filename, output))\nelif (\n    flag == \"filter\"\n):  # to make sure the selected set will be evenly spaced. no two elements will get closer to each other than 5 seconds.\n    import random\n    durationMinThreshold = 0.6\n    durationMaxThreshold = 7.833\n    fakeQualificationFunction = lambda: random.uniform(\n        durationMinThreshold, durationMaxThreshold\n    )\n    fakeAcceptFunction = lambda: random.random() > 0.5\n    # select the closest one! must be closer than 0.9 to 1.1\n    candidates = []\n    import datetime\n    getTimeObject = lambda timeString: datetime.datetime.strptime(\n        timeString, \"%H:%M:%S.%f\"\n    )\n    getTimeString = lambda timeObject: timeObject.strftime(\"%H:%M:%S.%f\")\n    mTimeDelta = datetime.timedelta(milliseconds=100)  # 0.1 seconds\n    standardStartDatetime = datetime.datetime(year=1900, month=1, day=1)\n    standardStartTimestamp = standardStartDatetime.timestamp()\n    getTimestamp = lambda timeObject: timeObject.timestamp() - standardStartTimestamp",
+        "file_id": 378,
+        "content": "lyricPath = \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.lrc\"\nimport pyonfx\nimport pylrc",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:74-99"
+        "location": "/tests/karaoke_effects/pyonfx_test/test.py:1-3"
     },
     "3245": {
-        "file_id": 377,
-        "content": "This code snippet is responsible for filtering and selecting video scenes based on specific duration criteria. It ensures that the selected set of scenes is evenly spaced, with no two elements being closer than 5 seconds. The code uses random functions to generate duration thresholds and filters candidate scenes accordingly. It also includes time-related functions for converting between string and datetime formats, and calculating timestamps from datetimes.",
+        "file_id": 378,
+        "content": "The code initializes a variable 'lyricPath' with the path to the LRC file and imports modules 'pyonfx' and 'pylrc'.",
         "type": "comment"
     },
     "3246": {
-        "file_id": 377,
-        "content": "    for index, (start, end, duration) in enumerate(sceneCuts):\n        estimatedDurationAfterCut = duration - 0.2\n        if (\n            estimatedDurationAfterCut < durationMinThreshold\n            or estimatedDurationAfterCut > durationMaxThreshold\n        ):\n            continue\n        startCutDatetime = getTimeObject(start) + mTimeDelta\n        endCutDatetime = getTimeObject(end) - mTimeDelta\n        # print(getTimeStamp(startDatetime), getTimeStamp(endDatetime))\n        # print(startDatetime, endDatetime)\n        startCutTimestamp, endCutTimestamp = getTimestamp(\n            startCutDatetime\n        ), getTimestamp(endCutDatetime)\n        candidates.append(\n            (startCutTimestamp, endCutTimestamp, estimatedDurationAfterCut)\n        )\n    shuffledCandidates = [\n        (index, startCutDatetime, endCutDatetime, estimatedDurationAfterCut)\n        for index, (\n            startCutDatetime,\n            endCutDatetime,\n            estimatedDurationAfterCut,\n        ) in enumerate(candidates)\n    ]\n    random.shuffle(shuffledCandidates)",
-        "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:101-127"
+        "file_id": 379,
+        "content": "/tests/karaoke_effects/pyonfx_test/render_ass_video.sh",
+        "type": "filepath"
     },
     "3247": {
-        "file_id": 377,
-        "content": "Iterates through scene cuts, filters based on duration threshold, converts timestamps to Unix timestamps, appends as candidates, shuffles the candidates and assigns index.",
-        "type": "comment"
+        "file_id": 379,
+        "content": "This command uses FFmpeg to extract a 60-second segment from the input video \"karaoke_effects_source.mp4\", applying the embedded ASS subtitles from \"Output.ass\" as effects, and saves the result as \"out.mp4\".",
+        "type": "summary"
     },
     "3248": {
-        "file_id": 377,
-        "content": "    bannedIndexs = set()\n    neighborThreshold = 5\n    def getNeighborIndexs(index, candidates, neighborThreshold, checkNeighbor):\n        assert neighborThreshold > 0\n        assert index < len(candidates) and index >= 0\n        leftNeighbors = candidates[:index][::-1]\n        rightNeighbors = candidates[index + 1 :]\n        neighborIndexs = []\n        for mIndex, neighbor in enumerate(leftNeighbors):\n            currentIndex = index - mIndex - 1\n            assert candidates[currentIndex] == neighbor\n            assert currentIndex >= 0 and currentIndex < len(candidates)\n            if checkNeighbor(neighbor, candidates[index]):\n                neighborIndexs.append(currentIndex)\n                print(\"left index:\", currentIndex)\n            else:\n                break\n        for mIndex, neighbor in enumerate(rightNeighbors):\n            currentIndex = index + mIndex + 1\n            assert candidates[currentIndex] == neighbor\n            assert currentIndex >= 0 and currentIndex < len(candidates)\n            if checkNeighbor(neighbor, candidates[index]):",
+        "file_id": 379,
+        "content": "ffmpeg -y -i \"/root/Desktop/works/pyjom/samples/video/karaoke_effects_source.mp4\" -ss 0 -to 60 -vf \"ass='/root/Desktop/works/pyjom/tests/karaoke_effects/pyonfx_test/examples/2 - Beginner/Output.ass'\" out.mp4",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:128-150"
+        "location": "/tests/karaoke_effects/pyonfx_test/render_ass_video.sh:1-1"
     },
     "3249": {
-        "file_id": 377,
-        "content": "This function, `getNeighborIndexs`, takes an index, a list of candidates, and two parameters: `neighborThreshold` and `checkNeighbor`. It checks the neighboring values from both sides of the given index, appending their indices to the list if they satisfy a certain condition defined by `checkNeighbor`. It prints the left indices found while iterating through the candidates.",
+        "file_id": 379,
+        "content": "This command uses FFmpeg to extract a 60-second segment from the input video \"karaoke_effects_source.mp4\", applying the embedded ASS subtitles from \"Output.ass\" as effects, and saves the result as \"out.mp4\".",
         "type": "comment"
     },
     "3250": {
-        "file_id": 377,
-        "content": "                neighborIndexs.append(currentIndex)\n                print(\"right index:\", currentIndex)\n            else:\n                break\n        return neighborIndexs\n    def checkNeighborForClipCandiates(clip_a, clip_b, threshold):\n        assert threshold > 0\n        s_a, e_a, l_a = clip_a\n        s_b, e_b, l_b = clip_b\n        e_min = min(e_a, e_b)\n        s_max = max(s_a, s_b)\n        distance = s_max - e_min\n        return distance < threshold  # check if is neighbor\n    while True:\n        print(\"BANNED:\", len(bannedIndexs), \"TOTAL:\", len(candidates))\n        target = fakeQualificationFunction()\n        isSimilar = lambda a, b, threshold: min(a, b) / max(a, b) >= threshold\n        similarThreshold = 0.9\n        if len(bannedIndexs) == len(shuffledCandidates):\n            print(\"No avaliable candidates\")\n            break\n        for (\n            index,\n            startCutDatetime,\n            endCutDatetime,\n            estimatedDurationAfterCut,\n        ) in shuffledCandidates:\n            if index in bannedIndexs:",
-        "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:151-180"
+        "file_id": 380,
+        "content": "/tests/karaoke_effects/pyonfx_test/macos_view_best_example.sh",
+        "type": "filepath"
     },
     "3251": {
-        "file_id": 377,
-        "content": "The code is iterating over candidate indexes and checking if they are neighbors. It appends the current index to a list of neighborIndexs, and checks if two clips are neighbors using a threshold value. If there are no available candidates left, it breaks the loop.",
-        "type": "comment"
+        "file_id": 380,
+        "content": "This script opens a video file with an ASS subtitle file, using mpv player in full screen and without audio. The ASS file contains karaoke effects for the associated video, sourced from pyjom_remote/tests/karaoke_effects/pyonfx_test/examples/2 - Beginner folder.",
+        "type": "summary"
     },
     "3252": {
-        "file_id": 377,
-        "content": "                continue\n            if isSimilar(estimatedDurationAfterCut, target, similarThreshold):\n                accept = fakeAcceptFunction()\n                if accept:\n                    print(\n                        \"Accepting candidate\",\n                        (\n                            index,\n                            startCutDatetime,\n                            endCutDatetime,\n                            estimatedDurationAfterCut,\n                        ),\n                    )\n                    print(\"target:\", target)\n                    bannedIndexs.add(index)\n                    neighborIndexs = getNeighborIndexs(\n                        index,\n                        candidates,\n                        neighborThreshold,\n                        lambda a, b: checkNeighborForClipCandiates(\n                            a, b, neighborThreshold\n                        ),\n                    )\n                    print(\"NEIGHBOR INDEXS:\", neighborIndexs)\n                    for neighborIndex in neighborIndexs:",
+        "file_id": 380,
+        "content": "rootpath=/Users/jamesbrown/desktop/works/pyjom_remote/\nmpv --fs --no-audio --sub-file=\"$rootpath/tests/karaoke_effects/pyonfx_test/examples/2 - Beginner/Output.ass\" \"$rootpath/samples/video/karaoke_effects_source.mp4\"",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:181-205"
+        "location": "/tests/karaoke_effects/pyonfx_test/macos_view_best_example.sh:1-2"
     },
     "3253": {
-        "file_id": 377,
-        "content": "This code continues until finding a candidate that meets the similarity threshold, then accepts it if the fake acceptance function returns true. If accepted, it prints information about the candidate and its neighbors, along with the target duration.",
+        "file_id": 380,
+        "content": "This script opens a video file with an ASS subtitle file, using mpv player in full screen and without audio. The ASS file contains karaoke effects for the associated video, sourced from pyjom_remote/tests/karaoke_effects/pyonfx_test/examples/2 - Beginner folder.",
         "type": "comment"
     },
     "3254": {
-        "file_id": 377,
-        "content": "                        bannedIndexs.add(neighborIndex)\n                        print(\"also banned:\", neighborIndex, candidates[neighborIndex])\n        random.shuffle(shuffledCandidates)",
-        "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/load_data_do_experiment.py:206-208"
+        "file_id": 381,
+        "content": "/tests/karaoke_effects/pyonfx_test/first_try.py",
+        "type": "filepath"
     },
     "3255": {
-        "file_id": 377,
-        "content": "The code adds the current neighbor index to a list of banned indices, prints it along with the candidate at that index, and then shuffles the remaining candidates.",
-        "type": "comment"
+        "file_id": 381,
+        "content": "This code imports the \"pyonfx\" library and uses it to open an ASS file. It then retrieves the file's metadata, styles, and lines of text. The first line's text is modified, and the modified line is written back into the file. The code also attempts to open Aegisub but fails as there isn't one available.",
+        "type": "summary"
     },
     "3256": {
-        "file_id": 378,
-        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/get_scene_cuts.sh",
-        "type": "filepath"
+        "file_id": 381,
+        "content": "from pyonfx import *\nio = Ass(\"in.ass\")\nmeta, styles, lines = io.get_data()\nlines[0].text = \"I am a new line!\"\nio.write_line(lines[0])\nio.save()\n# io.open_aegisub()\n# there's no aegisub.",
+        "type": "code",
+        "location": "/tests/karaoke_effects/pyonfx_test/first_try.py:1-11"
     },
     "3257": {
-        "file_id": 378,
-        "content": "This code uses the SceneDetect library to detect scenes in a video file and split it into separate clips based on scene changes. It opens the video, creates a SceneManager object, adds a ContentDetector with a threshold value, detects scenes using the detector, retrieves the list of detected scenes, and then splits the video using ffmpeg according to the scene list.",
-        "type": "summary"
+        "file_id": 381,
+        "content": "This code imports the \"pyonfx\" library and uses it to open an ASS file. It then retrieves the file's metadata, styles, and lines of text. The first line's text is modified, and the modified line is written back into the file. The code also attempts to open Aegisub but fails as there isn't one available.",
+        "type": "comment"
     },
     "3258": {
-        "file_id": 378,
-        "content": "scenedetect -i sample.mp4 -s video.stats.csv detect-content list-scenes -f sample_scenes.csv\n# for dynamic analysis:\n# https://github.com/Breakthrough/PySceneDetect/README.md\n# from scenedetect import open_video, SceneManager, split_video_ffmpeg\n# from scenedetect.detectors import ContentDetector\n# from scenedetect.video_splitter import split_video_ffmpeg\n# def split_video_into_scenes(video_path, threshold=27.0):\n#     # Open our video, create a scene manager, and add a detector.\n#     video = open_video(video_path)\n#     scene_manager = SceneManager()\n#     scene_manager.add_detector(\n#         ContentDetector(threshold=threshold))\n#     scene_manager.detect_scenes(video, show_progress=True)\n#     scene_list = scene_manager.get_scene_list()\n#     split_video_ffmpeg(video_path, scene_list, show_progress=True)",
-        "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/get_scene_cuts.sh:1-16"
+        "file_id": 382,
+        "content": "/tests/karaoke_effects/lrc2ass_py3/test.sh",
+        "type": "filepath"
     },
     "3259": {
-        "file_id": 378,
-        "content": "This code uses the SceneDetect library to detect scenes in a video file and split it into separate clips based on scene changes. It opens the video, creates a SceneManager object, adds a ContentDetector with a threshold value, detects scenes using the detector, retrieves the list of detected scenes, and then splits the video using ffmpeg according to the scene list.",
-        "type": "comment"
+        "file_id": 382,
+        "content": "The code is running an MPV player with no audio, using a subtitle file and video source. It seems that the video's effect is bad, and the time synchronization is incorrect, causing dissatisfaction with the result.",
+        "type": "summary"
     },
     "3260": {
-        "file_id": 379,
-        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/generate_random_clip_lengths.py",
-        "type": "filepath"
+        "file_id": 382,
+        "content": "rootpath=/Users/jamesbrown/desktop/works/pyjom_remote/\nmpv --fs --no-audio --sub-file=\"$rootpath/tests/karaoke_effects/lrc2ass_py3/output.s2.ass\" \"$rootpath/samples/video/karaoke_effects_source.mp4\"\n## NOT OK! THIS DUMB SHIT LIBRARY FUCKED MY MIND ##\n## the effect is bad. the time is not right. everything fucked. ##",
+        "type": "code",
+        "location": "/tests/karaoke_effects/lrc2ass_py3/test.sh:1-5"
     },
     "3261": {
-        "file_id": 379,
-        "content": "This code generates 30 random clip lengths using a truncated Gaussian distribution with mean and standard deviation, ensuring values are within specified bounds. It utilizes the truncnorm function from scipy.stats for generating the distribution.",
-        "type": "summary"
-    },
-    "3262": {
-        "file_id": 379,
-        "content": "std, mean = 1.6674874515595588, 2.839698412698412\nscale, loc = std, mean\n# using gaussian distribution\n# accepting both mean and standard deviation\n# this is truncated gaussian, not just normal distribution\nmyclip_a, myclip_b = 0.6, 7.833\n# while you need to make sure the value is in bound.\n# import random\nfrom scipy.stats import truncnorm\na, b = (myclip_a - loc) / scale, (myclip_b - loc) / scale\nrandVar = truncnorm(a,b)\nrandomFunction = lambda: randVar.rvs(1)[0]*scale+loc\n# inBound = lambda number: min(nMax, max(nMin, number))\n# randomFunction = lambda: inBound(random.gauss(mean, std))\nfor _ in range(30):\n    print(randomFunction())",
-        "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/generate_random_clip_lengths.py:1-21"
-    },
-    "3263": {
-        "file_id": 379,
-        "content": "This code generates 30 random clip lengths using a truncated Gaussian distribution with mean and standard deviation, ensuring values are within specified bounds. It utilizes the truncnorm function from scipy.stats for generating the distribution.",
+        "file_id": 382,
+        "content": "The code is running an MPV player with no audio, using a subtitle file and video source. It seems that the video's effect is bad, and the time synchronization is incorrect, causing dissatisfaction with the result.",
         "type": "comment"
     },
-    "3264": {
-        "file_id": 380,
-        "content": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/download_sample.sh",
+    "3262": {
+        "file_id": 383,
+        "content": "/tests/karaoke_effects/lrc2ass_py3/README.md",
         "type": "filepath"
     },
-    "3265": {
-        "file_id": 380,
-        "content": "This code uses yt-dlp to download a sample video from Bilibili at the given URL and save it as \"sample.mp4\".",
+    "3263": {
+        "file_id": 383,
+        "content": "This Python 3 script converts LRC files to ASS format with karaoke effects, supports multiple timing tags, and auto-chooses end timings. It is primarily for Chinese but may encounter errors in non-Chinese languages or wrong text codings. Future improvements include English support, annotations, file list input, reusability, and debugging.",
         "type": "summary"
     },
-    "3266": {
-        "file_id": 380,
-        "content": "yt-dlp -o sample.mp4 https://www.bilibili.com/video/BV1HS4y1w7PK",
+    "3264": {
+        "file_id": 383,
+        "content": "# lrc2ass_py3\nA simple Python 3.x script is used for changing your LRC file into ASS subtitle with karaoke effect tags\n一个用于将LRC歌词文件转换为ASS字幕文件的简单Python脚本。\nThe first full python script written by myself.\n我自己编写的第一个完整的Python脚本\nCopyright(c) 2020 yyfll (MIT)\n# WON'T UPDATE IN THE FUTURE\n# Dependent\n* chardet (lrc2ass_py3 >= 1.0.0c)\n# Update\n## 1.0.0c\n* Support chardet character encoding detector.\n* A few improvements\n## 1.0.0b\n* Support LRC offset tag.\n* Default LRC offset can be set.\n* Simplify program.\n# English Readme\nPoor English.\n## What can lrc2ass_py3 do?\n* Change your LRC script to ASS script.\n* Very easy to use.\n* Support Multi timing tags in a single line.\n* Support auto choose end timing if can't find timing in the end of the line.\n* Support LRC offset tag.\n## What will cause error?\n* A lrc file in wrong text coding (such as use utf-8 read gbk file.)\n* A lrc line without the timing tag in the line ahead. (haven't tested)\n## WARNING\n* Only CHINESE are supported.\n> All the information show in console and the annotations in python script are written in CHINESE,",
         "type": "code",
-        "location": "/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/download_sample.sh:1-1"
+        "location": "/tests/karaoke_effects/lrc2ass_py3/README.md:1-41"
+    },
+    "3265": {
+        "file_id": 383,
+        "content": "This is a simple Python 3 script for converting LRC files to ASS with karaoke effects. It requires the chardet library, supports multiple timing tags, and auto-chooses end timings if not specified. However, it's only for Chinese and may encounter errors if the LRC file is in the wrong text coding or lacks a timing tag on certain lines.",
+        "type": "comment"
+    },
+    "3266": {
+        "file_id": 383,
+        "content": ">\n> It doesn't mean lrc2ass_py3 can't work on your LRC in English.\n>\n> So it doesn't have any influence on output a correct ASS script if you use English or any other language.\n# 简体中文 Readme\n## lrc2ass_py3可以做什么？\n* 将你的LRC歌词文件转换为ASS字幕文件\n* 使用起来非常简单\n* 支持一个歌词行多个时间标签（即卡拉OK效果）\n* 支持在找不到歌词行的结束时间时，自动选择结束时间\n* 支持时间偏移标签（offset）\n## 有什么可能会导致错误的？\n* 读取了非指定文本编码的LRC歌词文件（比如像用utf-8编码读取gbk编码的文件）\n* 歌词行开头没有指定起始时间的时间标签（这还没有经过测试）\n## 警告\n* 只支持中文\n> 所有的控制台输出及文件内注释都是用中文写的\n>\n> 这并不意味着lrc2ass_py3不能处理非中文的LRC文件\n>\n> 所以这并不会对输出一个正确ASS字幕文件产生任何影响\n# To do\n* Full English supported\n* Full Chinese annotation\n* File list input\n* Reusable\n* Endless debugging",
+        "type": "code",
+        "location": "/tests/karaoke_effects/lrc2ass_py3/README.md:42-72"
     },
     "3267": {
-        "file_id": 380,
-        "content": "This code uses yt-dlp to download a sample video from Bilibili at the given URL and save it as \"sample.mp4\".",
+        "file_id": 383,
+        "content": "This code is a README file for the lrc2ass_py3 tool, which converts LRC karaoke files to ASS format. It supports English and other languages, but has warnings and limitations related to non-Chinese languages and specific encoding formats. The code also includes a To Do list with additional features such as full English support, improved annotations, file list input, reusability, and debugging.",
         "type": "comment"
     },
     "3268": {
-        "file_id": 381,
-        "content": "/tests/bilibili_video_recommendation_server/ad_template_0.py",
+        "file_id": 384,
+        "content": "/tests/karaoke_effects/lrc2ass_py3/localTest.sh",
         "type": "filepath"
     },
     "3269": {
-        "file_id": 381,
-        "content": "The code generates a bilibili video recommendation visual using Pixie library, involving avatars, rounded rectangles, and logos for the final image.",
+        "file_id": 384,
+        "content": "Code is running mpv player with no audio and loading an .ass subtitle file to display over a video. The user is experiencing issues with the output.",
         "type": "summary"
     },
     "3270": {
-        "file_id": 381,
-        "content": "# let's try to make it right.\npic_file = \"sample_cover.jpg\"\nqrcode_file = \"MyQRCode1.png\"\n# we need some font for this.\n# font_location = \"/usr/share/fonts/truetype/wqy/wqy-microhei.ttc\" # ttc -> ttf\nfont_location = \"./wqy-microhei0.ttf\"\nimport pixie\nfont = pixie.read_font(font_location)\nfont.size = 20\ntext = \"中文能够显示么 超出了字符边缘能不能显示 Typesetting is the arrangement and composition of text in graphic design and publishing in both digital and traditional medias.\"\n# 可以显示 但是边缘的字符需要被注意到 看看是不是超出了边界\nimage = pixie.Image(200, 200)\nimage.fill(pixie.Color(1, 1, 1, 1))\nimage.fill_text(\n    font, text, bounds=pixie.Vector2(180, 180), transform=pixie.translate(10, 10)\n)\n# print('image type:', type(image))\n# 'pixie.pixie.Image'\n# hard to say.\npath = pixie.Path()\npath.rounded_rect(0, 0, 100, 100, 25, 25, 25, 25)\n# how to use mask?\ncover_width, cover_height = 100, 100\nmask = pixie.Mask(cover_width, cover_height)  # must match mask size?\nmask.fill_path(path)\npicture = pixie.read_image(pic_file)\n# we need to reshape this.\npicture = picture.resize(",
+        "file_id": 384,
+        "content": "rootpath=/root/Desktop/works/pyjom\nmpv --fs --no-audio --sub-file=\"$rootpath/tests/karaoke_effects/lrc2ass_py3/output.s2.ass\" \"$rootpath/samples/video/karaoke_effects_source.mp4\"\n## NOT OK! THIS DUMB SHIT LIBRARY FUCKED MY MIND ##\n## the effect is bad. the time is not right. everything fucked. ##",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/ad_template_0.py:1-36"
+        "location": "/tests/karaoke_effects/lrc2ass_py3/localTest.sh:1-5"
     },
     "3271": {
-        "file_id": 381,
-        "content": "Code snippet is trying to create an image with Chinese text and a rounded rectangle mask. It loads a font file, sets its size, fills the image with white color, draws text using the loaded font, creates a path for a rounded rectangle, generates a mask of the rectangle shape, reads an existing image (sample_cover.jpg), and aims to resize it while maintaining aspect ratio.",
+        "file_id": 384,
+        "content": "Code is running mpv player with no audio and loading an .ass subtitle file to display over a video. The user is experiencing issues with the output.",
         "type": "comment"
     },
     "3272": {
-        "file_id": 381,
-        "content": "    cover_width, cover_height\n)  # recommend to do this in pyjom.imagetoolbox since that will be safer.\npicture.mask_draw(mask)\ntransform = pixie.translate(50, 50)\nqrcode_width = qrcode_height = 50\nqrcode_image = pixie.read_image(qrcode_file)\nqrcode_image = qrcode_image.resize(qrcode_width, qrcode_height)\nqrcode_transform = pixie.translate(150, 150)\nimage.draw(picture, transform=transform)\n# image.draw(picture)\n# image.draw(picture,transform=transform)\nimage.draw(qrcode_image, transform=qrcode_transform)\n# now we try to reverse engineer that thing.\n# not only we need to create ads, we need to modify ads on the fly.\n# detect qr code and replace the code with ours.\n# first of all, the picture needs to be big.\navatar_path = \"up_image.jpg\"\nup_name = \"J4D\"\navatar_width, avatar_height = 50, 50\npath2 = pixie.Path()\npath2.circle(25, 25, 25)\nmask2 = pixie.Mask(avatar_width, avatar_height)\nmask2.fill_path(path2)\navatar = pixie.read_image(avatar_path)\navatar = avatar.resize(avatar_width, avatar_height)\navatar.mask_draw(mask2)",
-        "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/ad_template_0.py:37-73"
+        "file_id": 385,
+        "content": "/tests/youtube_shorts_heuristic_search/README.md",
+        "type": "filepath"
     },
     "3273": {
-        "file_id": 381,
-        "content": "The code creates an ad image with a QR code and avatar. It reads the QR code image, resizes it, and applies a mask. Then, it reads the avatar image, resizes it, and applies a mask as well. Finally, it combines these elements into the final ad image.",
-        "type": "comment"
+        "file_id": 385,
+        "content": "Code contains information about search and downloadability of YouTube Shorts, as well as mentioning the limitations of current video feed acquisition from various platforms. It also provides a link to a Python library for YouTube search and details on a simple bilibili search API.",
+        "type": "summary"
     },
     "3274": {
-        "file_id": 381,
-        "content": "a_transform = pixie.translate(25, 25)\nimage.draw(avatar, a_transform)\nfont2 = pixie.read_font(font_location)\nfont2.size = 40\nfont2.paint.color = pixie.Color(0, 0.5, 0.953125, 1)\nval = image.fill_text(font2, up_name, transform=pixie.translate(25 + 50, 20))\n# print('VAL',val) # NONE\npath3 = pixie.Path()\npath3.rounded_rect(0,0,100,50,10,10,10,10)\npaint = pixie.Paint(pixie.SOLID_PAINT)\npaint.color = pixie.parse_color(\"#FC427B\")\ntransform3 = pixie.translate(25+50+50, 20)\nimage.fill_path(path3, paint, transform3)\nlabel_text = \"UP主\"\nfont3 = pixie.read_font(font_location)\nfont3.size = 30\nfont3.paint.color = pixie.Color(1,1,1, 1)\nimage.fill_text(\n    font3, label_text, transform=pixie.translate(25 + 50 + 50, 20)\n)  # where should i put the thing?\nbilibili_logo_path = \"bilibili_transparent.png\"\nbilibili_logo = pixie.read_image(bilibili_logo_path)\nbilibili_logo = bilibili_logo.resize(50,100)\nimage.draw(bilibili_logo)\nplay_button_path = 'play_button.png'\nplay_button = pixie.read_image(play_button_path)\nplay_button = play_button.resize(50,50)",
+        "file_id": 385,
+        "content": "turned out youtube shorts are searchable, downloadable.\nbut the video feed is not yet acquired, just like all other video feeds from youtube, twitch, reddit, qq小世界, bilibili, 抖音, tiktok and the trending ones.\nthe youtube advanced filter is embedded in the search results. you can only jump to one embedded link at a time\nto get the next page on youtube:\nthe key seems to be the unified unlimited api key for youtube.\nPOST https://www.youtube.com/youtubei/v1/search?key=AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8&prettyPrint=false with a lot of headaching parameters.\nyou can bypass them. here are some basic parameters without lots of combinations. if you want to combine them, better figure it out yourself.\nsome of them might already fail to work.\nhttps://github.com/alexmercerind/youtube-search-python/blob/fc12c05747f1f7bd89d71699403762b86b523da5/youtubesearchpython/core/constants.py#L45\nbilibili search api is currently simple:\nhttps://search.bilibili.com/video?keyword=%E6%B1%AA%E6%B1%AA&from_source=webtop_search&spm_id_from=333.1007&search_source=3&tids=219&order=dm&duration=2",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/ad_template_0.py:74-110"
+        "location": "/tests/youtube_shorts_heuristic_search/README.md:1-21"
     },
     "3275": {
-        "file_id": 381,
-        "content": "This code section is responsible for generating a visual representation of a bilibili video recommendation. It uses the Pixie library to handle image manipulation and drawing, and involves steps such as drawing an avatar, painting text, creating a rounded rectangle, filling the shape, and adding logos. The final result is likely used in a user interface for displaying video recommendations.",
+        "file_id": 385,
+        "content": "Code contains information about search and downloadability of YouTube Shorts, as well as mentioning the limitations of current video feed acquisition from various platforms. It also provides a link to a Python library for YouTube search and details on a simple bilibili search API.",
         "type": "comment"
     },
     "3276": {
-        "file_id": 381,
-        "content": "t4 = pixie.translate(100,100)\nimage.draw(play_button, t4)\n# so no more masking here. we need some png magic.\nimage.write_file(\"ad_0.png\")",
-        "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/ad_template_0.py:111-115"
-    },
-    "3277": {
-        "file_id": 381,
-        "content": "This code is translating a coordinate (100, 100) using Pixie, then drawing the play_button image over it. Since no more masking is needed, the resulting image is saved as \"ad_0.png\" using png magic.",
-        "type": "comment"
-    },
-    "3278": {
-        "file_id": 382,
-        "content": "/tests/bilibili_video_recommendation_server/zbar_detect_qrcode.py",
+        "file_id": 386,
+        "content": "/tests/youtube_shorts_heuristic_search/heuristic_model.py",
         "type": "filepath"
     },
-    "3279": {
-        "file_id": 382,
-        "content": "This code defines 'detect_qr' function to detect and decode QR codes using pyzbar library. It prints information about each detected QR code, returns True if found. The code attempts to read a QR code from an image, resizes it for visibility, and calls the \"detect_qr\" function.",
+    "3277": {
+        "file_id": 386,
+        "content": "The code defines a function called \"getSearchQueryFromHeuristicSpace\" which takes a seed as input and returns a search query. This model aims to reduce repetition and increase the likelihood of finding relevant videos by utilizing heuristics. The application is intended to be server-based.",
         "type": "summary"
     },
-    "3280": {
-        "file_id": 382,
-        "content": "# import sys\nimport cv2\n# import imutils\nfrom PIL import Image\nfrom pyzbar.pyzbar import decode, ZBarSymbol\n# @function 'detect_qr' detect and decode qrcode from frame using pyzbar lib\n# @param 'inputFrame' type <class 'numpy.ndarray'>\n# @return if detected type 'bool'\ndef detect_qr(inputFrame):\n    img = Image.fromarray(inputFrame)\n    decodedImg = decode(img, symbols=[ZBarSymbol.QRCODE])\n    # it reads the content. but where is the code?\n    print('total %d qrcode detected' % len(decodedImg))\n    # breakpoint()\n    # length: 2\n    if len(decodedImg) > 0:\n        for code in decodedImg:\n            decodedBytes = code.data\n            stringData = decodedBytes.decode(\"utf-8\")\n            print(\"QRCode content:\")\n            print(stringData)\n            polygon = code.polygon\n            print('POLYGON CONTENT:')\n            print(polygon)\n            for point in polygon:\n                print('POINT:',point.x,point.y)\n        return True\n    else:\n        return False\nimage = \"output_qrcode2.png\"\n# image = \"test_image_with_qr_code.png\" # what about this?",
+    "3278": {
+        "file_id": 386,
+        "content": "seed = 'dog cute'\ndef getSearchQueryFromHeuristicSpace(seed):\n    # less likely to repeat, and more possibility to get needed videos.\n    return searchQuery\n# this heuristic search model shall be a server based application.",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/zbar_detect_qrcode.py:2-36"
+        "location": "/tests/youtube_shorts_heuristic_search/heuristic_model.py:2-8"
     },
-    "3281": {
-        "file_id": 382,
-        "content": "This code defines a function named 'detect_qr' that detects and decodes QR codes from a given input frame. It utilizes the pyzbar library to decode QR codes, converts the input frame to an Image object using PIL, and then prints information about each detected QR code such as its content and polygon coordinates. The function returns True if any QR codes are detected, otherwise it returns False. The image variable is set to \"output_qrcode2.png\", but there's a commented-out line suggesting using \"test_image_with_qr_code.png\" instead.",
+    "3279": {
+        "file_id": 386,
+        "content": "The code defines a function called \"getSearchQueryFromHeuristicSpace\" which takes a seed as input and returns a search query. This model aims to reduce repetition and increase the likelihood of finding relevant videos by utilizing heuristics. The application is intended to be server-based.",
         "type": "comment"
     },
+    "3280": {
+        "file_id": 387,
+        "content": "/tests/jina_deploy_free_gpu_cpu/README.md",
+        "type": "filepath"
+    },
+    "3281": {
+        "file_id": 387,
+        "content": "This code is a README for a test case, which aims to verify if Jina's computational resources can be used for free. It suggests creating a simple test case and potentially using this service indefinitely.",
+        "type": "summary"
+    },
     "3282": {
-        "file_id": 382,
-        "content": "# it fails. so we better have some other way to get the barcode.\n# if resolution is low, resize the image and make sure it will contain the qrcode, make it readable.\ninputImage = cv2.imread(image)\n# frame = imutils.resize(inputImage, width=400)\nprint(detect_qr(inputImage))\n# fantastic.\n# usually there should be no more than 1 qrcode in image to allow user to scan the code in qq.",
+        "file_id": 387,
+        "content": "different from another 'jina' named test case, we are here to run things **for free**\nit is said that jina currently offer computational resources for free so why not just create a simple test case to verify that? maybe i can own this free service forever?",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/zbar_detect_qrcode.py:37-46"
+        "location": "/tests/jina_deploy_free_gpu_cpu/README.md:1-3"
     },
     "3283": {
-        "file_id": 382,
-        "content": "This code attempts to read a QR code from an image. If the resolution is low, it resizes the image to ensure the QR code is visible and then calls the \"detect_qr\" function. The code assumes there's usually only one QR code per image for scanning in QQ.",
+        "file_id": 387,
+        "content": "This code is a README for a test case, which aims to verify if Jina's computational resources can be used for free. It suggests creating a simple test case and potentially using this service indefinitely.",
         "type": "comment"
     },
     "3284": {
-        "file_id": 383,
-        "content": "/tests/bilibili_video_recommendation_server/test_fastapi.sh",
+        "file_id": 388,
+        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test_client.py",
         "type": "filepath"
     },
     "3285": {
-        "file_id": 383,
-        "content": "The code sends a HTTP GET request to the localhost server running on port 7341 and checks the response.",
+        "file_id": 388,
+        "content": "The code initializes a Jina Client, sends a document array with 'hello world' text to the client's endpoint, and retrieves the response. It then checks if the response status is 'success', prints the embedding data if it is, or otherwise prints the response message along with an error marker.",
         "type": "summary"
     },
     "3286": {
-        "file_id": 383,
-        "content": "echo 'checking server hello'\ncurl http://localhost:7341",
+        "file_id": 388,
+        "content": "from jina import Client, DocumentArray, Document\nc = Client(port=12345)\ndocArray = DocumentArray.empty(1)\ndocArray[0].text = 'hello world'\nr = c.post('/', docArray)\nr_0 = r[0]\n# print(dir(r_0))\n# print(r_0.tags)\n# breakpoint()\ntext = r[0].text\nif text == 'success':\n    data = r[0].embedding\n    print(data)\n    print(data.dtype, shape(data))\nelse:\n    print(text)\n    print(\"____________ERROR____________\")",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/test_fastapi.sh:1-2"
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test_client.py:1-18"
     },
     "3287": {
-        "file_id": 383,
-        "content": "The code sends a HTTP GET request to the localhost server running on port 7341 and checks the response.",
+        "file_id": 388,
+        "content": "The code initializes a Jina Client, sends a document array with 'hello world' text to the client's endpoint, and retrieves the response. It then checks if the response status is 'success', prints the embedding data if it is, or otherwise prints the response message along with an error marker.",
         "type": "comment"
     },
     "3288": {
-        "file_id": 384,
-        "content": "/tests/bilibili_video_recommendation_server/test.sh",
+        "file_id": 389,
+        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.sh",
         "type": "filepath"
     },
     "3289": {
-        "file_id": 384,
-        "content": "This code is running a Python script named \"test.py\" using the Python 3 interpreter. The script is likely being executed as part of a test or validation process for the \"bilibili_video_recommendation_server\" project.",
+        "file_id": 389,
+        "content": "This code sets the JINA_MP_START_METHOD environment variable to \"spawn\" before running a Python script. It mentions an ongoing issue with loading a model using txtai, but doesn't elaborate further on the problem or its potential solutions.",
         "type": "summary"
     },
     "3290": {
-        "file_id": 384,
-        "content": "python3 test.py ",
+        "file_id": 389,
+        "content": "env JINA_MP_START_METHOD=spawn python3 test.py\n# still we are having issue with the txtai, which cannot load our model for whatever reason.",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/test.sh:1-1"
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.sh:1-2"
     },
     "3291": {
-        "file_id": 384,
-        "content": "This code is running a Python script named \"test.py\" using the Python 3 interpreter. The script is likely being executed as part of a test or validation process for the \"bilibili_video_recommendation_server\" project.",
+        "file_id": 389,
+        "content": "This code sets the JINA_MP_START_METHOD environment variable to \"spawn\" before running a Python script. It mentions an ongoing issue with loading a model using txtai, but doesn't elaborate further on the problem or its potential solutions.",
         "type": "comment"
     },
     "3292": {
-        "file_id": 385,
-        "content": "/tests/bilibili_video_recommendation_server/test.py",
+        "file_id": 390,
+        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.py",
         "type": "filepath"
     },
     "3293": {
-        "file_id": 385,
-        "content": "This code defines functions for a Bilibili recommendation server, performs preprocessing and searches, uses bm25 method, includes debugging breakpoints, and tests the `checkPublishedVideo` function with different video states.",
+        "file_id": 390,
+        "content": "Importing semantic search encoder multilingual executor, disabling proxies, creating a Flow with 1 prefetch and 12345 port, adding the semantic search encoder to it with 1 replica, then running the Flow in blocking mode.",
         "type": "summary"
     },
     "3294": {
-        "file_id": 385,
-        "content": "import sys\nsys.path.append(\"/root/Desktop/works/pyjom/\")\nfrom pyjom.platforms.bilibili.database import (\n    bilibiliRecommendationServer,\n    bootstrap,\n    textPreprocessing,\n    searchUserVideos,\n    registerUserVideo,\n    searchAndRegisterVideos,\n)\n# you should recommend by label instead of by name. but whatever.\nif __name__ == \"__main__\":\n    # objective = 'test'\n    import argparse\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"-o\", \"--objective\", type=str, default=\"server\")\n    parsed_args = parser.parse_args()\n    objective = parsed_args.objective\n    # can't specify port here.\n    # python3 -m uvicorn --port 7341 test:app\n    if objective == \"server\":\n        bilibiliRecommendationServer()\n    elif objective == \"test\":\n        bootstrap()\n        test = \"searchVideos\"\n        # test = \"searchUserVideos\"\n        # test = \"textPreprocessing\"\n        # test = 'registerMyVideo'\n        if test == \"textPreprocessing\":\n            text = \"猫  咪  钢  琴  家 searchUserVideos have a nice day 新闻联播,动物圈,汪星人,喵星人\"",
+        "file_id": 390,
+        "content": "from executor import semantic_search_encoder_multilingual\nfrom jina import Flow\nimport os\nif __name__ == \"__main__\":\n    os.environ[\"http_proxy\"] = \"\"\n    os.environ[\"https_proxy\"] = \"\"\n    f = Flow(prefetch=1,port=12345).add(uses=semantic_search_encoder_multilingual, replicas=1)\n    with f:\n        f.block()",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/test.py:1-33"
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/test.py:1-11"
     },
     "3295": {
-        "file_id": 385,
-        "content": "This code is importing necessary modules and defining functions for a Bilibili recommendation server. It includes the functions bilibiliRecommendationServer, bootstrap, textPreprocessing, searchUserVideos, registerUserVideo, and searchAndRegisterVideos. The script can be run as a server or for testing purposes using the argument \"-o\" or \"--objective\". However, the port cannot be specified within the script.",
+        "file_id": 390,
+        "content": "Importing semantic search encoder multilingual executor, disabling proxies, creating a Flow with 1 prefetch and 12345 port, adding the semantic search encoder to it with 1 replica, then running the Flow in blocking mode.",
         "type": "comment"
     },
     "3296": {
-        "file_id": 385,
-        "content": "            result = textPreprocessing(\n                text\n            )  # shall you do the same to your search query.\n            print(\"RESULT:\", result)\n        elif test == \"searchUserVideos\":\n            query = \"猫\"\n            # for v in searchUserVideos(query):\n            for v in searchUserVideos(query, method=\"bm25\"):\n                # print(\"fetched value:\", v)\n                breakpoint()\n        elif test == \"registerMyVideo\":\n            bvid = \"BV1fR4y1w7BL\"  # that's surely yours.\n            dedeuserid = \"397424026\"\n            registerUserVideo(bvid, dedeuserid)\n        elif test == \"searchVideos\":\n            query = \"cod19\"  # recent hot videos.\n            for v in searchAndRegisterVideos(query):\n                print(v)  # warning: title containing markup language.\n                breakpoint()\n            # you want to select video after search?\n            # no keywords? are you kidding?\n            # results = getMyVideos()\n            # print(results)\n            # video_bvid_invisible = \"BV1pd4y1y7cu\"  # too fucking fast. i can't see shit.",
-        "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/test.py:34-57"
+        "file_id": 391,
+        "content": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/requirements.txt",
+        "type": "filepath"
     },
     "3297": {
-        "file_id": 385,
-        "content": "The code performs text preprocessing and searches for user videos, registers a video, and searches for recent hot videos. It uses the bm25 method for searching, and the text is processed before querying. The code includes breakpoints for debugging.",
-        "type": "comment"
+        "file_id": 391,
+        "content": "These lines specify the required Python packages for the project. \"txtai\" is a package for text analysis, \"transformers\" is used for natural language processing, and \"faiss\" is an efficient library for nearest neighbors search.",
+        "type": "summary"
     },
     "3298": {
-        "file_id": 385,
-        "content": "            # # some hard rule on this? like being invisible for how long we will disable video source for good?\n            # video_bvid_abnormal = \"BV1x84y1B7Nb\"\n            # video_bvid_visible = \"BV1Fs411k7e9\"  # 老戴的视频\n            # # 啊叻？视频不见了？\n            # checkPublishedVideo(video_bvid_invisible)\n            # checkPublishedVideo(video_bvid_visible)\n            # checkPublishedVideo(video_bvid_abnormal)\n            # 视频撞车了 需要原创视频哦",
+        "file_id": 391,
+        "content": "txtai\ntransformers\nfaiss",
         "type": "code",
-        "location": "/tests/bilibili_video_recommendation_server/test.py:58-65"
+        "location": "/tests/jina_deploy_free_gpu_cpu/semantic_search_encoder_multilingual/requirements.txt:1-3"
     },
     "3299": {
-        "file_id": 385,
-        "content": "This code snippet seems to be testing the `checkPublishedVideo` function by passing different video BVIDs, including one that is supposedly invisible, one visible, and one with an abnormal state. The purpose of this test might be to ensure the function can handle various scenarios correctly and identify if a video has disappeared or changed its original state.",
+        "file_id": 391,
+        "content": "These lines specify the required Python packages for the project. \"txtai\" is a package for text analysis, \"transformers\" is used for natural language processing, and \"faiss\" is an efficient library for nearest neighbors search.",
         "type": "comment"
     }
 }

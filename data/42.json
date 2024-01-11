@@ -1,544 +1,538 @@
 {
     "4200": {
-        "file_id": 516,
-        "content": "# motion detectors are used to track objects. though you may want to separate objects with it.\nimport numpy as np\nimport cv2\nimport pybgs as bgs\nimport talib  # wait till all points are stablized. find a way to stream this.\n# suspect by static image analysis, and then create bounding box over the thing.\n# check image quality.\n# this can generate frame borders.\nalgorithm = (\n    bgs.FrameDifference()\n)  # this is not stable since we have more boundaries. shall we group things?\nvideo_file = (\n    \"../../samples/video/dog_with_text.mp4\"  # this is doggy video without borders.\n)\n# video_file = \"../../samples/video/LiEIfnsvn.mp4\" # this one with cropped boundaries.\ncapture = cv2.VideoCapture(video_file)\nwhile not capture.isOpened():\n    capture = cv2.VideoCapture(video_file)\n    # cv2.waitKey(1000)\n    # print(\"Wait for the header\")\npos_frame = capture.get(1)\ndef getAppendArray(mx1, min_x, past_frames=19):\n    return np.append(mx1[-past_frames:], min_x)\ndef getFrameAppend(frameArray, pointArray, past_frames=19):\n    mx1, mx2, my1, my2 = [",
+        "file_id": 531,
+        "content": "    mod_x_half, mod_y_half = mod_x / 2, mod_y / 2\n    x, y, w, h = block_x - mod_x_half, block_y - mod_y_half, mod_x, mod_y\n    return tuple([int(elem) for elem in [x, y, w, h]])\ndef getBlockWeightFromBlockCenterCoordinates(blockCenterCoordinates):\n    mod_x, mod_y = getModXModYFromBlockCenterCoordinates(blockCenterCoordinates)\n    weights = mod_x * mod_y / 8 / 8\n    return weights\nimport progressbar\nimport numpy as np\n# max_dst_x, max_dst_y = 0,0\ndef averageMotionVectors(motion_vector_list):\n    if len(motion_vector_list) == 0:\n        average_tuple = (0, 0)\n    if len(motion_vector_list) > 1:\n        marray = np.array(motion_vector_list)\n        # print(\"MAKING AVERAGE:\")\n        # print(marray)\n        average = np.average(marray, axis=0)\n        # breakpoint()\n        average_tuple = tuple(average)\n    else:\n        average_tuple = tuple(motion_vector_list[0])\n    return average_tuple\nmotion_area_ratio_array = []\n# average_weighted_motion_vector_array = []\n# average_global_weighted_motion_vector_array = []\naverage_weighted_motion_vector_cartesian_array = []",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:1-33"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:107-142"
     },
     "4201": {
-        "file_id": 516,
-        "content": "The code initializes a motion detector using frame difference algorithm to track objects in a video. It reads the video file and prepares two functions: `getAppendArray` for appending array elements, and `getFrameAppend` for processing frame data. These functions are used with specified past frames to analyze the video and possibly group objects. The code also handles potential video file opening issues by retrying if necessary.",
+        "file_id": 531,
+        "content": "Function `getBlockWeightFromBlockCenterCoordinates` calculates the weight of a block based on its center coordinates.\nThe `averageMotionVectors` function calculates the average motion vector from a list of motion vectors.\n`motion_area_ratio_array` is used to store area ratios for blocks, which will be used in calculations later.",
         "type": "comment"
     },
     "4202": {
-        "file_id": 516,
-        "content": "        getAppendArray(a, b, past_frames=past_frames)\n        for a, b in zip(frameArray, pointArray)\n    ]\n    return mx1, mx2, my1, my2\ndef getStreamAvg(a, timeperiod=10):  # to maintain stability.\n    return talib.stream.EMA(a, timeperiod=timeperiod)\ndef checkChange(frame_x1, val_x1, h, change_threshold=0.2):\n    return (abs(frame_x1 - val_x1) / h) > change_threshold  # really changed.\nmx1, mx2, my1, my2 = [np.array([]) for _ in range(4)]\npast_frames = 19\nperc = 0.03\nframe_num = 0\n# what is the time to update the frame?\nframe_x1, frame_y1, frame_x2, frame_y2 = [None for _ in range(4)]\nreputation = 0\nmax_reputation = 3\nminVariance = 10\nframeDict = {}  # include index, start, end, coords.\nframeIndex = 0\nwhile True:\n    flag, frame = capture.read()\n    frameIndex += 1\n    if flag:\n        pos_frame = capture.get(1)  # this is getting previous frame without read again.\n        img_output = algorithm.apply(frame)\n        img_bgmodel = algorithm.getBackgroundModel()\n        _, contours = cv2.findContours(\n            img_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE",
+        "file_id": 531,
+        "content": "average_global_weighted_motion_vector_cartesian_array = []\naverage_weighted_motion_vectors_filtered_cartesian_distance_array = []\naverage_global_weighted_motion_vectors_filtered_cartesian_distance_array = []\nfor _ in progressbar.progressbar(range(framesCount)):\n    success, frame, motion_vectors, frame_type, timestamp = cap.read()\n    height, width, channels = frame.shape\n    # breakpoint()\n    if success:\n        # what is the content of this motion vector?\n        # print(motion_vectors)\n        # import pandas as pd\n        # df = pd.DataFrame(motion_vectors)\n        # df = pd.DataFrame(motion_vectors,index=['source_index','unk0','unk1','src_x','src_y','dst_x','dst_y','motion_x','motion_y','motion_scale'])\n        # breakpoint()\n        # print()\n        # print(\"_____________________________\")\n        condition = motion_vectors[:, 0] < 0\n        # print(condition)\n        # print(condition.shape)\n        # breakpoint()\n        motion_vectors_simplified = motion_vectors[condition, :][:, [0, 5, 6, 7, 8, 9]]",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:34-70"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:143-164"
     },
     "4203": {
-        "file_id": 516,
-        "content": "The code initializes variables for frame coordinates, past frames count, and other parameters. It then enters a loop to continuously capture frames from the camera, apply an algorithm to detect changes, and update relevant variables accordingly. The purpose is likely object detection and tracking using background subtraction or similar techniques.",
+        "file_id": 531,
+        "content": "This code calculates the motion vectors from video frames and filters them based on a condition. The condition checks if the x-component of the motion vector is less than 0, which may indicate horizontal movement. The code then selects specific columns (x, y coordinates, and scale) from the motion vectors that meet this condition for further processing.",
         "type": "comment"
     },
     "4204": {
-        "file_id": 516,
-        "content": "        )\n        # maybe you should merge all active areas.\n        if contours is not None:\n            # continue\n            counted = False\n            for contour in contours:\n                [x, y, w, h] = cv2.boundingRect(img_output)\n                if not counted:\n                    min_x, min_y = x, y\n                    max_x, max_y = x + w, y + h\n                    counted = True\n                else:\n                    min_x = min(min_x, x)\n                    min_y = min(min_y, y)\n                    max_x = max(max_x, x + w)\n                    max_y = max(max_y, y + h)\n                    # only create one single bounding box.\n            # print(\"points:\",min_x, min_y, max_x,max_y)\n            this_w = max_x - min_x\n            this_h = max_y - min_y\n            thresh_x = max(minVariance, int(perc * (this_w)))\n            thresh_y = max(minVariance, int(perc * (this_h)))\n            mx1, mx2, my1, my2 = getFrameAppend(\n                (mx1, mx2, my1, my2), (min_x, max_x, min_y, max_y)\n            )",
+        "file_id": 531,
+        "content": "        motion_vectors_scale = motion_vectors_simplified[:, [5]]\n        motion_vectors_scale_inversed = 1 / motion_vectors_scale\n        motion_vectors_with_scale = motion_vectors_simplified[:, [3, 4]]\n        motion_vectors_scale_inversed_stacked = np.hstack(\n            [motion_vectors_scale_inversed] * 2\n        )\n        motion_vectors_restored = (\n            motion_vectors_scale_inversed_stacked * motion_vectors_with_scale\n        )  # just element wise?\n        # print('STACKED:', motion_vectors_scale_inversed_stacked.shape)\n        # print(\"WITH SCALE:\", motion_vectors_with_scale.shape)\n        # print(\"RESTORED:\",motion_vectors_restored.shape)\n        # print(motion_vectors_simplified.shape)\n        # print(motion_vectors_scale.shape)\n        # breakpoint()\n        motion_vectors_dest_coords_restored = np.hstack(\n            [motion_vectors_simplified[:, [1, 2]], motion_vectors_restored]\n        )\n        # motion_vectors_simplified = motion_vectors[:,[0,5,6,7,8]]\n        # motion_vectors_simplified_unique = np.unique(motion_vectors_simplified, axis=0)",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:71-95"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:165-184"
     },
     "4205": {
-        "file_id": 516,
-        "content": "The code finds the bounding box of all detected contours and merges them into a single one. It then calculates the width and height of this merged bounding box, applies thresholds based on its size and percentage, and updates existing frame append values with new min and max coordinates.",
+        "file_id": 531,
+        "content": "This code segment is involved in optical flow calculation. It performs scaling, inverse scaling, and stacking of motion vectors to restore the original motion vector array. The code then concatenates the destination coordinates with restored motion vectors. This process helps in improving the accuracy of motion vector estimation.",
         "type": "comment"
     },
     "4206": {
-        "file_id": 516,
-        "content": "            val_x1, val_x2, val_y1, val_y2 = [\n                getStreamAvg(a) for a in (mx1, mx2, my1, my2)\n            ]\n            # not a number. float\n            # will return False on any comparison, including equality.\n            if (\n                abs(val_x1 - min_x) < thresh_x\n                and abs(val_x2 - max_x) < thresh_x\n                and abs(val_y1 - min_y) < thresh_y\n                and abs(val_y2 - max_y) < thresh_y\n            ):\n                needChange = False\n                # this will create bounding rect.\n                # this cannot handle multiple active rects.\n                reputation = max_reputation\n                if frame_x1 == None:\n                    needChange = True\n                elif (\n                    checkChange(frame_x1, val_x1, this_w)\n                    or checkChange(frame_x2, val_x2, this_w)\n                    or checkChange(frame_y1, val_y1, this_h)\n                    or checkChange(frame_y2, val_y2, this_h)\n                ):\n                    needChange = True",
+        "file_id": 531,
+        "content": "        # print(motion_vectors_simplified_unique.shape, motion_vectors.shape)\n        # breakpoint()\n        motion_vectors_dict = {}\n        for mv in motion_vectors_dest_coords_restored:\n            # drop duplicates first!\n            (\n                dst_x,  # corresponding macro block.\n                dst_y,  # for destination only\n                motion_x,\n                motion_y,\n                # motion_scale,  # don't know what the fuck is wrong with the motion scale\n            ) = mv.tolist()\n            # say we just want source_index <0, aka mv compared to previous frame\n            # try:\n            #     assert motion_x / motion_scale == src_x - dst_x\n            #     assert motion_y / motion_scale == src_y - dst_y\n            # except:\n            #     print(src_x, dst_x, motion_x, motion_scale)\n            #     print(src_y, dst_y, motion_y, motion_scale)\n            #     print(\"*\" * 20)\n            # it will be inaccurate if we abandon this subpixel precision.\n            # if source_index >= 0:",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:96-119"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:185-206"
     },
     "4207": {
-        "file_id": 516,
-        "content": "This code calculates the average values of x1, x2, y1, and y2 using getStreamAvg function for variables mx1 to my2. If these averages are within a certain threshold from min_x, max_x, min_y, and max_y, it sets needChange to False and reputation to max_reputation. If frame_x1 is None or there's a change in any of the variables, needChange is set to True.",
+        "file_id": 531,
+        "content": "This code segment is extracting and processing motion vectors from a set of coordinates. It is checking for duplicates, performing calculations with source and destination coordinates, and possibly handling inaccuracies caused by subpixel precision. The code seems to be part of a larger process, as it includes debugging statements and references to variables that are not explicitly defined within the provided segment.",
         "type": "comment"
     },
     "4208": {
-        "file_id": 516,
-        "content": "                    # the #2 must be of this reason.\n                if needChange:\n                    frame_x1, frame_y1, frame_x2, frame_y2 = [\n                        int(a) for a in (min_x, min_y, max_x, max_y)\n                    ]\n                    print()\n                    print(\"########FRAME CHANGED########\")\n                    frame_num += 1\n                    frame_area = (frame_x2 - frame_x1) * (frame_y2 - frame_y1)\n                    # update the shit.\n                    coords = ((frame_x1, frame_y1), (frame_x2, frame_y2))\n                    frameDict[frame_num] = {\n                        \"coords\": coords,\n                        \"start\": frameIndex,\n                        \"end\": frameIndex,\n                    }\n                    print(\n                        \"FRAME INDEX: {}\".format(frame_num)\n                    )  # this is the indexable frame. not uuid.\n                    print(\"FRAME AREA: {}\".format(frame_area))\n                    print(\"FRAME COORDS: {}\".format(str(coords)))",
+        "file_id": 531,
+        "content": "            #     continue\n            # if dst_x>max_dst_x:\n            #     max_dst_x = dst_x\n            # if dst_y>max_dst_y:\n            #     max_dst_y = dst_y\n            destCoord = (dst_x, dst_y)\n            motion_vector = (motion_x, motion_y)\n            # print(destCoord)\n            # breakpoint()\n            if motion_vector == (0, 0):\n                # print(\"zero motion vector detected. skipping\")\n                # breakpoint()\n                continue\n            # print('destination coords:',destCoord)\n            # print('motion vector:',motion_vector)\n            motion_vectors_dict.update(\n                {destCoord: motion_vectors_dict.get(destCoord, []) + [motion_vector]}\n            )\n            # you know, different frame sources may lead to different results.\n            # these vectors could overlap. which one you want to keep? the smaller ones or the bigger ones?\n            # if destCoord in destCoords:\n            #     print(\"SKIPPING DUPLICATE DESTCOORD:\", destCoord)\n            #     print(\"PREVIOUS MV\",prevMV)",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:120-140"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:207-230"
     },
     "4209": {
-        "file_id": 516,
-        "content": "This code snippet handles frame changes in a video detection process. When a change is detected (needChange), it updates the frame's coordinates, number, and area. It then prints information about the new frame and adds it to the frameDict dictionary with the index as the key.",
+        "file_id": 531,
+        "content": "This code iterates over motion vectors and updates a dictionary with the destination coordinates and corresponding motion vectors. It skips zero vectors and handles duplicate destinations, but doesn't specify which motion vector to keep in case of overlapping coordinates.",
         "type": "comment"
     },
     "4210": {
-        "file_id": 516,
-        "content": "                # allow us to introduce our new frame determinism.\n            else:\n                if reputation > 0:\n                    reputation -= 1\n            if frame_x1 is not None and reputation > 0:\n                # you may choose to keep cutting the frame? with delay though.\n                cv2.rectangle(\n                    frame, (frame_x1, frame_y1), (frame_x2, frame_y2), (255, 0, 0), 2\n                )\n                frameDict[frame_num][\"end\"] = frameIndex\n                # we mark the first and last time to display this frame.\n            # how to stablize this shit?\n        cv2.imshow(\"video\", frame)\n        # just video.\n        # cv2.imshow('img_output', img_output)\n        # cv2.imshow('img_bgmodel', img_bgmodel)\n    else:\n        cv2.waitKey(1000)\n        break\n    if 0xFF & cv2.waitKey(10) == 27:\n        break\ncv2.destroyAllWindows()\nprint(\"FINAL FRAME DETECTIONS:\")\nprint(frameDict)\n# {1: {'coords': ((80, 199), (496, 825)), 'start': 13, 'end': 269}, 2: {'coords': ((80, 381), (483, 644)), 'start': 297, 'end': 601}}",
+        "file_id": 531,
+        "content": "            #     print(\"CURRENT MV\", mv)\n            #     continue\n            # else:\n            #     destCoords.add(destCoord)\n            # prevMV = mv\n            # try:\n            #     # src_x, src_y may not apply the same rule.\n            #     # assert src_x % 16 == 8\n            #     # assert src_y % 16 == 8\n            #     assert checkMacroBlock(dst_x) is not None\n            #     assert checkMacroBlock(dst_y) is not None\n            #     # assert dst_x<=res_x # dst_x can go beyond the res_x\n            #     # assert dst_y<=res_y\n            #     # so all rules applied.\n            # except:\n            #     # print('source',src_x, src_y)\n            #     print(\"res\", res_x, res_y)\n            #     print('destionation',dst_x, dst_y)\n            #     print('motion',motion_x, motion_y)\n            #     print(\"scale\",motion_scale)\n        motion_vectors_dict_averaged = {\n            key: averageMotionVectors(motion_vectors_dict[key])\n            for key in motion_vectors_dict.keys()\n        }",
         "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:141-169"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:231-254"
     },
     "4211": {
-        "file_id": 516,
-        "content": "This code appears to be part of a video detection and analysis program. It uses OpenCV to display frames from the video and overlay rectangles on frames that have been detected multiple times. The \"frameDict\" stores information about detected frames, including their coordinates, start and end indices in the video, and reputation. The program continues until the user presses ESC or waits too long, then prints the final frame detections.",
+        "file_id": 531,
+        "content": "This code is filtering and averaging motion vectors for macroblocks within a certain range. It checks if the source coordinates follow a specific rule, asserts that valid macroblock check functions are not None, and ensures the destination coordinates do not exceed the resolution limits. If any of these conditions fail, it prints debug information and continues execution. Finally, it calculates the averaged motion vectors for each macroblock in the dictionary.",
         "type": "comment"
     },
     "4212": {
-        "file_id": 517,
-        "content": "/tests/video_detector_tests/rect_corner_detect_fast.py",
-        "type": "filepath"
+        "file_id": 531,
+        "content": "        # assuming no duplicates?\n        weighted_motion_vectors = []\n        weights = []\n        rectangles = []\n        motion_vectors_filtered = []  # for getting data later?\n        for (\n            blockCenterCoordinates,\n            average_motion_vector,\n        ) in motion_vectors_dict_averaged.items():\n            if average_motion_vector == (0, 0):\n                continue\n                # wtf is this? why fucking zero?\n                # print('skipping zero average motion vector')\n                # print(\"destination coords\", key)\n                # print('average motion vector', average_motion_vector)\n            else:\n                m_x, m_y = average_motion_vector\n                motion_vectors_filtered.append(average_motion_vector)\n                rectangle_XYWH = getRectangleXYWHFromBlockCenterCoordinates(\n                    blockCenterCoordinates\n                )\n                rectangles.append(rectangle_XYWH)\n                blockWeight = getBlockWeightFromBlockCenterCoordinates(\n                    blockCenterCoordinates",
+        "type": "code",
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:255-278"
     },
     "4213": {
-        "file_id": 517,
-        "content": "This code appears to be exploring various corner detection methods from the OpenCV library (cv2) for potential use with the Canny edge detector. The purpose might be to find the most suitable method for a specific application.",
-        "type": "summary"
+        "file_id": 531,
+        "content": "This code filters out motion vectors with an average of (0, 0) and stores the remaining vectors in a list. It also extracts relevant information from the blockCenterCoordinates and calculates the weight for each block. Rectangles are created using the getRectangleXYWHFromBlockCenterCoordinates function, and weights are obtained through getBlockWeightFromBlockCenterCoordinates. The motion_vectors_filtered list keeps track of filtered motion vectors for later use.",
+        "type": "comment"
     },
     "4214": {
-        "file_id": 517,
-        "content": "# there are some corner detection methods in cv2. not sure what to follow... is it intended to use with canny edge detector or not?",
+        "file_id": 531,
+        "content": "                )\n                weights.append(blockWeight)\n                weighted_motion_vectors.append(\n                    (\n                        m_x * blockWeight / frame_common_divisor,\n                        m_y * blockWeight / frame_common_divisor,\n                    )\n                )\n        weighted_motion_vectors = np.array(weighted_motion_vectors)\n        sum_weighted_motion_vector = np.sum(weighted_motion_vectors, axis=0)\n        average_global_weighted_motion_vector = (\n            sum_weighted_motion_vector / total_block_weights\n        )\n        sum_weights = sum(weights)\n        average_weighted_motion_vector = sum_weighted_motion_vector / sum_weights\n        motion_area_ratio = sum_weights / total_block_weights\n        # print(motion_vectors.shape)\n        motion_vectors_filtered_cartesian_distance = [\n            cartesianDistance(vector) for vector in motion_vectors_filtered\n        ] + [\n            0\n        ]  # to avoid errors.\n        motion_vectors_filtered_cartesian_distance = np.array(",
         "type": "code",
-        "location": "/tests/video_detector_tests/rect_corner_detect_fast.py:1-1"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:279-301"
     },
     "4215": {
-        "file_id": 517,
-        "content": "This code appears to be exploring various corner detection methods from the OpenCV library (cv2) for potential use with the Canny edge detector. The purpose might be to find the most suitable method for a specific application.",
+        "file_id": 531,
+        "content": "This code calculates the average global weighted motion vector and average weighted motion vector, as well as the motion area ratio. It also filters and stores cartesian distances for each motion vector.",
         "type": "comment"
     },
     "4216": {
-        "file_id": 518,
-        "content": "/tests/video_detector_tests/rect_active_rect_frame_difference.py",
-        "type": "filepath"
+        "file_id": 531,
+        "content": "            motion_vectors_filtered_cartesian_distance\n        )\n        cartesianWeights = weights + [0]\n        cartesianWeights = np.array(cartesianWeights)\n        cartesianWeightsSum = np.sum(cartesianWeights)\n        weighted_motion_vectors_filtered_cartesian_distance = (\n            motion_vectors_filtered_cartesian_distance * cartesianWeights\n        )\n        sum_weighted_motion_vectors_filtered_cartesian_distance = np.sum(\n            weighted_motion_vectors_filtered_cartesian_distance\n        )\n        # print(\"SUM\", sum_weighted_motion_vectors_filtered_cartesian_distance)\n        # breakpoint()\n        average_weighted_motion_vectors_filtered_cartesian_distance = (\n            sum_weighted_motion_vectors_filtered_cartesian_distance / cartesianWeightsSum\n        )\n        average_global_weighted_motion_vectors_filtered_cartesian_distance = (\n            sum_weighted_motion_vectors_filtered_cartesian_distance\n            / total_block_weights # this is a number, not array!\n        )\n        min_cartesian = min(motion_vectors_filtered_cartesian_distance)",
+        "type": "code",
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:302-328"
     },
     "4217": {
-        "file_id": 518,
-        "content": "This code aims to merge frame difference with rectangle detection, calculate the most active rect region, and consider 4 boundary lines as a custom switch.",
-        "type": "summary"
+        "file_id": 531,
+        "content": "This code calculates weighted average motion vectors by multiplying the distance of each vector with its corresponding weight, summing them, and dividing by the total weight. The minimum cartesian distance is also found.",
+        "type": "comment"
     },
     "4218": {
-        "file_id": 518,
-        "content": "# merge framedifference with rectangle detection.\n# calculate the most active rect region.\n# also you might want to include 4 boundary lines as custom switch.",
+        "file_id": 531,
+        "content": "        max_cartesian = max(motion_vectors_filtered_cartesian_distance)\n        motion_area_ratio_array.append(motion_area_ratio)\n        # print()\n        # print(average_weighted_motion_vector)\n        # print(average_global_weighted_motion_vector)\n        # breakpoint()\n        average_weighted_motion_vector_cartesian=cartesianDistance(average_weighted_motion_vector)\n        average_weighted_motion_vector_cartesian_array.append(average_weighted_motion_vector_cartesian)\n        average_global_weighted_motion_vector_cartesian = cartesianDistance(average_global_weighted_motion_vector)\n        average_global_weighted_motion_vector_cartesian_array.append(\n        average_global_weighted_motion_vector_cartesian\n        )\n        average_weighted_motion_vectors_filtered_cartesian_distance_array.append(\n            average_weighted_motion_vectors_filtered_cartesian_distance\n        )\n        average_global_weighted_motion_vectors_filtered_cartesian_distance_array.append(\n            average_global_weighted_motion_vectors_filtered_cartesian_distance",
         "type": "code",
-        "location": "/tests/video_detector_tests/rect_active_rect_frame_difference.py:1-5"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:329-346"
     },
     "4219": {
-        "file_id": 518,
-        "content": "This code aims to merge frame difference with rectangle detection, calculate the most active rect region, and consider 4 boundary lines as a custom switch.",
+        "file_id": 531,
+        "content": "Calculates the average weighted motion vector and global weighted motion vector in Cartesian distance, then appends them to corresponding arrays. It also computes and appends filtered Cartesian distances of both types of vectors to their respective arrays. No print statements or breakpoints are executed.",
         "type": "comment"
     },
     "4220": {
-        "file_id": 519,
-        "content": "/tests/video_detector_tests/pip_meanVariance_stablize.py",
-        "type": "filepath"
+        "file_id": 531,
+        "content": "        )\n        if motion_vectors_dict_averaged != {}:\n            # breakpoint()\n            if visualize:\n                print(\"motion_area_ratio\", motion_area_ratio)\n                print(\"average_weighted_motion_vector_cartesian\", average_weighted_motion_vector_cartesian)\n                print(\n                    \"average_global_weighted_motion_vecto_cartesianr\",\n                    average_global_weighted_motion_vector_cartesian,\n                )\n                print(\n                    \"average_weighted_motion_vectors_filtered_cartesian_distance\",\n                    average_weighted_motion_vectors_filtered_cartesian_distance,\n                )\n                print(\n                    \"average_global_weighted_motion_vectors_filtered_cartesian_distance\",\n                    average_global_weighted_motion_vectors_filtered_cartesian_distance,\n                )\n                motion_mask = np.zeros(\n                    (motion_render_frame[1], motion_render_frame[0], 1)\n                )\n                for index, (x, y, w, h) in enumerate(rectangles):",
+        "type": "code",
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:347-369"
     },
     "4221": {
-        "file_id": 519,
-        "content": "The function uses calculations, filters, and analyses to process data and perform tasks such as linear regression and image analysis. The code creates a rectangular plot using matplotlib with randomly chosen colors and displays it using plt.show().",
-        "type": "summary"
+        "file_id": 531,
+        "content": "The code checks if there are any motion vectors in the dictionary and prints various motion-related information and creates a motion mask with zeros.",
+        "type": "comment"
     },
     "4222": {
-        "file_id": 519,
-        "content": "from mathlib import *\n# from ...pyjom.mathlib import sequentialToMergedRanges\n# you can use yolo to train network to detect these sharp corners, total four sharp corners.\n# but it might fail to do so.\n# but what about other stuff?\n# whatever let's just use this.\ndef sampledStablePipRegionExporter(data, defaultWidth, defaultHeight):\n    defaultWidth, defaultHeight = int(defaultWidth), int(defaultHeight)\n    import numpy as np\n    data = np.array(data)\n    def getAlikeValueMerged(mArray, threshold=35):\n        for index, elem in enumerate(mArray[:-1]):\n            nextElem = mArray[index + 1]\n            if abs(nextElem - elem) < threshold:\n                mArray[index + 1] = elem\n        return mArray\n    def listToRangedDictWithLabel(mList, label):\n        resultDict = {}\n        for index, elem in enumerate(mList):\n            mKey = \"{}:{}\".format(label, int(elem))\n            resultDict.update({mKey: resultDict.get(mKey, []) + [(index, index + 1)]})\n        return resultDict\n    def get1DArrayEMA(mArray,N=5):",
+        "file_id": 531,
+        "content": "                    pt1, pt2 = XYWHToDiagonal(x, y, w, h)\n                    # print(pt1, pt2)\n                    current_cartesian = motion_vectors_filtered_cartesian_distance[\n                        index\n                    ]\n                    # print(type(pt1), type(pt1[0]))\n                    relative_motion_cartesian = (current_cartesian - min_cartesian) / (\n                        max_cartesian - min_cartesian\n                    )  # must from 0 to 1 so we can plot this,\n                    # relative_motion_cartesian = 255*((current_cartesian-min_cartesian)/(max_cartesian-min_cartesian))\n                    # relative_motion_cartesian = int(relative_motion_cartesian)\n                    # relative_motion_cartesian = min(255,max(0, relative_motion_cartesian))\n                    # breakpoint()\n                    cv2.rectangle(\n                        motion_mask,\n                        pt1,\n                        pt2,\n                        color=(relative_motion_cartesian,),\n                        thickness=-1,",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:1-33"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:370-388"
     },
     "4223": {
-        "file_id": 519,
-        "content": "The function sampledStablePipRegionExporter takes data, defaultWidth, and defaultHeight as inputs. It converts the data into a numpy array, then provides three helper functions: getAlikeValueMerged, listToRangedDictWithLabel, and get1DArrayEMA. The purpose of these helper functions is to manipulate and process the data into desired ranges for further analysis or processing.",
+        "file_id": 531,
+        "content": "This code calculates the relative motion vector cartesian distance and draws a rectangle on an image using OpenCV's `cv2.rectangle` function. The rectangle dimensions are based on the input x, y, w, and h parameters, and its color is determined by the relative motion vector cartesian distance, converted to a range of 0-255 for image intensity values.",
         "type": "comment"
     },
     "4224": {
-        "file_id": 519,
-        "content": "        weights=np.exp(np.linspace(0,1,N))\n        weights =weights/np.sum(weights)\n        ema = np.convolve(weights, mArray, mode='valid')\n        return ema\n    def pointsToRangedDictWithLabel(mArray, label, threshold=35):\n        mArray = get1DArrayEMA(mArray)\n        mArray = getAlikeValueMerged(mArray, threshold=threshold)\n        return listToRangedDictWithLabel(mArray, label)\n    threshold = int(max(defaultWidth, defaultHeight)*0.02734375)\n    xLeftPoints = pointsToRangedDictWithLabel(data[:, 0, 0], \"xleft\", threshold = threshold)\n    yLeftPoints = pointsToRangedDictWithLabel(data[:, 0, 1], \"yleft\", threshold = threshold)\n    xRightPoints = pointsToRangedDictWithLabel(data[:, 1, 0], \"xright\", threshold = threshold)\n    yRightPoints = pointsToRangedDictWithLabel(data[:, 1, 1], \"yright\", threshold = threshold)\n    commandDict = {}\n    for mDict in [xLeftPoints, yLeftPoints, xRightPoints, yRightPoints]:\n        commandDict.update(mDict)\n    commandDict = getContinualMappedNonSympyMergeResult(commandDict)",
+        "file_id": 531,
+        "content": "                    )\n                # should we gaussian blur, threshold this, do convolution and then apply bounding box on it?\n                # # visualize this.\n                if show_picture:\n                    cv2.imshow(\"motion_mask\", motion_mask)\n                    cv2.waitKey(100)\n            # may you create bounding box for this? for tracking motion? or not?\n        # breakpoint()\n    else:\n        break\n# print('max_dst_x', max_dst_x)\n# print('max_dst_y', max_dst_y)\nimport matplotlib.pyplot as plt\n# plt.style.use('dark_background')\na, b = 5, 1\nfigure, axis = plt.subplots(a, b)\ndata = [\n    motion_area_ratio_array,\n    # average_weighted_motion_vector_array,\n    # average_global_weighted_motion_vector_array,\n    average_weighted_motion_vector_cartesian_array,\n    average_global_weighted_motion_vector_cartesian_array,\n    average_weighted_motion_vectors_filtered_cartesian_distance_array,\n    average_global_weighted_motion_vectors_filtered_cartesian_distance_array,\n]\ntitles = [\n    \"motion_area_ratio\",",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:34-52"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:389-419"
     },
     "4225": {
-        "file_id": 519,
-        "content": "The code calculates the exponential moving average (EMA) of a 1D array and converts points into a ranged dictionary with labels. It then updates a command dictionary using the labeled points and applies non-sympy merge to get the final result. The threshold value is determined based on the maximum width or height, and there are four types of points processed: xLeft, yLeft, xRight, and yRight.",
+        "file_id": 531,
+        "content": "The code is visualizing and analyzing motion data using image processing techniques. It displays a motion mask, creates a bounding box for motion tracking, and plots various motion-related data on subplots. The code also includes options to blur, threshold, apply convolution, and display the results.",
         "type": "comment"
     },
     "4226": {
-        "file_id": 519,
-        "content": "    commandDictSequential = mergedRangesToSequential(commandDict)\n    def getSpanDuration(span):\n        start, end = span\n        return end - start\n    itemDurationThreshold = 10\n    # framerate?\n    while True:\n        # print(\"LOOP COUNT:\", loopCount)\n        # loopCount+=1\n        # noAlter = True\n        beforeChange = [item[0] for item in commandDictSequential].copy()\n        for i in range(len(commandDictSequential) - 1):\n            currentItem = commandDictSequential[i]\n            nextItem = commandDictSequential[i + 1]\n            currentItemCommand = currentItem[0]\n            currentItemDuration = getSpanDuration(currentItem[1])\n            nextItemCommand = nextItem[0]\n            nextItemDuration = getSpanDuration(nextItem[1])\n            if currentItemDuration < itemDurationThreshold:\n                if nextItemCommand != currentItemCommand and nextItemDuration >= itemDurationThreshold:\n                    # print(\"HERE0\",i, currentItemCommand, nextItemCommand)\n                    commandDictSequential[i][0] = nextItemCommand",
+        "file_id": 531,
+        "content": "    # \"average_weighted_motion_vector\",\n    # \"average_global_weighted_motion_vector\",\n    \"average_weighted_motion_vector_cartesian\",\n    \"average_global_weighted_motion_vector_cartesian\",\n    \"average_weighted_motion_vectors_filtered_cartesian_distance\",\n    \"average_global_weighted_motion_vectors_filtered_cartesian_distance\",\n]\n# breakpoint()\nassert len(titles) == len(data)\nassert a*b >= len(titles)\nfor _a in range(a):\n    for _b in range(b):\n        index = _a * b + _b\n        if index > len(data) - 1:\n            break\n        if a == 1:\n            if b == 1:\n                axis[0].plot(data[index])\n                axis[0].set_title(titles[index])\n            else:\n                axis[_b].plot(data[index])\n                axis[_b].set_title(titles[index])\n        elif b == 1:\n            axis[_a].plot(data[index])\n            axis[_a].set_title(titles[index])\n        else:\n            axis[_a, _b].plot(data[index])\n            axis[_a, _b].set_title(titles[index])\nplt.show()",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:53-77"
+        "location": "/tests/motion_vector_estimation/optical_flow_colored_blocks_convolution.py:420-449"
     },
     "4227": {
-        "file_id": 519,
-        "content": "This code loops through a sequence of command pairs, adjusting commands with durations below the threshold by taking the next command if it has a duration above the threshold. This ensures that there is no gap between consecutive commands and maintains smooth video detection.",
+        "file_id": 531,
+        "content": "This code is plotting multiple sets of data onto a graph, with each set corresponding to an item in two lists of titles and data. The code asserts that the lengths of both lists are equal, and then iterates through each element of the lists using nested for loops. If a single plot is desired, it plots and labels one line of data at a time. If multiple plots are desired, it creates and labels a separate plot for each line of data. Finally, it displays the graph.",
         "type": "comment"
     },
     "4228": {
-        "file_id": 519,
-        "content": "                    # noAlter=False\n            if nextItemDuration < itemDurationThreshold:\n                if nextItemCommand != currentItemCommand :\n                    # print(\"HERE1\",i, currentItemCommand, nextItemCommand)\n                    commandDictSequential[i + 1][0] = currentItemCommand\n                    # noAlter=False\n        afterChange = [item[0] for item in commandDictSequential].copy()\n        noAlter = beforeChange == afterChange\n        if noAlter:\n            break\n    preFinalCommandDict = sequentialToMergedRanges(commandDictSequential)\n    finalCommandDict = {}\n    for key, elem in preFinalCommandDict.items():\n        # print(key,elem)\n        varNames = [\"xleft\", \"yleft\", \"xright\", \"yright\"]\n        defaultValues = [0, 0, defaultWidth, defaultHeight]\n        for varName, defaultValue in zip(varNames, defaultValues):\n            key = key.replace(\n                \"{}:empty\".format(varName), \"{}:{}\".format(varName, defaultValue)\n            )\n        # print(key,elem)\n        # breakpoint()",
-        "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:78-99"
+        "file_id": 532,
+        "content": "/tests/motion_vector_estimation/mpegflow/test.sh",
+        "type": "filepath"
     },
     "4229": {
-        "file_id": 519,
-        "content": "The code checks if there is a change in item commands and updates the command dictionary accordingly. If no changes occur, it breaks the loop. It then converts the sequential command dictionary to merged ranges and stores default values for variables.",
-        "type": "comment"
+        "file_id": 532,
+        "content": "The code sets the VIDEO variable to a specific video file path, runs the mpegflow command on that file and redirects output to output.txt, but the .so file is fake so it doesn't work well. The code also provides an alternative method using Docker or downloading a real .so file from the web, creating an examples/vis_dump directory, and piping the mpegflow command's output into ./vis with the video file path.",
+        "type": "summary"
     },
     "4230": {
-        "file_id": 519,
-        "content": "        import parse\n        formatString = (\n            \"xleft:{xleft:d}|yleft:{yleft:d}|xright:{xright:d}|yright:{yright:d}\"\n        )\n        commandArguments = parse.parse(formatString, key)\n        x, y, w, h = (\n            commandArguments[\"xleft\"],\n            commandArguments[\"yleft\"],\n            commandArguments[\"xright\"] - commandArguments[\"xleft\"],\n            commandArguments[\"yright\"] - commandArguments[\"yleft\"],\n        )\n        if w <= 0 or h <= 0:\n            continue\n        cropCommand = \"crop_{}_{}_{}_{}\".format(x, y, w, h)\n        # print(cropCommand)\n        finalCommandDict.update({cropCommand: elem})\n        # print(elem)\n        # the parser shall be in x,y,w,h with keywords.\n        # we might want to parse the command string and reengineer this shit.\n    return finalCommandDict\ndef kalmanStablePipRegionExporter(data, defaultWidth, defaultHeight):\n    defaultWidth, defaultHeight = int(defaultWidth), int(defaultHeight)\n    import numpy as np\n    data = np.array(data)\n    from pykalman import KalmanFilter",
+        "file_id": 532,
+        "content": "VIDEO=\"/root/Desktop/works/pyjom/samples/video/cute_cat_gif.mp4\"\n# ./mpegflow $VIDEO > output.txt\n# it does not help because the .so file is fake. you need a real one.\n# you may download it from web, or just use docker\n# mkdir -p examples/vis_dump && ./mpegflow $VIDEO | ./vis $VIDEO examples/vis_dump\n# maybe this shit is not good at all...",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:100-129"
+        "location": "/tests/motion_vector_estimation/mpegflow/test.sh:1-10"
     },
     "4231": {
-        "file_id": 519,
-        "content": "The code imports the \"parse\" library, defines a format string for command arguments, uses parse to extract x, y, w, and h values, checks if these values are valid, creates a crop command based on these values, updates finalCommandDict with this command and corresponding element, and finally imports numpy and pykalman for further processing.",
+        "file_id": 532,
+        "content": "The code sets the VIDEO variable to a specific video file path, runs the mpegflow command on that file and redirects output to output.txt, but the .so file is fake so it doesn't work well. The code also provides an alternative method using Docker or downloading a real .so file from the web, creating an examples/vis_dump directory, and piping the mpegflow command's output into ./vis with the video file path.",
         "type": "comment"
     },
     "4232": {
-        "file_id": 519,
-        "content": "    def Kalman1D(observations, damping=0.2):\n        # To return the smoothed time series data\n        observation_covariance = damping\n        initial_value_guess = observations[0]\n        transition_matrix = 1\n        transition_covariance = 0.1\n        initial_value_guess\n        kf = KalmanFilter(\n            initial_state_mean=initial_value_guess,\n            initial_state_covariance=observation_covariance,\n            observation_covariance=observation_covariance,\n            transition_covariance=transition_covariance,\n            transition_matrices=transition_matrix,\n        )\n        pred_state, state_cov = kf.smooth(observations)\n        return pred_state\n    def getSinglePointStableState(xLeftPoints, signalFilterThreshold=10, commandFloatMergeThreshold = 15, \n        stdThreshold = 1,\n        slopeThreshold = 0.2):\n        xLeftPointsFiltered = Kalman1D(xLeftPoints)\n        xLeftPointsFiltered = xLeftPointsFiltered.reshape(-1)\n        from itertools import groupby\n        def extract_span(mlist, target=0):",
-        "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:131-155"
+        "file_id": 533,
+        "content": "/tests/motion_vector_estimation/mpegflow/init.sh",
+        "type": "filepath"
     },
     "4233": {
-        "file_id": 519,
-        "content": "This code defines two functions: \"Kalman1D\" and \"getSinglePointStableState\". \"Kalman1D\" uses a Kalman filter algorithm to smooth time-series observations, while \"getSinglePointStableState\" filters and processes left points data for single-point stable states. The input parameters allow customization of the filtering and processing thresholds.",
-        "type": "comment"
+        "file_id": 533,
+        "content": "Downloading 'mpegflow' and 'vis' from the 1.0 release of vadimkantorov/mpegflow repository.",
+        "type": "summary"
     },
     "4234": {
-        "file_id": 519,
-        "content": "            counter = 0\n            spanList = []\n            target_list = [(a, len(list(b))) for a, b in groupby(mlist)]\n            for a, b in target_list:\n                nextCounter = counter + b\n                if a == target:\n                    spanList.append((counter, nextCounter))\n                counter = nextCounter\n            return spanList\n        # solve diff.\n        xLeftPointsFilteredDiff = np.diff(xLeftPointsFiltered)\n        # xLeftPointsFilteredDiff3 = np.diff(xLeftPointsFilteredDiff)\n        # import matplotlib.pyplot as plt\n        # plt.plot(xLeftPointsFilteredDiff)\n        # plt.plot(xLeftPointsFiltered)\n        # plt.plot(xLeftPoints)\n        # plt.show()\n        # xLeftPointsFilteredDiff3Filtered = Kalman1D(xLeftPointsFilteredDiff3)\n        derivativeThreshold = 3\n        # derivative3Threshold = 3\n        xLeftPointsSignal = (\n            (abs(xLeftPointsFilteredDiff) < derivativeThreshold)\n            .astype(np.uint8)\n            .tolist()\n        )\n        def signalFilter(signal, threshold=10):",
+        "file_id": 533,
+        "content": "curl -L -O https://github.com/vadimkantorov/mpegflow/releases/download/1.0/mpegflow\ncurl -L -O https://github.com/vadimkantorov/mpegflow/releases/download/1.0/vis",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:156-184"
+        "location": "/tests/motion_vector_estimation/mpegflow/init.sh:1-2"
     },
     "4235": {
-        "file_id": 519,
-        "content": "The code filters and extracts a list of spans from a given input, likely for text processing or analysis purposes. It uses groupby function to split the input into consecutive repetitions of the same element, then iterates over the resulting list of tuples (element, count) to create a new span list based on a target element. The code also performs differential calculations on the filtered xLeftPoints and applies a derivative threshold to generate a binary signal list likely for further processing or visualization purposes.",
+        "file_id": 533,
+        "content": "Downloading 'mpegflow' and 'vis' from the 1.0 release of vadimkantorov/mpegflow repository.",
         "type": "comment"
     },
     "4236": {
-        "file_id": 519,
-        "content": "            newSignal = np.zeros(len(signal))\n            signalFiltered = extract_span(xLeftPointsSignal, target=1)\n            newSignalRanges = []\n            for start, end in signalFiltered:\n                length = end - start\n                if length >= threshold:\n                    newSignalRanges.append((start, end))\n                    newSignal[start : end + 1] = 1\n            return newSignal, newSignalRanges\n        xLeftPointsSignalFiltered, newSignalRanges = signalFilter(xLeftPointsSignal, threshold = signalFilterThreshold)\n        xLeftPointsSignalFiltered *= 255\n        mShrink = 2\n        from sklearn.linear_model import LinearRegression\n        target = []\n        for start, end in newSignalRanges:\n            # could we shrink the boundaries?\n            mStart, mEnd = start + mShrink, end - mShrink\n            if mEnd <= mStart:\n                continue\n            sample = xLeftPointsFiltered[mStart:mEnd]\n            std = np.std(sample)\n            if std > stdThreshold:\n                continue",
-        "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:185-210"
+        "file_id": 534,
+        "content": "/tests/ffmpeg_audio_volume_detect_adjust/test_output_file_error.py",
+        "type": "filepath"
     },
     "4237": {
-        "file_id": 519,
-        "content": "This code segment performs signal filtering and preparation for subsequent analysis. It extracts a filtered signal, selects ranges above a threshold, scales the values to 255, applies boundary shrinking, and checks if the standard deviation exceeds a threshold before passing it on for further processing.",
-        "type": "comment"
+        "file_id": 534,
+        "content": "The code imports modules, defines paths and fetches media. It detects volume average, adjusts volume if no error occurs, and warns about potential clipping while displaying normalization stats for the output file.",
+        "type": "summary"
     },
     "4238": {
-        "file_id": 519,
-        "content": "            model = LinearRegression()\n            X, y = np.array(range(sample.shape[0])).reshape(-1, 1), sample\n            model.fit(X, y)\n            coef = model.coef_[0]  # careful!\n            if abs(coef) > slopeThreshold:\n                continue\n            meanValue = int(np.mean(sample))\n            target.append({\"range\": (start, end), \"mean\": meanValue})\n            # print((start, end), std, coef)\n        newTarget = {}\n        for elem in target:\n            meanStr = str(elem[\"mean\"])\n            mRange = elem[\"range\"]\n            newTarget.update({meanStr: newTarget.get(meanStr, []) + [mRange]})\n        mStart = 0\n        mEnd = len(xLeftPoints)\n        newTarget = getContinualMappedNonSympyMergeResultWithRangedEmpty(\n            newTarget, mStart, mEnd\n        )\n        newTargetSequential = mergedRangesToSequential(newTarget)\n        if (newTargetSequential) == 1:\n            if newTargetSequential[0][0] == \"empty\":\n                # the whole thing is empty now. no need to investigate.\n                print(\"NO STATIC PIP FOUND HERE.\")",
+        "file_id": 534,
+        "content": "import test # for appending path only.\nfrom pyjom.audiotoolbox import detect_volume_average, adjustVolumeInMedia\noutput_path = \"volDetect_test.mp4\"\n# detect_volume_average(output_path, debug=True)\nnormalizedOutputPath = \"normalized.mp4\"\n# Output extension mp4 does not support PCM audio. Please choose a suitable audio codec with the -c:a option.\n# wtf are you talking about?\nonline_fetched_media = \"/root/Desktop/works/pyjom/tests/calculate_separate_video_scene_duration_in_dog_video_with_bgm/sample.mp4\"\n# is this the standard?\ntargets, error = detect_volume_average(online_fetched_media, debug=True)\n# at least let me see this shit.\n# breakpoint()\n# {'mean': -10.6, 'max': 0.0}\n# according to the volume, it seems that everyone agree with this 'industrial standard'\nif not error:\n    adjustVolumeInMedia(\n        output_path, normalizedOutputPath, overwrite_output=True, targets=targets\n    )\n    detect_volume_average(normalizedOutputPath, debug=True)\nelse:\n    print(\"error when detecting volume in media: %s\" % online_fetched_media)",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:211-238"
+        "location": "/tests/ffmpeg_audio_volume_detect_adjust/test_output_file_error.py:1-23"
     },
     "4239": {
-        "file_id": 519,
-        "content": "Performs linear regression on sample data, if slope is within threshold range, adds mean value and range to target list. Combines target elements into newTarget dictionary, and converts newTarget to sequential format. If entire sequential format is empty, prints \"NO STATIC PIP FOUND HERE.\"",
+        "file_id": 534,
+        "content": "The code imports the necessary modules and defines output path, normalized output path, and online fetched media. It attempts to detect volume average from the media file and adjusts the volume if no error occurs, otherwise it prints an error message.",
         "type": "comment"
     },
     "4240": {
-        "file_id": 519,
-        "content": "                return {}\n        else:\n            # newTargetSequential\n            newTargetSequentialUpdated = []\n            for index in range(len(newTargetSequential) - 1):\n                elem = newTargetSequential[index]\n                commandString, commandTimeSpan = elem\n                nextElem = newTargetSequential[index + 1]\n                nextCommandString, nextCommandTimeSpan = nextElem\n                if commandString == \"empty\":\n                    newTargetSequential[index][0] = nextCommandString\n                else:\n                    if nextCommandString == \"empty\":\n                        newTargetSequential[index + 1][0] = commandString\n                    else:  # compare the two!\n                        commandFloat = float(commandString)\n                        nextCommandFloat = float(nextCommandString)\n                        if (\n                            abs(commandFloat - nextCommandFloat)\n                            < commandFloatMergeThreshold\n                        ):",
+        "file_id": 534,
+        "content": "    # what is cliping?\n    # WARNING: Adjusting will lead to clipping of 4.209296 dB                                 \n# even worse with default settings.\n# VOLUME NORMALIZATION SUCCESSFUL\n# MEDIA PATH: normalized.mp4\n# VOLUME: {'mean': -25.1, 'max': -8.8}\n# ERROR STATUS: False\n# 'mean' -> target level\n# 'max' -> true peak (really?)",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:239-259"
+        "location": "/tests/ffmpeg_audio_volume_detect_adjust/test_output_file_error.py:24-32"
     },
     "4241": {
-        "file_id": 519,
-        "content": "This code is updating a list of commands by merging consecutive commands if they are within a certain threshold. It compares the difference between two commands and if it's below a specific value, it updates the list accordingly.",
+        "file_id": 534,
+        "content": "The code is warning about potential clipping due to audio adjustment, showing successful volume normalization with mean and max levels for the output file.",
         "type": "comment"
     },
     "4242": {
-        "file_id": 519,
-        "content": "                            newTargetSequential[index + 1][0] = commandString\n            # bring this sequential into dict again.\n            answer = sequentialToMergedRanges(newTargetSequential)\n            # print(\"_\"*30, \"ANSWER\",\"_\"*30)\n            # for elem in answer.items():\n            #     print(elem)\n            return answer\n        print(\"[FAILSAFE] SOMEHOW THE CODE SUCKS\")\n        return {}\n    xLeftPoints = data[:, 0, 0]\n    yLeftPoints = data[:, 0, 1]\n    xRightPoints = data[:, 1, 0]\n    yRightPoints = data[:, 1, 1]\n    mPoints = [xLeftPoints, yLeftPoints, xRightPoints, yRightPoints]\n    answers = []\n    for mPoint in mPoints:\n        answer = getSinglePointStableState(mPoint)\n        answers.append(answer)\n        # print(\"_\"*30, \"ANSWER\",\"_\"*30)\n        # for elem in answer.items():\n        #     print(elem)\n    if answers == [{}, {}, {}, {}]:\n        print(\"NO PIP FOUND\")\n        finalCommandDict = {}\n    else:\n        defaultCoord = [0, 0, defaultWidth, defaultHeight]  # deal with it later?",
-        "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:260-291"
+        "file_id": 535,
+        "content": "/tests/ffmpeg_audio_volume_detect_adjust/test_get_media_bitrate.py",
+        "type": "filepath"
     },
     "4243": {
-        "file_id": 519,
-        "content": "This code is performing image analysis and stabilization for PIP (Picture-in-Picture) detection. It first creates newSequential, then converts it back into a dictionary named \"answer.\" The code checks if any PIP was found by comparing the \"answers\" list to four empty dictionaries. If no PIP is detected, it returns an empty dictionary; otherwise, it proceeds further with default coordinates.",
-        "type": "comment"
+        "file_id": 535,
+        "content": "The code imports necessary modules and defines a list of media file paths. It then iterates through the list, printing each media path and using the getAudioBitrate function to obtain the bitrate of each audio file. The result is printed for each file.",
+        "type": "summary"
     },
     "4244": {
-        "file_id": 519,
-        "content": "        defaults = [{str(defaultCoord[index]): [(0, len(data))]} for index in range(4)]\n        for index in range(4):\n            if answers[index] == {}:\n                answers[index] = defaults[index]\n        labels = [\"xleft\", \"yleft\", \"xright\", \"yright\"]\n        commandDict = {}\n        for index, elem in enumerate(answers):\n            label = labels[index]\n            newElem = {\"{}:{}\".format(label, key): elem[key] for key in elem.keys()}\n            commandDict.update(newElem)\n        commandDict = getContinualMappedNonSympyMergeResult(commandDict)\n        commandDictSequential = mergedRangesToSequential(commandDict)\n        def getSpanDuration(span):\n            start, end = span\n            return end - start\n        itemDurationThreshold = 15\n        # print(\"HERE\")\n        # loopCount = 0\n        while True:\n            # print(\"LOOP COUNT:\", loopCount)\n            # loopCount+=1\n            # noAlter = True\n            beforeChange = [item[0] for item in commandDictSequential].copy()\n            for i in range(len(commandDictSequential) - 1):",
+        "file_id": 535,
+        "content": "import test\nfrom pyjom.audiotoolbox import getAudioBitrate\nmediaPaths = [\n    \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3\", # 320000\n    \"/root/Desktop/works/pyjom/tests/ffmpeg_audio_volume_detect_adjust/normalized.mp4\", # 130770\n]\nfor mediaPath in mediaPaths:\n    print(\"media path:\", mediaPath)\n    result = getAudioBitrate(mediaPath)\n    print(\"RESULT:\", result)",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:292-318"
+        "location": "/tests/ffmpeg_audio_volume_detect_adjust/test_get_media_bitrate.py:1-11"
     },
     "4245": {
-        "file_id": 519,
-        "content": "Sets default values for missing answers, converts dictionary format, applies consecutive ranges to sequential format, and enters a while loop that iteratively checks changes in the commandDictSequential list.",
+        "file_id": 535,
+        "content": "The code imports necessary modules and defines a list of media file paths. It then iterates through the list, printing each media path and using the getAudioBitrate function to obtain the bitrate of each audio file. The result is printed for each file.",
         "type": "comment"
     },
     "4246": {
-        "file_id": 519,
-        "content": "                currentItem = commandDictSequential[i]\n                nextItem = commandDictSequential[i + 1]\n                currentItemCommand = currentItem[0]\n                currentItemDuration = getSpanDuration(currentItem[1])\n                nextItemCommand = nextItem[0]\n                nextItemDuration = getSpanDuration(nextItem[1])\n                if currentItemDuration < itemDurationThreshold:\n                    if nextItemCommand != currentItemCommand:\n                        # print(\"HERE0\",i, currentItemCommand, nextItemCommand)\n                        commandDictSequential[i][0] = nextItemCommand\n                        # noAlter=False\n                if nextItemDuration < itemDurationThreshold:\n                    if nextItemCommand != currentItemCommand and currentItemDuration >= itemDurationThreshold:\n                        # print(\"HERE1\",i, currentItemCommand, nextItemCommand)\n                        commandDictSequential[i + 1][0] = currentItemCommand\n                        # noAlter=False",
-        "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:319-334"
+        "file_id": 536,
+        "content": "/tests/ffmpeg_audio_volume_detect_adjust/test_get_audio_length.py",
+        "type": "filepath"
     },
     "4247": {
-        "file_id": 519,
-        "content": "Checks if current and next commands in commandDictSequential have durations below itemDurationThreshold. If so, adjusts or merges the commands to maintain sequence continuity.",
-        "type": "comment"
+        "file_id": 536,
+        "content": "This code imports the necessary modules, defines an audio file path, retrieves its duration using getAudioDuration function and prints the floating point duration.",
+        "type": "summary"
     },
     "4248": {
-        "file_id": 519,
-        "content": "            afterChange = [item[0] for item in commandDictSequential].copy()\n            noAlter = beforeChange == afterChange\n            if noAlter:\n                break\n        preFinalCommandDict = sequentialToMergedRanges(commandDictSequential)\n        finalCommandDict = {}\n        for key, elem in preFinalCommandDict.items():\n            # print(key,elem)\n            varNames = [\"xleft\", \"yleft\", \"xright\", \"yright\"]\n            defaultValues = [0, 0, defaultWidth, defaultHeight]\n            for varName, defaultValue in zip(varNames, defaultValues):\n                key = key.replace(\n                    \"{}:empty\".format(varName), \"{}:{}\".format(varName, defaultValue)\n                )\n            # print(key,elem)\n            # breakpoint()\n            import parse\n            formatString = (\n                \"xleft:{xleft:d}|yleft:{yleft:d}|xright:{xright:d}|yright:{yright:d}\"\n            )\n            commandArguments = parse.parse(formatString, key)\n            x, y, w, h = (\n                commandArguments[\"xleft\"],",
+        "file_id": 536,
+        "content": "import test\nfrom pyjom.audiotoolbox import getAudioDuration\naudioPath = \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3\"\naudioDuration = getAudioDuration(audioPath)\nprint(\"audioDuration:\", audioDuration)\n# audioDuration: 302.915918367\n# obviously floating point duration.",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:335-358"
+        "location": "/tests/ffmpeg_audio_volume_detect_adjust/test_get_audio_length.py:1-9"
     },
     "4249": {
-        "file_id": 519,
-        "content": "The code checks if the command dictionary remains unchanged after certain operations. If it does not change, the loop is exited. The code then converts the sequential command dictionary to a merged ranges form. It creates an empty final command dictionary and iterates over the pre-final command dictionary items. For each item, it replaces any \"empty\" values with default values for specific variables, such as xleft, yleft, xright, and yright. The code then uses the parse module to parse a format string containing these variable names and their updated values, creating commandArguments that contain the final x, y, w, h values.",
+        "file_id": 536,
+        "content": "This code imports the necessary modules, defines an audio file path, retrieves its duration using getAudioDuration function and prints the floating point duration.",
         "type": "comment"
     },
     "4250": {
-        "file_id": 519,
-        "content": "                commandArguments[\"yleft\"],\n                commandArguments[\"xright\"] - commandArguments[\"xleft\"],\n                commandArguments[\"yright\"] - commandArguments[\"yleft\"],\n            )\n            if w <= 0 or h <= 0:\n                continue\n            cropCommand = \"crop_{}_{}_{}_{}\".format(x, y, w, h)\n            # print(cropCommand)\n            finalCommandDict.update({cropCommand: elem})\n            # print(elem)\n            # the parser shall be in x,y,w,h with keywords.\n            # we might want to parse the command string and reengineer this shit.\n    return finalCommandDict\nobjective = \"discrete\"\n# objective = \"continual\"\n# objective = \"continual_najie\"\nif __name__ == \"__main__\":\n    # better plot this shit.\n    import json\n    if objective == \"continual\":\n        dataDict = json.loads(open(\"pip_meanVariance.json\", \"r\").read())\n    elif objective == 'continual_najie':\n        dataDict = json.loads(open(\"pip_meanVarianceSisterNa.json\", \"r\").read())\n    elif objective == \"discrete\":\n        dataDict = json.loads(open(\"pip_discrete_meanVariance.json\", \"r\").read())",
-        "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:359-387"
+        "file_id": 537,
+        "content": "/tests/ffmpeg_audio_volume_detect_adjust/test.py",
+        "type": "filepath"
     },
     "4251": {
-        "file_id": 519,
-        "content": "This code processes video detector test results and generates a dictionary containing cropped image commands based on the specified objective. It loads data from JSON files depending on the objective (\"continual\", \"continual_najie\", or \"discrete\"). The code then continues to process the resulting data.",
-        "type": "comment"
+        "file_id": 537,
+        "content": "The code utilizes pyjom library to generate black videos for testing purposes, and it detects and adjusts audio volume of a media file named volDetect_test.mp4 with mean volume -16.8 and max volume -2.0 without any errors.",
+        "type": "summary"
     },
     "4252": {
-        "file_id": 519,
-        "content": "    else:\n        raise Exception(\"unknown objective: %s\" % objective)\n    # print(len(data)) # 589\n    data = dataDict[\"data\"]\n    defaultWidth, defaultHeight = dataDict[\"width\"], dataDict[\"height\"]\n    if objective in [\"continual\", 'continual_najie']:\n        finalCommandDict = kalmanStablePipRegionExporter(\n            data, defaultWidth, defaultHeight\n        )\n    else:\n        finalCommandDict = sampledStablePipRegionExporter(\n            data, defaultWidth, defaultHeight\n        )\n    import matplotlib.pyplot as plt\n    from matplotlib.patches import Rectangle\n    fig, ax = plt.subplots()\n    def plotRect(ax, x, y, width, height, facecolor):\n        ax.add_patch(\n            Rectangle((x, y), width, height, facecolor=facecolor, fill=True, alpha=0.5)\n        )  # in 0-1\n    ax.plot([[0, 0], [defaultWidth, defaultHeight]])\n    plotRect(ax, 0, 0, defaultWidth, defaultHeight, \"black\")\n    colors = [\"red\", \"yellow\", \"blue\",'orange','white','purple']\n    for index, key in enumerate(finalCommandDict.keys()):\n        import parse",
+        "file_id": 537,
+        "content": "# ffmpeg -i video.avi -af \"volumedetect\"\n# shall we get the output?\n# we can also detect if the stream does not have audio stream.\nimport sys\npyjom_path = \"/root/Desktop/works/pyjom\"\nsys.path.append(pyjom_path)\nfrom pyjom.audiotoolbox import getAudioDuration\nfrom pyjom.medialang.processors.dotProcessor.videoProcessor import executeEditlyScript\nfrom pyjom.videotoolbox import createPureColorVideo\n# for test only.\ndef create_black_video_without_audio(duration, mediapath):\n    createPureColorVideo(duration, mediapath)\n# this is for test only. not for work.\n# another editly script for another video. please?\ndef create_test_video_with_editly(audio):  # length is calculated by the audio length.\n    audio_duration = getAudioDuration(audio)\n    fast = True\n    output_path = \"volDetect_test.mp4\"\n    videoFilePath = \"black_video_with_equal_length_of_audio.mp4\"\n    create_black_video_without_audio(audio_duration, videoFilePath)\n    editly_json = {\n        \"width\": 1920,\n        \"height\": 1080,\n        \"fast\": fast,\n        \"fps\": 60,",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:388-419"
+        "location": "/tests/ffmpeg_audio_volume_detect_adjust/test.py:1-28"
     },
     "4253": {
-        "file_id": 519,
-        "content": "This code is handling an objective and preparing a plot for stable PIP region exporter. It raises an exception if the objective is unknown. Depending on the objective, it uses kalmanStablePipRegionExporter or sampledStablePipRegionExporter. It then plots a rectangle on the figure using matplotlib's Rectangle class. Finally, it sets colors for each region in the plot.",
+        "file_id": 537,
+        "content": "This code imports functions from the pyjom library to create a black video without audio, and provides two functions: one for creating a test video with Editly script based on an audio file's duration, and another for creating a black video with equal length as the given audio. It is intended for testing purposes only and not for actual work processes.",
         "type": "comment"
     },
     "4254": {
-        "file_id": 519,
-        "content": "        commandArguments = parse.parse(\"crop_{x:d}_{y:d}_{w:d}_{h:d}\", key)\n        color = colors[index%len(colors)]\n        rect = [int(commandArguments[name]) for name in [\"x\", \"y\", \"w\", \"h\"]]\n        print(\"RECT\", rect, color, \"SPAN\", finalCommandDict[key])\n        plotRect(ax, *rect, color)\n    # breakpoint()\n    plt.show()",
+        "file_id": 537,
+        "content": "        \"outPath\": output_path,\n        \"defaults\": {\"transition\": None},\n        \"clips\": [],\n    }\n    editly_json.update({\"audioFilePath\": audio})\n    duration = cutTo = audio_duration\n    cutFrom = 0\n    mute = True\n    clip = {\n        \"duration\": duration,\n        \"layers\": [],\n    }\n    layer = {\n        \"type\": \"video\",\n        \"path\": videoFilePath,\n        \"resizeMode\": \"contain\",\n        \"cutFrom\": cutFrom,\n        \"cutTo\": cutTo,\n        # that's how we mute it.\n        \"mixVolume\": 1 - int(mute),\n    }\n    clip[\"layers\"].append(layer)\n    editly_json[\"clips\"].append(clip)\n    # execute the thing.\n    executeEditlyScript(\".\", editly_json)\n    print(\"media saved to: %s\" % output_path)\n    return output_path\nfrom pyjom.audiotoolbox import detect_volume_average\nif __name__ == \"__main__\":\n    # perform our test.\n    # are you sure this won't change the volume?\n    audiopath = \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3\"\n    detect_volume_average(audiopath, debug=True)\n    # MEDIA PATH: /root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3",
         "type": "code",
-        "location": "/tests/video_detector_tests/pip_meanVariance_stablize.py:421-427"
+        "location": "/tests/ffmpeg_audio_volume_detect_adjust/test.py:29-65"
     },
     "4255": {
-        "file_id": 519,
-        "content": "The code is creating a rectangular plot using matplotlib. It takes commandArguments as input and uses them to define the x, y, w, and h values of the rectangle. The color of the rectangle is randomly chosen from a list of colors. It then prints the coordinates of the rectangle, the chosen color, and the span of the finalCommandDict[key]. Lastly, it displays the plot using plt.show().",
+        "file_id": 537,
+        "content": "This code generates a video with a muted audio track by creating an Editly JSON configuration. It first checks the audio volume and then executes the script to save the resulting media at the specified output path. The provided audio path is \"/root/Desktop/works/pyjom/tests/music_analysis/exciting_bgm.mp3\".",
         "type": "comment"
     },
     "4256": {
-        "file_id": 520,
-        "content": "/tests/video_detector_tests/motion_gpl.sh",
-        "type": "filepath"
+        "file_id": 537,
+        "content": "    # VOLUME: {'mean': -10.8, 'max': 0.0}\n    # ERROR STATUS: False\n    # ______________________________\n    output_path = create_test_video_with_editly(audiopath)\n    detect_volume_average(output_path, debug=True)\n    # volume changed!\n    # MEDIA PATH: volDetect_test.mp4\n    # VOLUME: {'mean': -16.8, 'max': -2.0}\n    # ERROR STATUS: False\n    # how to adjust the volume accordingly?",
+        "type": "code",
+        "location": "/tests/ffmpeg_audio_volume_detect_adjust/test.py:66-75"
     },
     "4257": {
-        "file_id": 520,
-        "content": "Kills motion process and attempts to capture video from webcam using ffmpeg, then starts motion with the mconfig.conf configuration file. Not suitable for media file processing.",
-        "type": "summary"
+        "file_id": 537,
+        "content": "The code is detecting and adjusting the audio volume of a media file (volDetect_test.mp4) using the function `detect_volume_average`. The current mean volume is -16.8 with a max volume of -2.0. The error status is False, indicating no issues during the process. The next step might be to adjust the volume according to these values.",
+        "type": "comment"
     },
     "4258": {
-        "file_id": 520,
-        "content": "killall -s KILL motion\n# ffmpeg -re -i ../../samples/video/LlfeL29BP.mp4 -f v4l2 /dev/video0 &\nmotion -c mconfig.conf\n# to conclude, this is only useful for webcams, not for media file processing.\n# are you sure if you want to capture shits over webcams by this?",
-        "type": "code",
-        "location": "/tests/video_detector_tests/motion_gpl.sh:1-6"
-    },
-    "4259": {
-        "file_id": 520,
-        "content": "Kills motion process and attempts to capture video from webcam using ffmpeg, then starts motion with the mconfig.conf configuration file. Not suitable for media file processing.",
-        "type": "comment"
-    },
-    "4260": {
-        "file_id": 521,
-        "content": "/tests/video_detector_tests/motion_github.py",
+        "file_id": 538,
+        "content": "/tests/tencent_video_recommendation_extraction/requests_html_test.py",
         "type": "filepath"
     },
-    "4261": {
-        "file_id": 521,
-        "content": "This code imports libraries, initializes a motion detector algorithm and sets up video capture. It continuously reads frames from the source, applies an algorithm to create output images, displays them in separate windows, and runs until a frame is not ready or Esc key pressed.",
+    "4259": {
+        "file_id": 538,
+        "content": "Imports pyppeteer and initializes an HTMLSession object, sets the URL to a QQ video page, uses session.get() to fetch the page's content, then iterates through all absolute links in the fetched HTML using r.html.absolute_links. Prints each link.",
         "type": "summary"
     },
-    "4262": {
-        "file_id": 521,
-        "content": "# motion detectors are used to track objects. though you may want to separate objects with it.\nimport numpy as np\nimport cv2\nimport pybgs as bgs\n# suspect by static image analysis, and then create bounding box over the thing.\n# check image quality.\nalgorithm = bgs.FrameDifference() # track object we need that.\n# algorithm = bgs.SuBSENSE()\n# video_file = \"../../samples/video/highway_car.avi\"\n# video_file = \"../../samples/video/dog_with_text.mp4\"\nvideo_file = \"../../samples/video/LiEIfnsvn.mp4\" # this one with cropped boundaries. \n# video_file = \"../../samples/video/LlfeL29BP.mp4\"\n# maybe we should consider something else to crop the thing? or not?\n# accumulate the delta over time to see the result?\n# use static detection method.\ncapture = cv2.VideoCapture(video_file)\nwhile not capture.isOpened():\n  capture = cv2.VideoCapture(video_file)\n  cv2.waitKey(1000)\n  print(\"Wait for the header\")\n#pos_frame = capture.get(cv2.cv.CV_CAP_PROP_POS_FRAMES)\n#pos_frame = capture.get(cv2.CV_CAP_PROP_POS_FRAMES)\npos_frame = capture.get(1)",
+    "4260": {
+        "file_id": 538,
+        "content": "from requests_html import HTMLSession # use pyppeteer.\nsession = HTMLSession()\n# url='https://www.baidu.com/'\nurl = 'http://v.qq.com/x/page/m0847y71q98.html'\nr = session.get(url)\nfor link in r.html.absolute_links:\n    print(link)",
         "type": "code",
-        "location": "/tests/video_detector_tests/motion_github.py:1-29"
+        "location": "/tests/tencent_video_recommendation_extraction/requests_html_test.py:1-8"
     },
-    "4263": {
-        "file_id": 521,
-        "content": "This code imports necessary libraries and initializes a motion detector algorithm (FrameDifference) to track objects in a video. It also defines the video file path and sets up a VideoCapture object. The code waits for the video header, retrieves the current frame position, and is ready to process frames using the motion detection algorithm.",
+    "4261": {
+        "file_id": 538,
+        "content": "Imports pyppeteer and initializes an HTMLSession object, sets the URL to a QQ video page, uses session.get() to fetch the page's content, then iterates through all absolute links in the fetched HTML using r.html.absolute_links. Prints each link.",
         "type": "comment"
     },
+    "4262": {
+        "file_id": 539,
+        "content": "/tests/tencent_video_recommendation_extraction/playwright_with_elinks.sh",
+        "type": "filepath"
+    },
+    "4263": {
+        "file_id": 539,
+        "content": "This code executes a Python script and an elinks command to extract recommended video IDs from a webpage, searching for them in specific HTML elements.",
+        "type": "summary"
+    },
     "4264": {
-        "file_id": 521,
-        "content": "while True:\n  flag, frame = capture.read()\n  if flag:\n    cv2.imshow('video', frame)\n    #pos_frame = capture.get(cv2.cv.CV_CAP_PROP_POS_FRAMES)\n    #pos_frame = capture.get(cv2.CV_CAP_PROP_POS_FRAMES)\n    pos_frame = capture.get(1)\n    #print str(pos_frame)+\" frames\"\n    img_output = algorithm.apply(frame)\n    img_bgmodel = algorithm.getBackgroundModel()\n    cv2.imshow('img_output', img_output)\n    cv2.imshow('img_bgmodel', img_bgmodel)\n  else:\n    #capture.set(cv2.cv.CV_CAP_PROP_POS_FRAMES, pos_frame-1)\n    #capture.set(cv2.CV_CAP_PROP_POS_FRAMES, pos_frame-1)\n    #capture.set(1, pos_frame-1)\n    #print \"Frame is not ready\"\n    cv2.waitKey(1000)\n    break\n  if 0xFF & cv2.waitKey(10) == 27:\n    break\n  #if capture.get(cv2.cv.CV_CAP_PROP_POS_FRAMES) == capture.get(cv2.cv.CV_CAP_PROP_FRAME_COUNT):\n  #if capture.get(cv2.CV_CAP_PROP_POS_FRAMES) == capture.get(cv2.CV_CAP_PROP_FRAME_COUNT):\n  #if capture.get(1) == capture.get(cv2.CV_CAP_PROP_FRAME_COUNT):\n    #break\ncv2.destroyAllWindows()",
+        "file_id": 539,
+        "content": "python3 dump_page.py\nelinks -dump dump.html > dump.log\n# please find recommended video id in <div data-vid=\"<vid>\">\n# or in <img src=\"//puui.qpic.cn/vpic_cover/<vid>/<vid>_old_ori.jpg/s640x360?max_age=7776000\">",
         "type": "code",
-        "location": "/tests/video_detector_tests/motion_github.py:30-62"
+        "location": "/tests/tencent_video_recommendation_extraction/playwright_with_elinks.sh:1-5"
     },
     "4265": {
-        "file_id": 521,
-        "content": "The code continuously reads frames from a video source and displays them. It captures the current frame position, applies an algorithm to create output images, and shows the output and background model images in separate windows. It keeps running until a frame is not ready or the user presses Esc key, closing all windows at the end.",
+        "file_id": 539,
+        "content": "This code executes a Python script and an elinks command to extract recommended video IDs from a webpage, searching for them in specific HTML elements.",
         "type": "comment"
     },
     "4266": {
-        "file_id": 522,
-        "content": "/tests/video_detector_tests/mathlib.py",
+        "file_id": 540,
+        "content": "/tests/tencent_video_recommendation_extraction/phantomjs_test.js",
         "type": "filepath"
     },
     "4267": {
-        "file_id": 522,
-        "content": "The code uses Sympy to merge overlapping intervals in a list of tuples, creates unified boundaries, and returns final results as merged continual mappings.",
+        "file_id": 540,
+        "content": "This code uses PhantomJS and creates a new page. It opens the specified URL, checks if the status is \"success\", then retrieves the HTML of the page using evaluate() and outputs it to the console before exiting.",
         "type": "summary"
     },
     "4268": {
-        "file_id": 522,
-        "content": "# not overriding math.\n# do some ranged stuff here...\ndef getContinualNonSympyMergeResult(inputMSetCandidates):\n    # basically the same example.\n    # assume no overlapping here.\n    import sympy\n    def unionToTupleList(myUnion):\n        unionBoundaries = list(myUnion.boundary)\n        unionBoundaries.sort()\n        leftBoundaries = unionBoundaries[::2]\n        rightBoundaries = unionBoundaries[1::2]\n        return list(zip(leftBoundaries, rightBoundaries))\n    def tupleSetToUncertain(mSet):\n        mUncertain = None\n        for start, end in mSet:\n            if mUncertain is None:\n                mUncertain = sympy.Interval(start, end)\n            else:\n                mUncertain += sympy.Interval(start, end)\n        typeUncertain = type(mUncertain)\n        return mUncertain, typeUncertain\n    def mergeOverlappedInIntervalTupleList(intervalTupleList):\n        mUncertain, _ = tupleSetToUncertain(intervalTupleList)\n        mUncertainBoundaryList = list(mUncertain.boundary)\n        mUncertainBoundaryList.sort()",
+        "file_id": 540,
+        "content": "var page = require('webpage').create();\npage.open('http://v.qq.com/x/page/m0847y71q98.html', function(status) {\n    //console.log(\"Status: \" + status);\n    if (status === \"success\") {\n        //\tpage.render('example.png');\n        result = page.evaluate(() => document.body.innerHTML);\n        console.log(result)\n    }\n    phantom.exit();\n});",
         "type": "code",
-        "location": "/tests/video_detector_tests/mathlib.py:1-28"
+        "location": "/tests/tencent_video_recommendation_extraction/phantomjs_test.js:1-10"
     },
     "4269": {
-        "file_id": 522,
-        "content": "This code defines three functions for set operations involving intervals. The functions are getContinualNonSympyMergeResult, unionToTupleList, and mergeOverlappedInIntervalTupleList. The code uses Sympy library to handle mathematical operations on intervals and merges non-overlapping intervals into a single uncertain variable. It sorts and converts intervals into tuples for further processing.",
+        "file_id": 540,
+        "content": "This code uses PhantomJS and creates a new page. It opens the specified URL, checks if the status is \"success\", then retrieves the HTML of the page using evaluate() and outputs it to the console before exiting.",
         "type": "comment"
     },
     "4270": {
-        "file_id": 522,
-        "content": "        mergedIntervalTupleList = list(\n            zip(mUncertainBoundaryList[::2], mUncertainBoundaryList[1::2])\n        )\n        return mergedIntervalTupleList\n    # mSet = mergeOverlappedInIntervalTupleList([(0, 1), (2, 3)])\n    # mSet2 = mergeOverlappedInIntervalTupleList([(0.5, 1.5), (1.6, 2.5)])\n    # print(\"MSET\", mSet)\n    # print(\"MSET2\", mSet2)\n    mSetCandidates = [\n        mergeOverlappedInIntervalTupleList(x) for x in inputMSetCandidates\n    ]\n    mSetUnified = [x for y in mSetCandidates for x in y]\n    leftBoundaryList = set([x[0] for x in mSetUnified])\n    rightBoundaryList = set([x[1] for x in mSetUnified])\n    # they may freaking overlap.\n    # if want nearby-merge strategy, simply just expand all intervals, merge them with union and shrink the individual intervals inside union respectively.\n    markers = {\n        \"enter\": {k: [] for k in leftBoundaryList},\n        \"exit\": {k: [] for k in rightBoundaryList},\n    }\n    for index, mSetCandidate in enumerate(mSetCandidates):\n        leftBoundaryListOfCandidate = [x[0] for x in mSetCandidate]",
-        "type": "code",
-        "location": "/tests/video_detector_tests/mathlib.py:29-55"
+        "file_id": 541,
+        "content": "/tests/tencent_video_recommendation_extraction/loop_all_tags.py",
+        "type": "filepath"
     },
     "4271": {
-        "file_id": 522,
-        "content": "This code defines a function `mergeOverlappedInIntervalTupleList` which takes a list of interval tuples, merges overlapping intervals, and returns the merged list. The main purpose is to unify all the data in the same scope with potential overlap. It first creates a set of left and right boundaries from the unified data, then initializes a `markers` dictionary with \"enter\" and \"exit\" markers for each left boundary. Finally, it iterates over each candidate set, extracting the left boundaries and using them to update the marker dictionary. The final merged interval tuples are not explicitly calculated or returned here, but can be derived from the information in `markers`.",
-        "type": "comment"
+        "file_id": 541,
+        "content": "This code reads the \"dump.html\" file, parses it with BeautifulSoup, and then iterates over all elements to check if their attributes include 'src' or 'href'. If so, it prints the key-value pair for further examination.",
+        "type": "summary"
     },
     "4272": {
-        "file_id": 522,
-        "content": "        rightBoundaryListOfCandidate = [x[1] for x in mSetCandidate]\n        for leftBoundaryOfCandidate in leftBoundaryListOfCandidate:\n            markers[\"enter\"][leftBoundaryOfCandidate].append(index)  # remap this thing!\n        for rightBoundaryOfCandidate in rightBoundaryListOfCandidate:\n            markers[\"exit\"][rightBoundaryOfCandidate].append(index)  # remap this thing!\n    # now, iterate through the boundaries of mSetUnified.\n    unifiedBoundaryList = leftBoundaryList.union(\n        rightBoundaryList\n    )  # call me a set instead of a list please? now we must sort this thing\n    unifiedBoundaryList = list(unifiedBoundaryList)\n    unifiedBoundaryList.sort()\n    unifiedBoundaryMarks = {}\n    finalMappings = {}\n    # print(\"MARKERS\", markers)\n    # breakpoint()\n    for index, boundary in enumerate(unifiedBoundaryList):\n        previousMark = unifiedBoundaryMarks.get(index - 1, [])\n        enterList = markers[\"enter\"].get(boundary, [])\n        exitList = markers[\"exit\"].get(boundary, [])\n        currentMark = set(previousMark + enterList).difference(set(exitList))",
+        "file_id": 541,
+        "content": "from bs4 import BeautifulSoup\ndata = open(\"dump.html\",'r').read()\nsoup = BeautifulSoup(data)\nfor elem in soup.find_all():\n    # print(elem.attrs)\n    # for further examination\n    attrs = elem.attrs\n    for key in ['src', 'href']:\n        if key in attrs.keys():\n            print(key, attrs[key])",
         "type": "code",
-        "location": "/tests/video_detector_tests/mathlib.py:56-77"
+        "location": "/tests/tencent_video_recommendation_extraction/loop_all_tags.py:1-14"
     },
     "4273": {
-        "file_id": 522,
-        "content": "This code creates a set of unified boundaries and maps the markers accordingly. It first gathers the \"enter\" and \"exit\" markers for each boundary, then forms the final mappings by taking the difference between the \"enter\" and \"exit\" lists. The code also sorts the boundaries and retrieves previous marks to form the current mark set.",
+        "file_id": 541,
+        "content": "This code reads the \"dump.html\" file, parses it with BeautifulSoup, and then iterates over all elements to check if their attributes include 'src' or 'href'. If so, it prints the key-value pair for further examination.",
         "type": "comment"
     },
     "4274": {
-        "file_id": 522,
-        "content": "        currentMark = list(currentMark)\n        unifiedBoundaryMarks.update({index: currentMark})\n        # now, handle the change? or not?\n        # let's just deal those empty ones, shall we?\n        if previousMark == []:  # inside it is empty range.\n            # elif currentMark == []:\n            if index == 0:\n                continue  # just the start, no need to note this down.\n            else:\n                finalMappings.update(\n                    {\n                        \"empty\": finalMappings.get(\"empty\", [])\n                        + [(unifiedBoundaryList[index - 1], boundary)]\n                    }\n                )\n            # the end of previous mark! this interval belongs to previousMark\n        else:\n            key = previousMark.copy()\n            key.sort()\n            key = tuple(key)\n            finalMappings.update(\n                {\n                    key: finalMappings.get(key, [])\n                    + [(unifiedBoundaryList[index - 1], boundary)]\n                }\n            )",
-        "type": "code",
-        "location": "/tests/video_detector_tests/mathlib.py:78-103"
+        "file_id": 542,
+        "content": "/tests/tencent_video_recommendation_extraction/dump_page.py",
+        "type": "filepath"
     },
     "4275": {
-        "file_id": 522,
-        "content": "This code checks if the current mark is empty and updates the finalMappings accordingly. If previousMark is empty, it skips noting down just the start of a range. Otherwise, it sorts and makes a unique key using previousMark, then adds the interval to finalMappings for that key.",
-        "type": "comment"
+        "file_id": 542,
+        "content": "This code uses Playwright library to launch a headless Chromium browser, navigates to a QQ video page, waits for the DOM content loaded state, retrieves the HTML content, writes it to a \"dump.html\" file, and then closes the browser.",
+        "type": "summary"
     },
     "4276": {
-        "file_id": 522,
-        "content": "            # also the end of previous mark! belongs to previousMark.\n    ### NOW THE FINAL OUTPUT ###\n    finalCats = {}\n    for key, value in finalMappings.items():\n        # value is an array containing subInterval tuples.\n        value = mergeOverlappedInIntervalTupleList(value)\n        finalCats.update({key: value})\n    # print(\"______________FINAL CATS______________\")\n    # print(finalCats)\n    return finalCats\ndef getContinualMappedNonSympyMergeResult(mRangesDict, concatSymbol=\"|\", noEmpty=True):\n    mKeyMaps = list(mRangesDict.keys())\n    mSetCandidates = [mRangesDict[key] for key in mKeyMaps]\n    # the next step will automatically merge all overlapped candidates.\n    finalCats = getContinualNonSympyMergeResult(mSetCandidates)\n    finalCatsMapped = {\n        concatSymbol.join([mKeyMaps[k] for k in mTuple]): finalCats[mTuple]\n        for mTuple in finalCats.keys()\n        if type(mTuple) == tuple\n    }\n    if not noEmpty:\n        finalCatsMapped.update(\n            {k: finalCats[k] for k in finalCats.keys() if type(k) != tuple}",
+        "file_id": 542,
+        "content": "from playwright.sync_api import sync_playwright\ndef run(playwright):\n    webkit = playwright.chromium\n    browser = webkit.launch(headless=True)\n    context = browser.new_context()\n    page = context.new_page()\n    page.goto(\"https://v.qq.com/x/page/m0847y71q98.html\")\n    page.wait_for_load_state(\"domcontentloaded\")\n    content = page.content()\n    with open(\"dump.html\", 'w+') as f: f.write(content)\n    print(\"content write to dump.html\")\n    browser.close()\nwith sync_playwright() as playwright:\n    run(playwright)",
         "type": "code",
-        "location": "/tests/video_detector_tests/mathlib.py:104-130"
+        "location": "/tests/tencent_video_recommendation_extraction/dump_page.py:1-16"
     },
     "4277": {
-        "file_id": 522,
-        "content": "This code calculates merged, continual results for a dictionary of sets. It maps the results to a format using a specified concatenation symbol, and allows for empty sets if requested. It uses functions like getContinualNonSympyMergeResult and mergeOverlappedInIntervalTupleList to merge overlapping intervals. The final result is returned as a dictionary of merged continual mappings.",
+        "file_id": 542,
+        "content": "This code uses Playwright library to launch a headless Chromium browser, navigates to a QQ video page, waits for the DOM content loaded state, retrieves the HTML content, writes it to a \"dump.html\" file, and then closes the browser.",
         "type": "comment"
     },
     "4278": {
-        "file_id": 522,
-        "content": "        )\n    return finalCatsMapped\n    # default not to output empty set?\ndef getContinualMappedNonSympyMergeResultWithRangedEmpty(\n    mRangesDict, start, end, concatSymbol=\"|\"\n):\n    import uuid\n    emptySetName = str(uuid.uuid4())\n    newRangesDict = mRangesDict.copy()\n    newRangesDict.update({emptySetName: [(start, end)]})\n    newRangesDict = getContinualMappedNonSympyMergeResult(\n        newRangesDict, concatSymbol=\"|\", noEmpty=True\n    )\n    newRangesDict = {\n        key: [\n            (mStart, mEnd)\n            for mStart, mEnd in newRangesDict[key]\n            if mStart >= start and mEnd <= end\n        ]\n        for key in newRangesDict.keys()\n    }\n    newRangesDict = {\n        key: newRangesDict[key]\n        for key in newRangesDict.keys()\n        if newRangesDict[key] != []\n    }\n    finalNewRangesDict = {}\n    for key in newRangesDict.keys():\n        mergedEmptySetName = \"{}{}\".format(concatSymbol, emptySetName)\n        if mergedEmptySetName in key:\n            newKey = key.replace(mergedEmptySetName,\"\")",
-        "type": "code",
-        "location": "/tests/video_detector_tests/mathlib.py:131-164"
+        "file_id": 543,
+        "content": "/tests/spatial_temporal_slice_pip/test.py",
+        "type": "filepath"
     },
     "4279": {
-        "file_id": 522,
-        "content": "Function to get a continual mapped non-Sympy merge result with range based on input parameters. It creates a new dictionary with an empty set named UUID, then updates the existing dictionary with this new one. Filters out any ranges that do not fall within the given start and end values. Removes any keys in the newRangesDict dictionary if their corresponding value is an empty list. Finally, iterates over each key in newRangesDict and checks if mergedEmptySetName exists; if it does, it replaces the key with an empty string.",
-        "type": "comment"
+        "file_id": 543,
+        "content": "This code is loading a video file and reading frames from it using OpenCV's VideoCapture class. It continues to read frames until the frame cannot be retrieved, at which point it breaks out of the loop. The code seems to have some issues with low speed and possibly dealing with videos that have been detected as problematic by PIP (presumably a different part of the codebase).",
+        "type": "summary"
     },
     "4280": {
-        "file_id": 522,
-        "content": "            finalNewRangesDict.update({newKey:newRangesDict[key]})\n        elif key == emptySetName:\n            finalNewRangesDict.update({'empty':newRangesDict[key]})\n        else:\n            finalNewRangesDict.update({key:newRangesDict[key]})\n    return finalNewRangesDict\ndef mergedRangesToSequential(renderDict):\n    renderList = []\n    for renderCommandString in renderDict.keys():\n        commandTimeSpans = renderDict[renderCommandString].copy()\n        # commandTimeSpan.sort(key=lambda x: x[0])\n        for commandTimeSpan in commandTimeSpans:\n            renderList.append([renderCommandString, commandTimeSpan].copy())\n    renderList.sort(key=lambda x: x[1][0])\n    return renderList\n    # for renderCommandString, commandTimeSpan in renderList:\n    #     print(renderCommandString, commandTimeSpan)\ndef sequentialToMergedRanges(sequence):\n    mergedRanges = {}\n    for commandString, commandTimeSpan in sequence:\n        mergedRanges.update({commandString: mergedRanges.get(commandString,[])+[commandTimeSpan]})",
+        "file_id": 543,
+        "content": "target_video = \"/media/root/help/pyjom/samples/video/LiGlReJ4i.mp4\" # 娜姐驾到 卡成傻逼\n# you should quit those which has unexpected long frame processing loops.\n# mask the area which has text on it. fill the area and blur the boundary.\n# you could also trash those videos with pip detected.\nimport cv2\n# shit it has low speed... canny\ncap = cv2.VideoCapture(target_video)\nret = 1\nwhile True:\n    ret, frame = cap.read()\n    if ret is None: break",
         "type": "code",
-        "location": "/tests/video_detector_tests/mathlib.py:165-188"
+        "location": "/tests/spatial_temporal_slice_pip/test.py:1-19"
     },
     "4281": {
-        "file_id": 522,
-        "content": "Function `mergedRangesToSequential` takes a dictionary where keys are commands and values are time spans, sorts them by start time in ascending order, and returns the sorted list of commands with their respective time spans.\n\nFunction `sequentialToMergedRanges` takes a list of command strings and their corresponding start times, groups them by command string, and produces a dictionary with commands as keys and lists of time spans as values.",
+        "file_id": 543,
+        "content": "This code is loading a video file and reading frames from it using OpenCV's VideoCapture class. It continues to read frames until the frame cannot be retrieved, at which point it breaks out of the loop. The code seems to have some issues with low speed and possibly dealing with videos that have been detected as problematic by PIP (presumably a different part of the codebase).",
         "type": "comment"
     },
     "4282": {
-        "file_id": 522,
-        "content": "    mergedRanges = getContinualMappedNonSympyMergeResult(mergedRanges)\n    return mergedRanges",
-        "type": "code",
-        "location": "/tests/video_detector_tests/mathlib.py:189-190"
-    },
-    "4283": {
-        "file_id": 522,
-        "content": "This code block retrieves the merged ranges of continuous numbers using getContinualMappedNonSympyMergeResult function and assigns it to variable 'mergedRanges'. Finally, it returns the mergedRanges.",
-        "type": "comment"
-    },
-    "4284": {
-        "file_id": 523,
-        "content": "/tests/video_detector_tests/frameDifference.py",
+        "file_id": 544,
+        "content": "/tests/video_phash_deduplication/test_video_hash.py",
         "type": "filepath"
     },
-    "4285": {
-        "file_id": 523,
-        "content": "This function detects motion in a video by comparing frames, calculating differences, applying thresholding and morphology operations, and identifying contours. The code displays two consecutive frames side-by-side using OpenCV and stops when 'Esc' is pressed.",
+    "4283": {
+        "file_id": 544,
+        "content": "The code defines `getVideoPHash` to calculate a video's phash using the `videohashes` tool, testing it by comparing pairwise differences between hash values for different videos and considering duplicates based on a threshold.",
         "type": "summary"
     },
-    "4286": {
-        "file_id": 523,
-        "content": "import cv2 as cv\nimport numpy as np\nfrom matplotlib import pyplot as plt\ndef motionDetection(videoPath):\n    cap = cv.VideoCapture(videoPath)\n    ret, frame1 = cap.read()\n    ret, frame2 = cap.read()\n    while cap.isOpened():\n        if frame1 is not None and frame2 is not None:\n            pass\n        else:\n            break\n        diff = cv.absdiff(frame1, frame2)\n        diff_gray = cv.cvtColor(diff, cv.COLOR_BGR2GRAY)\n        blur = cv.GaussianBlur(diff_gray, (5, 5), 0)\n        _, thresh = cv.threshold(blur, 20, 255, cv.THRESH_BINARY)\n        dilated = cv.dilate(thresh, None, iterations=3)\n        contours, _ = cv.findContours(\n            dilated, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)\n        for contour in contours:\n            (x, y, w, h) = cv.boundingRect(contour)\n            if cv.contourArea(contour) < 900:\n                continue\n            cv.rectangle(frame1, (x, y), (x+w, y+h), (0, 255, 0), 2)\n            cv.putText(frame1, \"Status: {}\".format('Movement'), (10, 20), cv.FONT_HERSHEY_SIMPLEX,\n                        1, (255, 0, 0), 3)",
+    "4284": {
+        "file_id": 544,
+        "content": "# use some delogo stuff.\nfrom lazero.program.subprocess import runCommandGetJson\n# these two are similar. can be used as threshold.\n# aaaa3d8a2eaa1f8a delogo\n# aaaa398a2faa5d8a not delogoed.\n# aaaa3c8a2faa5e8a mp4 (very similar to delogoed version)\ndef getVideoPHash(filepath,debug=False, timeout=100):\n    import os\n    import imagehash\n    assert os.path.exists(filepath)\n    assert os.path.isfile(filepath)\n    if not os.path.isabs(filepath):\n        filepath = os.path.abspath(filepath)\n    commandLine = [\n        \"videohashes\", # installed in path.\n        # \"/root/Desktop/works/pyjom/tests/video_phash_deduplication/videohashes/videohashes-linux\",\n        \"-json\",\n        filepath,\n    ]\n    success, myJson = runCommandGetJson(commandLine, debug=debug, timeout=timeout)\n    if debug:\n        print(\"SUCCESS?\", success)\n        print(myJson, type(myJson))\n    if not success:\n        return\n    # breakpoint()\n    phashString = myJson[\"phash\"]\n    phash = imagehash.hex_to_hash(phashString)\n    if debug:\n        print(\"FILEPATH: %s\" % filepath)",
         "type": "code",
-        "location": "/tests/video_detector_tests/frameDifference.py:1-30"
+        "location": "/tests/video_phash_deduplication/test_video_hash.py:1-32"
+    },
+    "4285": {
+        "file_id": 544,
+        "content": "The code defines a function `getVideoPHash` that calculates a video's phash (a unique identifier for an image or video) using the `videohashes` command-line tool. It takes a filepath as input, checks if it exists and is a file, then runs the command to generate the JSON output. The function also converts the returned phash string to a binary hash and optionally prints debug information.",
+        "type": "comment"
+    },
+    "4286": {
+        "file_id": 544,
+        "content": "        print(myJson)\n        print(\"PHASH:\", phash)\n    # if withDuration:\n    #     duration = myJson[\"duration\"]\n    #     return duration, phash\n    # duration is inaccurate\n    return phash\nif __name__ == \"__main__\":\n    videoPaths = [\n        \"cute_cat_gif.mp4\",\n        \"cute_cat_gif.gif\",\n        \"cat_delogo.gif\",\n        \"/root/Desktop/works/pyjom/samples/video/dog_with_large_text.gif\",\n    ]\n    hashs = [getVideoPHash(filepath,debug=True) for filepath in videoPaths]\n    dis0 = hashs[0] - hashs[1]  # small\n    dis1 = hashs[1] - hashs[2]  # big\n    dis2 = hashs[0] - hashs[2]  # big\n    dis3 = hashs[0] - hashs[3]  # big\n    print(dis0, dis1, dis2, dis3)\n    # 4 4 4\n    # strange. why?\n    # 4 4 4 42\n    # huge difference.\n    # what value do you decide to be duplicate?\n    # phash < 7 (really?)\n    # so how do we run this test?",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_video_hash.py:33-65"
     },
     "4287": {
-        "file_id": 523,
-        "content": "This function performs motion detection by comparing successive frames in a video, calculates the difference, applies thresholding and morphology operations, and finally detects contours to identify areas with significant changes.",
+        "file_id": 544,
+        "content": "This code tests the video hashing function by calculating pairwise differences between hash values for different video files. It then compares the differences to determine potential duplicates and prints the results. The hash difference threshold for considering duplicates is set to 7, but this seems low and may need adjustment based on further testing.",
         "type": "comment"
     },
     "4288": {
-        "file_id": 523,
-        "content": "        # cv.drawContours(frame1, contours, -1, (0, 255, 0), 2)\n        cv.imshow(\"Video\", frame1)\n        frame1 = frame2\n        ret, frame2 = cap.read()\n        if cv.waitKey(50) == 27:\n            break\n    cap.release()\n    cv.destroyAllWindows()\nif __name__ == \"__main__\":\n    motionDetection(\"../../samples/video/LiEIfnsvn.mp4\")",
-        "type": "code",
-        "location": "/tests/video_detector_tests/frameDifference.py:32-46"
-    },
-    "4289": {
-        "file_id": 523,
-        "content": "This code displays two consecutive frames of a video side by side, highlighting the difference between them using OpenCV. It reads frames from a video file and continuously checks for user input to break the loop when key 'Esc' is pressed.",
-        "type": "comment"
-    },
-    "4290": {
-        "file_id": 524,
-        "content": "/tests/video_detector_tests/detectron2_norfair.py",
+        "file_id": 545,
+        "content": "/tests/video_phash_deduplication/test_milvus_library.py",
         "type": "filepath"
     },
-    "4291": {
-        "file_id": 524,
-        "content": "The code uses Detectron2 for object detection, tracks \"person\" or \"dog\", updates tracked_objects, and displays bounding boxes. It utilizes OpenCV for video display and waits for 'q' to terminate, closing windows upon exiting.",
+    "4289": {
+        "file_id": 545,
+        "content": "This code defines a Milvus function for connecting, managing collections, and caching. It creates Collections with specified data types, searches duplicated videos, retrieves video duration/hash, indexes videos, and reloads collection if necessary.",
         "type": "summary"
     },
-    "4292": {
-        "file_id": 524,
-        "content": "import cv2\nimport numpy as np\nfrom detectron2.config import get_cfg\nfrom detectron2.engine import DefaultPredictor\nfrom cocoNames import cocoRealName\nfrom norfair import Detection, Tracker, Video, draw_tracked_objects\ndef euclidean_distance(detection, tracked_object):\n    return np.linalg.norm(detection.points - tracked_object.estimate)\n# Set up Detectron2 object detector\ncfg = get_cfg()\ncfg.merge_from_file(\"norfair/demos/faster_rcnn_R_50_FPN_3x.yaml\")\ncfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5 # looks like it does not recognize dog.\n# cfg.MODEL.WEIGHTS = \"detectron2://COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl\"\ncfg.MODEL.WEIGHTS = \"/root/Desktop/works/pyjom/tests/video_detector_tests/detectron2_models/model_final_f10217.pkl\"\n# it is stored in s3\n# https://dl.fbaipublicfiles.com/detectron2/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl\n# download cache: /root/.torch/iopath_cache/detectron2/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl",
+    "4290": {
+        "file_id": 545,
+        "content": "# # duplicate -> remove, do not insert\n# # not duplicate -> get the data, insert\n# # you want to clear the collection after this run?\n# from functools import lru_cache\n# from pymilvus import connections\n# @lru_cache(maxsize=1)\n# def connectMilvusDatabase(alias=\"default\", host=\"localhost\", port=\"19530\"):\n#     connection = connections.connect(\n#         alias=alias, host=host, port=port\n#     )  # can we reconnect?\n#     print(\"milvus connected\")\n# # connectMilvusDatabase()\n# # connectMilvusDatabase() # will not connect again.\n# from pymilvus import Collection\n# from pymilvus import utility\n# from pymilvus import CollectionSchema, FieldSchema, DataType\n# import traceback\n# def getMilvusVideoDeduplicationCollection(\n#     get_existing: bool = False,\n# ):  # most of the time we just use the same\n#     collection_name = \"video_deduplication\"\n#     try:\n#         if utility.has_collection(collection_name):  # be prudent.\n#             if get_existing:\n#                 return Collection(collection_name)\n#             utility.drop_collection(collection_name)",
         "type": "code",
-        "location": "/tests/video_detector_tests/detectron2_norfair.py:1-21"
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:1-35"
+    },
+    "4291": {
+        "file_id": 545,
+        "content": "The code defines a function to connect to a Milvus database, get or remove an existing collection named \"video_deduplication\", and returns the collection if it already exists. The function uses caching and checks if the collection already exists before performing any actions.",
+        "type": "comment"
+    },
+    "4292": {
+        "file_id": 545,
+        "content": "#     except:\n#         traceback.print_exc()\n#         print(\"maybe the collection does not exist\")\n#     video_semantic_id = FieldSchema(  # how to insert this shit without prior knowledge?\n#         name=\"video_semantic_id\",\n#         dtype=DataType.INT64,\n#         is_primary=True,  # if is primary, will do check for 'not duplicate' or something.\n#         auto_id=True,  # no need for id generation.\n#     )\n#     video_length = FieldSchema(\n#         name=\"video_length\",\n#         dtype=DataType.FLOAT,\n#     )\n#     video_phash = FieldSchema(\n#         name=\"video_phash\", dtype=DataType.BINARY_VECTOR, dim=64\n#     )  # 64\n#     # single dimension? no multi dimension support?\n#     schema = CollectionSchema(\n#         fields=[video_semantic_id, video_length, video_phash],\n#         description=\"Test video deduplication\",\n#     )\n#     collection = Collection(\n#         name=collection_name,\n#         schema=schema,\n#         using=\"default\",\n#         shards_num=2,\n#     )\n#     # is this demo collection?\n#     return collection",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:36-65"
     },
     "4293": {
-        "file_id": 524,
-        "content": "The code imports necessary libraries and sets up a Detectron2 object detector using pre-trained weights for instance segmentation. It also defines a function to calculate Euclidean distance between detection and tracked objects. The configuration file specifies the model architecture, which is R_50_FPN with three stages and the specific weights (model_final_f10217.pkl) to be used for detection. The weights can either be downloaded from a public S3 storage or retrieved from the local cache if already downloaded.",
+        "file_id": 545,
+        "content": "This code defines a CollectionSchema and Collection for Milvus library. The schema contains fields for video_semantic_id, video_length, and video_phash, with their respective data types and properties. The Collection is created with a name, schema, database usage, and number of shards.",
         "type": "comment"
     },
     "4294": {
-        "file_id": 524,
-        "content": "detector = DefaultPredictor(cfg)\n# what are the classes output by the model?\n# Norfair\nvideo_path = \"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\"\n# video_path = \"/root/Desktop/works/pyjom/samples/video/LlfeL29BP.mp4\"\nvideo = Video(input_path=video_path)\ntracker = Tracker(distance_function=euclidean_distance, distance_threshold=400,hit_inertia_min=2,hit_inertia_max=20,initialization_delay=1) # what the heck?\ntracked_objects = None\ndisplay=True\nfor index, frame in enumerate(video): # we need to speed up.\n    if index%10 == 0:\n        detections = detector(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))\n        print(\"original detections:\",detections)\n        instances = detections[\"instances\"]\n        print(\"instances:\",instances)\n        # breakpoint()\n        pred_classes = instances.pred_classes\n        if len(pred_classes) == 0:\n            continue\n        detections2=[]\n        for index,class_ in enumerate(pred_classes):\n            print(\"index:\",index)\n            class_ = int(class_.cpu().numpy().tolist())",
+        "file_id": 545,
+        "content": "# # seems hard to setup.\n# # not started!\n# # https://milvus.io/docs/v2.0.0/metric.md#binary\n# # the metric is important to us.\n# import numpy as np\n# import bitarray\n# @lru_cache(maxsize=1)\n# def transformVideoPhash(videoPhash):\n#     # we need the raw phash.\n#     queryData = videoPhash.hash  # videoPhashTruthTable8x8 or something\n#     queryData = queryData.reshape(-1).tolist()\n#     queryData = [\"1\" if x else \"0\" for x in queryData]\n#     queryData = bitarray.bitarray(\"\".join(queryData), endian=\"little\")\n#     queryData = queryData.tobytes()\n#     return queryData\n# # dimension: 8*8=64\n# def indexVideoWithVideoDurationAndPhash(collection, videoDuration, videoPhash):\n#     queryData = transformVideoPhash(videoPhash)\n#     collection.insert([[np.float32(videoDuration)], [queryData]])\n# # can release even if not loaded.\n# from test_video_hash import getVideoPHash\n# import caer\n# @lru_cache(maxsize=1)\n# def getVideoDurationAndPhashFromFile(videoFilePath):\n#     videoDuration = caer.video.frames_and_fps.get_duration(videoFilePath)",
         "type": "code",
-        "location": "/tests/video_detector_tests/detectron2_norfair.py:23-48"
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:68-103"
     },
     "4295": {
-        "file_id": 524,
-        "content": "The code initializes a video detector using Detector class and then processes each frame of the video. It predicts instances in each frame, prints detected classes and instances, and continues only if there are predictions. The tracker is used to track objects over frames, but its parameters might need clarification. Speedup is mentioned as needed, which implies potential optimizations.",
+        "file_id": 545,
+        "content": "Function `transformVideoPhash` takes a video phash and converts it into a binary format for Milvus library indexing. Function `indexVideoWithVideoDurationAndPhash` inserts the video duration and transformed phash into the specified collection. The `getVideoDurationAndPhashFromFile` function retrieves the video duration and corresponding phash of a given video file using caer's video module. All functions are cached to avoid redundant computations.",
         "type": "comment"
     },
     "4296": {
-        "file_id": 524,
-        "content": "            print(\"class:\",class_)\n            box = instances.pred_boxes.tensor[index].cpu().numpy().tolist()\n            box = [int(x) for x in box]\n            score = float(instances.scores[index].cpu().numpy().tolist())\n            print('box:',box)\n            print('score:',score)\n            className = cocoRealName[class_]\n            # we filter our targets.\n            if className not in [\"person\",\"dog\"]:\n                continue\n            mdata = {\"box\":box,\"class\":{\"id\":class_,\"name\":className}}\n            det = Detection(instances.pred_boxes.get_centers()[index].cpu().numpy(),scores=np.array([score]),data=mdata)\n            detections2.append(det)\n            # breakpoint()\n        # detections = [Detection(p) for p in instances.pred_boxes.get_centers().cpu().numpy()] # what is this instance anyway?\n        # you would lost data you dick!\n        print(\"detections2\",detections2)\n        tracked_objects = tracker.update(detections=detections2)\n        # print(detections)\n        print(\"tracked objects:\",tracked_objects) # you don't track shit?",
+        "file_id": 545,
+        "content": "#     videoPhash = getVideoPHash(videoFilePath)\n#     return videoDuration, videoPhash\n# def indexVideoWithVideoDurationAndPhashFromFile(collection, videoFilePath):\n#     videoDuration, videoPhash = getVideoDurationAndPhashFromFile(videoFilePath)\n#     indexVideoWithVideoDurationAndPhash(collection, videoDuration, videoPhash)\n# def reloadMilvusCollection(collection):\n#     collection.release()  # unload.\n#     collection.load()\n# # make it into some library!\n# # insert after load?\n# # # 1,64\n# # what is wrong? wtf?\n# # queryData = queryData.tolist()\n# def getDistancesBySearchingDuplicatedVideoInMilvusByFile(\n#     collection,\n#     videoFilePath,\n#     search_params={\"metric_type\": \"Jaccard\", \"params\": {\"nprobe\": 10}},\n#     autoreload: bool = True,\n#     span: float = 2,\n#     debug: bool = False,\n#     limit: int = 10,\n# ):\n#     if autoreload:\n#         reloadMilvusCollection(collection)\n#     videoDuration, videoPhash = getVideoDurationAndPhashFromFile(videoFilePath)\n#     queryData = transformVideoPhash(videoPhash)",
         "type": "code",
-        "location": "/tests/video_detector_tests/detectron2_norfair.py:49-68"
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:104-136"
     },
     "4297": {
-        "file_id": 524,
-        "content": "This code is filtering and creating detection objects for \"person\" or \"dog\" instances from a given dataset. It prints the box coordinates, score, and class name before adding it to the detections2 list. The code then updates tracked_objects using the tracker function with the detections2 list.",
+        "file_id": 545,
+        "content": "This code snippet defines a function for searching duplicated videos in Milvus by their file path, using Jaccard metric. It also includes functions to get video duration and hash from the file, index videos with duration and hash, and reload Milvus collection if necessary. The search parameters include metric type, probe count, span, limit, and whether to enable debug mode.",
         "type": "comment"
     },
     "4298": {
-        "file_id": 524,
-        "content": "    if tracked_objects is not None:\n        if tracked_objects!=[]:\n            # there is no bounding box avaliable?\n            for obj in tracked_objects:\n                point = obj.estimate[0]\n                position = tuple(point.astype(int))\n                color = (255,0,0)\n                # breakpoint()\n                name = obj.last_detection.data[\"class\"][\"name\"]\n                cv2.circle(\n                        frame,\n                        position,\n                        radius=100,\n                        color=color,\n                        thickness=2,\n                    )\n                cv2.putText(\n                    frame,\n                    \"[{}][{}]\".format(str(obj.id),name),\n                    (position[0]-100,position[1]),\n                    cv2.FONT_HERSHEY_SIMPLEX,\n                    2,\n                    (0,255,0),\n                    3,\n                    cv2.LINE_AA,\n                )\n            # breakpoint()\n        # i want to draw you in a different way.\n        # draw_tracked_objects(frame, tracked_objects,color=(255,0,0))",
+        "file_id": 545,
+        "content": "#     minVideoLength = max(0, videoDuration - span)\n#     maxVideoLength = videoDuration + span\n#     results = collection.search(\n#         data=[queryData],  # this is the float dimension.\n#         anns_field=\"video_phash\",\n#         param=search_params,\n#         output_fields=[\"video_length\"],\n#         limit=limit,\n#         expr=\"video_length > {minVideoLength} and video_length < {maxVideoLength}\".format(\n#             minVideoLength=minVideoLength, maxVideoLength=maxVideoLength\n#         ),\n#     )\n#     theHit = results[0]\n#     # print(theHit)\n#     # so we can perform search without filtering afterwards.\n#     # results[0][0].entity.get('video_length')\n#     # print(results[0].ids)\n#     # now, we want to have the 'distance' parameter.\n#     # print(results[0])\n#     # print(theHit)\n#     distances = list(theHit.distances)\n#     if debug:\n#         print(\"distances: %s\" % distances)\n#     return distances\n#     # what is the distance? we need to try.\n#     # returh the closest distance?\n#     # results = [x for x in theHit]",
         "type": "code",
-        "location": "/tests/video_detector_tests/detectron2_norfair.py:69-97"
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:137-164"
     },
     "4299": {
-        "file_id": 524,
-        "content": "The code checks if there are any tracked objects and then proceeds to draw bounding boxes around them, add labels for the objects' class names, and display their IDs on the frame using OpenCV functions. Additionally, it offers an alternative way to draw the objects in a different color.",
+        "file_id": 545,
+        "content": "This code searches for videos within a specified range of video length in the Milvus library. It sets minimum and maximum lengths based on the query's duration and span, and uses these values to filter results from the search. The closest distance between the query and each result is then returned.",
         "type": "comment"
     }
 }

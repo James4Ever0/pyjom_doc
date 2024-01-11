@@ -1,547 +1,548 @@
 {
     "1200": {
-        "file_id": 93,
-        "content": "from pyjom.commons import (\n    decorator,\n    get_media_info,\n    json_media_info,\n    ffprobe_media_info,\n    read_json,\n    getTextFileLength,\n    multi_replacer,\n    append_sublist,\n    extract_span,\n    convoluted,\n    update_subdict,\n)\n# you may want to remove text.\n@decorator\ndef FilesystemProcessor(info, reviewerLogs, filters={}, path_replacers={}):\n    # print(\"FILESYSTEM_PROCESSOR INTERCEPTED INFO\",info)\n    # print(\"REVIEWER LOGS:\", reviewerLogs)\n    # breakpoint()\n    # do not handle meta filters here.\n    protocol, files = info  # source paths.\n    # print(\"FILES\", files)\n    # breakpoint()\n    metainfo = {}\n    for elem in files:\n        _type, path = elem[\"type\"], elem[\"path\"]\n        suffix = path.split(\".\")[-1]\n        metaInfo = {\"type\": _type, \"suffix\": suffix, \"filename\": path.split(\"/\")[-1]}\n        if _type == \"video\":\n            einfo = json_media_info(path)\n            for e in einfo[\"media\"][\"track\"]:  # might be gif. how to solve this?\n                mtype = e[\"@type\"]\n                if mtype == \"Video\":",
+        "file_id": 104,
+        "content": "                oldTotalRectDict.update({uuid:{\"rect\":rect,\"startFrame\":currentFrameIndex,\"endFrame\":None,\"meanDifference\":None}}) # finally,remove those without endFrame.\n            else:\n                duration = currentFrameIndex - oldTotalRectDict[uuid][\"startFrame\"]\n                # filter rect areas.\n                diff = diffFrame[y0:y1,x0:x1] # this is shit. we need to crop this shit.\n                # grayscale.\n                # std = np.abs(std)\n                # get the total delta over time?\n                # std = np.mean(std,axis=2)\n                diff_x = np.mean(diff.flatten())\n                # std_x = np.std(std,axis=2)\n                # std_x = np.std(std_x,axis=1)\n                # std_x = np.std(std_x,axis=0)\n                std_total = diff_x # later we need to convert this float64.\n                # breakpoint()\n                if std_total is None:\n                    print(\"RECT:\",rect)\n                    breakpoint()\n                prev_std = oldTotalRectDict[uuid][\"meanDifference\"]",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:1-38"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:210-228"
     },
     "1201": {
-        "file_id": 93,
-        "content": "This code imports various functions and defines a FilesystemProcessor function decorated by the decorator function. It processes information and files from the filesystem, intercepts meta filters, and handles video file information for further processing.",
+        "file_id": 104,
+        "content": "This code updates the oldTotalRectDict with a new rectangle, calculates duration of rectangles, crops and grayscales the difference frame, computes mean difference over time, and checks if std_total is not None to prevent potential errors.",
         "type": "comment"
     },
     "1202": {
-        "file_id": 93,
-        "content": "                    # breakpoint()\n                    resolution = {\"height\": e[\"Height\"], \"width\": e[\"Width\"]}\n                    # color = e[\"ColorSpace\"] # YUV for common video\n            info = get_media_info(path)\n            # print(\"INFO OF %s\", path)\n            # print(info)\n            # breakpoint()\n            video_duration = info[\"videoDuration\"]\n            if \"audioDuration\" not in info.keys():\n                audioInfo = None\n            else:\n                # audioInfo = {}\n                audio_duration = info[\"audioDuration\"]\n                # print(info)\n                # breakpoint()\n                sampleRate = info[\"audioSamplingRate\"]\n                channels = info[\"audioChannel\"]\n                audioInfo = {\n                    \"sampleRate\": sampleRate,\n                    \"channels\": channels,\n                    \"duration\": audio_duration,\n                }\n            resolution = {\"height\": info[\"videoHeight\"], \"width\": info[\"videoWidth\"]}\n            _fps = info[\"videoFrameRate\"]",
+        "file_id": 104,
+        "content": "                if duration == 1:\n                    oldTotalRectDict[uuid][\"meanDifference\"] = std_total\n                elif prev_std is None:\n                    oldTotalRectDict[uuid][\"meanDifference\"] = std_total\n                else:\n                    dur2 = duration - 1\n                    try:\n                        new_std = (dur2*prev_std + std_total)/duration # may freaking exceed limit.\n                    except:\n                        print(\"dur2\",dur2)\n                        print(\"prev_std\",prev_std)\n                        print(\"std_total\",std_total)\n                        print(\"duration\",duration)\n                        breakpoint()\n                    oldTotalRectDict[uuid][\"meanDifference\"] = new_std\n                oldTotalRectDict[uuid][\"endFrame\"] = currentFrameIndex\n        return oldTotalRectDict\n    total_rect_dict ={}\n    rect_dict_main_list = []\n    min_rect_life_display_thresh = config[\"min_rect_life_display_thresh\"] # a filter.\n    # mode = 1\n    line_thresh = config[\"line_thresh\"]",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:39-62"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:229-252"
     },
     "1203": {
-        "file_id": 93,
-        "content": "This code retrieves media information from a file path and calculates video and audio duration, as well as the resolution and frame rate of the video. It also checks for audio information and stores it separately if available.",
+        "file_id": 104,
+        "content": "This code calculates the mean difference of a rectangular object's characteristics (like area or aspect ratio) over time, taking into account previous calculations and the duration of frames. It filters out any rectangles that have not met the minimum threshold for display duration.",
         "type": "comment"
     },
     "1204": {
-        "file_id": 93,
-        "content": "            metaInfo.update(\n                {\n                    \"fps\": _fps,\n                    \"duration\": video_duration,\n                    \"resolution\": resolution,\n                    \"audio\": audioInfo,\n                }\n            )\n        elif _type == \"audio\":\n            info = get_media_info(path)\n            duration = info[\"duration\"]\n            sampleRate = info[\"audioSamplingRate\"]\n            channels = info[\"audioChannel\"]\n            metaInfo.update(\n                {\"sampleRate\": sampleRate, \"channels\": channels, \"duration\": duration}\n            )\n        elif _type == \"image\":  # gif is image. check it out!\n            info = json_media_info(path)\n            for e in info[\"media\"][\"track\"]:\n                mtype = e[\"@type\"]\n                if mtype == \"Image\":\n                    resolution = {\"height\": e[\"Height\"], \"width\": e[\"Width\"]}\n                    # color = e[\"ColorSpace\"]\n            if metaInfo[\"suffix\"].lower() == \"gif\":\n                info = ffprobe_media_info(path)",
+        "file_id": 104,
+        "content": "    includeBoundaryLines = config[\"includeBoundaryLines\"] # applied to those cornered crops.\n    # this will slow down the process. or maybe?\n    frameIndex = -1\n    prevFrame = None\n    # if mode == 1:\n    # import pybgs as bgs\n    algorithm = (\n    bgs.FrameDifference()\n    )  # this\n    framePeriod = config[\"framePeriod\"]\n    config_minRectArea = config[\"minRectArea\"]\n    frame_total_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))\n    # print(\"FRAME_TOTAL_COUNT:\",frame_total_count)\n    # breakpoint()\n    ocr_period = 10\n    ocr_result = []\n    # from .subtitleDetector import getPaddleOCR\n    from shapely.geometry import Point, Polygon\n    def checkPointInOcrRect(ocr_result,point,span=0):\n        xp,yp = point\n        p = Point(xp,yp)\n        for ocr_rect in ocr_result:\n            # print(\"OCR_RECT\", ocr_rect)\n            # breakpoint()\n            # if certainty < certainty_thresh: continue\n            p0,p1,p2,p3 = ocr_rect\n            p0 = (p0[0]-span,p0[1]-span)\n            p1 = (p1[0]+span,p1[1]-span)\n            p2 = (p2[0]+span,p2[1]+span)",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:63-87"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:253-281"
     },
     "1205": {
-        "file_id": 93,
-        "content": "This code snippet retrieves media information based on the file type (_type) and updates the metaInfo dictionary accordingly. If it's a video, it fetches fps, video_duration, and resolution. For audio, it gets sampleRate, channels, and duration. Image type checks if it's a GIF, and depending on the result, either uses json_media_info or ffprobe_media_info to get the necessary information.",
+        "file_id": 104,
+        "content": "This code appears to be part of a video processing pipeline. It initializes an object detection algorithm and uses Shapely's Polygon for point-in-polygon testing with PaddleOCR. The function checkPointInOcrRect checks if a given point lies within the polygons defined by the OCR results, potentially using a span or offset for more accurate detection. Frame border detection is performed through frame differencing with a configurable frame period and minimum rectangle area threshold.",
         "type": "comment"
     },
     "1206": {
-        "file_id": 93,
-        "content": "                for e in info[\"streams\"]:\n                    codec_name = e[\"codec_name\"]\n                    if codec_name == \"gif\":\n                        duration = e[\"duration\"]\n                        _fps = e[\"avg_frame_rate\"]\n                        metaInfo.update(\n                            {\"duration\": float(duration), \"fps\": eval(_fps)}\n                        )\n            metaInfo.update({\"resolution\": resolution})\n        elif _type == \"text\":  # are you sure about that?\n            metaInfo.update({\"length\": getTextFileLength(path)})\n        metainfo.update({multi_replacer(path, replacer_list=path_replacers): metaInfo})\n    # breakpoint()# get meta information from here.\n    fileinfo = {}\n    for rlog in reviewerLogs:\n        print(\"READING LOG: %s\" % rlog)\n        content_json = read_json(rlog)\n        for elem in content_json:\n            review_tuple = elem[\"review\"][\"review\"]\n            filename = review_tuple[0]\n            filename = multi_replacer(filename, replacer_list=path_replacers)",
+        "file_id": 104,
+        "content": "            p3 = (p3[0]-span,p3[1]+span) # it is float.\n            plist = [(x[0],x[1]) for x in [p0,p1,p2,p3]]\n            poly = Polygon(plist)\n            if poly.contains(p):\n                return True\n        return False\n    def checkLineIntersectOcrRect(ocr_result,linepoint,linetype,span=0):\n        xp,yp = linepoint\n        # p = Point(xp,yp)\n        for ocr_rect in ocr_result:\n            # print(\"OCR_RECT\", ocr_rect)\n            # breakpoint()\n            # if certainty < certainty_thresh: continue\n            p0,p1,p2,p3 = ocr_rect\n            p0 = (p0[0]-span,p0[1]-span)\n            p1 = (p1[0]+span,p1[1]-span)\n            p2 = (p2[0]+span,p2[1]+span)\n            p3 = (p3[0]-span,p3[1]+span) # it is float.\n            plist = [(x[0],x[1]) for x in [p0,p1,p2,p3]]\n            if linetype == \"vertical\":\n                xlist = [x[0] for x in plist]\n                xmin,xmax = min(xlist),max(xlist)\n                if xp >=xmin and xp <= xmax:\n                    return True\n            else:\n                ylist = [x[1] for x in plist]",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:88-108"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:282-308"
     },
     "1207": {
-        "file_id": 93,
-        "content": "This code retrieves file metadata and reviewer logs, then updates meta information based on file type (image, video, or text). It handles GIFs specifically by extracting duration and average frame rate. Text files have their length measured with getTextFileLength(). Reviewer logs are read and mapped to corresponding files using multi_replacer function.",
+        "file_id": 104,
+        "content": "The function `frameborder_Detector()` checks if a given point is inside a polygon. The `checkLineIntersectOcrRect()` function detects whether a line intersects an OCR rectangle, considering both horizontal and vertical lines. It adjusts the coordinates of the OCR rectangle's points by subtracting or adding a span, then checks if the line intersects the adjusted rectangle.",
         "type": "comment"
     },
     "1208": {
-        "file_id": 93,
-        "content": "            sample_review = review_tuple[1]  # convolution with removed text timespan.\n            # print(\"KEYS DUMP:\")\n            primarykey = list(sample_review.keys())[0]  # CHECK THIS KEY FIRST.\n            # print(\"PRIMARYKEY:\",primarykey)\n            primary_sample_content = sample_review[primarykey]\n            # print(primary_sample_content) # hide this shit.\n            if primarykey == \"labels\":\n                discard = sample_review[\"discard\"]\n                if discard:\n                    update_subdict(fileinfo, filename, {\"discard\": True})\n                else:\n                    if primarykey in filters.keys():\n                        if not any(\n                            [x in primary_sample_content for x in filters[primarykey]]\n                        ):\n                            # remove those without the label.\n                            continue\n                    update_subdict(\n                        fileinfo, filename, {\"labels\": primary_sample_content}\n                    )",
+        "file_id": 104,
+        "content": "                ymin,ymax = min(ylist),max(ylist)\n                if yp >= ymin and yp <= ymax:\n                    return True\n            # poly = Polygon(plist)\n            # if poly.contains(p):\n            #     return True\n        return False\n    for _ in progressbar.progressbar(range(frame_total_count)):\n        ret, img = video.read()\n        # if frameIndex% ocr_period == 0:\n        #     ocr_result = getPaddleOCR(img,cls=True,rec=False)\n        if img is None:\n            # if mode == 1:\n            popKeys = []\n            for key in total_rect_dict.keys():\n                elem = total_rect_dict[key]\n                if elem[\"endFrame\"] is None:\n                    popKeys.append(key)\n            for key in popKeys:\n                total_rect_dict.pop(key) # remove premature rectangles.\n            break\n        else: frameIndex+=1\n        if not frameIndex % framePeriod == 0:\n            continue# do shit.\n        # if mode == 1:\n        diff_img_output = algorithm.apply(img)\n        # what about the freaking still image?",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:109-128"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:309-336"
     },
     "1209": {
-        "file_id": 93,
-        "content": "This code processes a sample review, checks if its primary key is \"labels\", discards the file if it contains the \"discard\" label, and updates the file info with labels if they match the specified filters.",
+        "file_id": 104,
+        "content": "The code is performing image detection and processing, using a video source to read frames. It checks if the frameIndex meets certain conditions and performs OCR (Optical Character Recognition) on specific frames. If a premature rectangle is detected in the total_rect_dict dictionary, it removes it. The code also applies an algorithm to the still image frames.",
         "type": "comment"
     },
     "1210": {
-        "file_id": 93,
-        "content": "                    # does it have any filters?\n                # then we have a list of labels down here.\n                # handle the filters.\n            else:\n                sample_content_type, secondary_key = primary_sample_content.keys()\n                secondary_sample_content = primary_sample_content[secondary_key]\n                third_keys = list(secondary_sample_content.keys())\n                thirdkey = third_keys[0]\n                # print(\"SecondaryKey:\",secondary_key)\n                # print(\"THIRD_KEYS:\",third_keys)\n                main_array_content = secondary_sample_content[thirdkey]\n                if secondary_key == \"yolov5\":\n                    # print(\"YOLOV5 DETECTED\")\n                    # get the time step first. or shall we?\n                    # breakpoint()\n                    identity_dict_array = {}\n                    main_time_array = []\n                    for frame in main_array_content:\n                        _time, _frame, yolov5_detector = (\n                            frame[\"time\"],",
+        "file_id": 104,
+        "content": "        # Convert the img to grayscale\n        # gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)\n        # no need to use gray image.\n        # Apply edge detection method on the image\n        blurred = cv2.GaussianBlur(img, config[\"blurKernel\"], 0)\n        edges = cv2.Canny(blurred,20,210,apertureSize = 3) # great.\n        # why not applying edges directly to rectangles?\n        # This returns an array of r and theta values\n        # line_thresh =  200\n        # maintain a rectangle list. merge the alikes?\n        # if mode == 1:\n        lines = cv2.HoughLines(edges,1,np.pi/180,line_thresh)\n        if lines is None:\n            lines = []\n        angle_error = 0.00003   # this can only detect square things, absolute square.\n        # we need to know horizontal and vertical lines, when they cross we get points.\n        frameHeight, frameWidth = img.shape[:2]\n        # print(\"height: \", frameHeight)\n        # print(\"width: \", frameWidth)\n        mlines = {\"horizontal\":[], \"vertical\":[]}\n        if includeBoundaryLines:",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:130-149"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:337-362"
     },
     "1211": {
-        "file_id": 93,
-        "content": "The code checks if the content has any filters. If not, it accesses the sample content type and secondary key, then retrieves the third key. It assigns the main array content based on the secondary key, which is checked for being \"yolov5\". If so, it initializes identity_dict_array and main_time_array, and iterates through the main array content to retrieve time, frame, and yolov5_detector.",
+        "file_id": 104,
+        "content": "This code snippet is performing edge detection on an image and applying the HoughLines transform to identify horizontal and vertical lines. It also includes an option for including boundary lines. The code converts the image to grayscale, applies Gaussian blur, and performs Canny edge detection. The resulting edges are then passed to the HoughLines transform to find lines, which are categorized as either \"horizontal\" or \"vertical\".",
         "type": "comment"
     },
     "1212": {
-        "file_id": 93,
-        "content": "                            frame[\"frame\"],\n                            frame[\"yolov5_detector\"],\n                        )\n                        main_time_array.append(_time)\n                        for detected in yolov5_detector:\n                            # ignore the location. we do not need this shit till we somehow want to focus on the shit.\n                            confidence = detected[\n                                \"confidence\"\n                            ]  # ignore the confidence.\n                            confidence_threshold = 0.6\n                            if confidence <= confidence_threshold:\n                                continue\n                            identity = detected[\"identity\"][\"name\"]\n                            append_sublist(identity_dict_array, identity, _time)\n                    if secondary_key in filters.keys():\n                        if not any(\n                            [\n                                x in identity_dict_array.keys()\n                                for x in filters[secondary_key]",
+        "file_id": 104,
+        "content": "            originPoint = (0,0)\n            cornerPoint = (frameWidth,frameHeight)\n            mlines[\"horizontal\"].append(originPoint)\n            mlines[\"horizontal\"].append(cornerPoint)\n            mlines[\"vertical\"].append(originPoint)\n            mlines[\"vertical\"].append(cornerPoint)\n        # lineTrans = {}\n        for line in lines:\n            for r_theta in line:\n                # breakpoint()\n                r,theta = r_theta.tolist()\n                # Stores the value of cos(theta) in a\n                # filter detected lines?\n                # theta filter:\n                if not abs(theta % (np.pi/2) )< angle_error:\n                    continue # this is filtering.\n                # print(\"line parameter:\",r,theta)\n                a = np.cos(theta)\n                # Stores the value of sin(theta) in b\n                b = np.sin(theta)\n                # x0 stores the value rcos(theta)\n                x0 = a*r\n                # y0 stores the value rsin(theta)\n                y0 = b*r\n                # x1 stores the rounded off value of (rcos(theta)-1000sin(theta))",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:150-168"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:363-391"
     },
     "1213": {
-        "file_id": 93,
-        "content": "This code processes detected objects from a YoloV5 detector and filters them based on a confidence threshold. It appends the detected identities to an array if they pass the threshold, and checks if there are secondary filters present for further processing.",
+        "file_id": 104,
+        "content": "This code calculates the line parameters and applies a theta filter to eliminate lines that are close to being vertical or horizontal. It stores cos(theta) in 'a', sin(theta) in 'b', r*cos(theta) in 'x0', and r*sin(theta) in 'y0'. The theta filter ensures only appropriate angles are included, preventing false detections of vertical/horizontal lines.",
         "type": "comment"
     },
     "1214": {
-        "file_id": 93,
-        "content": "                            ]\n                        ):\n                            continue  # do not have the dogs.\n                    # so check the timespan.\n                    # get consecutive ranges of x == 1. use threshold function like int(x>0.5)\n                    new_identity_array = {}\n                    for t in main_time_array:\n                        for k in identity_dict_array.keys():\n                            if t in identity_dict_array[k]:\n                                # print(\"APPENDING\")\n                                append_sublist(new_identity_array, k, 1)\n                                # print(new_identity_array[k])\n                                # breakpoint()\n                            else:\n                                append_sublist(new_identity_array, k, 0)\n                    # convolution step:\n                    # print(\"NEW IDEITITY ARRAY BEFORE PROCESSING:\", new_identity_array)\n                    main_time_array += [\"FINAL\"]  # add the final time\n                    for k in new_identity_array.keys():",
+        "file_id": 104,
+        "content": "                x1 = int(x0 + 1000*(-b))\n                # y1 stores the rounded off value of (rsin(theta)+1000cos(theta))\n                y1 = int(y0 + 1000*(a))\n                # x2 stores the rounded off value of (rcos(theta)+1000sin(theta))\n                x2 = int(x0 - 1000*(-b))\n                # y2 stores the rounded off value of (rsin(theta)-1000cos(theta))\n                y2 = int(y0 - 1000*(a))\n                # cv2.line draws a line in img from the point(x1,y1) to (x2,y2).\n                # (0,0,255) denotes the colour of the line to be\n                #drawn. In this case, it is red.\n                df_x = abs(x1-x2)\n                df_y = abs(y1-y2)\n                lineType = \"vertical\"\n                if df_x > df_y:\n                    lineType = \"horizontal\"\n                # we just need one single point and lineType.\n                linePoint = (x1,y1)\n                # for p_rect in rect:\n                mlines[lineType].append(linePoint)\n                # mlines2[lineType].append([(x1,y1), (x2,y2)])",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:169-187"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:392-417"
     },
     "1215": {
-        "file_id": 93,
-        "content": "This code is iterating through a main_time_array and an identity_dict_array to create a new \"new_identity_array\". For each time in the main_time_array, it checks if that time exists within any of the keys' arrays in the identity_dict_array. If so, it appends that key into the new_identity_array with a value of 1. If not, it appends with a value of 0. Afterwards, it adds a final time to the main_time_array and processes the new_identity_array further.",
+        "file_id": 104,
+        "content": "This code calculates the coordinates of a line using trigonometry and draws it on an image in PyJOM's media language detector. It also determines the type of line (vertical or horizontal) based on the difference between its endpoints' x and y values. The line's starting point is stored in 'linePoint', and the lines are appended to the 'mlines' list according to their type.",
         "type": "comment"
     },
     "1216": {
-        "file_id": 93,
-        "content": "                        new_identity_array[k] = convoluted(\n                            new_identity_array[k], pad=1, k=5\n                        )\n                        new_identity_array[k] = [\n                            int(x > 0.2) for x in new_identity_array[k]\n                        ]\n                        new_identity_array[k] = extract_span(\n                            new_identity_array[k], target=1\n                        )  # this is span.\n                        # print(new_identity_array[k])\n                        # breakpoint()\n                        new_identity_array[k] = [\n                            (main_time_array[a], main_time_array[b])\n                            for a, b in new_identity_array[k]\n                        ]\n                    # print(\"NEW IDENTITY SPAN ARRAY:\", new_identity_array) # not so sure if the yolov5 detector is not working properly or the confidence threshold is too high.\n                    if secondary_key in filters.keys():\n                        if not any(",
+        "file_id": 104,
+        "content": "                # lineTrans.update({str((x1,y1)+lineType):(x2,y2)})\n                # cv2.line(img,(x1,y1), (x2,y2), (0,0,255),2)\n                # would not draw lines this time. draw found rects instead.\n        # get rectangle points. or just all possible rectangles?\n        yd,xd = diff_img_output.shape\n        # print(\"IMAGE SHAPE\",xd,yd)\n        rangeLimitRatio = 0.1\n        # rangeLimit = \n        visual=False\n        for lineType in mlines.keys():\n            dropIndexs = []\n            data0 =mlines[lineType]\n            if lineType == \"vertical\":\n                selectedPoints = [x[0] for x in data0]\n                rangeLimit = xd*rangeLimitRatio\n                selectedRanges = list_to_range(selectedPoints,rangeLimit)\n                # print(selectedRanges)\n                selectedRangesFlattened = [x for y in selectedRanges for x in y]\n                # print(selectedRangesFlattened)\n                data0 = [x for x in data0 if x[0] in selectedRangesFlattened]\n            else:\n                selectedPoints = [x[1] for x in data0]",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:188-205"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:418-439"
     },
     "1217": {
-        "file_id": 93,
-        "content": "This code segment is processing an identity array by applying convolution, setting values above a threshold, extracting spans from the array based on a target value, and finally rearranging the array elements into pairs of indices. It seems to be part of a larger process involving filters and potentially image or object detection using a YoloV5 detector.",
+        "file_id": 104,
+        "content": "This code is iterating over line types in the mlines dictionary, specifically targeting vertical and horizontal lines. For vertical lines, it selects points and determines a range limit for filtering out unnecessary data. It then applies this range to flatten the data and refine the list of valid points. For horizontal lines, it performs a similar process but selects different coordinates.",
         "type": "comment"
     },
     "1218": {
-        "file_id": 93,
-        "content": "                            [\n                                x in new_identity_array.keys()\n                                for x in filters[secondary_key]\n                            ]\n                        ):\n                            continue  # double check.\n                    timestep = secondary_sample_content[\"timestep\"]\n                    result = {\n                        \"detected_objects_timespan\": new_identity_array,\n                        \"timestep\": timestep,\n                    }\n                    update_subdict(fileinfo, filename, {\"yolov5\": result})\n                    # breakpoint()\n                    # TODO: complete the convolutional span extractor.\n                    # pass\n                elif (\n                    secondary_key == \"framedifference_talib_detector\"\n                ):  # this one is detecting the pip. active region.\n                    # print(\"{:*^30}\".format(\"FRAMEDIFFERECE DETECTOR\"))\n                    # breakpoint()\n                    min_frame_threshold = 30",
+        "file_id": 104,
+        "content": "                rangeLimit = yd*rangeLimitRatio\n                selectedRanges = list_to_range(selectedPoints,rangeLimit)\n                selectedRangesFlattened = [x for y in selectedRanges for x in y]\n                data0 = [x for x in data0 if x[1] in selectedRangesFlattened]\n            # for index, linePoint in enumerate(data0):\n            #     # linePoint = mlines[lineType]\n            #     if checkLineIntersectOcrRect(ocr_result,linePoint,lineType): dropIndexs.append(index)\n            # newdata0 = [data0[i] for i in range(len(data0)) if i not in dropIndexs]\n            newdata0 = data0\n            mlines[lineType] = newdata0\n            if visual:\n                for linePoint in newdata0:\n                    (x1,y1) = linePoint\n                    # (x2,y2) = lineTrans[str((x1,y1))+lineType]\n                    if lineType == \"vertical\":\n                        x2 = x1\n                        y2 = yd\n                    else:\n                        x2 = xd\n                        y2 = y1\n                    cv2.line(img,(x1,y1), (x2,y2), (0,0,255),2)",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:206-226"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:440-460"
     },
     "1219": {
-        "file_id": 93,
-        "content": "This code is filtering data based on keys in new_identity_array and filters, and then assigns the \"detected_objects_timespan\" and \"timestep\" values to a result dictionary. The function continues if the current key is found in the new_identity_array and filters arrays. If the secondary_key is \"framedifference_talib_detector\", it prints a message and sets min_frame_threshold to 30.",
+        "file_id": 104,
+        "content": "This code section is responsible for updating the line data based on a specified range and removing any lines that intersect with the OCR result. It then generates a new list of line points and visualizes them on the image, if visualization is enabled.",
         "type": "comment"
     },
     "1220": {
-        "file_id": 93,
-        "content": "                    if secondary_key in filters.keys():\n                        min_frame_threshold = filters[secondary_key]\n                    frameborders = []\n                    for k in main_array_content.keys():\n                        frameborder = main_array_content[k]\n                        start, end = frameborder[\"start\"], frameborder[\"end\"]\n                        frame_length = end - start\n                        if frame_length < min_frame_threshold:\n                            continue\n                        frameborders.append(frameborder)\n                    update_subdict(\n                        fileinfo,\n                        filename,\n                        {\"framedifference_talib_detector\": frameborders},\n                    )\n    # finally remove those without filter keys.\n    filterKeys = filters.get(\"ensure\", [y for y in filters.keys() if y != \"meta\"])\n    for k in list(fileinfo.keys()):\n        # do metainfo extraction.\n        # print(\"CORE PATH\")\n        fileinfo[k][\"meta\"] = metainfo[k]",
+        "file_id": 104,
+        "content": "        # enumerate all possible lines.\n        if len(mlines[\"horizontal\"]) < 2 or len(mlines[\"vertical\"]) < 2:\n            # print(\"unable to form rectangles.\")\n            continue\n        else:\n            rects =[] # list of rectangles\n            eliminateRatio = 0.3\n            for line_h1, line_h2 in itertools.combinations(mlines[\"horizontal\"],2): # this is a problem.\n                ymin, ymax = list(sorted([line_h1[1],line_h2[1]]))\n                yspan = ymax-ymin\n                if yspan < yd*eliminateRatio:\n                    continue\n                for line_v1, line_v2 in itertools.combinations(mlines[\"vertical\"], 2): # this is a problem.\n                    xmin, xmax = list(sorted([line_v1[0],line_v2[0]]))\n                    rect = ((xmin,ymin),(xmax,ymax))\n                    # pr1,pr2 = rect\n                    # for p_rect in rect:\n                    #     if checkPointInOcrRect(ocr_result,p_rect): continue # skip those traitors.\n                    xspan = xmax-xmin\n                    if xspan < xd*eliminateRatio:",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:227-250"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:461-481"
     },
     "1221": {
-        "file_id": 93,
-        "content": "The code checks if a secondary key exists in the filters dictionary, then sets a minimum frame threshold based on it. It then loops through the main_array_content, filtering out any frameborders with lengths less than the minimum frame threshold. The filtered frameborders are stored in the frameborders list. Finally, the fileinfo dictionary is updated with the framedifference_talib_detector subdict containing the frameborders, and any keys without the \"meta\" tag or keys not in the filterKeys list are removed.",
+        "file_id": 104,
+        "content": "This code snippet combines horizontal and vertical lines to form rectangles. If there are less than two horizontal or vertical lines, the process is skipped. For each pair of horizontal lines and pairs of vertical lines, it checks if the aspect ratio is above a certain threshold before proceeding.",
         "type": "comment"
     },
     "1222": {
-        "file_id": 93,
-        "content": "        fileElemKeys = fileinfo[k].keys()\n        if fileinfo[k].get(\"discard\", False):\n            fileinfo.pop(k)\n            continue\n        mbool_condition = all([x in fileElemKeys for x in filterKeys])\n        # print(\"CHECKING:\",k)\n        # print(\"CONDITION:\",mbool_condition)\n        # breakpoint()\n        if not mbool_condition:\n            fileinfo.pop(k)  # why the fuck you pop all of them!\n    # print(fileinfo)\n    # print(\"____________FILEINFO DUMP____________\")\n    # breakpoint()\n    return fileinfo\n    # fileSystemUrl, fileList = info # I need the processed logs!\n    # return {\"husky\": \"cute husky check my youtube\"} # this is dummy return!",
+        "file_id": 104,
+        "content": "                        continue\n                    rects.append(rect)\n            # for index,elem in enumerate(rect_dict_main_list):\n            rect_dict_main_list = rectSurge(rect_dict_main_list,rects,diff_img_output)\n            # print(\"RECT DICT MAIN LIST:\")\n            # print(rect_dict_main_list) # maybe i want this shit?\n            total_rect_dict = updateTotalRects(total_rect_dict,rect_dict_main_list,frameIndex,diff_img_output,minRectArea=config_minRectArea)\n            mdisplayed_rect_count = 0\n            for rect_dict in rect_dict_main_list:\n                life = rect_dict[\"life\"]\n                if life < min_rect_life_display_thresh:\n                    continue # this is needed.\n                # draw shit now.\n                mdisplayed_rect_count +=1\n                (xmin,ymin),(xmax,ymax) = rect_dict[\"rect\"]\n                cv2.rectangle(img,(xmin,ymin),(xmax,ymax) , (255,0,0), 2)\n            #     (xmin,ymin),(xmax,ymax) = rect\n            #     rect_area = (xmax-xmin) * (ymax-ymin)",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:251-266"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:482-500"
     },
     "1223": {
-        "file_id": 93,
-        "content": "This code checks if a file should be discarded based on certain conditions and removes it from the fileinfo dictionary if it doesn't meet those conditions. It also prints some debug information for specific files. Finally, it returns the modified fileinfo dictionary.",
+        "file_id": 104,
+        "content": "The code iterates through a list of rectangles, appends them to the rects list if their life is above a certain threshold. It then updates the total_rect_dict and displays rectangles with a life above a minimum threshold on the image. The rectangles are drawn as bounding boxes using cv2.rectangle function.",
         "type": "comment"
     },
     "1224": {
-        "file_id": 94,
-        "content": "/pyjom/modules/informationProcessing/dummyProcessor.py",
-        "type": "filepath"
+        "file_id": 104,
+        "content": "            #     print(\"rect found:\",rect,rect_area)\n            prevFrame = img.copy()\n            # print(\"total rects:\",mdisplayed_rect_count)\n        if visual:\n            cv2.imshow('linesDetected.jpg', img)\n            # cv2.imshow(\"edges.jpg\",edges) # not for fun.\n            if cv2.waitKey(20) == ord(\"q\"):\n                print(\"QUIT INTERFACE.\")\n                break\n    # All the changes made in the input image are finally\n    # written on a new image houghlines.jpg\n    # if mode == 1:\n    print(\"FINAL RESULT:\")\n    for key in total_rect_dict.keys():\n        elem = total_rect_dict[key]\n        print(\"RECT UUID\",key)\n        print(\"RECT CONTENT\",elem)\n    popKeys = []\n    for key in total_rect_dict.keys():\n        elem = total_rect_dict[key]\n        if elem[\"endFrame\"] is None:\n            popKeys.append(key)\n    for key in popKeys:\n        total_rect_dict.pop(key) # remove premature rectangles.\n    # break\n    return total_rect_dict\ndef framedifference_talib_FrameIterator(mediapath,**config):\n    algorithm = (",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:501-529"
     },
     "1225": {
-        "file_id": 94,
-        "content": "This code imports the decorator function from pyjom.commons and defines a dummyProcessor function, decorated with the @decorator. It takes an info parameter and returns a dictionary containing a \"husky\" key with the value \"cute husky check my youtube\".",
-        "type": "summary"
+        "file_id": 104,
+        "content": "The code is detecting frames in an image using computer vision techniques. It creates a rectangle around each frame, counts the total number of rectangles displayed, and displays the image with detected frames. The program checks for user input to quit and then removes any prematurely ended rectangles from the dictionary before returning the final list of rectangles. The function is part of a larger algorithm for frame detection and iteration using talib library in PyJOM.",
+        "type": "comment"
     },
     "1226": {
-        "file_id": 94,
-        "content": "from pyjom.commons import decorator\n@decorator\ndef dummyProcessor(info):\n    return {\"husky\": \"cute husky check my youtube\"}",
+        "file_id": 104,
+        "content": "        bgs.FrameDifference()\n    )  # this is not stable since we have more boundaries. shall we group things?\n    video_file = (\n        mediapath  # this is doggy video without borders.\n    )\n    # video_file = \"../../samples/video/LiEIfnsvn.mp4\" # this one with cropped boundaries.\n    capture = cv2.VideoCapture(video_file)\n    while not capture.isOpened():\n        capture = cv2.VideoCapture(video_file)\n        # cv2.waitKey(1000)\n        # print(\"Wait for the header\")\n    pos_frame = capture.get(1)\n    past_frames = config[\"past_frames\"]\n    def getAppendArray(mx1, min_x, past_frames=past_frames):\n        return np.append(mx1[-past_frames:], min_x)\n    def getFrameAppend(frameArray, pointArray, past_frames=past_frames):\n        mx1, mx2, my1, my2 = [\n            getAppendArray(a, b, past_frames=past_frames)\n            for a, b in zip(frameArray, pointArray)\n        ]\n        return mx1, mx2, my1, my2\n    timeperiod = config[\"timeperiod\"]\n    def getStreamAvg(a, timeperiod=timeperiod):  # to maintain stability.",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/dummyProcessor.py:1-6"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:530-559"
     },
     "1227": {
-        "file_id": 94,
-        "content": "This code imports the decorator function from pyjom.commons and defines a dummyProcessor function, decorated with the @decorator. It takes an info parameter and returns a dictionary containing a \"husky\" key with the value \"cute husky check my youtube\".",
+        "file_id": 104,
+        "content": "The code is initializing a video file and capturing frames from it. It uses various functions such as FrameDifference, getAppendArray, and getFrameAppend for processing the frames and points. The purpose is to maintain stability in the data by averaging over a certain time period using the getStreamAvg function.",
         "type": "comment"
     },
     "1228": {
-        "file_id": 95,
-        "content": "/pyjom/modules/informationProcessing/__init__.py",
-        "type": "filepath"
+        "file_id": 104,
+        "content": "        return talib.stream.EMA(a, timeperiod=timeperiod)\n    change_threshold = config[\"change_threshold\"]\n    def checkChange(frame_x1, val_x1, h, change_threshold=change_threshold):\n        return (abs(frame_x1 - val_x1) / h) > change_threshold  # really changed.\n    mx1, mx2, my1, my2 = [np.array([]) for _ in range(4)]\n    # past_frames = 19\n    #already set.\n    perc = config[\"perc\"]\n    frame_num = 0 # not to change.\n    # what is the time to update the frame?\n    frame_x1, frame_y1, frame_x2, frame_y2 = [None for _ in range(4)]\n    reputation = 0\n    max_reputation = config[\"max_reputation\"]\n    minVariance =config[\"minVariance\"]\n    frameDict = {}  # include index, start, end, coords.\n    frameIndex = 0\n    framePeriod = config[\"framePeriod\"]\n    frame_total_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))\n    # print(\"FRAME_TOTAL_COUNT:\",frame_total_count)\n    # breakpoint()\n    for _ in progressbar.progressbar(range(frame_total_count)):\n        flag, frame = capture.read()\n        if not frameIndex%framePeriod == 0:",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:560-588"
     },
     "1229": {
-        "file_id": 95,
-        "content": "This code is importing three different processors - dummy, filesystem, and online - from the pyjom.modules.informationProcessing module. These processors may be used for handling information processing tasks.",
-        "type": "summary"
+        "file_id": 104,
+        "content": "This code appears to be a part of a larger function or program. It initializes variables and loops through frames of a video, likely for analysis or processing purposes. The code uses the EMA (Exponential Moving Average) from the talib library and has conditions to check changes in frame values. It also sets up dictionaries and tracks the frame index and total count of frames in the video. Further understanding would require knowledge about the rest of the codebase and how this specific function contributes to its overall functionality.",
+        "type": "comment"
     },
     "1230": {
-        "file_id": 95,
-        "content": "from pyjom.modules.informationProcessing.dummyProcessor import dummyProcessor\nfrom pyjom.modules.informationProcessing.localProcessor import FilesystemProcessor\nfrom pyjom.modules.informationProcessing.onlineProcessor import OnlineProcessor",
+        "file_id": 104,
+        "content": "            continue # skip shit.\n        frameIndex += 1\n        if flag:\n            pos_frame = capture.get(1)  # this is getting previous frame without read again.\n            img_output = algorithm.apply(frame)\n            img_bgmodel = algorithm.getBackgroundModel()\n            _, contours = cv2.findContours(\n                img_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE\n            )\n            # maybe you should merge all active areas.\n            if contours is not None:\n                # continue\n                counted = False\n                for contour in contours:\n                    [x, y, w, h] = cv2.boundingRect(img_output)\n                    if not counted:\n                        min_x, min_y = x, y\n                        max_x, max_y = x + w, y + h\n                        counted = True\n                    else:\n                        min_x = min(min_x, x)\n                        min_y = min(min_y, y)\n                        max_x = max(max_x, x + w)\n                        max_y = max(max_y, y + h)",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/__init__.py:1-3"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:589-612"
     },
     "1231": {
-        "file_id": 95,
-        "content": "This code is importing three different processors - dummy, filesystem, and online - from the pyjom.modules.informationProcessing module. These processors may be used for handling information processing tasks.",
+        "file_id": 104,
+        "content": "Continuing loop through frames and skipping invalid ones. Updates frame index and retrieves previous frame without re-reading. Applies an algorithm to the current frame and gets the background model. Finds contours in the processed frame using cv2 library, iterates through each contour, calculates bounding rectangles for detection areas, updates minimum/maximum coordinates if not counted, and continues until all contours are analyzed.",
         "type": "comment"
     },
     "1232": {
-        "file_id": 96,
-        "content": "/pyjom/modules/contentProducing/producerTemplates.py",
-        "type": "filepath"
+        "file_id": 104,
+        "content": "                        # only create one single bounding box.\n                # print(\"points:\",min_x, min_y, max_x,max_y)\n                this_w = max_x - min_x\n                this_h = max_y - min_y\n                thresh_x = max(minVariance, int(perc * (this_w)))\n                thresh_y = max(minVariance, int(perc * (this_h)))\n                mx1, mx2, my1, my2 = getFrameAppend(\n                    (mx1, mx2, my1, my2), (min_x, max_x, min_y, max_y)\n                )\n                val_x1, val_x2, val_y1, val_y2 = [\n                    getStreamAvg(a) for a in (mx1, mx2, my1, my2)\n                ]\n                # not a number. float\n                # will return False on any comparison, including equality.\n                if (\n                    abs(val_x1 - min_x) < thresh_x\n                    and abs(val_x2 - max_x) < thresh_x\n                    and abs(val_y1 - min_y) < thresh_y\n                    and abs(val_y2 - max_y) < thresh_y\n                ):\n                    needChange = False\n                    # this will create bounding rect.",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:613-634"
     },
     "1233": {
-        "file_id": 96,
-        "content": "The code introduces a function, getFileCuts, to process media files and generate cuts using scene detection or specified cuts. It supports audio synthesis, ensures non-overlapping cuts, creates render lists for specific parameters, and includes optional debug mode with breakpoints. The program utilizes FFmpeg filters for audio normalization and video filtering, handles \"ass\" subtitle font selection in a media processing program.",
-        "type": "summary"
+        "file_id": 104,
+        "content": "This code creates a single bounding box by calculating the threshold values based on the percentage and bounding box dimensions. It checks if the average stream values of the bounding box corners are within the calculated thresholds, and if so, it sets needChange to False, indicating that no change is needed in the bounding rect creation.",
+        "type": "comment"
     },
     "1234": {
-        "file_id": 96,
-        "content": "from pyjom.commons import *\n# from pyjom.modules.contentProducing.videoProcessing import *\n# it is like a game designed by you, played by everyone.\n# maybe you need to render this into ffmpeg arguments or mltframework arguments.\nimport random\nfrom pyjom.audiotoolbox import adjustVolumeInMedia\nfrom pyjom.musictoolbox import getMusicInfoParsed\n# from MediaInfo import MediaInfo\nfrom pyjom.medialang.core import *\n# local\ndef getFileCuts(\n    filtered_info, meta_info, standard_bpm_spans, policy_names, mbeat_time_tolerance=0.8\n):\n    total_cuts_dict = {}\n    for (\n        file_path,\n        cuts,\n    ) in (\n        filtered_info.items()\n    ):  # sample these cuts, shuffle these samples. order these samples.\n        file_cuts = []  # only for this single file.\n        modifiers = {}\n        if cuts == {}:  # no cuts specified. require metadata.\n            # what is this synthed cuts? do you want to use some framedelta/audio volume based cutting methods, or not? or some scenedetect cuts?\n            # we use scenedetect cuts here. maybe later you would sort these cuts with framedelta/audio based methods.",
+        "file_id": 104,
+        "content": "                    # this cannot handle multiple active rects.\n                    reputation = max_reputation\n                    if frame_x1 == None:\n                        needChange = True\n                    elif (\n                        checkChange(frame_x1, val_x1, this_w)\n                        or checkChange(frame_x2, val_x2, this_w)\n                        or checkChange(frame_y1, val_y1, this_h)\n                        or checkChange(frame_y2, val_y2, this_h)\n                    ):\n                        needChange = True\n                        # the #2 must be of this reason.\n                    if needChange:\n                        frame_x1, frame_y1, frame_x2, frame_y2 = [\n                            int(a) for a in (min_x, min_y, max_x, max_y)\n                        ]\n                        print()\n                        print(\"########FRAME CHANGED########\")\n                        frame_num += 1\n                        frame_area = (frame_x2 - frame_x1) * (frame_y2 - frame_y1)\n                        # update the shit.",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:1-30"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:635-655"
     },
     "1235": {
-        "file_id": 96,
-        "content": "This code imports various modules for audio, video processing, and metadata analysis. It defines a function getFileCuts that takes in filtered information about media files and meta-information. It creates a dictionary of total cuts for each file and iterates through the files, considering if there are any specified cuts or not. If there are no specified cuts, it uses scene detection to generate cuts and may potentially sort them using other methods like frame delta or audio volume. The code also mentions shuffling and ordering these cuts for some unspecified purpose.",
+        "file_id": 104,
+        "content": "This code checks if the frame boundaries have changed and updates them accordingly. If a change occurs, it increments the frame number and prints \"########FRAME CHANGED########\". The frame area is then calculated based on the updated frame boundaries.",
         "type": "comment"
     },
     "1236": {
-        "file_id": 96,
-        "content": "            # or you implement this in the reviewer. none of the freaking business.\n            # synthed_cuts = scenedetect_cut(file_path)\n            # we use evenly spaced cuts.\n            duration = meta_info[\"duration\"]\n            if duration < standard_bpm_spans[0]:\n                synthed_cuts = [(0, duration)]\n            else:\n                synthed_cuts = []\n                start_time = 0\n                while True:\n                    remained_time = duration - start_time\n                    mcandidates = [x for x in standard_bpm_spans if x < remained_time]\n                    if len(mcandidates) > 0:\n                        mc = random.choice(mcandidates)\n                        synthed_cuts.append((start_time, mc))\n                        start_time += mc\n                    else:\n                        break\n            file_cuts = synthed_cuts\n        else:  # get cuts from those keys.\n            for key, content in cuts.items():\n                # if key == \"labels\": continue # this cannot happen!",
+        "file_id": 104,
+        "content": "                        coords = ((frame_x1, frame_y1), (frame_x2, frame_y2))\n                        frameDict[frame_num] = {\n                            \"coords\": coords,\n                            \"start\": frameIndex,\n                            \"end\": frameIndex,\n                        }\n                        print(\n                            \"FRAME INDEX: {}\".format(frame_num)\n                        )  # this is the indexable frame. not uuid.\n                        print(\"FRAME AREA: {}\".format(frame_area))\n                        print(\"FRAME COORDS: {}\".format(str(coords)))\n                    # allow us to introduce our new frame determinism.\n                else:\n                    if reputation > 0:\n                        reputation -= 1\n                if frame_x1 is not None and reputation > 0:\n                    # you may choose to keep cutting the frame? with delay though.\n                    cv2.rectangle(\n                        frame, (frame_x1, frame_y1), (frame_x2, frame_y2), (255, 0, 0), 2",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:31-52"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:656-674"
     },
     "1237": {
-        "file_id": 96,
-        "content": "Code generates synthesized cuts for audio file based on duration and a list of standard bpm spans. If the duration is less than the smallest standard bpm span, it creates one cut from start to end. Otherwise, it iteratively selects random standard bpm spans until remaining time is exhausted or no more spans are available.",
+        "file_id": 104,
+        "content": "Code is detecting frames in an image, storing their coordinates and index range in a dictionary. If the frame's reputation is positive, it will reduce the reputation and continue cutting the frame if needed. It also prints information about the detected frame to the console.",
         "type": "comment"
     },
     "1238": {
-        "file_id": 96,
-        "content": "                if key == \"yolov5\":\n                    for object_name, object_cuts in content.items():\n                        file_cuts += [\n                            x\n                            for x in object_cuts\n                            if (x[1] - x[0])\n                            >= standard_bpm_spans[0] * mbeat_time_tolerance\n                        ]  # we may choose only non-overlapping cuts.\n                elif (\n                    key == \"framedifference_talib_detector\"\n                ):  # this is a modifier. modify all things in avaliable cuts. but it cannot work alone. is it?\n                    modifiers.update({\"framedifference_talib_detector\": content})\n        # rearrange all things.\n        # after this is done, add this to the end.\n        if \"non_overlapping\" in policy_names:\n            file_cuts.sort()\n            new_file_cuts = [file_cuts[0]]\n            for cut in file_cuts[1:]:  # deterministic\n                if cut[0] >= new_file_cuts[-1][1]:\n                    new_file_cuts.append(cut)",
+        "file_id": 104,
+        "content": "                    )\n                    frameDict[frame_num][\"end\"] = frameIndex\n                    # we mark the first and last time to display this frame.\n                # how to stablize this shit?\n            cv2.imshow(\"video\", frame)\n            # just video.\n            # cv2.imshow('img_output', img_output)\n            # cv2.imshow('img_bgmodel', img_bgmodel)\n        else:\n            # cv2.waitKey(1000) # what the heck?\n            break\n        # if 0xFF & cv2.waitKey(10) == 27:\n        #     break\n    # cv2.destroyAllWindows()\n    print(\"FINAL FRAME DETECTIONS:\")\n    print(frameDict)\n    return frameDict\n    # {1: {'coords': ((80, 199), (496, 825)), 'start': 13, 'end': 269}, 2: {'coords': ((80, 381), (483, 644)), 'start': 297, 'end': 601}}\ndef frameborder_default_configs(model=\"framedifference_talib\"):\n    assert model in [\"framedifference_talib\",\"huffline_horizontal_vertical\"]\n    if model == \"framedifference_talib\":\n        df_config = {\"past_frames\":19,\"timeperiod\":10, \"change_threshold\":0.2,\"perc\":0.03, \"max_reputation\": 3,\"framePeriod\":1,\"minVariance\" :10}",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:53-72"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:675-699"
     },
     "1239": {
-        "file_id": 96,
-        "content": "The code handles different template keys and their associated content, ensuring non-overlapping cuts for \"yolov5\" key and updating modifiers for the \"framedifference_talib_detector\" key. It then sorts the file cuts to ensure non-overlapping order and appends them into a new list if they don't overlap with the previous cut. This ensures deterministic results for further processing.",
+        "file_id": 104,
+        "content": "This code is a part of the frameborder_Detector function, which detects frames with high frame borders. It uses OpenCV's imshow function to display the video and frames. The frameDict variable stores the frame numbers and their respective coordinates and timeframes. If a specific key is pressed, it breaks out of the loop. After detecting final frame detections, it returns the frameDict. This code also includes a default config function for different models.",
         "type": "comment"
     },
     "1240": {
-        "file_id": 96,
-        "content": "            file_cuts = new_file_cuts\n        compiled_file_cuts = []\n        for cut in file_cuts:\n            new_cut = {\"span\": cut, \"modifiers\": {}}\n            for key, content in modifiers.items():\n                if (\n                    key == \"framedifference_talib_detector\"\n                ):  # get the biggest span. best contain this range. no random selection.\n                    framework_candidates = []\n                    for framework2 in content:\n                        coords = framework2[\"coords\"]\n                        f_timespan = framework2[\"timespan\"]\n                        mOverlapRange = overlapRange(cut, f_timespan)\n                        if mOverlapRange:\n                            framework_candidates.append((framework2, mOverlapRange))\n                    framework_candidates.sort(key=lambda x: -(x[1][1] - x[1][0]))\n                    if len(framework_candidates) > 0:\n                        framework_candidate = framework_candidates[0]\n                        modifiers.update(framework_candidate)",
+        "file_id": 104,
+        "content": "    else:\n        df_config = {\"line_thresh\":150, # original 150\n        \"includeBoundaryLines\":True,\"blurKernel\":(5,5),\"angle_error\":0.00003,\"delta_thresh\":0.1,\"min_rect_life\":0,\"max_rect_life\":6,\"framePeriod\":1,\"min_rect_life_display_thresh\":3,\"minRectArea\":1}\n    return df_config\ndef frameborder_Detector(mediapaths, model=\"framedifference_talib\",config={}):\n    print(\"MODEL:\",model)\n    # breakpoint()\n    yconfig = copy.deepcopy(config)\n    # breakpoint()\n    # if config is None:\n    #     breakpoint()\n    #     config = {}\n    # any better detectors? deeplearning?\n    assert model in [\"framedifference_talib\",\"huffline_horizontal_vertical\"]\n    results = []\n    keyword = \"{}_detector\".format(model)\n    data_key = keyword # different than yolo.\n    for mediapath in mediapaths:\n        print(\"mediapath:\", mediapath)\n        # breakpoint()\n        mediatype = getFileType(mediapath)\n        print(\"subtitle of mediatype:\", mediatype)\n        assert mediatype in [\"video\", \"image\"]  # gif? anything like that?\n        if model == \"framedifference_talib\":",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:73-91"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:700-725"
     },
     "1241": {
-        "file_id": 96,
-        "content": "This code iterates through `file_cuts` and creates a new dictionary for each cut with span key and empty modifiers. It then checks if the modifier is \"framedifference_talib_detector\" and finds the best matching framework candidate based on overlap range with the current cut, sorting them by the overlap range in descending order. If there are framework candidates, it updates the modifiers with the best candidate and continues to the next iteration.",
+        "file_id": 104,
+        "content": "The code is defining a function called \"frameborder_Detector\" which takes in media paths and a model parameter. The function checks the model and applies different detection algorithms based on the input model. It also initializes a deepcopy of the configuration and checks if the model is either \"framedifference_talib\" or \"huffline_horizontal_vertical\". If not, it raises an assertion error. Finally, it iterates through the media paths and performs some actions specific to the given model.",
         "type": "comment"
     },
     "1242": {
-        "file_id": 96,
-        "content": "                        # add that modifier.\n            compiled_file_cuts.append(new_cut)\n        total_cuts_dict.update({file_path: compiled_file_cuts.copy()})\n    return total_cuts_dict\n# local\ndef getRenderList(\n    total_cuts,\n    demanded_cut_spans,\n    noRepeat=False,\n    noRepeatFileName=False,\n    total_trials=100000,\n):\n    trial_count = 0\n    file_access_list = [x for x in total_cuts.keys()]\n    FAL_generator = infiniteShuffle(\n        file_access_list\n    )  # infinite generator! may cause serious problems.\n    TC_generators = {\n        key: infiniteShuffle(total_cuts[key]) for key in total_cuts.keys()\n    }  # again infinite generator!\n    render_list = []\n    if noRepeat:\n        usedCuts = []\n    for span in demanded_cut_spans:\n        start, end = span\n        span_length = end - start\n        tolerance = 0.8\n        tolerance_decrease = lambda x: max(0.1, x - 0.1)\n        for filename in FAL_generator:\n            if filename is None:\n                tolerance = tolerance_decrease(tolerance)\n                continue",
+        "file_id": 104,
+        "content": "            assert mediatype == \"video\"\n            # advice you to check out only those areas with rectangles, not something else, if detected any rectangular area.\n            # but does that happen for normal videos? you might want huffline transforms.\n            # you can eliminate unwanted rectangles by time duration and huffline transforms.\n        result = {\"type\": mediatype, data_key: {}}\n        default_config = frameborder_default_configs(model)\n        xconfig = default_config\n        xconfig.update(yconfig) # override default configs.\n        # do not freaking assign directly after update.\n        config = xconfig\n        # print(\"YCONFIG:\", yconfig)\n        # breakpoint()\n        if mediatype == \"image\":\n            data = cv2.imread(mediapath)\n            data = keywordDecorator(huffline_stillImage_Identifier, **config)(data) # this is just oldfashioned function decorator\n            result[data_key].update({keyword: data})\n            result[data_key].update({\"config\": config})\n        else:",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:92-125"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:726-744"
     },
     "1243": {
-        "file_id": 96,
-        "content": "This function takes a dictionary of file paths and their associated cut lists, as well as demanded cut spans. It shuffles the file access list and generates infinite shuffled cut generators for each file path. Then, it iterates over the demanded cut spans, adjusting tolerance based on infinite generator progress, and selects a rendered file accordingly. If 'noRepeat' is True, used cuts are kept track of to avoid repetition.",
+        "file_id": 104,
+        "content": "This code is performing frame detection on video or image media. It checks if the mediatype is \"video\" and provides advice for checking only rectangular areas, suggesting huffline transforms to eliminate unwanted rectangles by time duration. If the mediatype is \"image\", it reads the image using cv2.imread, applies keywordDecorator with huffline_stillImage_Identifier and config, updates the result dictionary with the data and config.",
         "type": "comment"
     },
     "1244": {
-        "file_id": 96,
-        "content": "            file_cuts = TC_generators[filename]\n            # random.shuffle(file_cuts)\n            selected_cut = None\n            for cut in file_cuts:\n                trial_count += 1\n                if trial_count % 1000 == 0 and trial_count > 0:\n                    print(\n                        \"%d trial quota used remaining: %d\"\n                        % (trial_count, total_trials - trial_count)\n                    )\n                if trial_count > total_trials:\n                    raise Exception(\n                        \"Trial Limit Reached.\\nCurrent RenderList: %s\\nCurrent Limit: %d trials\\nCurrent Config: noRepeat=%s noRepeatFileName=%s\"\n                        % (\n                            str(render_list),\n                            total_trials,\n                            str(noRepeat),\n                            str(noRepeatFileName),\n                        )\n                    )\n                if cut is None:  # break if the infinite generator is taking a break.\n                    break",
+        "file_id": 104,
+        "content": "            # you may not want videoFrameIterator.\n            if model == \"framedifference_talib\":\n                mdata= framedifference_talib_FrameIterator(\n                    mediapath,**config)\n            elif model == \"huffline_horizontal_vertical\":\n                mdata = huffline_horizontal_vertical_FrameIterator(mediapath,**config)\n            metadata = {\"config\": config}\n            result[data_key][keyword] = mdata\n            result[data_key].update(metadata)\n        results.append(result)\n    return results",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:126-147"
+        "location": "/pyjom/medialang/functions/detectors/frameborder_Detector.py:745-755"
     },
     "1245": {
-        "file_id": 96,
-        "content": "This code segment shuffles a list of file cuts, iterates through them, and tracks the trial count to handle trial limits. It prints progress and raises an exception if the trial limit is exceeded or if the generator takes a break.",
+        "file_id": 104,
+        "content": "This code selects a specific detector model based on the input \"model\" parameter. If the model is \"framedifference_talib\", it creates an instance of framedifference_talib_FrameIterator, and if the model is \"huffline_horizontal_vertical\", it creates an instance of huffline_horizontal_vertical_FrameIterator. It then adds the created iterator to the result dictionary along with a metadata dictionary containing the original config parameters. The final results list is appended with this result dictionary.",
         "type": "comment"
     },
     "1246": {
-        "file_id": 96,
-        "content": "                    # continue # really continue?\n                cut_span = cut[\"span\"]\n                cut_duration = cut_span[1] - cut_span[0]\n                if inRange(\n                    cut_duration, [span_length, span_length * 1.5], tolerance=tolerance\n                ):  # increase this tolerance gradually.\n                    if noRepeat:\n                        cut_str = str(cut) + filename\n                        if noRepeatFileName:\n                            sameSourceOfLastClip = False\n                            if len(usedCuts) > 1:\n                                lastClip = usedCuts[\n                                    -1\n                                ]  # this was wrong. usedCuts could have length == 1\n                                if filename in lastClip:\n                                    sameSourceOfLastClip = True  # this will detect if the next clip is of the same source of last clip\n                            isRepeat = (cut_str in usedCuts) or sameSourceOfLastClip\n                        else:",
-        "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:148-165"
+        "file_id": 105,
+        "content": "/pyjom/medialang/functions/detectors/entityDetector.py",
+        "type": "filepath"
     },
     "1247": {
-        "file_id": 96,
-        "content": "The code snippet checks if a cut is within the desired span length and, if so, determines whether it's a repeat or not by comparing its filename with existing used cuts. It also checks if the source of the clip matches the previous one. The tolerance for determining whether a cut is in range can be gradually increased.",
-        "type": "comment"
+        "file_id": 105,
+        "content": "The code performs text processing, device movement detection, and entity identification using Levenshtein's algorithm. It calculates string similarities, generates test results, compares content and location changes to find or create entity structures, initializes variables, detects and tracks entities, updates text detection results, merges entries based on similarity and temporal proximity, and returns a formatted result dictionary.",
+        "type": "summary"
     },
     "1248": {
-        "file_id": 96,
-        "content": "                            isRepeat = cut_str in usedCuts\n                        if isRepeat:\n                            continue  # repeated cuts!\n                        usedCuts.append(cut_str)\n                    selected_cut = cut\n                    break\n            if not selected_cut is None:\n                # append the data right here.\n                render_list.append({\"span\": span, \"cut\": cut, \"source\": filename})\n                break\n    return render_list\n# local\ndef renderList2MediaLang(\n    renderList,\n    slient=True,\n    fast: bool = True,\n    bgm=None,\n    backend=\"ffmpeg\",  # wtf is this ffmpeg?\n    medialangTmpdir=\"/dev/shm/medialang\",\n):  # this is just a primitive. need to improve in many ways.\n    # producer = \"\"\n    scriptBase = [\n        '(\".mp4\",backend = \"%s\", bgm = \"%s\", fast=%s)'\n        % (backend, bgm, str(fast).lower())\n    ]  # set default resolution to 1920x1080\n    def getSpanDuration(span):\n        return span[1] - span[0]\n    for item in renderList:\n        # print(\"ITEM:\", item)",
+        "file_id": 105,
+        "content": "from .mediaDetector import *\nimport Levenshtein\nimport string\nimport zhon.hanzi\nimport wordninja\ndef resplitedEnglish(string2,skipSpecial=True):\n    if skipSpecial:\n        header = string2[0]\n        if header in string.punctuation or header in zhon.hanzi.punctuation:\n            return string2 # this could be buggy.\n    result = wordninja.split(string2)\n    if len(result)>1:\n        mlist = zip(result[:-1], result[1:])\n        for a,b in mlist:\n            combined = \"{} {}\".format(a,b)\n            error = a+b\n            string2 = string2.replace(error,combined)\n    return string2 # really? this is not good. maybe you should provide some version of continuality, for channel id watermarks.\n    # @MA SECO. -> @MASECO\n# maybe you can read it here?\n# you need double language check. both chinese and english. or really?\ndef ocrEntityDetector(mdata):\n    alteredData = [] # we should do a demo. \n    return alteredData # now we are on the same page, paddleocr is using cuda 11.2 which is compatible to 11.3\ndef getMinLenStr(a,b):",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:166-198"
+        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:1-29"
     },
     "1249": {
-        "file_id": 96,
-        "content": "The code is iterating over a list of cuts and selecting one that has not been used before. It appends the selected cut, span, and source file name to render_list if a valid cut is found. The function then returns the rendered list. Additionally, there's another function called renderList2MediaLang which takes the render list and uses it to create media files with specific parameters like backend, bgm, fast, and resolution. This function also requires improvement in many ways according to the comments.",
+        "file_id": 105,
+        "content": "The code includes a function \"resplitedEnglish\" that splits the given string into individual words, potentially skipping special characters. It uses wordninja for splitting and attempts to merge adjacent words if they have been mistakenly separated by special characters. Another function, \"ocrEntityDetector\", receives data as input and returns alteredData, but the code lacks implementation details. Lastly, there's a helper function \"getMinLenStr\" that takes two inputs 'a' and 'b', likely for comparison purposes.",
         "type": "comment"
     },
     "1250": {
-        "file_id": 96,
-        "content": "        span = item[\"span\"]\n        cut_span = item[\"cut\"][\"span\"]\n        source = item[\"source\"]\n        span_duration = getSpanDuration(span)\n        cut_span_duration = getSpanDuration(cut_span)\n        speed = cut_span_duration / span_duration\n        # breakpoint()\n        name = source\n        line = '(\"%s\", video=true, slient=%s, speed=%f, cutFrom=%f,cutTo=%f)' % (\n            name,\n            str(slient).lower(),\n            speed,\n            cut_span[0],\n            cut_span[1],\n        )\n        scriptBase.append(line)\n    # print(scriptBase)\n    # now return the medialang object.\n    medialangScript = \"\\n\\n\".join(scriptBase)  # forced to double return. is it?\n    medialangObject = Medialang(script=medialangScript, medialangTmpdir=medialangTmpdir)\n    return medialangObject\n# local\ndef petsWithMusicProducer(filtered_info, meta_info, config={}, fast=False):\n    # what is this config? how the fuck we can arrange it?\n    # config = {\"music\":{\"filepath\":\"\",\"lyric_path\":\"\"},\"font\":{\"filepath\":\"\",\"fontsize\":30}, \"policy\":{\"some_policy_name\":{}},\"meta\":{\"maxtime\":3, \"mintime\":1}}",
+        "file_id": 105,
+        "content": "    la,lb = len(a),len(b)\n    if la < lb:return a\n    return b\ndef getBlockType(dlocation,dcontent):\n    if not dlocation:\n        if not dcontent: return \"stationary\"\n        else: return \"typing\"\n    else:\n        if not dcontent: return \"typing_moving\"\n        else: return \"moving\"\ndef getStringDistance(a,b):\n    return Levenshtein.distance(a,b)\ndef getStringSimilarity(a,b):\n    return Levenshtein.ratio(a,b)\ndef getChineseLen(string2):\n    counter  = 0\n    upperLimit, lowerLimit = 0x4e00, 0x9fff\n    for elem in string2:\n        ordNum = ord(elem)\n        if ordNum <= upperLimit and ordNum>=lowerLimit:\n            counter+=1\n    return counter\ndef getPunctualLen(string2):\n    counter = 0\n    chinesePunctuals = zhon.hanzi.punctuation\n    englishPunctuals = string.punctuation\n    standardString = chinesePunctuals+englishPunctuals\n    for elem in string2:\n        if elem in standardString:\n            counter+=2\n    return counter\ndef getEnglishLen(string2):\n    counter = 0\n    standardString = \"abcdefghijklmnopqrstuvwxyz\"",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:199-225"
+        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:30-70"
     },
     "1251": {
-        "file_id": 96,
-        "content": "The code defines a function that takes in information and creates a Medialang object. It calculates the speed of cutting from one point to another, adds details to the scriptBase list, and joins them into medialangScript. The config parameter is a dictionary containing options for music filepath, lyric path, font settings, policy settings, and meta settings like max and min time. The function returns a Medialang object with the script and tmpdir.",
+        "file_id": 105,
+        "content": "This code defines several functions for text processing, including getting the length of Chinese characters, English punctuation marks, and English words. It also calculates string similarity and distance using Levenshtein's algorithm. The \"getBlockType\" function determines if the device is stationary or moving based on its location and content.",
         "type": "comment"
     },
     "1252": {
-        "file_id": 96,
-        "content": "    # how to auto-warp the AAS subtitle?\n    # musicPath = config.get('music',\"\")\n    musicPath = config.get(\"music\", {}).get(\"filepath\", \"\")\n    debug = config.get(\"debug\", False)\n    report = corruptMediaFilter(musicPath)\n    if not report:\n        return False\n    (\n        music,\n        font,\n        policy,\n        policy_names,\n        music_metadata,\n        music_duration,\n        maxtime,\n        mintime,\n        lyric_path,\n        demanded_cut_spans,\n        standard_bpm_spans,\n    ) = getMusicInfoParsed(config)\n    # do you fill timegap with a loop?\n    total_cuts = {}\n    # print(\"DEMANDED CUT SPANS: \" , demanded_cut_spans) # test passed.\n    # breakpoint()\n    # demanded_cut_spans is empty!\n    # total_cuts\n    total_cuts = getFileCuts(\n        filtered_info, meta_info, standard_bpm_spans, policy_names\n    )  # is this shit empty?\n    # this can be infinity loop.\n    # sample: [{'span': (0, 3.9300226757369616), 'cut': {'span': (13.4, 18.0), 'modifiers': {}}, 'source': '/root/Desktop/works/pyjom/samples/video/LiGGLhv4E.mp4'}]",
+        "file_id": 105,
+        "content": "    standardString += standardString.upper()\n    standardString += \"0123456789\"\n    # it won't split. you may need double check the thing.\n    # standardString += \" \"\n    for elem in string2:\n        if elem in standardString:\n            counter+=1\n    return counter\ndef getMinMaxText(a,b):\n    mlist = [a,b]\n    clens = [getChineseLen(x) for x in mlist]\n    elens = [getEnglishLen(x) for x in mlist]\n    slens = [getPunctualLen(x) for x in mlist]\n    mlens = [x[0]+x[1]+x[2] for x in zip(clens,elens,slens)]\n    if len(a) > len(b):\n        if mlens[0] > mlens[1]:\n            return a\n        return b\n    else:\n        if mlens[0] < mlens[1]:\n            return b\n        return a\ndef pointDifference(a,b):\n    return [a[0] - b[0], a[1] - b[1]]\ndef makeOCREntity(ocrData,minMaxThresh = 24 ,# max difference is ten pixel. or it is considered as moving.\nstrDisThreshold = 2 ,# or considered as changing?\ncertThreshold = 0.6,\nchangingMinMaxThresh = 45,\nchangingstrDisThreshold = 3,\ntimeThreshold = 0.3 ,# i intentially set it.\nblockTimeThreshold = 0.3, # at least last this long?",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:226-257"
+        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:71-104"
     },
     "1253": {
-        "file_id": 96,
-        "content": "This code retrieves music file information and parses it using various functions. It checks if the demanded_cut_spans are not empty and retrieves the total_cuts from another function. The code also includes debugging features and may potentially create an infinite loop if certain conditions aren't met.",
+        "file_id": 105,
+        "content": "The code defines a series of functions for detecting changes in textual data, such as entity detection and calculating point differences. It also involves calculating Chinese, English, and punctuation lengths and uses them to determine if the text is changing or moving based on certain thresholds.",
         "type": "comment"
     },
     "1254": {
-        "file_id": 96,
-        "content": "    # print(total_cuts)\n    # breakpoint()\n    # now generate the freaking video.\n    # if \"one_clip_per_file\" in policy_names:\n    #     used_files = [] # may raise exception.\n    # total_cuts {} and demanded_cut_spans [] are both empty\n    render_list = getRenderList(\n        total_cuts, demanded_cut_spans\n    )  # this might be an infinity loop.\n    # but why the fuck we got 10 minutes long of the freaking video?\n    if debug:\n        print(render_list)  # empty render list! wtf?\n    # why the fuck we have duplicated clips? why the fuck?\n    # breakpoint()  # WTF IS GOING ON? LEADING TO 10 MINS OF CRAP?\n    medialangObject = renderList2MediaLang(\n        render_list,\n        slient=True,\n        bgm=music[\"filepath\"],\n        backend=\"editly\",  # 在这里你可以分离人声 如果想热闹的话 原视频的音乐就不需要了 可能吧\n        fast=fast,\n    )  # what is the backend?\n    # print(medialangObject)\n    # breakpoint()\n    medialangCode = medialangObject.prettify()\n    # print(\"_________________MEDIALANG CODE_________________\")\n    # print(medialangCode) # should you write it to somewhere?",
+        "file_id": 105,
+        "content": "strSimThreshold = 0.8):\n    testElemIds = {} # just show processed items.\n    for line in ocrData:\n        mtime,mframe,mresult = line[\"time\"],line[\"frame\"],line[\"paddleocr\"]\n        # print(\"______________________\")\n        # print(\"time:\",mtime)\n        # newlyAddedIds = [] # will directly added if not in.\n        # initiate things here.\n        for mid in testElemIds.keys(): # must trt\n            testElemIds[mid][\"hasIdentical\"] =False  #initialization.\n        for presult in mresult:\n            location, mtext = presult\n            p1, p2, p3, p4 = location\n            text, certainty = mtext\n            print(\"RECOGNIZED TEXT:\",text)\n            mtimestamp = {\"frame\":mframe,\"time\":mtime}\n            # print(\"location:\",location)\n            # print(\"text:\",text)\n            # print(\"certainty:\",certainty)\n            foundIdentical = False\n            for mid in testElemIds.keys():\n                myid = testElemIds[mid]\n                myLastLocation = myid[\"locations\"][-1]\n                px1,px2,px3,px4 = myLastLocation",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:258-285"
+        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:105-128"
     },
     "1255": {
-        "file_id": 96,
-        "content": "This code block is generating a video based on provided cuts and cut spans. It checks for specific policy names, creates a render list, and then passes it to the `renderList2MediaLang` function to generate the video using the Editly backend. The developer is experiencing issues with an empty render list and duplicated clips which may lead to 10 minutes of undesired footage in the final video. They are also questioning what the Editly backend is and whether they should write the medialang code somewhere.",
+        "file_id": 105,
+        "content": "This code initializes variables and iterates through OCR data, specifically focusing on recognized text from each result. It checks if any previously identified elements have identical locations to the current element, updating a flag accordingly. The purpose seems to be detecting entities based on overlapping locations in different frames or times.",
         "type": "comment"
     },
     "1256": {
-        "file_id": 96,
-        "content": "    if debug:\n        import uuid\n        randomName = str(uuid.uuid4())\n        # or just use some temporary file instead?\n        medialangCodeSavePath = os.path.join(\n            \"/root/Desktop/works/pyjom/tests/medialang_tests\",\n            \"{}.mdl\".format(randomName),\n        )\n        with open(medialangCodeSavePath, \"w+\") as f:\n            f.write(medialangCode)\n        print(\"MEDIALANG CODE SAVED TO:\", medialangCodeSavePath)\n    # why use medialang? probably because these render language are not \"fully automated\" or \"automated enough\" to express some abstract ideas? or just to leave some blanks for redundent low-level implementations?\n    # print(\"_________________MEDIALANG CODE_________________\")\n    (\n        editly_outputPath,\n        medialang_item_list,\n    ) = medialangObject.execute()  ## shit will happen.\n    # next time you could test medialang directly.\n    # medialangObject.eval() # is something like that?\n    return editly_outputPath\n    # slient all things? despite its config.\n    # now render the file. how to make it happen?",
+        "file_id": 105,
+        "content": "                myMinMax = max([max(pointDifference(a,b)) for a,b in zip(location,myLastLocation)])\n                myMinMaxs = [max([max(pointDifference(a,b)) for a,b in zip(location,myLL)]) for myLL in myid[\"locations\"]] # changing it. the max movement.\n                mLastTime = myid[\"timestamps\"][-1][\"time\"]\n                timeDelta = mLastTime - mtime\n                myLastContent = myid[\"contents\"][-1]\n                strDistance = getStringDistance(myLastContent,text)\n                strDistances = [getStringDistance(myLastContent,text) for myLC in myid[\"contents\"]]\n                strSim = getStringSimilarity(myLastContent,text)\n                strSims = [getStringSimilarity(myLC,text) for myLC in myid[\"contents\"]]\n                foundIdentical = False\n                movementMap = {\"location\":False,\"content\":False,\"continual\":False}\n                if timeDelta < timeThreshold:\n                    if myMinMax <= minMaxThresh and ((strDistance <= strDisThreshold) or (strSim >= strSimThreshold )) : # wrong logic.",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:286-310"
+        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:129-142"
     },
     "1257": {
-        "file_id": 96,
-        "content": "The code is creating a temporary file with a random name using UUID, writing medialangCode to it, and saving it on the desktop. It then executes the medialangObject and returns the editly_outputPath.",
+        "file_id": 105,
+        "content": "This code calculates the maximum movement and string similarity between consecutive entities, considering time deltas and thresholds. If the movement is within a threshold and the string distance or similarity meets specific criteria, it indicates an identical entity. However, the current logic for identifying identical entities may be incorrect.",
         "type": "comment"
     },
     "1258": {
-        "file_id": 96,
-        "content": "# first, we state the format of the input.\n# [{'span': (296.4719954648526, 302.915), 'cut': {'span': (50.8, 57.2), 'modifiers': {}}, 'source': '/root/Desktop/works/pyjom/samples/video/LiGfl6lvf.mp4'}, {..},...]\n# avaliable_cuts = content\n# shall we generate medialang for it?\nfrom pyjom.commons import checkMinMaxDict\nfrom pyjom.lyrictoolbox import lrcToAnimatedAss\nfrom lazero.filesystem import tmpdir\nfrom lazero.network.progressbar.client import netProgressbar\n# local\ndef petsWithMusicOnlineProducer(\n    dataGenerator,\n    configs,\n    tempdir=\"/dev/shm/medialang/pets_with_music_online\",\n    remove_unused=True,\n    fast: bool = True,\n    medialangTmpdir=\"/dev/shm/medialang\",\n):\n    import uuid\n    NetProgressbar = netProgressbar()\n    with tmpdir(path=tempdir) as TD:\n        getRandomFileName = lambda extension: os.path.join(\n            tempdir, \".\".join([str(uuid.uuid4()), extension])\n        )\n        for config in configs:\n            try:\n                debug = config.get(\"debug\", False)  # in config.\n                musicPath = config.get(\"music\", {}).get(\"filepath\", \"\")",
+        "file_id": 105,
+        "content": "                        foundIdentical = True\n                        print(\"test result:\",myMinMax <= minMaxThresh ,(strDistance <= strDisThreshold) , (strSim >= strSimThreshold ))\n                        print(myMinMax,strDistance,strSim)\n                        print(minMaxThresh,strDisThreshold,strSimThreshold)\n                        print(\"line a\")\n                        pass\n                        # stricter limit, to know if really is movement?\n                    elif myMinMax <= changingMinMaxThresh:\n                        foundIdentical = True\n                        movementMap[\"location\"] = True\n                        if max(strDistances) <= strDisThreshold or max(strSims) >= strSimThreshold:\n                            # make sure it is globally the same.\n                            print(\"line b\")\n                            pass\n                        elif min(strDistances) <= changingstrDisThreshold:\n                            print(\"line c\")\n                            movementMap[\"content\"] = True",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:313-343"
+        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:143-161"
     },
     "1259": {
-        "file_id": 96,
-        "content": "This function, petsWithMusicOnlineProducer, generates medialang for a list of configs with associated music files. It takes dataGenerator, configs, tempdir, remove_unused, and fast as inputs. It uses temporary directories and UUIDs for file names. The debug flag indicates whether to include debugging information in the generated output.",
+        "file_id": 105,
+        "content": "This code block is checking for identical entities or potential movements in a video. It uses thresholds to determine if the entity is the same, and if it's a movement, it checks if it's the same content or location. The code also prints test results and specific lines for debugging purposes.",
         "type": "comment"
     },
     "1260": {
-        "file_id": 96,
-        "content": "                translate = config.get(\"translate\", False)\n                # also how to translate?\n                translate_method = config.get(\"translate_method\", \"baidu\")\n                # from pyjom.commons import corruptMediaFilter\n                report = corruptMediaFilter(musicPath)\n                if not report:\n                    continue\n                render_ass = config.get(\"render_ass\", False)\n                ass_template_configs = config.get(\"ass_template_configs\", {})\n                assStyleConfig = config.get(\"assStyleConfig\", {})\n                parsed_result = getMusicInfoParsed(config) # will raise exception. what to do?\n                # print(parsed_result)\n                # breakpoint()\n                # we only have one song here. you fucking know that?\n                (\n                    music,\n                    font,\n                    policy,\n                    policy_names,\n                    music_metadata,\n                    music_duration,\n                    maxtime,",
+        "file_id": 105,
+        "content": "                        else: # consider something else\n                            print(\"line d\")\n                            foundIdentical = False\n                    elif strDistance <= changingstrDisThreshold or strSim >= strSimThreshold:\n                        foundIdentical = True\n                        print(\"line e\")\n                        movementMap[\"content\"] = True\n                        if max(myMinMaxs) <= minMaxThresh:\n                            print(\"line f\")\n                            pass\n                        elif min(myMinMaxs) <= changingMinMaxThresh:\n                            print(\"line g\")\n                            movementMap[\"location\"] = True\n                        else:\n                            print(\"line h\")\n                            foundIdentical = False\n                else:\n                    foundIdentical = False\n                if foundIdentical:\n                    print(\"FOUND IDENTICAL\",text,myLastContent)\n                    print(\"REASON\",movementMap)",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:344-367"
+        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:162-183"
     },
     "1261": {
-        "file_id": 96,
-        "content": "This code block is configuring the settings for processing a music file. It sets whether to translate, the translation method, and checks if there are any corrupt media issues. It also determines if ASS (Advanced Substation Alpha) subtitles should be rendered, retrieves configuration settings for the ASS style and templates, and fetches the parsed music information that may raise an exception.",
+        "file_id": 105,
+        "content": "This code checks if the text has a matching content or location change using string similarity and minimum-maximum thresholds. If a match is found, it prints \"FOUND IDENTICAL\" with the original text and reason for identification from the movementMap dictionary.",
         "type": "comment"
     },
     "1262": {
-        "file_id": 96,
-        "content": "                    mintime,\n                    lyric_path,\n                    demanded_cut_spans,\n                    standard_bpm_spans,\n                ) = parsed_result  # this is taking long time.\n                # check for 'demanded_cut_spans' now!\n                from pyjom.lyrictoolbox import remergeDemandedCutSpans\n                demanded_cut_spans = remergeDemandedCutSpans(demanded_cut_spans)\n                render_list = []  # what is this freaking render_list?\n                # [{'span':(start,end),'cut':{'span':(start,end)},'source':videoSource},...]\n                # if lyric_path:\n                render_ass = render_ass and (lyric_path is not None)\n                if render_ass:\n                    ass_file_path = getRandomFileName(\"ass\")\n                    # print(\"lrc path:\", lyric_path)\n                    # print('ass file path:',ass_file_path)\n                    # breakpoint()\n                    lrcToAnimatedAss(\n                        music[\"filepath\"],\n                        lyric_path,",
+        "file_id": 105,
+        "content": "                    print(\"ID\",mid)\n                    print()\n                    # care about continuality here.\n                    if timeDelta < timeThreshold:\n                        movementMap[\"continual\"] = True\n                    if myid[\"hasIdentical\"] or timeDelta == 0: # eliminate duplicates.\n                        continue # do not check this.\n                    # print(\"found Identical:\",mid)\n                    testElemIds[mid][\"hasIdentical\"]=True\n                    testElemIds[mid][\"locations\"].append(location)\n                    testElemIds[mid][\"contents\"].append(text)\n                    testElemIds[mid][\"timestamps\"].append(mtimestamp)\n                    testElemIds[mid][\"movements\"].append(movementMap)\n                    break\n            if not foundIdentical:\n                if certainty > certThreshold:\n                    minitStruct = {str(uuid.uuid4()):{\"locations\":[copy.deepcopy(location)],\"contents\":[copy.deepcopy(text)],\"movements\":[],\"hasIdentical\":False,\"timestamps\":[mtimestamp]}}",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:368-389"
+        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:184-200"
     },
     "1263": {
-        "file_id": 96,
-        "content": "The code is unpacking the 'parsed_result' into separate variables such as 'mintime', 'lyric_path', 'demanded_cut_spans', and 'standard_bpm_spans'. It then checks for 'demanded_cut_spans' and remerges them using 'remergeDemandedCutSpans'. The code initializes an empty list called 'render_list', which may contain dictionaries with {'span':(start,end), 'cut':{'span':(start,end)}, 'source':videoSource} elements. If 'lyric_path' is provided and 'render_ass' (a combination of 'render_ass' flag and 'lyric_path' condition) is True, it generates a random file name for an 'ass' file and calls the 'lrcToAnimatedAss' function with music file path, lyric path as input.",
+        "file_id": 105,
+        "content": "This code is searching for identical entities based on location, text content, and timestamps. If a duplicate is found or time difference is small, it continues to the next entity. If no duplicates are found and certainty level is high, it creates a new entity structure with unique ID, locations, contents, movements, and timestamps.",
         "type": "comment"
     },
     "1264": {
-        "file_id": 96,
-        "content": "                        ass_file_path,\n                        translate=translate,\n                        translate_method=translate_method,\n                        ass_template_configs=ass_template_configs,\n                        assStyleConfig=assStyleConfig,\n                    )  # here's the 'no translation' flag.\n                data_ids = []\n                # from tqdm.gui import tqdm\n                total_pops = len(demanded_cut_spans)\n                # for _ in tqdm(range(total_pops)):\n                NetProgressbar.reset(total=total_pops)\n                for data in dataGenerator:\n                    # what is the format of the data?\n                    data_id = data[\"item_id\"]\n                    if data_id not in data_ids:\n                        dataDuration = data[\"meta\"][\"duration\"]\n                        videoSource = data[\"location\"]\n                        data_ids.append(data_id)\n                        demanded_cut_spans.sort(\n                            key=lambda span: abs((span[1] - span[0]) - dataDuration)",
+        "file_id": 105,
+        "content": "                    testElemIds.update(minitStruct) # do you really expect it? i mean it could have cracks.\n    # print(json.dumps(testElemIds,indent=4))\n    keys= list(testElemIds.keys())\n    print(\"keyNum:\",len(keys))\n    mfinal = {}\n    for key in keys:\n        mblocks = []\n        kElem = testElemIds[key]\n        # we try to compress this thing.\n        initBlock = {\"type\":\"stationary\",\"text\":None,\"location\":None,\"timespan\":{\"start\":None,\"end\":None}} # we will have shortest text.\n        for index, mtimestamp in enumerate(kElem[\"timestamps\"]):\n            thisText = kElem[\"contents\"][index]\n            thisLocation = kElem[\"locations\"][index]\n            if index == 0:\n                initBlock[\"timespan\"][\"start\"] = mtimestamp\n                initBlock[\"timespan\"][\"end\"] = mtimestamp\n                initBlock[\"text\"] = thisText\n                initBlock[\"location\"] = copy.deepcopy(thisLocation)\n            else:\n                movementMap = kElem[\"movements\"][index-1]\n                dlocation, dcontent, dtime = movementMap[\"location\"], movementMap[\"content\"], movementMap[\"continual\"]",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:390-411"
+        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:201-221"
     },
     "1265": {
-        "file_id": 96,
-        "content": "This code snippet generates subtitles for videos and processes them in batches. It uses a data generator to iterate over demanded cuts, sorts them based on the difference between their duration and video duration, and appends unique data IDs to the list. The progress bar is updated using NetProgressbar.",
+        "file_id": 105,
+        "content": "This code is initializing variables for block detection and compression. It creates an empty dictionary, loops through the timestamps and contents of elements, and assigns the first timestamp and content as the starting point of a stationary block. It also copies the location from the first content to the \"location\" field in the initBlock.",
         "type": "comment"
     },
     "1266": {
-        "file_id": 96,
-        "content": "                        )\n                        closest_span = demanded_cut_spans[0]\n                        closest_span_duration = closest_span[1] - closest_span[0]\n                        speed_delta = dataDuration / closest_span_duration\n                        # for time duration of 0.6 seconds, how the fuck you can fit in?\n                        span = closest_span\n                        candidate = {\n                            \"span\": span,\n                            \"cut\": {\"span\": (0, dataDuration)},\n                            \"source\": videoSource,\n                        }\n                        append_render_list = False\n                        case = None\n                        if checkMinMaxDict(speed_delta, {\"min\": 0.8, \"max\": 1.2}):\n                            case = \"nearby\"\n                            append_render_list = True\n                            # break\n                        elif checkMinMaxDict(speed_delta, {\"min\": 1.2, \"max\": 5}):\n                            case = \"trim\"",
+        "file_id": 105,
+        "content": "                lastType = initBlock[\"type\"]\n                thisType = getBlockType(dlocation,dcontent)\n                if (not dtime) or (thisType != lastType):\n                    # will abandon all no matter what. cause it is not continual.\n                    mblocks.append(copy.deepcopy(initBlock))\n                    initBlock = {\"type\":thisType,\"timespan\":{\"start\":mtimestamp,\"end\":mtimestamp}} # get the content.\n                    if thisType in [\"stationary\", \"moving\"]:\n                        # lastText = initBlock[\"text\"]\n                        # mselectedText = getMinMaxText(lastText,thisText)\n                        initBlock.update({\"text\":thisText}) # not right. we select the best one.\n                    if thisType in [\"stationary\", \"typing\"]:\n                        initBlock.update({\"location\":copy.deepcopy(thisLocation)})\n                    if thisType in [\"typing_moving\",\"typing\"]:\n                        initBlock.update({\"texts\":[thisText]})\n                    if thisType in [\"moving\", \"typing_moving\"]:",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:412-431"
+        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:222-237"
     },
     "1267": {
-        "file_id": 96,
-        "content": "This code is finding the closest cut span for a given data duration and calculating the speed delta between them. It then determines if the speed delta falls within certain predefined thresholds, assigning the appropriate case (\"nearby\" or \"trim\") and whether to append to the render list. The speed delta ranges from 0.8 to 1.2 for nearby cuts and from 1.2 to 5 for trim cuts.",
+        "file_id": 105,
+        "content": "This code snippet initializes a new block for text detection whenever there is a change in type or no time stamp. The block's details are updated based on the current type, location, and texts. It also stores the previous and new types, with the option to select the best text if the type is \"stationary\" or \"moving\".",
         "type": "comment"
     },
     "1268": {
-        "file_id": 96,
-        "content": "                            append_render_list = True\n                            from pyjom.videotoolbox import motionVectorEstimation\n                            dataDict = motionVectorEstimation(videoSource)\n                            referenceData = dataDict[\n                                \"average_global_weighted_motion_vectors_filtered_cartesian_distance\"\n                            ]\n                            from pyjom.mathlib import getCursorOfMaxAverageInWindow\n                            cursor = getCursorOfMaxAverageInWindow(\n                                referenceData, closest_span_duration * 1.2, dataDuration\n                            )\n                            # cursor = random.uniform(0,dataDuration-closest_span_duration*1.2) # this is not exactly right. not even good.\n                            # you should utilize the 'motion vector' stuff.\n                            mStart, mEnd = 0 + cursor, min(\n                                closest_span_duration * 1.2 + cursor, dataDuration",
+        "file_id": 105,
+        "content": "                        initBlock.update({\"locations\":[copy.deepcopy(thisLocation)]})\n                else:\n                    initBlock[\"timespan\"][\"end\"] = mtimestamp\n                    if thisType in [\"moving\",\"typing_moving\"]:\n                        initBlock[\"locations\"].append(copy.deepcopy(thisLocation))\n                    if thisType in [\"typing_moving\",\"typing\"]:\n                        initBlock[\"texts\"].append(thisText)\n                    if thisType in [\"moving\",\"stationary\"]: # we don't change stationary/typing's location. or do we?\n                        mLastText = initBlock[\"text\"]\n                        initBlock[\"text\"] = getMinMaxText(mLastText,thisText)\n                        # initBlock[\"text\"] = getMinLenStr(mLastText,thisText)\n        mblocks.append(copy.deepcopy(initBlock))\n        mblocks2 = []\n        for block in mblocks:\n            start,end = block[\"timespan\"][\"start\"], block[\"timespan\"][\"end\"]\n            timedelta = end[\"time\"] - start[\"time\"]\n            if timedelta > blockTimeThreshold:",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:432-447"
+        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:238-254"
     },
     "1269": {
-        "file_id": 96,
-        "content": "Code fetches average motion vectors from video source using motionVectorEstimation, selects cursor based on max average in window function from mathlib. Uses obtained cursor to calculate mStart and mEnd for clip segmentation.",
+        "file_id": 105,
+        "content": "This code appears to be part of a function that detects and tracks entities such as text or movement. It updates the initialization block based on the detected entity type, appends locations or texts, creates a copy of the block for later use, and filters out blocks with duration shorter than the given threshold.",
         "type": "comment"
     },
     "1270": {
-        "file_id": 96,
-        "content": "                            )\n                            candidate[\"cut\"][\"span\"] = (mStart, mEnd)\n                        if not append_render_list:\n                            print(f'fail to match. source: {dataDuration} target: {closest_span_duration}')\n                            if remove_unused:\n                                videoPath = videoSource\n                                if os.path.exists(videoPath):\n                                    os.remove(videoPath)\n                        else:\n                            demanded_cut_spans.pop(0)\n                            NetProgressbar.update(\n                                info={\n                                    \"remainings\": len(demanded_cut_spans),\n                                    \"case\": case,\n                                    \"data\": candidate,\n                                    'last_5_spans_time':[x[1]-x[0] for x in demanded_cut_spans[:5]]\n                                } # this last cut must be seriously wrong.\n                            )",
+        "file_id": 105,
+        "content": "                mblocks2.append(block)\n        mfinal.update({key:mblocks2})\n    return mfinal\n    # print(json.dumps(mfinal,indent=4))\n    # print(\"___________\")\ndef staticOCRCombinator(myresult,simThreshold= 0.8):\n    # we use wordninja to do the english spliting.\n    # you can also get this working for non-static.\n    myNewResult = {}\n    lastWordResult = None\n    lastId = None\n    lastLocation = None\n    lastTimeStamp = {\"start\":{},\"end\":{}}\n    for key in myresult.keys():\n        melems = myresult[key]\n        for melem in melems:\n            mtype = melem[\"type\"]\n            if mtype in [\"stationary\", \"moving\"]:\n                mtext = melem[\"text\"] # maybe there are some moving things out there?\n            else:\n                mtext = melem[\"texts\"][0]\n            mtext = resplitedEnglish(mtext)\n            if lastWordResult is None:\n                lastWordResult = mtext\n                lastId = key\n                lastTimeStamp[\"start\"] = melem[\"timespan\"][\"start\"]\n                lastTimeStamp[\"end\"] = melem[\"timespan\"][\"end\"]",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:448-465"
+        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:255-283"
     },
     "1271": {
-        "file_id": 96,
-        "content": "This code attempts to match a data duration with a target duration, and if unsuccessful, it removes the corresponding video segment. If successful, it updates the progress bar with information about remaining cuts, the current case, and the candidate cut details. It also checks if the last 5 spans' durations indicate a serious error.",
+        "file_id": 105,
+        "content": "This function takes a dictionary of results and applies static OCR combining by processing each element in the dictionary. It uses WordNinja for English splitting, and stores last word result, id, location, and timestamp.",
         "type": "comment"
     },
     "1272": {
-        "file_id": 96,
-        "content": "                            render_list.append(candidate)\n                    complete = len(demanded_cut_spans) == 0\n                    if complete:\n                        break\n                # the main shit will fuck up again, maybe.\n                # so i wrapped it a little bit.\n                try:\n                    medialangObject = renderList2MediaLang(\n                        render_list,\n                        slient=True,\n                        fast=fast,\n                        bgm=music[\"filepath\"],\n                        backend=\"editly\",  # 在这里你可以分离人声 如果想热闹的话 原视频的音乐就不需要了 可能吧\n                        medialangTmpdir=medialangTmpdir,\n                    )  # what is the backend?\n                    # we first create a backup for this medialang script, please?\n                    medialangScript = medialangObject.prettify()\n                    if debug:\n                        medialangScript_savedPath = getRandomFileName(\"mdl\")\n                        with open(\n                            medialangScript_savedPath, \"w+\"",
+        "file_id": 105,
+        "content": "                if mtype in [\"stationary\", \"typing\"]:\n                    lastLocation = melem[\"location\"]\n                else:\n                    lastLocation = melem[\"locations\"][0]\n            else:\n                if getStringSimilarity(lastWordResult,mtext) > simThreshold:\n                    # merge the thing.\n                    lastTimeStamp[\"start\"] = list(sorted([melem[\"timespan\"][\"start\"],lastTimeStamp[\"start\"]],key=lambda x:x[\"time\"]))[0]\n                    lastTimeStamp[\"end\"] = list(sorted([melem[\"timespan\"][\"end\"],lastTimeStamp[\"end\"]],key=lambda x:-x[\"time\"]))[0]\n                else:\n                    myNewResult.update({lastId:{\"content\":lastWordResult,\"timespan\":lastTimeStamp,\"location\":lastLocation}})\n                    lastWordResult = mtext\n                    lastId = key\n                    if mtype in [\"stationary\", \"typing\"]:\n                        lastLocation = melem[\"location\"]\n                    else:\n                        lastLocation = melem[\"locations\"][0]\n                    lastTimeStamp[\"start\"] = melem[\"timespan\"][\"start\"]",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:466-486"
+        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:284-301"
     },
     "1273": {
-        "file_id": 96,
-        "content": "Code tries to render a list of objects using a function, and if the demanded cut spans are empty, it breaks the loop. It then attempts to wrap this process inside a try-except block, and if successful, prettifies the resulting medialang script and saves a backup if debug mode is enabled. The backend option allows separating voices for a noisy environment.",
+        "file_id": 105,
+        "content": "This code is merging and updating text detection results based on similarity and temporal proximity. It keeps track of the last detected word, its location, and timestamp, updating or creating new result entries accordingly.",
         "type": "comment"
     },
     "1274": {
-        "file_id": 96,
-        "content": "                        ) as f:  # will this shit work?\n                            f.write(medialangScript)\n                        print(\"MEDIALANG SCRIPT SAVED TO:\", medialangScript_savedPath)\n                    (\n                        editly_outputPath,\n                        medialang_item_list,\n                    ) = medialangObject.execute()  # how to control its 'fast' parameter?\n                    # maybe we need render the lyric file separately.\n                    # normalization starts here.\n                    rendered_media_location = getRandomFileName(\n                        \"mp4\"\n                    )  # so where exactly is the file?\n                    print(\"___adjusting volume in media___\")\n                    adjustVolumeInMedia(editly_outputPath, rendered_media_location)\n                    # using a ffmpeg filter.\n                    print(\"RENDERED MEDIA LOCATION:\", rendered_media_location)\n                    if debug:  # where is this debug??\n                        breakpoint()",
+        "file_id": 105,
+        "content": "                    lastTimeStamp[\"end\"] = melem[\"timespan\"][\"end\"]\n            # else:\n            #     print(\"found different type:\",mtype)\n            #     print(\"text:\",mtext)\n            #     print(\"element:\",melem)\n    myNewResult.update({lastId:{\"content\":lastWordResult,\"timespan\":lastTimeStamp,\"location\":lastLocation}})\n    print(\"process complete\")\n    return myNewResult",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:487-505"
+        "location": "/pyjom/medialang/functions/detectors/entityDetector.py:302-309"
     },
     "1275": {
-        "file_id": 96,
-        "content": "This code appears to be a part of a larger program that involves media processing. It saves a medialang script, executes a medialang object, adjusts volume in the media, and renders the output. It uses a ffmpeg filter and has an optional debug mode with a breakpoint function.",
+        "file_id": 105,
+        "content": "Checking if the element matches the expected format, if not print relevant details and proceed with updating the result dictionary. Finally, print \"process complete\" and return the result dictionary.",
         "type": "comment"
     },
     "1276": {
-        "file_id": 96,
-        "content": "                    # following process is non-destructive for audio.\n                    # you need audio normalization before these process.\n                    final_output_location = getRandomFileName(\"mp4\")\n                    if render_ass:\n                        import ffmpeg\n                        # [Parsed_ass_0 @ 0x5568c7a266c0] fontselect: (Migu 1P, 700, 0) -> /usr/share/fonts/truetype/ttf-bitstream-vera/VeraBd.ttf, 0, BitstreamVeraSans-Bold\n                        # [Parsed_ass_0 @ 0x5568c7a266c0] Glyph 0x665A not found, selecting one more font for (Migu 1P, 700, 0)\n                        # [Parsed_ass_0 @ 0x5568c7a266c0] fontselect: (Migu 1P, 700, 0) -> /usr/share/fonts/truetype/wqy/wqy-zenhei.ttc, 0, WenQuanYiZenHei\n                        videoInput = ffmpeg.input(rendered_media_location).video\n                        audioInput = ffmpeg.input(rendered_media_location).audio\n                        videoInput = videoInput.filter(\n                            \"ass\", ass_file_path\n                        )",
-        "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:506-519"
+        "file_id": 106,
+        "content": "/pyjom/medialang/functions/detectors/subtitleDetector.py",
+        "type": "filepath"
     },
     "1277": {
-        "file_id": 96,
-        "content": "This code snippet normalizes audio before applying further processes. It generates a random file name with \".mp4\" extension and performs video filtering using \"ass\" subtitles, handling font selection if necessary.",
-        "type": "comment"
+        "file_id": 106,
+        "content": "The `mediaSubtitleDetector` function uses PaddleOCR to detect subtitles in videos or images, processing media paths and storing results under 'subtitle_result'. It alters and updates metadata before appending the altered results to a list and returning them.",
+        "type": "summary"
     },
     "1278": {
-        "file_id": 96,
-        "content": "                        ffmpeg.output(videoInput,audioInput,final_output_location,acodec='copy').run(overwrite_output=True)\n                    else:\n                        import shutil\n                        shutil.move(rendered_media_location, final_output_location)\n                    yield final_output_location  # another generator?\n                except:\n                    from lazero.utils.logger import traceError\n                    traceError(\"error while rendering medialang script\")\n                    try:\n                        print(\"MEDIALANG SCRIPT SAVED TO:\", medialangScript_savedPath)\n                    except:\n                        pass\n                    # if debug:\n                    breakpoint()\n                    # continue? let's see if you can post it?\n            except:\n                import traceback\n                traceback.print_exc()\n                # well it could be \"unanalyzable\" BGM, unable to retrieve 'standardBPM' or so on.\n                print('Unknown error during production. Skipping.')",
+        "file_id": 106,
+        "content": "from .mediaDetector import *\nfrom .entityDetector import ocrEntityDetector\ndef getPaddleOCR(mediapath, lang=\"ch\",use_angle_cls=True,cls=True,rec=True):\n    ocr = configOCR(use_angle_cls=use_angle_cls,cls=cls,rec=rec, lang=lang)\n    # print(mediapath)\n    # breakpoint()\n    result = ocr.ocr(mediapath,cls=cls,rec=rec)\n    # print(result)\n    # breakpoint()\n    return result\ndef stablePaddleOCR(mediapath, lang=\"ch\"):\n    data = getPaddleOCR(mediapath, lang=lang)\n    for ind, element in enumerate(data):\n        certainty = element[1][1]\n        # print(\"certainty:\",certainty)\n        data[ind][1] = (element[1][0], float(certainty))  # fix the float32 error.\n        # what is the fetched shit anyway?\n    return data\ndef mediaSubtitleDetector(\n    mediapaths,\n    videocr=False,\n    timestep=0.5,\n    videocr_config={\"lang\": \"chi_sim+eng\", \"sim_threshold\": 70, \"conf_threshold\": 65},\n):\n    # it must be video/image.\n    # we detect shit not to remove shit.\n    # this is separated.\n    results = []\n    data_key = \"subtitle_result\"",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:520-541"
+        "location": "/pyjom/medialang/functions/detectors/subtitleDetector.py:1-34"
     },
     "1279": {
-        "file_id": 96,
-        "content": "This code handles rendering videos from a medialang script. It uses FFmpeg to merge audio and video inputs into the final output location, or moves the rendered media file if it already exists. If an error occurs during rendering, it logs the traceback and skips the production. The code also supports debugging with breakpoints.",
+        "file_id": 106,
+        "content": "Code snippet defines a `mediaSubtitleDetector` function that detects subtitles in videos or images. It utilizes the `getPaddleOCR` and `stablePaddleOCR` functions for OCR operations. The `getPaddleOCR` function takes media path, language, use_angle_cls, cls, and rec as input to configure OCR, perform OCR on the image, and return the result. The `stablePaddleOCR` function improves certainty values in the results and returns them. The `mediaSubtitleDetector` function processes a list of media paths, performs subtitle detection, and stores the results in the 'subtitle_result' key.",
         "type": "comment"
     },
     "1280": {
-        "file_id": 96,
-        "content": "                continue\n# local\ndef getProducerTemplate(template: str):\n    producer_mapping = {\n        \"pets_with_music\": petsWithMusicProducer,\n        \"pets_with_music_online\": petsWithMusicOnlineProducer,\n    }\n    return producer_mapping[template]",
+        "file_id": 106,
+        "content": "    for mediapath in mediapaths:\n        print(\"mediapath:\", mediapath)\n        mediatype = getFileType(mediapath)\n        print(\"subtitle of mediatype:\", mediatype)\n        assert mediatype in [\"video\", \"image\"]\n        result = {\"type\": mediatype, data_key: {}}\n        if mediatype == \"image\":\n            data = getPaddleOCR(mediapath)\n            result[data_key].update({\"paddleocr\": data})\n            # each line per sentence, coordinates.\n        else:\n            if videocr:\n                config = videocr_config\n                data = get_subtitles(\n                    mediapath, **config\n                )  # what is the speed of this? also the quality?\n                data = srt.parse(data)\n                data = [serializeSRT(x) for x in data]\n                result[data_key].update({\"videocr\": data})\n                result[data_key][\"config\"] = config\n            else:\n                keyword = \"paddleocr\" # we will try to merge alike ones.\n                mdata, metadata = videoFrameIterator(\n                    mediapath,",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:542-551"
+        "location": "/pyjom/medialang/functions/detectors/subtitleDetector.py:35-58"
     },
     "1281": {
-        "file_id": 96,
-        "content": "This function retrieves a producer template based on the given string argument and returns the corresponding producer function from the producer_mapping dictionary.",
+        "file_id": 106,
+        "content": "The code iterates through a list of media paths, checks the file type, and then fetches subtitles or performs OCR based on the file type. It uses PaddleOCR for image files and either the provided videocr or a default config for video files. The speed and quality of the subtitle detection are not mentioned in the code.",
         "type": "comment"
     },
     "1282": {
-        "file_id": 97,
-        "content": "/pyjom/modules/contentProducing/onlineProducer.py",
-        "type": "filepath"
+        "file_id": 106,
+        "content": "                    data_producer=stablePaddleOCR, \n                    timestep=timestep,\n                    keyword=keyword,\n                )\n                # we should process the mdata. alter it and change it.\n                # mdata = ocrEntityDetector(mdata) # we enable this step later.\n                result[data_key][keyword] = mdata\n                result[data_key].update(metadata)\n                # what is this frame?\n            # use traditional things.\n        results.append(result)\n    return results",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/subtitleDetector.py:59-70"
     },
     "1283": {
-        "file_id": 97,
-        "content": "The OnlineProducer function generates media by processing information with a generator and using templates. It creates a unique temporary directory per usage, acquiring a template function if the source is \"giphy\". The code also enables debug mode for breaking after merging ASS files.",
-        "type": "summary"
-    },
-    "1284": {
-        "file_id": 97,
-        "content": "from pyjom.commons import decorator,os\nfrom pyjom.modules.contentProducing.producerTemplates import getProducerTemplate\nfrom lazero.filesystem.temp import tmpdir\n@decorator\ndef OnlineProducer(\n    processed_info_generator,\n    source=\"giphy\",\n    template=None,\n    template_configs=None,\n    fast: bool = True,\n    medialangTmpdirBase=\"/dev/shm/medialang\",\n    debug=False,\n):\n    # template_configs is a generator, it generate configs.\n    # print(\"PROCESSED_INFO_GENERATOR: \", processed_info_generator)\n    # breakpoint()\n    import uuid\n    medialangTmpdir = os.path.join(medialangTmpdirBase, str(uuid.uuid4()))\n    with tmpdir(path=medialangTmpdir) as TD:  # must use another level of abstraction\n        if source == \"giphy\":\n            template_function = getProducerTemplate(template)\n            # print(\"TEMPLATE FUNCTION ACQUIRED %s\" % template_function)\n            # breakpoint()\n            exported_media_locations = template_function(\n                processed_info_generator,\n                configs=template_configs,",
-        "type": "code",
-        "location": "/pyjom/modules/contentProducing/onlineProducer.py:1-30"
-    },
-    "1285": {
-        "file_id": 97,
-        "content": "The code defines the OnlineProducer function which is a content producer that uses a generator to process information and generate media. It takes in parameters such as processed_info_generator, source, template, template_configs, fast, medialangTmpdirBase, and debug. The function generates a unique temporary directory for each usage, creating a level of abstraction. If the source is set to \"giphy\", it acquires a template function from getProducerTemplate and uses it to process the generator's data.",
+        "file_id": 106,
+        "content": "The code processes media data using stablePaddleOCR, potentially alters and changes mdata, and updates metadata for the result. The altered results are then appended to a list before being returned.",
         "type": "comment"
     },
+    "1284": {
+        "file_id": 107,
+        "content": "/pyjom/medialang/functions/detectors/mediaDetector.py",
+        "type": "filepath"
+    },
+    "1285": {
+        "file_id": 107,
+        "content": "The videoFrameIterator function initializes a video capture object, iterates through frames, checks arguments, raises exceptions, and reads frames using paddleocr. It stores metadata per batch, stops at no detection or end of video, and returns results in `mdata` and `metadata`.",
+        "type": "summary"
+    },
     "1286": {
-        "file_id": 97,
-        "content": "                fast=fast,\n                medialangTmpdir=TD,\n            )  # a generator!\n            # i guess the title/tags/cover are actually belongs to the poster, not producer.\n            for exported_media_location in exported_media_locations:\n                print(\"exported media location:\", exported_media_location)\n                if debug:\n                    breakpoint() # another breakpoint. after merging aegisub ass file.\n                yield exported_media_location",
+        "file_id": 107,
+        "content": "from pyjom.medialang.commons import *\nimport cv2\n# import numpy.core.multiarray # caused by numpy version errors. upgrade to resolve.\nfrom videocr import get_subtitles  # are you sure?\nimport srt\nimport progressbar\ndef videoFrameIterator(\n    mediapath, timestep=0.5, framebatch=1, data_producer=None, keyword=None\n):\n    assert data_producer is not None\n    assert type(keyword) == str\n    assert type(framebatch) == int\n    assert framebatch >= 1\n    # obviously not for motion detection, if i was saying.\n    cap = cv2.VideoCapture(mediapath)\n    mdata = []\n    fps = cap.get(cv2.CAP_PROP_FPS)\n    frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)  # no need of this to get the timecode.\n    frames = int(frames)\n    # timestep = timestep # unit in seconds.\n    if timestep != None:\n        frameStep = int(fps * timestep)\n    else:\n        frameStep = 1 # for None we do frame by frame analysis.\n        timestep = 1/fps # generate fake timestep. nothing special.\n    assert frameStep > 0\n    frameIndex = 0\n    # while(cap.isOpened()):",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/onlineProducer.py:31-39"
+        "location": "/pyjom/medialang/functions/detectors/mediaDetector.py:1-31"
     },
     "1287": {
-        "file_id": 97,
-        "content": "This code is creating an online producer object with fast parameter and temporary directory for media files, then yields the exported media locations. The title/tags/cover might belong to the poster rather than the producer. Debug mode includes a breakpoint after merging Aegisub ASS file.",
+        "file_id": 107,
+        "content": "This function, videoFrameIterator, initializes a video capture object and iterates through the frames of a video file while maintaining a timestep. The timestep determines how many frames to skip between captures and can be adjusted based on user needs. It also includes checks for proper arguments and raises exceptions if any are not met.",
         "type": "comment"
     },
     "1288": {
-        "file_id": 98,
-        "content": "/pyjom/modules/contentProducing/localProducer.py",
-        "type": "filepath"
+        "file_id": 107,
+        "content": "    stepframes = []\n    for _ in progressbar.progressbar(range(frames)):\n        ret, frame = cap.read()\n        if type(frame) != np.ndarray:\n            # most likely no thing shown.\n            break\n        timecode = float(frameIndex / fps)\n        if (frameIndex % frameStep) == 0:\n            # what is this shit?\n            # print(\"frame:\",type(frame))\n            # will be replaced!\n            stepframes.append(copy.deepcopy(frame))\n            if len(stepframes) == framebatch:\n                data = data_producer(\n                    *stepframes\n                )  # usually we treat frames differently?\n                stepframes.pop(0)\n                # this is part of paddleocr.\n                mdata.append(\n                    {\n                        \"time\": timecode,\n                        \"frame\": frameIndex,\n                        keyword: copy.deepcopy(data),\n                    }\n                )\n        frameIndex += 1\n    # result[\"subtitle_result\"][\"paddleocr\"] = mdata\n    cap.release()\n    metadata = {\"fps\": float(fps), \"timestep\": timestep, \"framebatch\": framebatch}",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/mediaDetector.py:32-60"
     },
     "1289": {
-        "file_id": 98,
-        "content": "The function checks and verifies required filters, detects hits or \"yolov5\" filter, updates cuts dictionary, applies filter to information, and combines filtered info with meta info. Issues exist in handling titles and other elements.",
-        "type": "summary"
+        "file_id": 107,
+        "content": "This code reads frames from a video and processes them in batches using the paddleocr library. It stores metadata such as frame index, timecode, and resulting data for each processed batch. The loop stops when no object is detected or it reaches the end of the video. Finally, the captured metadata and the result are returned.",
+        "type": "comment"
     },
     "1290": {
-        "file_id": 98,
-        "content": "from pyjom.commons import *\nfrom pyjom.modules.contentProducing.producerTemplates import getProducerTemplate\ndef FilesystemInfoFilter(processed_info, filters={}):\n    # this is just standard filter logic...\n    filtered_info = {}\n    # print(processed_info)\n    # print(\"PROCESSED_INFO\")\n    # breakpoint()\n    for file_path, file_info in processed_info.items():\n        # abandon_flag = False\n        # ensure all filter names must be inside\n        abandon_flag = [\n            filter_name in file_info.keys() for filter_name in filters.keys()\n        ]\n        # print(file_info.keys(), filters.keys(), abandon_flag)\n        # breakpoint()\n        abandon_flag = not all(abandon_flag)  # what is this?\n        metadata = file_info[\n            \"meta\"\n        ]  # is that necessary? do we want to make any filter with it?\n        if abandon_flag:\n            continue  # abandon those without qualificaton info.\n        cuts = {}\n        for filter_name, filter_content in filters.items():\n            if filter_name == \"meta\":",
+        "file_id": 107,
+        "content": "    return mdata, metadata",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/localProducer.py:1-27"
+        "location": "/pyjom/medialang/functions/detectors/mediaDetector.py:61-61"
     },
     "1291": {
-        "file_id": 98,
-        "content": "Filtering function iterates over processed info, checks if each filter is present for the file. If any filter is missing, it will abandon that item. It uses a generator expression to check if all filter names exist in file_info keys and then negates it. Extracts metadata from file_info and continues if all filters are present.",
+        "file_id": 107,
+        "content": "This line of code is returning two variables, `mdata` and `metadata`, after the function's processing.",
         "type": "comment"
     },
     "1292": {
-        "file_id": 98,
-        "content": "                required_type = filter_content.get(\"type\")\n                media_type = metadata[\"type\"]\n                abandon_flag = not required_type == media_type\n                # breakpoint()\n                if abandon_flag:\n                    break\n            elif filter_name == \"labels\":\n                required, at_leasts = filter_content.get(\n                    \"required\", []\n                ), filter_content.get(\"at_leasts\", [])\n                required_flag = all([x in file_info[filter_name] for x in required])\n                if required_flag:\n                    # check all at_leasts.\n                    for at_least_number, elements in at_leasts:\n                        assert at_least_number > 0\n                        assert type(at_least_number) == int\n                        assert type(elements) == list\n                        assert len(elements) > 0\n                        hit_count = sum(\n                            [int(x in file_info[filter_name]) for x in elements]\n                        )",
-        "type": "code",
-        "location": "/pyjom/modules/contentProducing/localProducer.py:28-48"
+        "file_id": 108,
+        "content": "/pyjom/medialang/functions/detectors/videoDiffDetector.py",
+        "type": "filepath"
     },
     "1293": {
-        "file_id": 98,
-        "content": "This code snippet filters content based on the provided filter name and filter content. It checks if the media type matches the required type, and also verifies if all required labels are present and ensures the number of elements in at_leasts is met. If any condition fails, a breakpoint will be hit.",
-        "type": "comment"
+        "file_id": 108,
+        "content": "The code includes a `frameDifferential` function that computes the average or maximum difference between frames, and a `videoDiffDetector` function which calculates pixel values for each block in a video. The results are stored in a dictionary and appended to a list of results after updating metadata.",
+        "type": "summary"
     },
     "1294": {
-        "file_id": 98,
-        "content": "                        if hit_count < at_least_number:\n                            abandon_flag = True\n                            break\n                    if abandon_flag:\n                        break\n                else:\n                    abandon_flag = True\n                    break\n            elif filter_name == \"yolov5\":\n                # if type(filter_content) == list:\n                #     breakpoint()\n                objects, min_time = filter_content.get(\n                    \"objects\", None\n                ), filter_content.get(\"min_time\", 2)\n                assert objects != None\n                assert min_time > 0\n                DOT = file_info[filter_name][\"detected_objects_timespan\"]\n                detected_objects = list(DOT.keys())\n                abandon_flag = any([x in objects for x in detected_objects])\n                # what is this?\n                # breakpoint()\n                if not abandon_flag:\n                    break\n                avaliable_cuts = {}\n                for detected_object, timespans in DOT.items():",
+        "file_id": 108,
+        "content": "from .mediaDetector import *\ndef frameDifferential(frame_a, frame_b, cut=3, absolute=True, method=\"average\"):\n    assert cut >= 1\n    # calculate average difference.\n    # you can select ROI instead.\n    # the cut is generated by the smallest side. neglect the boundary.\n    mshape = frame_a.shape\n    width, height = mshape[:2]\n    mcut = int(min(width, height) / cut)\n    result = frame_a - frame_b\n    methods = {\"average\": np.average, \"max\": np.max, \"min\": np.min}\n    # it is hard to tell where the heck does the target go. since the color difference means nothing precisely.\n    # maybe you should mark the target for us? for our training model?\n    # and again use our superduper unet? you know sometimes we get static.\n    # so use both inputs. one for static and one for motion.\n    if absolute:\n        result = np.abs(result)\n    if len(mshape) == 3:\n        result = methods[method](result, axis=2)  # just np.max\n        # i guess it is about the max value not the unified.\n    shape0 = int(width / mcut)\n    shape1 = int(height / mcut)",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/localProducer.py:49-73"
+        "location": "/pyjom/medialang/functions/detectors/videoDiffDetector.py:1-24"
     },
     "1295": {
-        "file_id": 98,
-        "content": "This code checks if a specific number of hits are detected or if a filter named \"yolov5\" is applied. If either condition is met, it sets the abandon_flag and breaks out of the loop. If abandon_flag is True, it retrieves objects and min_time from the filter content, checks if they are not None and greater than 0 respectively. Then, it compares the detected objects with the ones in the \"yolov5\" filter, setting abandon_flag to True if any match is found. If abandon_flag is still False after this check, it proceeds to iterate through the DOT dictionary to populate avaliable_cuts dictionary.",
+        "file_id": 108,
+        "content": "This code defines a function called `frameDifferential` that calculates the average difference between two frames. It takes in two frame images, a cut value to determine the size of each block, and an optional absolute parameter. The code calculates the average or maximum difference within each block, with the option to take the absolute value if necessary. The result is returned as a new image with the same shape as the input frames.",
         "type": "comment"
     },
     "1296": {
-        "file_id": 98,
-        "content": "                    if detected_object not in objects:\n                        continue\n                    for timespan in timespans:\n                        stop, start = timespan[1], timespan[0]\n                        if stop == \"FINAL\":\n                            stop = metadata[\n                                \"duration\"\n                            ]  # do we need to modify the \"FINAL\" into acturally digits?\n                            timespan = (start, stop)  # do this anyway.\n                        timespan_length = stop - start\n                        if timespan_length < min_time:\n                            continue\n                        avaliable_cuts.update(\n                            {\n                                detected_object: avaliable_cuts.get(detected_object, [])\n                                + [timespan]\n                            }\n                        )\n                # collect avaliable cuts.\n                cuts.update({filter_name: avaliable_cuts})\n                # filter out required durations.",
+        "file_id": 108,
+        "content": "    diff = np.zeros((shape0, shape1)).tolist()\n    # mapping = {}\n    for x in range(shape0):\n        for y in range(shape1):\n            diff[x][y] = float(\n                np.average(result[x * mcut : (x + 1) * mcut, y * mcut : (y + 1) * mcut])\n            )\n            # this mapping is bad.\n            # mapping.update({str((x,y)):((x*mcut,(x+1)*mcut),(y*mcut,(y+1)*mcut))})\n    return {\"diff\": diff, \"blocksize\": mcut}  # required for recovering center points.\n    # transform the frames into smaller matricies.\n    # not required all the time though.\ndef videoDiffDetector(mediapaths, cut=3, absolute=True, method=\"average\", timestep=0.2):\n    # any better detectors? deeplearning?\n    results = []\n    data_key = \"diff_result\"\n    for mediapath in mediapaths:\n        print(\"mediapath:\", mediapath)\n        mediatype = getFileType(mediapath)\n        print(\"subtitle of mediatype:\", mediatype)\n        assert mediatype in [\"video\"]  # gif? anything like that?\n        result = {\"type\": mediatype, data_key: {}}\n        config = {\"cut\": cut, \"absolute\": absolute, \"method\": method}",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/localProducer.py:74-94"
+        "location": "/pyjom/medialang/functions/detectors/videoDiffDetector.py:25-49"
     },
     "1297": {
-        "file_id": 98,
-        "content": "This code collects available cuts from detected objects and timespans, filters out required durations, and stores the results in a cuts dictionary for later use.",
+        "file_id": 108,
+        "content": "Code snippet defines a videoDiffDetector function that takes mediapaths as input, iterates through each path, and calculates the average pixel values of frames within each block of size mcut. The results are stored in a dictionary and returned along with the block size for recovering center points later on if needed.",
         "type": "comment"
     },
     "1298": {
-        "file_id": 98,
-        "content": "            elif filter_name == \"framedifference_talib_detector\":\n                size_limit, ratio_limit, duration_limit = (\n                    filter_content.get(\"size_limit\", 0.2),\n                    filter_content.get(\"ratio_limit\", 0.3),\n                    filter_content.get(\"duration_limit\", 3),\n                )\n                avaliable_cuts = []\n                for framework in file_info[filter_name]:\n                    [[up_x, up_y], [down_x, down_y]] = framework[\"coords\"]\n                    frame_width, frame_height = down_x - up_x, down_y - up_y\n                    area = (down_x - up_x) * (down_y - up_y)\n                    height, width = (\n                        metadata[\"resolution\"][\"height\"],\n                        metadata[\"resolution\"][\"width\"],\n                    )\n                    total_area = height * width\n                    size = area / total_area\n                    if size < size_limit:\n                        continue\n                    ratio = min(frame_width, frame_height) / max(",
+        "file_id": 108,
+        "content": "        keyword = \"frame_differential\"\n        mdata, metadata = videoFrameIterator(\n            mediapath,\n            data_producer=keywordDecorator(frameDifferential, **config),\n            framebatch=2,\n            timestep=timestep,\n            keyword=keyword,\n        )\n        metadata.update({\"config\": config})\n        result[data_key][keyword] = mdata\n        result[data_key].update(metadata)\n        results.append(result)\n    return results",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/localProducer.py:95-114"
+        "location": "/pyjom/medialang/functions/detectors/videoDiffDetector.py:50-62"
     },
     "1299": {
-        "file_id": 98,
-        "content": "This code checks if the filter name is \"framedifference_talib_detector\". If so, it retrieves size_limit, ratio_limit, and duration_limit from filter content. It then iterates over each framework in file_info for this specific filter and extracts its coordinates. It calculates the frame's area and its size relative to the total video size. If the frame's size is less than the size_limit, it continues to the next iteration; otherwise, it calculates the ratio between the frame's width and height and checks if it meets the filter's requirements.",
+        "file_id": 108,
+        "content": "This code calls a function to iterate over frames in a video using frame differential as the data producer, then updates metadata and appends the result to a list of results.",
         "type": "comment"
     }
 }

@@ -1,541 +1,547 @@
 {
     "1300": {
-        "file_id": 98,
-        "content": "                        frame_width, frame_height\n                    )\n                    if ratio < ratio_limit:\n                        continue\n                    start, end = framework[\"start\"], framework[\"end\"]\n                    if end == \"FINAL\":\n                        end = metadata[\"duration\"]\n                    duration = end - start\n                    if duration < duration_limit:\n                        continue\n                    # now append your cuts. are they overlapping?\n                    framework2 = {\n                        \"coords\": framework[\"coords\"],\n                        \"timespan\": (start, end),\n                    }\n                    avaliable_cuts.append(framework2)\n                cuts.update({filter_name: avaliable_cuts})\n            if abandon_flag: # is this duplicated?\n                break\n        # print(cuts)\n        # print(\"CUTS:\")\n        filtered_info.update({file_path: cuts})\n        # breakpoint()\n        # # what the fuck? # #\n        # if abandon_flag:\n        #     continue  # abandon those without qualification info.",
-        "type": "code",
-        "location": "/pyjom/modules/contentProducing/localProducer.py:115-140"
+        "file_id": 109,
+        "content": "/pyjom/medialang/functions/detectors/yolov5_Detector.py",
+        "type": "filepath"
     },
     "1301": {
-        "file_id": 98,
-        "content": "This code filters and stores video cuts based on their dimensions, ratio, duration, and if they overlap. It updates the \"cuts\" dictionary with available cuts for each filter name and stores the information in \"filtered_info\" dictionary under file path. If abandon_flag is set, it breaks or continues to the next iteration.",
-        "type": "comment"
+        "file_id": 109,
+        "content": "The code introduces two functions, `yolov5_Identifier` and `yolov5_Detector`, which utilize the YOLOv5 model for object detection and identification. The functions apply the model to input frames and media paths at set intervals, storing and returning results with specified configurations.",
+        "type": "summary"
     },
     "1302": {
-        "file_id": 98,
-        "content": "        # # what the fuck? # #\n        # breakpoint()\n    return filtered_info\n@decorator\ndef FilesystemProducer(\n    processed_info,\n    filters={},\n    template=None,\n    template_config={},\n):\n    # print(processed_info) # why we only have one single goddamn path?\n    # breakpoint()\n    filtered_info = FilesystemInfoFilter(processed_info, filters=filters)\n    template_function = getProducerTemplate(template)\n    meta_info = {\n        k: processed_info[k][\"meta\"] for k in processed_info.keys()\n    }  # so there is no additional \"meta\" key.\n    # print(filtered_info)  # empty! shit.\n    # print(meta_info)\n    # breakpoint()\n    output = template_function(filtered_info, meta_info, config=template_config)\n    # you need to handle the title and something all over this freaking place.\n    # must be ready for posting.\n    return output",
+        "file_id": 109,
+        "content": "from .mediaDetector import *\n# assume you not to run many instances at once?\n# how to identify same video in a sequence?\ndef yolov5_Identifier(frame, threshold=0.4,model = \"yolov5s\"):\n    model = configYolov5(model=model)\n    # assert to be read from opencv2\n    img = cv2_HWC2CHW(frame)\n    results = model(img) # pass the image through our model\n    df = results.pandas().xyxy[0]\n    # print(df)\n    data = []\n    for _, line in df.iterrows():\n        left = (line[\"xmin\"],line[\"ymin\"])\n        right = (line[\"xmax\"],line[\"ymax\"])\n        confidence = line[\"confidence\"]\n        if confidence < threshold:\n            continue # skipping threshold too low.\n        class_ = line[\"class\"]\n        name = line[\"name\"]\n        data.append({\"location\":[left,right],\"confidence\":confidence,\"identity\":{\"class\":class_,\"name\":name}})\n    return data\ndef yolov5_Detector(mediapaths, model=\"yolov5s\", threshold=0.4, timestep=0.2):\n    # any better detectors? deeplearning?\n    results = []\n    data_key = \"yolov5\"\n    assert model i",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/localProducer.py:141-169"
+        "location": "/pyjom/medialang/functions/detectors/yolov5_Detector.py:1-31"
     },
     "1303": {
-        "file_id": 98,
-        "content": "This function, FilesystemProducer, takes in processed_info and applies the FilesystemInfoFilter. It then gets a template_function and uses it to combine filtered_info with meta_info. The output is returned, but it seems there are issues with handling titles and other elements throughout the code.",
+        "file_id": 109,
+        "content": "The code defines two functions, `yolov5_Identifier` and `yolov5_Detector`, which are used for object detection and identification using the YOLOv5 model. The `yolov5_Identifier` function takes a frame as input, applies the YOLOv5 model to it, and returns the identified objects with their locations, confidences, and classes. The `yolov5_Detector` function applies the `yolov5_Identifier` function to multiple media paths at specified time intervals, storing and returning the detection results for each path.",
         "type": "comment"
     },
     "1304": {
-        "file_id": 99,
-        "content": "/pyjom/modules/contentProducing/dummyProducer.py",
-        "type": "filepath"
+        "file_id": 109,
+        "content": "n [\"yolov5n\",\"yolov5s\",\"yolov5m\",\"yolov5l\",\"yolov5x\",\"yolov5n6\",\"yolov5s6\",\"yolov5m6\",\"yolov5l6\",\"yolov5x6\"] # increase the parameters does not sufficiently improve accuracy.\n    keyword = \"{}_detector\".format(data_key)\n    for mediapath in mediapaths:\n        print(\"mediapath:\", mediapath)\n        mediatype = getFileType(mediapath)\n        print(\"subtitle of mediatype:\", mediatype)\n        assert mediatype in [\"video\", \"image\"]  # gif? anything like that?\n        result = {\"type\": mediatype, data_key: {}}\n        config = {\"threshold\": threshold,\"model\":model}\n        if mediatype == \"image\":\n            data = cv2.imread(mediapath)\n            data = keywordDecorator(yolov5_Identifier, **config)(data)\n            result[data_key].update({keyword: data})\n            result[data_key].update({\"config\": config})\n            # results.append(result)\n        else:\n            mdata, metadata = videoFrameIterator(\n                mediapath,\n                data_producer=keywordDecorator(yolov5_Identifier, **config),",
+        "type": "code",
+        "location": "/pyjom/medialang/functions/detectors/yolov5_Detector.py:31-50"
     },
     "1305": {
-        "file_id": 99,
-        "content": "The code imports necessary modules and defines a dummyProducer function using a decorator. It returns a dictionary with information related to \"husky\" including title, article, video, and summary.",
-        "type": "summary"
+        "file_id": 109,
+        "content": "Looping through each media path, the code checks the media type (video or image) and applies YOLOv5 detection using keywordDecorator on the specified data_key. It stores the result in a dictionary and also includes the configuration used for detection.",
+        "type": "comment"
     },
     "1306": {
-        "file_id": 99,
-        "content": "from pyjom.commons import *\n@decorator\ndef dummyProducer(processed_info):\n    return {\n        \"husky\": {\n            \"title\": \"<a million husky videos>\",\n            \"article\": \"husky is so darn cute\",\n            \"video\": \"<myvideo>\",\n            \"summary\": \"this is my husky\",\n        }\n    }",
+        "file_id": 109,
+        "content": "                framebatch=1,\n                timestep=timestep,\n                keyword=keyword,\n            )\n            metadata.update({\"config\": config})\n            result[data_key][keyword] = mdata\n            result[data_key].update(metadata)\n        results.append(result)\n    return results",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/dummyProducer.py:1-13"
+        "location": "/pyjom/medialang/functions/detectors/yolov5_Detector.py:51-59"
     },
     "1307": {
-        "file_id": 99,
-        "content": "The code imports necessary modules and defines a dummyProducer function using a decorator. It returns a dictionary with information related to \"husky\" including title, article, video, and summary.",
+        "file_id": 109,
+        "content": "Function is creating a data structure for YOLOv5 detector output, updating metadata with the configuration and storing it in a list.",
         "type": "comment"
     },
     "1308": {
-        "file_id": 100,
-        "content": "/pyjom/modules/contentProducing/__init__.py",
+        "file_id": 110,
+        "content": "/pyjom/platforms/bilibili/utils.py",
         "type": "filepath"
     },
     "1309": {
-        "file_id": 100,
-        "content": "This code is importing modules from the \"pyjom\" library, specifically for content production. It includes three different types of producers: dummy, local, and online.",
+        "file_id": 110,
+        "content": "The code uses functions for API synchronization, error handling, and list conversions to parse BGM information and durations. It also defines cleaning functions like `clearHtmlTags` and `detectAuthorRelatedKeywords` to remove unwanted characters and author-related keywords from video titles and tags.",
         "type": "summary"
     },
     "1310": {
-        "file_id": 100,
-        "content": "from pyjom.modules.contentProducing.dummyProducer import *\nfrom pyjom.modules.contentProducing.localProducer import *\nfrom pyjom.modules.contentProducing.onlineProducer import *",
+        "file_id": 110,
+        "content": "import types\nfrom bilibili_api import sync\n# import json\nfrom bs4 import BeautifulSoup\nfrom lazero.utils.logger import sprint\n# wtf is async generator type?\ndef bilibiliSync(func):\n    def wrapper(*args, **kwargs):\n        coroutineMaybe = func(*args, **kwargs)\n        if type(coroutineMaybe) == types.CoroutineType:\n            return sync(coroutineMaybe)\n        else:\n            return coroutineMaybe\n    return wrapper\n######## import all below functions to searchDataParser.\n# from pyjom.platforms.bilibili.utils import generatorToList, linkFixer,traceError, extractLinks,videoDurationStringToSeconds,getAuthorKeywords,clearHtmlTags,splitTitleTags,removeAuthorRelatedTags\ndef generatorToList(generator):\n    return [x for x in generator]\ndef linkFixer(link, prefix=\"http:\"):\n    if link.startswith(\"//\"):\n        return prefix + link\n    return link\ndef traceError(errorMsg: str = \"error!\", _breakpoint: bool = False):\n    import traceback\n    traceback.print_exc()\n    sprint(errorMsg)\n    if _breakpoint:\n        return breakpoint()",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/__init__.py:1-3"
+        "location": "/pyjom/platforms/bilibili/utils.py:1-41"
     },
     "1311": {
-        "file_id": 100,
-        "content": "This code is importing modules from the \"pyjom\" library, specifically for content production. It includes three different types of producers: dummy, local, and online.",
+        "file_id": 110,
+        "content": "This code is related to the bilibili platform and contains functions for synchronizing API calls, converting generator to list, fixing links, handling errors with traceback, and more. It's likely part of a larger project focused on working with the bilibili API.",
         "type": "comment"
     },
     "1312": {
-        "file_id": 101,
-        "content": "/tasks/README.md",
-        "type": "filepath"
+        "file_id": 110,
+        "content": "def extractLinks(description, extract_bgm=True):\n    \"\"\"Extract and remove links in description\"\"\"\n    import re\n    # notice, we don't need to go wild here. we just want the title and the cover, and the tags.\n    expression = r\"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\"\n    # expr = re.compile(expression)\n    links = re.findall(expression, description)\n    # if links == None:\n    #     links = []\n    desc_without_link = re.sub(expression, \"\", description)\n    desc_without_link_per_line = [\n        x.replace(\"\\n\", \"\").strip() for x in desc_without_link.split(\"\\n\")\n    ]\n    desc_without_link_per_line = [x for x in desc_without_link_per_line if len(x) > 0]\n    bgms = []\n    final_desc_list = []\n    if not extract_bgm:\n        final_desc_list = desc_without_link_per_line\n    else:\n        for line in desc_without_link_per_line:\n            bgmCandidateTemplates = [\"{}：\", \"{}:\", \"{} \"]\n            fixers = [x.format(\"\") for x in bgmCandidateTemplates]\n            bgmCandidates = [x.format(\"bgm\") + \"(.+)\" for x in bgmCandidateTemplates]",
+        "type": "code",
+        "location": "/pyjom/platforms/bilibili/utils.py:44-67"
     },
     "1313": {
-        "file_id": 101,
-        "content": "Code snippet describes the importance of having adequate actions for a project to avoid serious problems. It also mentions utilizing the entire project in practical ways, including the old AutoUP repo, to extract knowledge and data persistently.",
-        "type": "summary"
+        "file_id": 110,
+        "content": "The code defines a function `extractLinks` that takes in a description and optionally extracts background music (BGM) links. It uses regular expressions to find and remove links from the description, then splits the description into lines. If BGM extraction is enabled, it searches for BGM candidates using templates and formats them correctly. The final result is a list of non-empty lines without links or potential BGM information if BGM extraction is disabled.",
+        "type": "comment"
     },
     "1314": {
-        "file_id": 101,
-        "content": "Modules are good. Tests are good. In fact, everything could be good. But the shortage of actions will lead to serious problems.\nThis will make use of the entire project in every way, in practical manners, including the old AutoUP repo.\nThis will bring about the grit out of the project, running persistently to get practical knowledge/data.",
+        "file_id": 110,
+        "content": "            has_bgm = False\n            for candidate in bgmCandidates:\n                bgm_parse_result = re.findall(candidate, line.lower())\n                if len(bgm_parse_result) > 0:\n                    has_bgm = True\n                    # bgm = line[len(bgmCandidates) :]\n                    bgm = bgm_parse_result[0]\n                    bgm = bgm.strip()\n                    for fixer in fixers:\n                        bgm = bgm.strip(fixer)\n                    if len(bgm) > 0:\n                        bgms.append(bgm)\n                    break\n            if not has_bgm:\n                final_desc_list.append(line)\n    desc_without_link = \"\\n\".join(final_desc_list)\n    return links, bgms, desc_without_link\nfrom typing import Literal\nimport re\nfrom typing import Union\ndef videoDurationStringToSeconds(\n    durationString:Union[str, None], method: Literal[\"vtc\", \"basic\"] = \"vtc\"\n):\n    if durationString in [\"-\", None]:\n        return None\n    if type(durationString) != str:\n        return None\n    if re.findall(r\"\\d\", durationString) == []:",
         "type": "code",
-        "location": "/tasks/README.md:1-5"
+        "location": "/pyjom/platforms/bilibili/utils.py:68-99"
     },
     "1315": {
-        "file_id": 101,
-        "content": "Code snippet describes the importance of having adequate actions for a project to avoid serious problems. It also mentions utilizing the entire project in practical ways, including the old AutoUP repo, to extract knowledge and data persistently.",
+        "file_id": 110,
+        "content": "The code is parsing a line for background music (BGM) information using regular expressions. If BGM is found, it appends to bgms list; if not, the line is added to final_desc_list. The function videoDurationStringToSeconds converts video duration string to seconds based on given method (vtc or basic). It checks for invalid input (empty string or None) and returns None in those cases.",
         "type": "comment"
     },
     "1316": {
-        "file_id": 102,
-        "content": "/tasks/qq/login_opq_arm64_another_account.sh",
-        "type": "filepath"
+        "file_id": 110,
+        "content": "        return None\n    try:\n        if method == \"vtc\":\n            import vtc\n            timecode = \"{}:0\".format(durationString)\n            decimal_seconds = vtc.Timecode(timecode, rate=1).seconds\n            seconds = round(decimal_seconds)\n            return seconds\n        elif method == \"basic\":\n            if type(durationString) == int:\n                return durationString  # not string at all.\n            if type(durationString) != str:\n                print(\"unknown durationString type: %s\" % type(durationString))\n                return None\n            durationString = durationString.strip()\n            mList = durationString.split(\":\")[::-1]\n            if len(mList) > 3:\n                print(\"DURATION STRING TOO LONG\")\n                return None\n            seconds = 0\n            for index, elem in enumerate(mList):\n                elem = int(elem)\n                seconds += (60**index) * elem\n            return seconds\n        else:\n            raise Exception(\"method %s does not exist\" % method)",
+        "type": "code",
+        "location": "/pyjom/platforms/bilibili/utils.py:100-126"
     },
     "1317": {
-        "file_id": 102,
-        "content": "The code initiates the login process on an ARM64 platform using Firefox browser. It navigates to a specific URL (localhost:8784/v1/Login/GetQRcode) and may require removing credential files for relogin.",
-        "type": "summary"
+        "file_id": 110,
+        "content": "This function converts a duration string, either in basic format or \"vtc\" method, into seconds. It checks the input type and handles invalid formats, returning None for errors or the converted duration in seconds if successful.",
+        "type": "comment"
     },
     "1318": {
-        "file_id": 102,
-        "content": "# arm64\nfirefox http://localhost:8784/v1/Login/GetQRcode\n# if want to relogin must remove credential files. maybe it supports multi logins.",
+        "file_id": 110,
+        "content": "    except:\n        import traceback\n        traceback.print_exc()\n        print(\"exception durion video duration string conversion\")\ndef clearHtmlTags(htmlObject):\n    a = BeautifulSoup(htmlObject, features=\"lxml\")\n    return a.text\ndef detectAuthorRelatedKeywords(title_tag, author_keywords):\n    abandon = False\n    for keyword in author_keywords:\n        if len(keyword) > 1:\n            if keyword in title_tag:\n                abandon = True  # detected this thing.\n                break\n    return abandon\ndef getAuthorKeywords(author):\n    author = author.strip()\n    import jieba\n    author_keywords = jieba.lcut(author)\n    author_keywords = [x.strip() for x in author_keywords]\n    author_keywords = [x for x in author_keywords if len(x) > 0]\n    return author_keywords\ndef removeAuthorRelatedTags(description_or_title, author):\n    templates = [\"【{}】\", \"@{}\", \"{}\"]\n    tags = [template.format(author) for template in templates]\n    for tag in tags:\n        description_or_title = description_or_title.replace(tag, \"\")",
         "type": "code",
-        "location": "/tasks/qq/login_opq_arm64_another_account.sh:1-4"
+        "location": "/pyjom/platforms/bilibili/utils.py:127-163"
     },
     "1319": {
-        "file_id": 102,
-        "content": "The code initiates the login process on an ARM64 platform using Firefox browser. It navigates to a specific URL (localhost:8784/v1/Login/GetQRcode) and may require removing credential files for relogin.",
+        "file_id": 110,
+        "content": "The code defines several functions:\n1. `clearHtmlTags` removes HTML tags from an object using BeautifulSoup and returns the text content.\n2. `detectAuthorRelatedKeywords` checks if a given title contains any keywords from a list of author-related keywords, returning True if detected.\n3. `getAuthorKeywords` takes an author's name, tokenizes it with Jieba, filters out empty strings and returns a list of non-empty tokens.\n4. `removeAuthorRelatedTags` replaces specific author-related tags in the description or title with an empty string.",
         "type": "comment"
     },
     "1320": {
-        "file_id": 103,
-        "content": "/tasks/qq/login_opq_arm64.sh",
-        "type": "filepath"
+        "file_id": 110,
+        "content": "    return description_or_title\ndef splitTitleTags(title, author_keywords):\n    import re\n    pattern = r\"【.+】\"\n    title_tags = re.findall(pattern, title)\n    title = re.sub(pattern, \"\", title)\n    title_tags = [x.lstrip(\"【\").rstrip(\"】\").strip() for x in title_tags]\n    title_tags = [x for x in title_tags if len(x) > 0]\n    final_title_tags = []\n    for title_tag in title_tags:\n        detected = detectAuthorRelatedKeywords(title_tag, author_keywords)\n        if not detected:\n            final_title_tags.append(title_tag)\n    return title, title_tags",
+        "type": "code",
+        "location": "/pyjom/platforms/bilibili/utils.py:164-181"
     },
     "1321": {
-        "file_id": 103,
-        "content": "This code appears to be for an ARM64 system, likely running a Linux distribution. It launches Firefox and navigates it to a QR code login endpoint (localhost:8780/v1/Login/GetQRcode). It suggests that removing credential files may be necessary for relogin, possibly supporting multi-logins.",
-        "type": "summary"
-    },
-    "1322": {
-        "file_id": 103,
-        "content": "# arm64\nfirefox http://localhost:8780/v1/Login/GetQRcode\n# if want to relogin must remove credential files. maybe it supports multi logins.",
-        "type": "code",
-        "location": "/tasks/qq/login_opq_arm64.sh:1-4"
-    },
-    "1323": {
-        "file_id": 103,
-        "content": "This code appears to be for an ARM64 system, likely running a Linux distribution. It launches Firefox and navigates it to a QR code login endpoint (localhost:8780/v1/Login/GetQRcode). It suggests that removing credential files may be necessary for relogin, possibly supporting multi-logins.",
+        "file_id": 110,
+        "content": "This function splits the title and tags in a video using regular expressions, removes unnecessary characters, filters out empty strings, and detects author-related keywords. It returns the cleaned title and a list of remaining title tags.",
         "type": "comment"
     },
-    "1324": {
-        "file_id": 104,
-        "content": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py",
+    "1322": {
+        "file_id": 111,
+        "content": "/pyjom/platforms/bilibili/uploader.py",
         "type": "filepath"
     },
-    "1325": {
-        "file_id": 104,
-        "content": "The code initializes libraries, creates temp dirs, and defines functions for Bilibili short links and ad locking. It generates a Bilibili video ad with provided parameters, creates an ad cover image, detects QR codes using Pyzbar and OpenCV, removes them if necessary, adjusts positions and colors, and returns the final image for viewing.",
+    "1323": {
+        "file_id": 111,
+        "content": "This code uses bilibili_api module to create an asynchronous function and class for uploading videos to Bilibili platform. It supports multithreading, retry mechanisms, and profile settings, with exception handling and result validation.",
         "type": "summary"
     },
-    "1326": {
-        "file_id": 104,
-        "content": "import pixie\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\ndef getImageW2H(image_path):\n    image = cv2.imread(image_path)\n    height, width = image.shape[:2]\n    w2h = width / height\n    return w2h\nTMP_DIR_PATH = \"/dev/shm/qq_ad\"\nimport shutil\nimport os\nif os.path.exists(TMP_DIR_PATH):\n    shutil.rmtree(TMP_DIR_PATH)\nos.mkdir(TMP_DIR_PATH)\nimport random\ndef generateFakeVideoStats():\n    play_count = \"{:.1f}万\".format(\n        random.randint(100, 1000) * 0.1\n    )  # anyway both int and str are compatible\n    comment_count = random.randint(100, 1000)\n    danmaku_count = random.randint(500, 3000)\n    return play_count, comment_count, danmaku_count\nRESOURCE_PATH = \"/root/Desktop/works/pyjom/tests/bilibili_video_recommendation_server\"\nQRCODE_PATH = \"MyQRCode1.png\"\nFONT_PATH = \"wqy-microhei0.ttf\"\nFONT_BOLD_PATH = \"wqy-microhei1.ttf\"\nCOVER_PATH = \"sample_cover.jpg\"\nPLAY_BUTTON_PATH = \"play_white_b.png\"\nBILIBILI_LOGO_PATH = \"bili_white_b_cropped.png\"\nAD_LOCK = \"ad_lock.lock\"\nimport filelock",
+    "1324": {
+        "file_id": 111,
+        "content": "from bilibili_api import video_uploader, Credential\nfrom pyjom.platforms.bilibili.credentials import bilibiliCredential\nimport os\nfrom pyjom.platforms.bilibili.utils import bilibiliSync\n# you may use the 'sync' method elsewhere.\n# damn. out of sync.\n# recall the order of applying decorators\n# WTF is the order?\n@bilibiliSync\nasync def asyncVideoUploader(\n    videoPath, title, description, meta, credential, cover_path\n):\n    page = video_uploader.VideoUploaderPage(\n        path=videoPath,\n        title=title,\n        description=description,\n    )  # are you sure?\n    uploader = video_uploader.VideoUploader(\n        [page], meta, credential, cover_path=cover_path\n    )\n    # will this work as expected?\n    # @uploader.on(\"__ALL__\")\n    # async def ev(data):\n    #     print(data)\n    result = await uploader.start()  # with bvid, aid as key.\n    # please tell me where the fuck you upload my video upto?\n    # print(\"upload video result:\", result)\n    return result # there's no upload_id. but you can do it in other way, with methods inside the class.",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:1-46"
+        "location": "/pyjom/platforms/bilibili/uploader.py:1-34"
+    },
+    "1325": {
+        "file_id": 111,
+        "content": "This code defines an asynchronous function for uploading videos to Bilibili using the video_uploader module from bilibili_api. It takes videoPath, title, description, meta, credential, and cover_path as parameters, and uses the VideoUploaderPage and VideoUploader classes from the video_uploader module to initiate the upload process. The function is decorated with @bilibiliSync for synchronization purposes.",
+        "type": "comment"
+    },
+    "1326": {
+        "file_id": 111,
+        "content": "    # if possible please return something like upload_id?\n    # upload video result: {'aid': 901508571, 'bvid': 'BV1MN4y1P7mq'}\n    # breakpoint()  # comment it out later? or we will check why this upload fails. maybe it is because we have duplicated name/cover.\n    # return result[\"bvid\"]  # choose to be in this way?\n#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nimport os\nimport re\nimport sys\nimport math\nimport base64\nimport requests\nfrom requests.adapters import HTTPAdapter\nimport threading\nfrom threading import Event\nimport copy\nimport traceback\n# you better embed it inside your function? what a creep?\n# but that will make it impossible to test against other shits.\nclass MultithreadUploader(object):\n    ## what is the cookie string look like?\n    def __init__(self, cookie_string):\n        # TODO: 增加登录接口使用账号密码登陆\n        #  get all related shits?\n        cookie = cookie_string\n        self.MAX_RETRYS = 5\n        self.profile = \"ugcupos/yb\"\n        self.cdn = \"ws\"\n        self.csrf = re.search(\"bili_jct=(.*?);\", cookie + \";\").group(1)",
+        "type": "code",
+        "location": "/pyjom/platforms/bilibili/uploader.py:35-67"
     },
     "1327": {
-        "file_id": 104,
-        "content": "The code initializes necessary libraries and functions, creates a temporary directory for storing images and files, generates random video stats, defines file paths, and locks the ad using FileLock.",
+        "file_id": 111,
+        "content": "Class \"MultithreadUploader\" is a custom class for uploading videos to Bilibili platform using multiple threads. It takes a cookie string as input and has features like retry mechanism and profile settings for caching, CDN, etc.",
         "type": "comment"
     },
     "1328": {
-        "file_id": 104,
-        "content": "def getAdLock(lockPath: str = os.path.join(TMP_DIR_PATH, AD_LOCK)):\n    return filelock.FileLock(lockPath)\n# use this decorator outside. not here. not any function written in here.\ndef withAdLock(func):\n    def innerFunc(*args, **kwargs):\n        with getAdLock():\n            return func(*args, **kwargs)\n    return innerFunc\nRESOURCES_RELATIVE_PATH = [\n    FONT_PATH,\n    FONT_BOLD_PATH,\n    COVER_PATH,\n    PLAY_BUTTON_PATH,\n    BILIBILI_LOGO_PATH,\n]\nOUTPUT_STANDALONE = \"ad_2_standalone_cover.png\"\nOUTPUT_PATH = \"ad_2.png\"\nOUTPUT_MASKED_PATH = \"ad_2_mask.png\"\nimport progressbar\ndef prepareMaterials(tmpDirPath: str = TMP_DIR_PATH, resourcePath: str = RESOURCE_PATH):\n    print(\"Preparing materials...\")\n    for path in progressbar.progressbar(RESOURCES_RELATIVE_PATH):\n        shutil.copy(os.path.join(resourcePath, path), os.path.join(tmpDirPath, path))\nprepareMaterials()\ndef generateBilibiliShortLinkMethod2(videoLink: str):\n    apiUrl = (\n        \"https://service-ijd4slqi-1253419200.gz.apigw.tencentcs.com/release/short_url\"",
+        "file_id": 111,
+        "content": "        self.mid = re.search(\"DedeUserID=(.*?);\", cookie + \";\").group(1)\n        self.session = requests.session()\n        self.session.mount(\"https://\", HTTPAdapter(max_retries=self.MAX_RETRYS))\n        self.session.headers[\"cookie\"] = cookie\n        self.session.headers[\n            \"Accept\"\n        ] = \"application/json, text/javascript, */*; q=0.01\"\n        self.session.headers[\n            \"User-Agent\"\n        ] = \"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36\"\n        self.session.headers[\"Referer\"] = \"https://space.bilibili.com/{mid}/#!/\".format(\n            mid=self.mid\n        )\n        self.upload_id = None\n    def _preupload(self, filename, filesize):\n        # 1.获取本次上传所需信息\n        preupload_url = \"https://member.bilibili.com/preupload\"\n        params = {\n            \"os\": \"upos\",\n            \"r\": \"upos\",\n            \"ssl\": \"0\",\n            \"name\": filename,\n            \"size\": filesize,\n            \"upcdn\": self.cdn,\n            \"profile\": self.profile,",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:49-89"
+        "location": "/pyjom/platforms/bilibili/uploader.py:68-94"
     },
     "1329": {
-        "file_id": 104,
-        "content": "This code defines a function `getAdLock` for acquiring a file lock, a decorator `withAdLock` to use the lock around a function execution, and prepares materials by copying resources to a temporary directory. The code also includes a function `generateBilibiliShortLinkMethod2` that calls an API endpoint to generate a short link on Bilibili using a given video link.",
+        "file_id": 111,
+        "content": "The code sets up the necessary headers and session parameters for interacting with Bilibili's API, then defines a function _preupload that makes a request to \"https://member.bilibili.com/preupload\" to obtain pre-upload information. The parameters for this request include filename, file size, cdn, and profile.",
         "type": "comment"
     },
     "1330": {
-        "file_id": 104,
-        "content": "    )\n    # longUrl = \"https://www.bilibili.com/video/BV1Wv41157Wz\"\n    longUrl = videoLink\n    import urllib.parse as urlparse\n    # params = {\"url\": longUrl}\n    params = {\n        \"url\": urlparse.quote(longUrl).replace(\"/\", \"%2F\"),\n        \"href\": \"https://xiaojuzi.fun/bili-short-url/\",\n    }\n    # print(params)\n    # exit()\n    headers = {\n        \"accept\": \"*/*\",\n        \"accept-language\": \"en-US,en;q=0.9\",\n        \"if-none-match\": 'W/\"35-oPDNsqBGaZKqGe83GW6wem+lkww\"',\n        \"sec-ch-ua\": '\"Google Chrome\";v=\"105\", \"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"105\"',\n        \"sec-ch-ua-mobile\": \"?0\",\n        \"sec-ch-ua-platform\": '\"macOS\"',\n        \"sec-fetch-dest\": \"empty\",\n        \"sec-fetch-mode\": \"cors\",\n        \"sec-fetch-site\": \"cross-site\",\n        \"Referer\": \"https://xiaojuzi.fun/\",\n        \"Referrer-Policy\": \"strict-origin-when-cross-origin\",\n        \"user-agent\": \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36\",  # this is important.\n    }",
+        "file_id": 111,
+        "content": "        }\n        response = self.session.get(preupload_url, params=params)\n        upload_info = response.json()\n        # 本次上传bilibili端文件名\n        upload_info[\"bili_filename\"] = (\n            upload_info[\"upos_uri\"].split(\"/\")[-1].split(\".\")[0]\n        )\n        # 本次上传url\n        endpoint = \"http:%s/\" % upload_info[\"endpoint\"]\n        upload_url = re.sub(r\"^upos://\", endpoint, upload_info[\"upos_uri\"])\n        print(\"UPLOAD URL:\", upload_url, file=sys.stderr)\n        # 本次上传session\n        upload_session = requests.session()\n        upload_session.mount(\"http://\", HTTPAdapter(max_retries=self.MAX_RETRYS))\n        upload_session.headers[\"X-Upos-Auth\"] = upload_info[\"auth\"]\n        # 2.获取本次上传的upload_id\n        response = upload_session.post(upload_url + \"?uploads&output=json\")\n        upload_info[\"upload_id\"] = response.json()[\n            \"upload_id\"\n        ]  # here you have upload_id\n        self.upload_id = upload_info[\"upload_id\"]\n        print(\"UPLOAD INFO:\", upload_info, file=sys.stderr)\n        return upload_url, upload_info, upload_session",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:90-116"
+        "location": "/pyjom/platforms/bilibili/uploader.py:95-120"
     },
     "1331": {
-        "file_id": 104,
-        "content": "This code snippet is preparing a request to shorten a video link. It defines the long URL, uses URL parsing to format the parameters, and sets headers for the HTTP request. The goal is to obtain a shortened version of the provided video link using the \"https://xiaojuzi.fun/bili-short-url/\" API.",
+        "file_id": 111,
+        "content": "This code snippet handles the process of uploading a file to Bilibili. It first fetches pre-upload information, extracts relevant details like filename and endpoint URL. Then it generates an upload URL using this information and creates a session for the upload. The function returns the upload URL, upload info, and the upload session.",
         "type": "comment"
     },
     "1332": {
-        "file_id": 104,
-        "content": "    import requests\n    request_url = apiUrl + \"?url={url}&href={href}\".format(**params)\n    # request_url = 'https://service-ijd4slqi-1253419200.gz.apigw.tencentcs.com/release/short_url?url=https%3A%2F%2Fwww.bilibili.com%2Fvideo%2FBV1Wv41157Wz&href=https://xiaojuzi.fun/bili-short-url/'\n    # print(request_url)\n    r = requests.get(request_url, headers=headers)\n    if r.status_code == 200:\n        # print(r.json())\n        r_json = r.json()\n        success = r_json.get(\"success\", False)\n        if success:\n            short_url = r_json.get(\"short_url\", None)\n            print(short_url)\n            return short_url\n    # starts with 'https://b23.tv'\ndef generateBilibiliShortLinkMethod1(\n    videoLink: str,\n):  # get bilibili user email address by asking them from chat. if they give the email address, send setu as gift. for other users, you may improvise. send video link, recommendations\n    url = \"https://api.bilibili.com/x/share/click\"\n    # burl = \"https://www.bilibili.com/read/cv19232041\" # my article with e-begging",
+        "file_id": 111,
+        "content": "    def _multithread_upload(\n        self, filepath, filesize, upload_url, upload_info, upload_session\n    ):\n        # 3.分块上传文件\n        CHUNK_SIZE = 4 * 1024 * 1024\n        total_chunks = math.ceil(filesize * 1.0 / CHUNK_SIZE)\n        offset = 0\n        chunk = 0\n        parts_info = {\"parts\": []}\n        with open(filepath, \"rb\") as fp:\n            events = []\n            while True:\n                blob = fp.read(CHUNK_SIZE)\n                if not blob:\n                    break\n                params = {\n                    \"partNumber\": chunk + 1,\n                    \"uploadId\": upload_info[\"upload_id\"],\n                    \"chunk\": chunk,\n                    \"chunks\": total_chunks,\n                    \"size\": len(blob),\n                    \"start\": offset,\n                    \"end\": offset + len(blob),\n                    \"total\": filesize,\n                }\n                # here we go?\n                def multiparts():\n                    blob0 = copy.deepcopy(blob)\n                    chunk0 = chunk\n                    thisevent = Event()",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:118-139"
+        "location": "/pyjom/platforms/bilibili/uploader.py:122-151"
     },
     "1333": {
-        "file_id": 104,
-        "content": "Code imports requests library, constructs a request URL with provided parameters, sends a GET request to the Bilibili API, and checks if the status code is 200. If so, it retrieves the short link from the response JSON and returns or prints it.",
+        "file_id": 111,
+        "content": "The code reads a file in chunks of 4MB (CHUNK_SIZE) and calculates the total number of chunks required to complete the upload. It then starts a loop where it reads each chunk, creates a dictionary with parameters including partNumber, uploadId, chunk number, total chunks, size of the blob, start and end offsets of the blob, and file's total size. The function seems to be preparing to call another function \"multiparts\" which is defined later in the code block.",
         "type": "comment"
     },
     "1334": {
-        "file_id": 104,
-        "content": "    burl = videoLink\n    data = {\n        \"build\": 6700300,\n        \"buvid\": 0,\n        \"oid\": burl,\n        \"platform\": \"android\",\n        \"share_channel\": \"COPY\",\n        \"share_id\": \"public.webview.0.0.pv\",\n        \"share_mode\": 3,\n    }\n    import requests\n    headers = {\n        \"user-agent\": \"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36\"\n    }\n    r = requests.post(\n        url, data=data, headers=headers\n    )  # maybe you two share the same user agent!\n    # we have the link!\n    if r.status_code == 200:\n        # print(r.content)\n        r_json = r.json()\n        code = r_json[\"code\"]\n        if code == 0:\n            link = r_json[\"data\"][\"content\"]\n            print(link)\n            return link\n    # fail, obviously.\ndef generateBilibiliShortLink(videoLink: str):\n    link = None\n    try:\n        link = generateBilibiliShortLinkMethod1(videoLink)\n        assert link is not None\n    except:\n        import traceback\n        traceback.print_exc()",
+        "file_id": 111,
+        "content": "                    events.append(thisevent)\n                    offset0 = offset\n                    while True:\n                        try:\n                            response = upload_session.put(\n                                upload_url, params=params, data=blob0\n                            )\n                            print(\n                                \"Uploading...\",\n                                math.floor(chunk0 / total_chunks * 100),\n                                \"%  UPLOAD CHUNK\",\n                                chunk0,\n                                \":\",\n                                response.text,\n                                file=sys.stderr,\n                            )\n                            print(\"done for {}\".format(offset0))\n                            thisevent.set()\n                            break\n                        except:\n                            print(\"error in chunk {}\".format(offset0))\n                            traceback.print_exc()\n                threading.Thread(target=multiparts, args=(), daemon=True).start()",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:140-178"
+        "location": "/pyjom/platforms/bilibili/uploader.py:152-175"
     },
     "1335": {
-        "file_id": 104,
-        "content": "This code is trying to generate a Bilibili short link for a given videoLink. It first defines the necessary data, sets headers using a user-agent, and then sends a POST request to get the short link. If successful (status_code 200), it extracts the link from the returned JSON, prints it, and returns it. In case of failure or exceptions, it prints the traceback.",
+        "file_id": 111,
+        "content": "This code is handling the upload of a chunk of data to Bilibili using a session with retry on error. It creates an event and appends it to a list, initializes the offset, and then enters a while loop to attempt uploading the chunk. If successful, it sets the event to complete, otherwise it prints an error message. A new thread is created to execute a function called multiparts.",
         "type": "comment"
     },
     "1336": {
-        "file_id": 104,
-        "content": "        link = generateBilibiliShortLinkMethod2(videoLink)\n        assert link is not None\n    return link\ndef makeQRCode(content: str, savePath: str):\n    # Importing library\n    import qrcode\n    # Encoding data using make() function\n    def makeAndSaveQrcode(data, save_path, debug=False):\n        img = qrcode.make(data)\n        if debug:\n            print(\"image type:\", type(img))\n        img.save(save_path)\n    data = content\n    save_path = savePath\n    makeAndSaveQrcode(data, save_path)\ndef generateQRCodeFromBVID(\n    bvid: str, qrCodeSavePath: str = os.path.join(TMP_DIR_PATH, QRCODE_PATH)\n):\n    videoLink = \"https://www.bilibili.com/video/{}\".format(bvid)\n    shortLink = generateBilibiliShortLink(videoLink)\n    makeQRCode(shortLink, qrCodeSavePath)\n    return shortLink\ndef generateBilibiliVideoAd(\n    bvid: str,\n    title_text: str,\n    image_link: str,\n    cover_path: str = os.path.join(TMP_DIR_PATH, COVER_PATH),\n):\n    import requests\n    r = requests.get(image_link)\n    with open(cover_path, \"wb\") as f:\n        c = r.content",
+        "file_id": 111,
+        "content": "                parts_info[\"parts\"].append({\"partNumber\": chunk + 1, \"eTag\": \"etag\"})\n                chunk += 1\n                offset += len(blob)\n            for event in events:\n                event.wait()\n            print(\"finished waiting.\")\n        return parts_info\n    def _upload(self, filepath):\n        \"\"\"执行上传文件操作\"\"\"\n        if not os.path.isfile(filepath):\n            print(\"FILE NOT EXISTS:\", filepath, file=sys.stderr)\n            return\n        filename = os.path.basename(filepath)\n        filesize = os.path.getsize(filepath)\n        upload_url, upload_info, upload_session = self._preupload(filename, filesize)\n        # 4.标记本次上传完成\n        parts_info = self._multithread_upload(\n            filepath, filesize, upload_url, upload_info, upload_session\n        )\n        params = {\n            \"output\": \"json\",\n            \"name\": filename,\n            \"profile\": self.profile,\n            \"uploadId\": upload_info[\"upload_id\"],\n            \"biz_id\": upload_info[\"biz_id\"],\n        }\n        response = upload_session.post(upload_url, params=params, data=parts_info)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:179-219"
+        "location": "/pyjom/platforms/bilibili/uploader.py:177-205"
     },
     "1337": {
-        "file_id": 104,
-        "content": "The code is used to generate a bilibili video ad. It imports the qrcode library, generates a QR code from the BVID, retrieves the short link of the video, and then saves it along with an image in the TMP_DIR_PATH directory. The image is downloaded using requests module and saved as a cover for the ad.",
+        "file_id": 111,
+        "content": "The code uploads a file to Bilibili using multipart upload. It first checks if the file exists, then retrieves the upload URL and necessary information through `_preupload` function. The actual multipart upload is performed in `_multithread_upload`, with progress events handled concurrently. Finally, it posts the parts information to the upload URL along with other parameters to complete the upload.",
         "type": "comment"
     },
     "1338": {
-        "file_id": 104,
-        "content": "        f.write(c)\n    link = generateQRCodeFromBVID(bvid)\n    return (generateVideoAdUniversal(\n        videoStats=generateFakeVideoStats(),\n        title_text=title_text,\n        cover_path=cover_path,\n    ), link)\n# you must have some lock outside while using this.\ndef generateVideoAdUniversal(\n    videoStats=None,  # will it work?\n    night_mode: bool = True,\n    title_text: str = \"\",\n    framework_only: bool = False,\n    ad_width: int = 1000,\n    ad_height: int = 1000,\n    font_path: str = os.path.join(TMP_DIR_PATH, FONT_PATH),\n    font_bold_path: str = os.path.join(TMP_DIR_PATH, FONT_BOLD_PATH),\n    cover_path: str = os.path.join(TMP_DIR_PATH, COVER_PATH),\n    qrcode_path: str = os.path.join(TMP_DIR_PATH, QRCODE_PATH),\n    play_button_path: str = os.path.join(TMP_DIR_PATH, PLAY_BUTTON_PATH),\n    output_path: str = os.path.join(TMP_DIR_PATH, OUTPUT_PATH),\n    output_standalone: str = os.path.join(TMP_DIR_PATH, OUTPUT_STANDALONE),\n    output_masked_path: str = os.path.join(TMP_DIR_PATH, OUTPUT_MASKED_PATH),",
+        "file_id": 111,
+        "content": "        print(\n            \"UPLOAD RESULT:\",\n            response.text,\n            file=sys.stderr,  # but till then we can use the upload_id.\n        )  # here we do not have the result.\n        return upload_info  # still, not the bvid thing we want.\n    def _cover_up(self, image_path):\n        \"\"\"上传图片并获取图片链接\"\"\"\n        if not os.path.isfile(image_path):\n            return \"\"\n        import tempfile\n        import cv2\n        with tempfile.NamedTemporaryFile(suffix=\".jpg\") as f:\n            jpeg_image_path = f.name\n            image = cv2.imread(image_path)\n            cv2.imwrite(jpeg_image_path, image)\n            fp = open(jpeg_image_path, \"rb\")\n            encode_data = base64.b64encode(fp.read())\n            # warning. forced to use jpeg.\n            url = \"https://member.bilibili.com/x/vu/web/cover/up\"\n            data = {\n                \"cover\": b\"data:image/jpeg;base64,\" + encode_data,\n                \"csrf\": self.csrf,\n            }\n            response = self.session.post(url, data=data)\n            return response.json()[\"data\"][\"url\"]",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:220-244"
+        "location": "/pyjom/platforms/bilibili/uploader.py:206-234"
     },
     "1339": {
-        "file_id": 104,
-        "content": "This function generates a video ad using the provided parameters. It writes the code to a file, generates a QR code, and returns a tuple containing the generated video ad and the QR code link. The function uses temporary directory paths for various resources.",
+        "file_id": 111,
+        "content": "This function uploads an image to Bilibili and returns the image URL. It first checks if the input file exists, then converts the image to JPEG format using OpenCV. The converted image is encoded as base64 and sent in a POST request to Bilibili's cover upload endpoint. Finally, it retrieves and returns the image URL from the response.",
         "type": "comment"
     },
     "1340": {
-        "file_id": 104,
-        "content": "    bilibili_logo_path: str = os.path.join(TMP_DIR_PATH, BILIBILI_LOGO_PATH),\n):\n    # fake these numbers.\n    # one extra space.\n    assert videoStats is not None\n    play_count, comment_count, danmaku_count = videoStats\n    assert title_text != \"\"\n    stats_text = \" {}播放 {}评论 {}弹幕\".format(play_count, comment_count, danmaku_count)\n    qrcode_scan_text = \"\\n\" + \"\\n\".join(list(\"扫码观看\"))\n    white = pixie.Color(1, 1, 1, 1)\n    black = pixie.Color(0, 0, 0, 1)\n    image = pixie.Image(ad_width, ad_height)\n    # we are creating this, not replacing qr code.\n    if not framework_only:\n        if night_mode:\n            image.fill(black)\n            # irreversible!\n        else:\n            image.fill(white)\n    else:\n        image2 = image.copy()  # as mask.\n    # place the cover.\n    cover_w2h = getImageW2H(cover_path)\n    cover_width = int(ad_width * 0.9)\n    cover_height = int(cover_width / cover_w2h)\n    cover_round_corner_radius = int(ad_width * 0.05)\n    cover = pixie.read_image(cover_path)\n    cover = cover.resize(cover_width, cover_height)",
+        "file_id": 111,
+        "content": "    def upload_video_and_cover(self, filepath, cover_path):\n        # 上传文件, 获取上传信息\n        upload_info = self._upload(filepath)\n        if not upload_info:\n            ## fuck?\n            print(\"upload failed?\")\n            return {}, \"\"\n        # 获取图片链接\n        cover_url = self._cover_up(cover_path) if cover_path else \"\"\n        return upload_info, \"\"\n    def postupload(self, upload_info, cover_url, metadata):\n        title = \"\"\n        tid = 0\n        tag = \"\"\n        desc = \"\"\n        source = \"\"\n        # cover_path=\"\",\n        dynamic = \"\"\n        # mission_id = None\n        no_reprint = 1\n        \"\"\"视频投稿\n        Args:\n            filepath   : 视频文件路径\n            title      : 投稿标题\n            tid        : 投稿频道id,详见https://member.bilibili.com/x/web/archive/pre\n            tag        : 视频标签，多标签使用','号分隔\n            desc       : 视频描述信息\n            source     : 转载视频出处url\n            cover_path : 封面图片路径\n            dynamic    : 分享动态, 比如：\"#周五##放假# 劳资明天不上班\"\n            no_reprint : 1表示不允许转载,0表示允许\n        \"\"\"\n        # TODO:",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:245-274"
+        "location": "/pyjom/platforms/bilibili/uploader.py:236-270"
     },
     "1341": {
-        "file_id": 104,
-        "content": "This code is setting up an image with various elements such as play count, comment count, danmaku count, and a QR code. It creates a white or black background depending on the night mode option, copies the image to create a mask, reads a cover image, and resizes it. The code uses Pixie for image manipulation, os for file paths, and other libraries for formatting and image reading.",
+        "file_id": 111,
+        "content": "This function `upload_video_and_cover` uploads a video file and optional cover image, returning the upload information. It first calls the `_upload` method to upload the video and checks if it was successful. If not, it prints an error message and returns empty information. Then it retrieves the cover URL using the `_cover_up` method, if a cover path is provided. The function returns the upload information and an empty string.",
         "type": "comment"
     },
     "1342": {
-        "file_id": 104,
-        "content": "    # cover gradient.\n    gradient_paint = pixie.Paint(pixie.LINEAR_GRADIENT_PAINT)\n    gradient_paint.gradient_handle_positions.append(\n        pixie.Vector2(100, int(cover_height) * 0.8)\n    )\n    gradient_paint.gradient_handle_positions.append(pixie.Vector2(100, cover_height))\n    gradient_paint.gradient_stops.append(pixie.ColorStop(pixie.Color(0, 0, 0, 0), 0))\n    gradient_paint.gradient_stops.append(pixie.ColorStop(pixie.Color(0, 0, 0, 0.3), 1))\n    cover_mask_path = pixie.Path()\n    cover_mask_path.rounded_rect(\n        0, 0, cover_width, cover_height, *([cover_round_corner_radius] * 4)\n    )\n    stroke_param = 100\n    stroke_width = int(ad_width / stroke_param)\n    stroke_width_half = int(ad_width / stroke_param / 2)\n    cover_mask_path2 = pixie.Path()\n    cover_round_corner_radius2 = int(cover_round_corner_radius * 0.85)\n    cover_mask_path2.rounded_rect(\n        stroke_width_half,\n        stroke_width_half,\n        cover_width - stroke_width,\n        cover_height - stroke_width,\n        *([cover_round_corner_radius2] * 4)",
+        "file_id": 111,
+        "content": "        # 1.增加多P上传\n        # 2.对已投稿视频进行删改, 包括删除投稿，修改信息，加P删P等\n        # 设置视频基本信息\n        params = {\n            \"source\": source,\n            \"title\": title,\n            \"tid\": tid,\n            \"tag\": tag,\n            \"no_reprint\": no_reprint,\n            \"desc\": desc,\n            # \"mission_id\": mission_id,\n            \"desc_format_id\": 0,\n            \"dynamic\": dynamic,\n            \"cover\": cover_url,\n            \"videos\": [\n                {\n                    \"filename\": upload_info[\"bili_filename\"],\n                    \"title\": title,\n                    \"desc\": \"\",\n                }\n            ],\n        }\n        params.update(metadata)\n        # 版权判断, 转载无版权\n        params[\"copyright\"] = 2 if params.get(\"source\") else 1\n        if source:\n            del params[\"no_reprint\"]\n        # tag设置\n        mtag = params.get(\"tag\")\n        if isinstance(mtag, list):\n            params[\"tag\"] = \",\".join(mtag)\n        # if mission_id is None:\n        #     del params[\"mission_id\"]\n        url = \"https://member.bilibili.com/x/vu/web/add?csrf=\" + self.csrf",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:275-302"
+        "location": "/pyjom/platforms/bilibili/uploader.py:271-305"
     },
     "1343": {
-        "file_id": 104,
-        "content": "Creating a gradient paint for the cover and defining its positions and color stops. Defining paths and rectangles with rounded corners for cover mask creation, adjusting stroke parameters based on ad width.",
+        "file_id": 111,
+        "content": "Sets video basic information, including source, title, TID, tag, no_reprint status, description, dynamic, cover URL, and video file details for upload. Updates parameters if necessary, checks copyright based on source flag, handles tag format, and sets URL with CSRF token.",
         "type": "comment"
     },
     "1344": {
-        "file_id": 104,
-        "content": "    )\n    # path = cover_mask_path\n    # cover.fill_path(cover_mask_path, gradient_paint)\n    cover_mask = pixie.Mask(cover_width, cover_height)\n    cover_mask.fill_path(cover_mask_path)\n    cover.mask_draw(cover_mask)\n    cover_transform_width = cover_transform_height = int((ad_width - cover_width) / 2)\n    cover_transform = pixie.translate(cover_transform_width, cover_transform_height)\n    if framework_only:\n        # image2.fill(black)\n        image2_paint = pixie.Paint(pixie.SOLID_PAINT)\n        image2_paint.color = white\n        image2.fill_path(cover_mask_path, image2_paint, cover_transform)\n    cover_stroke_paint = pixie.Paint(pixie.SOLID_PAINT)\n    cover_stroke_paint.color = pixie.parse_color(\"#FC427B\")\n    image.stroke_path(\n        cover_mask_path,\n        cover_stroke_paint,\n        cover_transform,\n        stroke_width=stroke_width,\n    )\n    if not framework_only:\n        image.draw(cover, cover_transform)  # you can choose to discard the cover\n    image.fill_path(cover_mask_path2, gradient_paint, cover_transform)",
+        "file_id": 111,
+        "content": "        response = self.session.post(url, json=params)\n        print(\"SET VIDEO INFO:\", response.text, file=sys.stderr)\n        return response.json() # {\"code\":0,\"message\":\"0\",\"ttl\":1,\"data\":{\"aid\":604946025,\"bvid\":\"BV1y84y1v7tM\"}}\n        # seriously, it is a ugc platform.\n        ## what is this fucking json?\n    def upload(\n        self,\n        filepath: str,\n        cover_path: str,\n        metadata: dict,\n    ):\n        upload_info, cover_url = self.upload_video_and_cover(filepath, cover_path)\n        if upload_info == {}:\n            # something went wrong.\n            return\n        response_json = self.postupload(upload_info, cover_url, metadata)\n        return response_json\ndef getCookieStringFromCookieDict(cookies_dict, mustcook=[\"DedeUserID\", \"bili_jct\"]):\n    cookies = cookies_dict\n    cookie_string = \"\"\n    for x in mustcook:\n        assert x in cookies.keys()\n    # ckeys = mustcook + [x for x in cookies.keys() if x not in mustcook]\n    # assert \"bili_jct\" in cookies.keys()\n    for key in mustcook:",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:303-334"
+        "location": "/pyjom/platforms/bilibili/uploader.py:306-333"
     },
     "1345": {
-        "file_id": 104,
-        "content": "This code creates a mask, applies it to an image, and fills the resulting path with a gradient paint. It also has an optional step for white-filling another image, and discards the cover if not required.",
+        "file_id": 111,
+        "content": "Code snippet is performing the following tasks:\n1. Posting video info to server and returning response as JSON format.\n2. Uploading video and cover, then posting video information with cover URL to the server using a predefined function `postupload`.\n3. Converting cookies dictionary into a string with mandatory cookies \"DedeUserID\", \"bili_jct\".",
         "type": "comment"
     },
     "1346": {
-        "file_id": 104,
-        "content": "    # now place the bilibili logo.\n    bilibili_logo = pixie.read_image(bilibili_logo_path)\n    bilibili_logo_w2h = getImageW2H(bilibili_logo_path)\n    bilibili_logo_width = int(ad_width * 0.2)\n    bilibili_logo_height = int(bilibili_logo_width / bilibili_logo_w2h)\n    bilibili_logo = bilibili_logo.resize(bilibili_logo_width, bilibili_logo_height)\n    bilibili_logo_transform = pixie.translate(\n        cover_transform_width + int(bilibili_logo_height / 8),\n        int(cover_transform_width + (bilibili_logo_height / 4)),\n    )\n    # bilibili_logo_transform = pixie.translate(\n    #     cover_transform_width, 0\n    # )\n    image.draw(bilibili_logo, bilibili_logo_transform)\n    # now place the play button.\n    play_button = pixie.read_image(play_button_path)\n    play_button_w2h = getImageW2H(play_button_path)\n    play_button_width = play_button_height = int(ad_width * 0.2)\n    play_button = play_button.resize(play_button_width, play_button_height)\n    play_button_transform = pixie.translate(\n        int(cover_transform_width + (cover_width - play_button_width) / 2),",
+        "file_id": 111,
+        "content": "        assert key in cookies.keys()\n    # breakpoint()\n    for key, value in cookies.items():  # oh shit maybe i know it.\n        if key is not None and value is not None:\n            cookie_string += key + \"=\" + value + \"; \"\n    cookie_string = cookie_string[:-2]\n    return cookie_string\n##############################################################\ndef videoMultithreadUploader(\n    cookies_dict: dict = ...,\n    filepath: str = ...,\n    coverpath: str = ...,\n    metadata: dict = ...,\n):\n    # append new events?\n    # planning using two jsons. one for credential, one for video details.\n    # get picture.\n    cookie_string = getCookieStringFromCookieDict(cookies_dict)\n    # while True:\n    try:\n        uper = MultithreadUploader(cookie_string)\n        data = uper.upload(filepath, coverpath, metadata)\n        return True, data\n    except:\n        print(\"Exception found when uploading video.\")\n        traceback.print_exc()\n        return False, {}\n##############################################################\n# @bilibiliSync",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:336-361"
+        "location": "/pyjom/platforms/bilibili/uploader.py:334-367"
     },
     "1347": {
-        "file_id": 104,
-        "content": "This code resizes bilibili logo and play button images according to ad width, and positions them on the image using Pixie library.",
+        "file_id": 111,
+        "content": "The code defines a function `videoMultithreadUploader` that uploads a video using multithreading and returns True if successful or False otherwise. It first extracts cookies from the input dictionary and then uses the `MultithreadUploader` class to perform the actual upload. The uploaded data is returned as a tuple with the status and data. In case of an exception, it prints the traceback and returns (False, {}).",
         "type": "comment"
     },
     "1348": {
-        "file_id": 104,
-        "content": "        int(cover_transform_width + (cover_height - play_button_height) / 2),\n    )\n    image.draw(play_button, play_button_transform)\n    # place some stats.\n    font = pixie.read_font(font_path)\n    font.size = int(ad_width * 0.04)\n    font.paint.color = pixie.Color(1, 1, 1, 1)\n    stats_transform = pixie.translate(\n        int(cover_transform_width * 1.3),\n        cover_transform_width + cover_height - int(font.size * 2),\n    )\n    image.fill_text(font, stats_text, transform=stats_transform)\n    # place the qrcode.\n    qrcode = pixie.read_image(qrcode_path)\n    qrcode_width = qrcode_height = int(0.3 * ad_width)\n    qrcode = qrcode.resize(qrcode_width, qrcode_height)\n    font = pixie.read_font(font_path)\n    font.size = int(ad_width * 0.04)\n    if night_mode:\n        font.paint.color = pixie.Color(1, 1, 1, 1)\n    else:\n        font.paint.color = pixie.Color(0, 0, 0, 1)\n    qrcode_scan_text_transform_x = int(ad_width - qrcode_width * 1.1 - font.size * 1)\n    qrcode_scan_text_transform = pixie.translate(\n        qrcode_scan_text_transform_x + qrcode_width,",
+        "file_id": 111,
+        "content": "# no need to be sync. really?\n@bilibiliCredential  # keyword 'dedeuserid' with default value.\ndef uploadVideo(\n    credential: Credential = ...,\n    # sessdata=\"\",\n    # bili_jct=\"\",\n    # buvid3=\"\", # credentials.\n    # dedeuserid: str = \"397424026\",\n    description: str = \"\",\n    dynamic: str = \"\",\n    tagString: str = \"\",\n    tagId: int = 21,  # what is 21? -> 日常\n    title: str = \"\",\n    close_danmaku: bool = False,\n    close_reply: bool = False,\n    videoPath: str = \"\",\n    cover_path: str = \"\",\n    multithread: bool = True,\n    # threads=3,\n):\n    # title='abdefg'\n    assert os.path.exists(videoPath)\n    assert os.path.exists(cover_path)\n    cookie_dict = {\n        key: credential.__dict__[key.lower()]\n        for key in [\"buvid3\", \"DedeUserID\", \"bili_jct\", \"SESSDATA\"]\n    }\n    # videoExtension = videoPath.split(\".\")[-1].lower()\n    # credential = Credential(sessdata=sessdata, bili_jct=bili_jct, buvid3=buvid3)\n    # you can pass it from somewhere else.\n    # 具体请查阅相关文档\n    meta = {\n        \"copyright\": 1,\n        \"source\": \"\",  # no source?",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:362-390"
+        "location": "/pyjom/platforms/bilibili/uploader.py:368-401"
     },
     "1349": {
-        "file_id": 104,
-        "content": "This code is placing a play button, statistics text, and QR code on an image. It adjusts the position of each element based on the image size and ad width. The font size and color are set according to night mode.",
+        "file_id": 111,
+        "content": "This function uploads a video to Bilibili and requires credentials, metadata such as title, description, and tags, and file paths for the video and cover image. The function uses assertions to ensure the file paths exist and creates a dictionary of required cookie values from the provided credential object. It also allows passing some parameters externally.",
         "type": "comment"
     },
     "1350": {
-        "file_id": 104,
-        "content": "        int(ad_height - qrcode_height * 1.1),\n    )\n    image.fill_text(font, qrcode_scan_text, transform=qrcode_scan_text_transform)\n    qrcode_transform = pixie.translate(\n        int(ad_width - qrcode_width * 1.1 - font.size * 1.2),\n        int(ad_height - qrcode_height * 1.1),\n    )\n    qrcode_rounded_corner = int(0.05 * ad_width)\n    qrcode_stroke_path = pixie.Path()\n    qrcode_stroke_path.rounded_rect(\n        0, 0, qrcode_width, qrcode_height, *([qrcode_rounded_corner] * 4)\n    )\n    image.stroke_path(\n        qrcode_stroke_path,\n        cover_stroke_paint,\n        qrcode_transform,\n        stroke_width=stroke_width,\n    )\n    qrcode_mask = pixie.Mask(qrcode_width, qrcode_width)\n    qrcode_mask.fill_path(qrcode_stroke_path)\n    qrcode.mask_draw(qrcode_mask)\n    image.draw(qrcode, qrcode_transform)\n    # now for the title\n    font = pixie.read_font(font_bold_path)\n    font.size = int(ad_width * 0.06)\n    if night_mode:\n        font.paint.color = pixie.parse_color(\"#B0B0B0\")\n    else:\n        font.paint.color = pixie.parse_color(\"#4F4F4F\")",
+        "file_id": 111,
+        "content": "        \"desc\": description,\n        \"desc_format_id\": 0,\n        \"dynamic\": dynamic,  # could be the same as desc.\n        \"interactive\": 0,\n        \"open_elec\": 1,\n        \"no_reprint\": 1,\n        \"subtitles\": {\"lan\": \"\", \"open\": 0},\n        \"tag\": tagString,\n        \"tid\": tagId,  # original is 21. what is it?\n        \"title\": title,\n        \"up_close_danmaku\": close_danmaku,\n        \"up_close_reply\": close_reply,\n    }\n    if multithread:\n        no_exception, mresult = videoMultithreadUploader(cookie_dict, videoPath, cover_path, meta)\n        if not no_exception:\n            raise Exception('videoMultithreadUploader error')\n        try:\n            code, message = mresult.get('code'), mresult.get('message')\n            assert code == 0  # 为什么分区暂时不可用？\n            assert message == '0'\n        except:\n            print(\"Uploading to bilibili failed\")\n            breakpoint()\n            print()\n            raise Exception('videoMultithreadUploader error: invalid response:', mresult)\n        result = mresult.get('data',{})",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:391-425"
+        "location": "/pyjom/platforms/bilibili/uploader.py:402-428"
     },
     "1351": {
-        "file_id": 104,
-        "content": "This code generates a QR code for an ad and applies a mask to it, adjusting its size, position, corner radius, stroke width, and color based on ad dimensions. The font and color of the text are also set according to night mode or daylight conditions.",
+        "file_id": 111,
+        "content": "This code is creating a dictionary with metadata for uploading a video to Bilibili. It includes various parameters like description, interactive setting, and tags. The code also implements multithreading for the upload process, handling exceptions and checking for valid response codes from the API. If there's an error or invalid response, it raises an exception and prints a failure message.",
         "type": "comment"
     },
     "1352": {
-        "file_id": 104,
-        "content": "    # use some gray text.\n    # font.paint.color = pixie.parse_color(\"#4F42B5\")\n    # font.paint.color = pixie.parse_color(\"#FC427B\")\n    # font.paint.color = pixie.Color(0,0,0,1)\n    title_text_transform = pixie.translate(\n        int(font.size * 0.8), int(ad_height - qrcode_height * 1.1)\n    )\n    title_text_bounds = pixie.Vector2(\n        int(qrcode_scan_text_transform_x - font.size * 1.1), int(qrcode_height)\n    )\n    image.fill_text(\n        font, title_text, bounds=title_text_bounds, transform=title_text_transform\n    )\n    delta = int(cover_width * 0.02)\n    sub_image_params = (\n        cover_transform_width - delta,\n        cover_transform_height - delta,\n        cover_width + 2 * delta,\n        cover_height + 2 * delta,\n    )\n    standalone_cover_image = image.sub_image(*sub_image_params)\n    standalone_cover_image.write_file(output_standalone)\n    image.write_file(output_path)  # make sure you write to desired temp path.\n    if framework_only:\n        image2.sub_image(*sub_image_params).write_file(output_masked_path)",
+        "file_id": 111,
+        "content": "    else:\n        result = asyncVideoUploader(\n            videoPath, title, description, meta, credential, cover_path\n        )\n    print(\"multithread?\", multithread)\n    print(\"upload video result:\", result)\n    try:\n        assert 'aid' in result.keys()\n        assert 'bvid' in result.keys()\n    except:\n        raise Exception(\"error: no valid upload result obtained:\", result)\n        # {'aid': 817422346, 'bvid': 'BV1NG4y1t7zk'}\n        # in this format.\n    return result\n# host your web application online, then make money through it!",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:426-450"
+        "location": "/pyjom/platforms/bilibili/uploader.py:429-445"
     },
     "1353": {
-        "file_id": 104,
-        "content": "This code generates an image with a QR code and text on top of it. It then creates two versions - one with the entire image, and another without any framework elements. The transformed QR code and text are placed on the image, and then saved in specified output files.",
+        "file_id": 111,
+        "content": "This code checks if the uploader is not async, then calls `asyncVideoUploader` with provided parameters. It then asserts that the result contains 'aid' and 'bvid' keys before returning the result. The print statements are for debugging purposes.",
         "type": "comment"
     },
     "1354": {
-        "file_id": 104,
-        "content": "    return (\n        output_path,\n        output_standalone,\n        output_masked_path,\n    )  # well, pick up if you want.\nIMAGE_WITH_QRCODE_PATH = \"image_with_qrcode.png\"\nOUTPUT_WITH_QRCODE_PATH = \"output_with_qrcode.png\"\ndef removeQRCodes(\n    image_with_qrcode_path: str = os.path.join(TMP_DIR_PATH, IMAGE_WITH_QRCODE_PATH)\n):\n    # use best method to remove qrcode.\n    # import cv2\n    # import imutils\n    from PIL import Image\n    from pyzbar.pyzbar import decode, ZBarSymbol\n    # @function 'detect_qr' detect and decode qrcode from frame using pyzbar lib\n    # @param 'inputFrame' type <class 'numpy.ndarray'>\n    # @return if detected type 'bool'\n    import numpy as np\n    def detect_qr(inputFrame):\n        img = Image.fromarray(inputFrame)  # fuck?\n        decodedImg = decode(img, symbols=[ZBarSymbol.QRCODE])\n        # it reads the content. but where is the code?\n        print(\"total %d qrcode detected\" % len(decodedImg))\n        # breakpoint()\n        # length: 2\n        if len(decodedImg) > 0:\n            polygons = []",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:451-485"
+        "file_id": 112,
+        "content": "/pyjom/platforms/bilibili/searchDataParser.py",
+        "type": "filepath"
     },
     "1355": {
-        "file_id": 104,
-        "content": "This code defines a function to remove QR codes from an image. It uses the Pyzbar library for QR code detection and removal. The function takes the path of the image with QR codes as input and returns the output path without QR codes, the standalone output path, and the masked output path. The code also includes a helper function called \"detect_qr\" which detects and decodes the QR codes from an input frame.",
-        "type": "comment"
+        "file_id": 112,
+        "content": "This function parses Bilibili video data, enabling metadata extraction and error handling. It retrieves bvid, pubdate, author name, tags, title, duration, play count, cover image, and description, while disabling specified author-related tags.",
+        "type": "summary"
     },
     "1356": {
-        "file_id": 104,
-        "content": "            for code in decodedImg:\n                decodedBytes = code.data\n                # stringData = decodedBytes.decode(\"utf-8\")\n                # print(\"QRCode content:\")\n                # print(stringData)\n                polygon = code.polygon\n                # print('POLYGON CONTENT:')\n                # print(polygon)\n                mpolygon = []\n                for point in polygon:\n                    mpolygon.append([point.x, point.y])\n                #     print('POINT:',point.x,point.y)\n                polygons.append(np.array(mpolygon, dtype=np.int32))\n            return polygons\n        else:\n            return []\n    def getInputFrameFromImagePath(imagePath: str):\n        inputFrame = cv2.imread(imagePath)\n        return inputFrame\n    inputFrame = getInputFrameFromImagePath(image_with_qrcode_path)\n    QRCodeCoordinates = detect_qr(inputFrame)\n    img = cv2.imread(image_with_qrcode_path)\n    if QRCodeCoordinates != []:\n        mask_image = np.zeros((*img.shape[:2], 1), dtype=img.dtype)\n        for poly in QRCodeCoordinates:",
+        "file_id": 112,
+        "content": "import json\n# from bs4 import BeautifulSoup\nfrom lazero.utils.logger import sprint\nfrom pyjom.platforms.bilibili.utils import (\n    # generatorToList,\n    linkFixer,\n    traceError,\n    extractLinks,\n    videoDurationStringToSeconds,\n    getAuthorKeywords,\n    clearHtmlTags,\n    splitTitleTags,\n    removeAuthorRelatedTags,\n)\ndef parseVideoSearchItem(video, disableList: list = [], debug=False):\n    from pyjom.platforms.bilibili.utils import detectAuthorRelatedKeywords\n    bvid = video[\"bvid\"]\n    pubdate = video[\"pubdate\"]\n    if \"author\" not in disableList:\n        author = video[\"author\"]\n        author_id = video[\n            \"mid\"\n        ]  # this is important. may let us able to find out the fans count.\n    else:\n        author = \"\"\n        author_id = -1\n    author_keywords = getAuthorKeywords(author)\n    if \"tag\" not in disableList:\n        tag = video[\"tag\"]\n        tags = tag.split(\",\")\n        tags = [\n            tag for tag in tags if not detectAuthorRelatedKeywords(tag, author_keywords)\n        ]\n    else:",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:486-513"
+        "location": "/pyjom/platforms/bilibili/searchDataParser.py:1-37"
     },
     "1357": {
-        "file_id": 104,
-        "content": "The code iterates over decoded QR codes and extracts their data, polygon coordinates, and converts them to a numpy array. The function returns the polygons if any QR code is detected; otherwise, it returns an empty list. There is also a separate function to read input frames from image paths and detect QRCodeCoordinates using the detect_qr function.",
+        "file_id": 112,
+        "content": "Function to parse video search item data from Bilibili platform, takes a video object and an optional list of keywords to disable (author and tag). Extracts bvid, pubdate, author name, author ID, tags, and filters out author-related tags if specified.",
         "type": "comment"
     },
     "1358": {
-        "file_id": 104,
-        "content": "            cv2.fillPoly(mask_image, [poly], 255)\n        inpainted_im = cv2.inpaint(img, mask_image, 3, cv2.INPAINT_TELEA)\n    else:\n        inpainted_im = img\n    return QRCodeCoordinates, inpainted_im\nfrom typing import Union\ndef removeAndInsertQRCode(\n    image_with_qrcode_path: str = os.path.join(TMP_DIR_PATH, IMAGE_WITH_QRCODE_PATH),\n    qrcode_path: str = os.path.join(TMP_DIR_PATH, QRCODE_PATH),\n    output_with_qrcode_path: Union[None, str] = os.path.join(\n        TMP_DIR_PATH, OUTPUT_WITH_QRCODE_PATH\n    ),\n):  # remove all detected QRCodes. add qrcode nevertheless.\n    # TODO: use more advanced models to detect QRCodes.\n    # TODO: increase the size of the original image if too small.\n    QRImage = cv2.imread(qrcode_path)\n    import math\n    def get_rotation_angle_and_center(p1, p2, p3, p4):\n        # Find the center of the rectangle\n        center_x = int((p1[0] + p3[0]) / 2 + (p2[0] + p4[0]) / 2) / 2\n        center_y = int((p1[1] + p3[1]) / 2 + (p2[1] + p4[1]) / 2) / 2\n        center = (center_x, center_y)",
+        "file_id": 112,
+        "content": "        tags = []\n    if \"typeid\" not in disableList and \"typename\" not in disableList:\n        categoryId = int(video.get(\"typeid\", video.get(\"type_id\")))\n        categoryName = video.get(\"typename\", video.get(\"type_name\"))\n    else:\n        categoryId = 0\n        categoryName = \"\"\n    title = video[\"title\"]  # remove those markers, please?\n    title = clearHtmlTags(title)\n    title = removeAuthorRelatedTags(title, author)\n    title, title_tags = splitTitleTags(\n        title, author_keywords\n    )  # use author for filtering unwanted title tags.\n    duration = video[\"duration\"]  # this is not recommended. we need seconds.\n    play = video.get(\"play\", video.get(\"view\"))  # select some hot videos.\n    cover = video[\"pic\"]\n    cover = linkFixer(cover)\n    if \"description\" not in disableList:\n        description = video.get(\"description\", video.get(\"desc\"))\n        description = clearHtmlTags(description)\n        description = removeAuthorRelatedTags(description, author)\n    else:\n        description = \"\"\n    links_in_description, bgms, description = extractLinks(description)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:514-540"
+        "location": "/pyjom/platforms/bilibili/searchDataParser.py:38-61"
     },
     "1359": {
-        "file_id": 104,
-        "content": "The code reads an image with a QR code and removes all detected QR codes while adding the specified QR code to the output image. It also calculates the rotation angle and center of a rectangle formed by four points. The function takes paths for the input image, QR code image, and the desired output image path. It uses OpenCV for image processing operations like reading images, inpainting, and applying transformations.",
+        "file_id": 112,
+        "content": "The code checks for certain video types and disables them if present in the disable list. It retrieves category ID, category name, title, duration, play count, cover image, and description from the video data. The title is cleaned by removing markers, clearing HTML tags, and filtering unwanted tags using author keywords. Duration and play count are retrieved with fallback options. Cover image is fixed for links. If description is not disabled, it's also cleaned of HTML tags and filtered for author-related tags, and links in the description, background music, and modified description are extracted.",
         "type": "comment"
     },
     "1360": {
-        "file_id": 104,
-        "content": "        width = math.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)\n        height = math.sqrt((p2[0] - p3[0]) ** 2 + (p2[1] - p3[1]) ** 2)\n        # Calculate the slope of one of the edges\n        slope = (p2[1] - p1[1]) / (p2[0] - p1[0])\n        # Calculate the angle of the edge from the x-axis\n        angle = (math.pi / 2) - math.atan(\n            slope\n        )  # correct the angle. according to opencv.\n        while True:\n            if angle > math.pi / 2:\n                angle -= math.pi / 2\n            elif angle < 0:\n                angle += math.pi / 2\n            else:\n                break\n        return angle, center, width, height\n    QRCodeCoordinates, img = removeQRCodes(image_with_qrcode_path)\n    hasQRCode = len(QRCodeCoordinates) > 0\n    from shapely.geometry import Polygon\n    import numpy as np\n    if hasQRCode:  # put the biggest one there.\n        QRCodeCoordinates.sort(key=lambda x: -Polygon(x.tolist()).area)\n        biggest_polygon = QRCodeCoordinates[0]\n        cv2.fillPoly(img, [biggest_polygon], (0, 0, 0))",
+        "file_id": 112,
+        "content": "    duration_seconds = videoDurationStringToSeconds(duration)\n    resultTuple = (\n        author,\n        author_id,\n        bvid,\n        tags,\n        categoryId,\n        categoryName,\n        title,\n        duration_seconds,\n        play,\n        cover,\n        description,\n        links_in_description,\n        bgms,\n        title_tags,\n        pubdate,\n    )\n    if debug:\n        for metadata in resultTuple:\n            print(metadata)\n    from lazero.utils.logger import sprint\n    if debug:\n        sprint()\n    return resultTuple\n# you might want the creater's name, to filter out unwanted parts.\ndef iterateResultList(resultList, debug=False):\n    for video in resultList:\n        # be warned cause all these things might fail.\n        try:\n            if video[\"type\"] == \"video\":\n                yield parseVideoSearchItem(video, debug=debug)\n        except:\n            traceError(\"error iterating video metadata\")\n            continue\ndef parseSearchAllResult(data, debug=False):\n    # if not generator:\n    #     return generatorToList(parseSearchAllResult(data, debug=debug,generator=True))",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:541-568"
+        "location": "/pyjom/platforms/bilibili/searchDataParser.py:62-106"
     },
     "1361": {
-        "file_id": 104,
-        "content": "Calculates angle, width, and height of a polygon formed by points p1, p2, and p3. Sorts QRCodeCoordinates based on their area and draws the largest one using cv2.",
+        "file_id": 112,
+        "content": "The code defines functions for parsing and iterating through search results from a specific platform, bilibili. It converts video duration strings to seconds, extracts relevant metadata, and handles potential errors during iteration.",
         "type": "comment"
     },
     "1362": {
-        "file_id": 104,
-        "content": "        angle, center, width, height = get_rotation_angle_and_center(\n            *biggest_polygon.tolist()\n        )  # will fail?\n        QRWidth, QRHeight = int(width), int(height)\n        startingPoint = [int(center[0] - QRWidth / 2), int(center[1] - QRHeight / 2)]\n    else:\n        # randomly select one place to insert the shit.\n        height, width = img.shape[:2]\n        QRSize = min(height, width) / 5\n        QRHeight, QRWidth = QRImage.shape[:2]\n        if QRWidth > QRHeight:\n            QRHeight = int((QRHeight / QRWidth) * QRSize)\n            QRWidth = int(QRSize)\n        else:\n            QRWidth = int((QRWidth / QRHeight) * QRSize)\n            QRHeight = int(QRSize)\n        startingPoint = [\n            random.randint(0, math.floor(width - QRWidth)),\n            random.randint(0, math.floor(height - QRHeight)),\n        ]\n        angle, center = 0, [\n            startingPoint[0] + int(QRWidth / 2),\n            startingPoint[1] + int(QRHeight / 2),\n        ]\n        biggest_polygon = np.array(\n            [",
+        "file_id": 112,
+        "content": "    results = data[\"result\"]\n    for elem in results:\n        try:\n            if elem[\"result_type\"] == \"video\":\n                resultList = elem[\"data\"]\n                for videoMetadata in iterateResultList(resultList, debug=debug):\n                    yield videoMetadata\n        except:\n            traceError(\"error iterating data results\")\ndef parseSearchVideoResult(data, debug=False):\n    # if not generator:\n    #     return generatorToList(parseSearchVideoResult(data, debug=debug,generator=True))\n    try:\n        resultList = data[\"result\"]\n        try:\n            for videoMetadata in iterateResultList(resultList, debug=debug):\n                try:\n                    yield videoMetadata\n                except:\n                    traceError(\"error iterating video metadata\")\n        except:\n            traceError(\"error iterating result list\")\n    except:\n        traceError(\"error parsing search video result\")\ndef parseVideoInfo(videoInfo, debug=False):\n    data = videoInfo\n    # no tag out here.\n    secondaryVideoInfoList = []",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:569-594"
+        "location": "/pyjom/platforms/bilibili/searchDataParser.py:107-138"
     },
     "1363": {
-        "file_id": 104,
-        "content": "This code is responsible for determining the position and size of a QR code image to be inserted into an image. It first checks if there's a polygon present, and if so, it calculates the angle, center, width, and height based on the given polygon. If not, it randomly selects a place to insert the QR code by adjusting its size to fit within 5% of the image size and then determines the starting point and other parameters. The code is written in Python with libraries like numpy and random for numerical operations and generating random numbers.",
+        "file_id": 112,
+        "content": "The code defines functions for parsing search video results and video information from data. It iterates through the results, extracting relevant metadata, and handles potential errors during the process. The parsed results are then yielded or converted to a list if necessary.",
         "type": "comment"
     },
     "1364": {
-        "file_id": 104,
-        "content": "                startingPoint,\n                [startingPoint[0], startingPoint[1] + QRHeight],\n                [startingPoint[0] + QRWidth, startingPoint[1] + QRHeight],\n                [startingPoint[0] + QRWidth, startingPoint[1]],\n            ]\n        )\n        cv2.fillPoly(img, [biggest_polygon], (0, 0, 0))\n    QRImage = cv2.resize(QRImage, (QRWidth, QRHeight), interpolation=cv2.INTER_LINEAR)\n    # then we expand the image.\n    expanded_QR = np.zeros(img.shape, dtype=img.dtype)\n    height, width = QRImage.shape[:2]\n    slice_x_start, slice_x_end = startingPoint[1], height + startingPoint[1]\n    slice_y_start, slice_y_end = startingPoint[0], width + startingPoint[0]\n    # print(\"SLICES?\", slice_x_start, slice_x_end , slice_y_start, slice_y_end )\n    # print(\"IMAGE SHAPE?\",QRImage.shape)\n    expanded_QR[slice_x_start:slice_x_end, slice_y_start:slice_y_end] = QRImage\n    # then rotate.\n    if angle == 0:\n        rotated_im = expanded_QR\n    else:\n        angle_deg = 180 * (angle / np.pi)  # rotation error.",
+        "file_id": 112,
+        "content": "    data_copy = data.copy()\n    data_copy.update({\"author\": data[\"owner\"][\"name\"], \"mid\": data[\"owner\"][\"mid\"]})\n    data_copy.update(data[\"stat\"])\n    primaryVideoInfo = parseVideoSearchItem(\n        data_copy, disableList=[\"tag\", \"typeid\", \"typename\"], debug=debug\n    )\n    # videoInfoList.append(primaryVideoInfo)\n    season = data.get(\"ugc_season\", {})  # we only care about this thing.\n    season_cover = season.get(\"cover\", None)  # it could be noting.\n    sections = season.get(\"sections\", [])\n    for section in sections:\n        for episode in section[\"episodes\"]:\n            # print(episode.keys())\n            # breakpoint()\n            arc = episode[\"arc\"]\n            stat = arc[\"stat\"]\n            videoInfo = episode.copy()\n            videoInfo.update(stat)\n            videoInfo.update(arc)\n            authorRelatedVideoInfo = parseVideoSearchItem(\n                videoInfo,\n                disableList=[\"tag\", \"typeid\", \"typename\", \"description\", \"author\"],\n                debug=debug,\n            )  # author is the same as the original video.",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:595-617"
+        "location": "/pyjom/platforms/bilibili/searchDataParser.py:139-162"
     },
     "1365": {
-        "file_id": 104,
-        "content": "This code detects QR codes, creates a bounding box around them, fills the polygon with black color, resizes and expands the image, and then rotates it by 180 degrees if angle is not zero. The purpose is to prepare a QR code image for further operations in an image processing pipeline.",
+        "file_id": 112,
+        "content": "This code parses bilibili search data and extracts relevant information. It creates a primary video info, updates it with necessary attributes, handles seasonal content, and iterates through episodes to create individual video infos for each episode. This is done by updating video stats and arc attributes, then calling parseVideoSearchItem function. The author remains the same as the original video.",
         "type": "comment"
     },
     "1366": {
-        "file_id": 104,
-        "content": "        rotation_matrix = cv2.getRotationMatrix2D(center, angle_deg, 1)\n        rotated_im = cv2.warpAffine(\n            expanded_QR, rotation_matrix, (img.shape[1], img.shape[0])\n        )\n    # combine. what?\n    output_img = rotated_im + img\n    # regularize\n    output_img.put(np.where(output_img > 255), 255)\n    output_img.put(np.where(output_img < 0), 0)\n    # save the image.\n    if output_with_qrcode_path is not None:\n        cv2.imwrite(output_with_qrcode_path, output_img)\n    return output_img  # for viewing.",
+        "file_id": 112,
+        "content": "            secondaryVideoInfoList.append(authorRelatedVideoInfo)\n            # BV1Cb4y1s7em\n            # []\n            # 0\n            # 这次真的燃起来了！！！\n            # 217\n            # 27911\n            # http://i2.hdslb.com/bfs/archive/c5a0d18ee077fb6a4ac0970ccb0a3788e137d14f.jpg\n    return primaryVideoInfo, secondaryVideoInfoList\ndef parseVideoRelated(videoRelatedData, debug=False):\n    data = videoRelatedData\n    # if not generator:\n    #     return generatorToList(parseVideoRelated(data, debug=debug,generator=True))\n    try:\n        for videoInfo in data:\n            try:\n                videoInfo2 = videoInfo.copy()\n                videoInfo2.update({\"author\": videoInfo[\"owner\"][\"name\"]})\n                videoInfo2.update({\"mid\": videoInfo[\"owner\"][\"mid\"]})\n                # also update the stat.\n                videoInfo2.update(videoInfo[\"stat\"])\n                try:\n                    yield parseVideoSearchItem(\n                        videoInfo2,\n                        disableList=[\"tag\", \"typeid\", \"typename\"],",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:618-633"
+        "location": "/pyjom/platforms/bilibili/searchDataParser.py:163-190"
     },
     "1367": {
-        "file_id": 104,
-        "content": "This code rotates an image using OpenCV, combines the rotated and original images, applies a regularization to pixel values, saves the resulting image if necessary, and returns it for viewing.",
+        "file_id": 112,
+        "content": "This function parses video-related data and returns the primary video information and a list of secondary video information. It updates the video information with the author's name, ID, and statistics before yielding the result.",
         "type": "comment"
     },
     "1368": {
-        "file_id": 105,
-        "content": "/tasks/qq/qq_red_packet_collect/README.md",
-        "type": "filepath"
+        "file_id": 112,
+        "content": "                        debug=debug,\n                    )\n                    # print(videoMetadata)\n                except:\n                    traceError()\n            except:\n                traceError()\n    except:\n        traceError()\nif __name__ == \"__main__\":\n    # fake tests.\n    # test_subject = \"search_video\"\n    # test_subject = \"search_all\"\n    # test_subject = 'video_related'\n    test_subject = \"video_info\"\n    # test_subject = 'extract_links'\n    if test_subject == \"search_all\":\n        with open(\"search_result_all.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for mresult in parseSearchAllResult(data):\n            print(\"RESULT:\")\n            sprint(mresult)\n    elif test_subject == \"search_video\":\n        with open(\"search_by_type_result_video.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for mresult in parseSearchVideoResult(data):\n            print(\"VIDEO SEARCH RESULT:\")\n            sprint(mresult)\n    elif test_subject == \"video_info\":",
+        "type": "code",
+        "location": "/pyjom/platforms/bilibili/searchDataParser.py:191-223"
     },
     "1369": {
-        "file_id": 105,
-        "content": "This code provides the URLs to relogin for two users, Yukio and Miaomiao, as well as a command to clear the group chat log using either `cat` or (deprecated) `echo` commands.",
-        "type": "summary"
+        "file_id": 112,
+        "content": "The code is running tests on a Python module for parsing search results and video information from Bilibili. It executes the main function with different test subjects, such as \"search_all\", \"search_video\", \"video_info\", and \"extract_links\". If an error occurs during execution, it calls a \"traceError\" function to log the exception.",
+        "type": "comment"
     },
     "1370": {
-        "file_id": 105,
-        "content": "to relogin, go to:\nfor yukio:\nhttp://localhost:8780/v1/Login/GetQRcode\nfor miaomiao:\nhttp://localhost:8784/v1/Login/GetQRcode\nto clear group chat log:\n```bash\ncat /dev/null > redPacketLog_0.log \n```\n(deprecated)\n```bash\necho > redPacketLog_0.log\n```",
+        "file_id": 112,
+        "content": "        with open(\"video_info.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        primaryVideoInfo, secondaryVideoInfoList = parseVideoInfo(data)\n        videoInfoList = [primaryVideoInfo] + secondaryVideoInfoList\n        for mVideoInfo in videoInfoList:\n            print(mVideoInfo)\n            sprint()\n    elif test_subject == \"video_related\":\n        with open(\"video_related.json\", \"r\") as f:\n            data = f.read()\n            data = json.loads(data)\n        for videoMetadata in parseVideoRelated(data):\n            print(videoMetadata)\n            sprint()\n    elif test_subject == \"extract_links\":\n        description = (\n            \"http://www.toutiao.com/a6347649852365897986/ 男子送走从小养大的狗，狗狗用泪汪汪的眼神看着他\\n\"\n            + \"https://www.youtube.com/watch?v=r724w57oXyU\"\n            + \" https://www.youtube.com/shorts/UYCy8HD1C7o\"\n        )\n        links, desc = extractLinks(description)\n        print(links)\n        print(desc)\n    else:\n        raise Exception(\"unknown test_subject:\", test_subject)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/README.md:1-20"
+        "location": "/pyjom/platforms/bilibili/searchDataParser.py:224-249"
     },
     "1371": {
-        "file_id": 105,
-        "content": "This code provides the URLs to relogin for two users, Yukio and Miaomiao, as well as a command to clear the group chat log using either `cat` or (deprecated) `echo` commands.",
+        "file_id": 112,
+        "content": "This code block handles different cases for parsing data from JSON files and extracting links from descriptions. It loads data from \"video_info.json\" or \"video_related.json\", processes it using parseVideoInfo or parseVideoRelated functions, then prints the results. If test_subject is \"extract_links\", it extracts links from a given description using extractLinks function and prints them. For any other test_subject, an Exception is raised.",
         "type": "comment"
     },
     "1372": {
-        "file_id": 106,
-        "content": "/tasks/qq/qq_red_packet_collect/launch.sh",
+        "file_id": 113,
+        "content": "/pyjom/platforms/bilibili/postMetadata.py",
         "type": "filepath"
     },
     "1373": {
-        "file_id": 106,
-        "content": "Starts a new TMUX session, kills the previously running session with the name \"qq_red_packet\", and then loads the red_packet.yaml configuration file to set up the session environment.",
+        "file_id": 113,
+        "content": "The code filters videos, generates Bilibili post metadata, supports language selection and error handling, extracts video metadata, fetches related videos, applies limits, and generates covers and descriptions for dog or cat topics.",
         "type": "summary"
     },
     "1374": {
-        "file_id": 106,
-        "content": "tmux kill-session -t qq_red_packet\ntmuxp load red_packet.yaml",
+        "file_id": 113,
+        "content": "from pyjom.commons import *\nimport cv2\nfrom pyjom.modules.topicGenerator.onlineTopicGenerator import getMetaTopicString\nfrom bilibili_api import sync, search\nfrom lazero.utils.tools import flattenUnhashableList  # one of my classic methods\nfrom lazero.utils.logger import sprint\n# TODO: you know the drill. if it really contains nonacceptable characters (currently, must be some rule changes), you use Notofu font for rendering and OCR for recognition.\n# well you might want tesseract.\n# i suspect this change is due to language models used in bilibili's system\nfrom pyjom.languagetoolbox import filterNonChineseOrEnglishOrJapaneseCharacters\ndef filterTitleWithCoreTopicSet(title, core_topic_set, debug=False):\n    value = False\n    for core_topic in core_topic_set:\n        if core_topic in title:\n            value = True\n            break\n    if debug:\n        print(\"TITLE:\", title)\n        print(\"CORE TOPIC SET:\", core_topic_set)\n        print(\"VALUE:\", value)\n        breakpoint()\n    return value\ndef filterTitleListWithCoreTopicSet(titleList, core_topic_set, debug=False):",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/launch.sh:1-2"
+        "location": "/pyjom/platforms/bilibili/postMetadata.py:1-27"
     },
     "1375": {
-        "file_id": 106,
-        "content": "Starts a new TMUX session, kills the previously running session with the name \"qq_red_packet\", and then loads the red_packet.yaml configuration file to set up the session environment.",
+        "file_id": 113,
+        "content": "This code filters titles for a video platform, checking if they contain specific core topics. It utilizes existing modules and tools for this purpose. The function filterTitleListWithCoreTopicSet takes in a list of titles and a set of core topics, returning true if any title contains a core topic. The function filterTitleWithCoreTopicSet checks individual titles for a single core topic. Both functions have optional debug parameter to print information about the process.",
         "type": "comment"
     },
     "1376": {
-        "file_id": 107,
-        "content": "/tasks/qq/qq_red_packet_collect/deprecated_botoy_redpacket_collect_account_2.py",
-        "type": "filepath"
+        "file_id": 113,
+        "content": "    newTitleList = []\n    for title in titleList:\n        result = filterTitleWithCoreTopicSet(title, core_topic_set)\n        if result:\n            newTitleList.append(title)\n    if debug:\n        print(\"TITLE LIST:\", titleList)\n        print(\"CORE TOPIC SET:\", core_topic_set)\n        sprint(\"NEW TITLE LIST:\", newTitleList)\n    return newTitleList\ndef randomChoiceTagList(\n    tag_list, selected_tag_groups=3, selected_tag_per_group=2, pop=True\n):\n    import random\n    if not pop:\n        selected_tags = random.sample(tag_list, selected_tag_groups)\n    else:\n        selected_tags = [\n            shuffleAndPopFromList(tag_list) for _ in range(selected_tag_groups)\n        ]\n    selected_tags = [\n        random.sample(tags, min(len(tags), selected_tag_per_group))\n        for tags in selected_tags\n    ]\n    # flatten this thing.\n    selected_tags = flattenUnhashableList(selected_tags)\n    return list(set(selected_tags))\nfrom typing import Literal\nfrom pyjom.imagetoolbox import resizeImageWithPadding\ndef getCoverTargetFromCoverListDefault(",
+        "type": "code",
+        "location": "/pyjom/platforms/bilibili/postMetadata.py:28-64"
     },
     "1377": {
-        "file_id": 107,
-        "content": "This code is for the arm64 version of opqbot, disabling a 复读机 plugin and using the same config. It listens for group messages and processes red packet information, starting a daemon thread if a red packet is received.",
-        "type": "summary"
+        "file_id": 113,
+        "content": "This function takes a list of titles, applies a filter based on a core topic set, and creates a new title list. It also generates random tag groups and flattens them to create a final list of unique tags. The function is part of a larger codebase for processing data related to the Bilibili platform.",
+        "type": "comment"
     },
     "1378": {
-        "file_id": 107,
-        "content": "# for arm64 version of opqbot\n# disable that 复读机 plugin.\n# disable this shit. we use the same config.\nfrom base_opq import *\n@bot.on_group_msg\ndef group(ctx: GroupMsg):\n    # print('收到群消息，群号为', ctx.FromGroupId)\n    data_dict = ctx.data  # recommend to use this json object. or not?\n    group_id = data_dict[\"FromGroupId\"]\n    RedBaginfo = data_dict[\"RedBaginfo\"]\n    if RedBaginfo is not None:\n        print(\"RECEIVED RED PACKET\")\n        startDaemonThread(openRedBag, (RedBaginfo, group_id))\n    # breakpoint()\nif __name__ == \"__main__\":\n    bot.run()\n# do not send porn shits or you need to relogin.",
+        "file_id": 113,
+        "content": "    cover_list,\n    dog_or_cat_original,\n    input_width: int = 1200,\n    output_width: int = 1920,\n    filter_function=lambda image: image,\n    histogramMatch=True,\n    delta=0.2,\n    flip: Literal[True, False, \"random\"] = True,\n):  # default function does not process this tag.\n    import random\n    if flip == \"random\":\n        flip = random.choice([True, False])\n    # random.shuffle(cover_list)\n    # reference_histogram_cover = random.choice(cover_list)\n    reference_histogram_cover = shuffleAndPopFromList(cover_list)\n    cover_target = None\n    # for cover in cover_list:\n    while len(cover_list) > 0:\n        cover = shuffleAndPopFromList(cover_list)\n        import os\n        os.environ[\"http\"] = \"\"\n        os.environ[\"https\"] = \"\"\n        from pyjom.imagetoolbox import (\n            imageLoader,\n            # imageDogCatCoverCropAdvanced,\n            imageHistogramMatch,\n        )\n        image = imageLoader(cover)\n        # downscale this image first.\n        image = resizeImageWithPadding(\n            image, input_width, None, border_type=\"replicate\"",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/deprecated_botoy_redpacket_collect_account_2.py:1-26"
+        "location": "/pyjom/platforms/bilibili/postMetadata.py:65-100"
     },
     "1379": {
-        "file_id": 107,
-        "content": "This code is for the arm64 version of opqbot, disabling a 复读机 plugin and using the same config. It listens for group messages and processes red packet information, starting a daemon thread if a red packet is received.",
+        "file_id": 113,
+        "content": "The code takes a list of image covers, randomly selects one as the reference histogram cover, and iterates over the remaining covers. It prepares for image processing by setting environment variables, loading images, downscaling if necessary, and possibly flipping the image based on a random choice.",
         "type": "comment"
     },
     "1380": {
-        "file_id": 108,
-        "content": "/tasks/qq/qq_red_packet_collect/commons.py",
-        "type": "filepath"
+        "file_id": 113,
+        "content": "        )  # are you sure? it is just a cover image.\n        cropped_image = filter_function(\n            image\n        )  # we should do something to the filter function!\n        if cropped_image is not None:\n            if histogramMatch:\n                cropped_image = imageHistogramMatch(\n                    cropped_image, reference_histogram_cover, delta=delta\n                )\n            if flip:\n                cropped_image = cv2.flip(cropped_image, 1)\n            cover_target = cropped_image\n            break\n    if cover_target is not None:\n        cover_target = resizeImageWithPadding(\n            cover_target, output_width, None, border_type=\"replicate\"\n        )  # this is strange.\n    return cover_target\ndef getCoverTargetFromCoverListForDogCat(cover_list, dog_or_cat_original):\n    from pyjom.imagetoolbox import (\n        # imageLoader,\n        imageDogCatCoverCropAdvanced,\n        # imageHistogramMatch,\n    )\n    return getCoverTargetFromCoverListDefault(\n        cover_list,\n        dog_or_cat_original,",
+        "type": "code",
+        "location": "/pyjom/platforms/bilibili/postMetadata.py:101-130"
     },
     "1381": {
-        "file_id": 108,
-        "content": "The code has functions for replacing consecutive characters, checking a \"trace_source\" key, and improving sentence processing. It also handles text manipulation, generates weighted random yields, and shuffles elements if desired.",
-        "type": "summary"
+        "file_id": 113,
+        "content": "The code applies advanced image cropping and processing for a dog or cat cover image. It checks the cover list, performs histogram matching if necessary, and flips the image if required. Finally, it resizes the image with padding using replicate border type. The function \"imageLoader\" and \"imageHistogramMatch\" are imported but not used in this specific code.",
+        "type": "comment"
     },
     "1382": {
-        "file_id": 108,
-        "content": "import random\nimport re\nfrom string import punctuation\nfrom base_opq import stderrPrint\ndef keywordDecorator(func, **kwargs2):\n    def mytarget(*margs, **kwargs):\n        if \"trace_source\" in kwargs.keys():\n            if kwargs2[\"trace_source\"]:\n                return func(*margs, **kwargs, **kwargs2), \".\".join(\n                    [__name__, func.__name__]\n                )\n        return func(*margs, **kwargs, **kwargs2)\n    return mytarget\ndef replaceDuplicateChar(sentence: str, char=\" \", maxRepeat: int = 3):\n    assert maxRepeat >= 0\n    source = char * (maxRepeat + 1)\n    target = char * maxRepeat\n    # c=0\n    while True:\n        # c+=1\n        # stderrPrint(\"RETRYING\",c)\n        if source in sentence:\n            # stderrPrint(len(source), len(target))\n            sentence = sentence.replace(source, target)\n        else:\n            break  # freaking important!\n    return sentence\ndef replaceDuplicateChars(sentence: str, maxRepeat: int = 3):\n    chars = set(list(sentence))\n    for char in chars:\n        sentence = replaceDuplicateChar(sentence, char, maxRepeat=maxRepeat)",
+        "file_id": 113,
+        "content": "        filter_function=lambda image: imageDogCatCoverCropAdvanced(\n            image,\n            yolov5_confidence_threshold=0.27,  # you made it smaller.\n            dog_or_cat=dog_or_cat_original,  # already configured. no need to do shit.\n            area_threshold=0.30,  # 0.7 # could be smaller.\n            corner=False,\n        ),\n    )\nBSP = search.bilibiliSearchParams()\nimport random\nfrom typing import Callable\ndef getBilibiliPostMetadata(\n    sleepTime=2,\n    customParaphraser:Union[Callable,None]=None,\n    getMetatopic={},\n    bgmCacheSetName: Union[str, None] = \"bilibili_cached_bgm_set\",\n    getTids={},  # these two are not specified here.\n    genericTids:list[int]=[],\n    orders=[\n        BSP.all.order.最多点击,\n        BSP.all.order.最多收藏,\n        BSP.all.order.最新发布,\n        BSP.all.order.最多弹幕,\n        BSP.all.order.综合排序,\n    ],\n    pageIndexRange=(1, 5),\n    duration=BSP.all.duration._10分钟以下,\n    lang=\"zh\",\n    duration_limit={\"min\": 70, \"max\": 5 * 60},\n    play_limit={\"min\": 10000},\n    titleLengthLimit={\"min\": 7, \"max\": 17},",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/commons.py:1-38"
+        "location": "/pyjom/platforms/bilibili/postMetadata.py:131-165"
     },
     "1383": {
-        "file_id": 108,
-        "content": "This code defines a function `replaceDuplicateChar` that replaces consecutive characters with the specified character and maximum repeats, and a function `replaceDuplicateChars` that applies this operation to all characters in the sentence. The code also includes a decorator `keywordDecorator` which checks if a \"trace_source\" key exists in the kwargs dictionary and performs an action accordingly.",
+        "file_id": 113,
+        "content": "This function generates Bilibili post metadata by specifying parameters like search type, video duration, order of sorting, and title length limits. It also allows for custom paraphrasing, language selection, and optional background music caching.",
         "type": "comment"
     },
     "1384": {
-        "file_id": 108,
-        "content": "    return sentence\n# this is not replaceDuplicateWords. this is removeDuplicateWords\n# don't know how to implement replaceDuplicateWords yet... use markov network? use CPM?\ndef removeDuplicateWords(sentence: str, removeWordLengthThreshold: int = 2):\n    # TODO: remove duplicate words inside, using jieba.\n    import jieba\n    wordList = jieba.lcut(sentence)\n    newWordList = []\n    for word in wordList:\n        if len(word) >= removeWordLengthThreshold:\n            if word in newWordList:\n                continue\n        newWordList.append(word)\n    # TODO: collect the candidateWordList from chat history.\n    # TODO: force replace mode: at least replace (n) words inside sentence\n    # TODO: mark words as replaceble by word type.\n    return \"\".join(newWordList)\ndef cutIncompleteSentenceTail(\n    sentence: str, threshold: int = len(\"这个群是我老公，你要是让我管管你老公\")\n):  # wtf?\n    if len(sentence) > threshold:\n        pun = \"，。……——“”‘’！； \" + punctuation  # with english space and puncs.\n        punList = list(set(list(pun)))",
+        "file_id": 113,
+        "content": "    getCoverTargetFromCoverList=getCoverTargetFromCoverListDefault,  # what is the default process?\n    bgmCacheAutoPurge=False,\n):\n    if bgmCacheSetName and bgmCacheAutoPurge:\n        removeRedisValueByKey(bgmCacheSetName)\n    selected_topic_list_dict = {key: [] for key in getMetatopic.keys()}\n    randomTarget = lambda: random.choice(list(selected_topic_list_dict.keys()))\n    dog_or_cat = randomTarget()\n    description_list = []\n    bgm_list = []\n    title_list = []\n    tag_list = []\n    cover_list = []\n    bvid_list = []\n    def clearMyLists():\n        nonlocal bvid_list, bgm_list, title_list, tag_list, cover_list, bvid_list, description_list\n        description_list = []\n        bgm_list = []\n        title_list = []\n        tag_list = []\n        cover_list = []\n        bvid_list = []\n    getKeywords = {\n        key: lambda: getMetaTopicString(value) for key, value in getMetatopic.items()\n    }\n    # getDogTid = lambda: random.choice([BSP.all.tids.动物圈.tid, BSP.all.tids.动物圈.汪星人])\n    # getCatTid = lambda: random.choice([BSP.all.tids.动物圈.tid, BSP.all.tids.动物圈.喵星人])",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/commons.py:39-66"
+        "location": "/pyjom/platforms/bilibili/postMetadata.py:166-196"
     },
     "1385": {
-        "file_id": 108,
-        "content": "This code contains two functions: `removeDuplicateWords` and `cutIncompleteSentenceTail`. The first function aims to remove duplicate words from a sentence using the jieba library. It also mentions potential future improvements like collecting candidate word lists from chat history, replacing words based on their type, and enforcing a minimum number of replacements in the sentence. The second function is for cutting incomplete sentences that exceed a certain length threshold. It utilizes punctuation to separate the sentence into potentially complete segments. There are also mentions of potential improvements like collecting candidate word lists from chat history and replacing words based on their type.",
+        "file_id": 113,
+        "content": "This code retrieves metadata from a bilibili platform, filters and selects topics, randomly chooses between dog or cat content, and initializes lists for BGM, title, tag, cover, and video ID. It also defines functions to clear lists and retrieve keywords. The code does not contain a default process for `getCoverTargetFromCoverList`.",
         "type": "comment"
     },
     "1386": {
-        "file_id": 108,
-        "content": "        pattern = re.compile(\n            \"|\".join([re.escape(punctualChar) for punctualChar in punList])\n        )\n        resultList = re.split(pattern, sentence)\n        resultList = [x for x in resultList if len(x) > 0]\n        for index in range(\n            1, len(resultList)\n        ):  # will return first sentence nevertheless.\n            if pattern.match(resultList[-index]):  # suspected punctual element.\n                sentence = \"\".join(resultList)[:-index]\n                return sentence\n        sentence = resultList[0]  # failsafe.\n    return sentence\ndef generatedSentenceFixer(sentence, threshold=len(\"这个群是我老公，你要是让我管管你老公\"), maxRepeat=3):\n    sentence = replaceDuplicateChars(sentence, maxRepeat=maxRepeat)\n    sentence = cutIncompleteSentenceTail(sentence, threshold=threshold)\n    return sentence\ndef weightedRandomYielder(\n    elemList: list, elemWeights: list, shuffle=True, no_repeat=True, single=False\n):\n    assert len(elemList) >= 2\n    assert len(elemWeights) == len(elemList)\n    baseList = []",
+        "file_id": 113,
+        "content": "    # getTid = {\"dog\": getDogTid, \"cat\": getCatTid}\n    getTid = {key: lambda: random.choice(value) for key, value in getTids.items()}\n    getTargetTid = {key: lambda: random.choice([v for v in value if v not in genericTids]) for key, value in getTids.items()}\n    getRandomPage = lambda: random.randint(*pageIndexRange)  # not so broad.\n    # getRandomPage = lambda: random.randint(1, 50)  # broad range!\n    randomOrder = lambda: random.choice(orders)\n    while True:\n        try:\n            core_topic_set = {\n                *flattenUnhashableList(\n                    [value for key, value in getMetatopic[dog_or_cat].items()]\n                )\n            }\n            static_core_topic_list = flattenUnhashableList(\n                getMetatopic[dog_or_cat][\"static\"]\n            )\n            metatopicString = getKeywords[dog_or_cat]()\n            print(\"METATOPIC STRING:\", metatopicString)\n            # we use video only search.\n            search_tid = getTid[dog_or_cat]()\n            target_tid = getTargetTid[dog_or_cat]()",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/commons.py:67-93"
+        "location": "/pyjom/platforms/bilibili/postMetadata.py:197-223"
     },
     "1387": {
-        "file_id": 108,
-        "content": "The code contains functions for manipulating text, specifically for cutting incomplete sentences and fixing generated sentences. It also includes a function to generate a weighted random yield from two lists of equal length.",
+        "file_id": 113,
+        "content": "This code dynamically generates a set of core topics, static core topic list, and metatopic string for the bilibili platform. It uses lambda functions to generate random values for TIDs, page index, and order. The code ensures that the selected TID is not present in genericTids. Finally, it prints the metatopic string and assigns a search TID and target TID for further processing.",
         "type": "comment"
     },
     "1388": {
-        "file_id": 108,
-        "content": "    for elem, weight in zip(elemList, elemWeights):\n        assert weight > 0\n        assert type(weight) == int\n        baseList += [elem] * weight\n    if shuffle:\n        random.shuffle(baseList)\n    usedElem = []\n    for elem in baseList:\n        if single:\n            return elem\n        if not no_repeat:\n            yield elem\n        elif elem in usedElem:\n            continue\n        else:\n            usedElem.append(elem)\n            yield elem",
+        "file_id": 113,
+        "content": "            result = sync(\n                search.search_by_type(\n                    keyword=metatopicString,\n                    params={\n                        \"tids\": search_tid,\n                        \"duration\": duration,\n                        \"order\": randomOrder(),\n                    },\n                    page=getRandomPage(),\n                    search_type=search.SearchObjectType.VIDEO,\n                )\n            )\n            # print(result)\n            # breakpoint()\n            from pyjom.platforms.bilibili.searchDataParser import parseSearchVideoResult\n            from pyjom.mathlib import checkMinMaxDict\n            def updateMyLists(\n                videoMetadata,\n                duration_limit={\"min\": 70, \"max\": 5 * 60},\n                titleLengthLimit={\"min\": 7, \"max\": 17},\n                play_limit={\"min\": 10000},\n                debugTag=\"debug\",\n            ):\n                nonlocal bvid_list, bgm_list, title_list, tag_list, cover_list, bvid_list, description_list, static_core_topic_list  # use nonlocal instead in nested functions.",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/commons.py:94-110"
+        "location": "/pyjom/platforms/bilibili/postMetadata.py:225-252"
     },
     "1389": {
-        "file_id": 108,
-        "content": "Iterates through elements and their weights, adds elements to base list accordingly. If shuffle is True, randomizes the order of baseList. Iterates through baseList, yielding elements one at a time while handling non-repeating elements and avoiding repeats.",
+        "file_id": 113,
+        "content": "The code searches for video results on Bilibili based on specified criteria and uses the search result to update local lists of videos, titles, tags, covers, descriptions, and static core topics. It checks duration limits, title length limits, play counts, and debugs if needed.",
         "type": "comment"
     },
     "1390": {
-        "file_id": 109,
-        "content": "/tasks/qq/qq_red_packet_collect/chatApis.py",
-        "type": "filepath"
+        "file_id": 113,
+        "content": "                (\n                    author,\n                    author_id,\n                    bvid,\n                    tags,\n                    categoryId,\n                    categoryName,\n                    title,\n                    duration_seconds,\n                    play,\n                    cover,\n                    description,\n                    links_in_description,\n                    bgms,\n                    title_tags,\n                    pubdate,\n                ) = videoMetadata\n                # print(\"VIDEO_METADATA\",videoMetadata)\n                # breakpoint()\n                if not checkMinMaxDict(len(title), titleLengthLimit):\n                    return\n                if not filterTitleWithCoreTopicSet(title, static_core_topic_list):\n                    return\n                if len(tags) > 0:\n                    tagContainStaticCoreTopicFlags = [\n                        int(filterTitleWithCoreTopicSet(tag, static_core_topic_list))\n                        for tag in tags\n                    ]",
+        "type": "code",
+        "location": "/pyjom/platforms/bilibili/postMetadata.py:253-280"
     },
     "1391": {
-        "file_id": 109,
-        "content": "The code utilizes libraries, chat functions for various APIs, and a function named `getChatApiReply` that selects an API, handles exceptions, logs errors, and returns responses.",
-        "type": "summary"
+        "file_id": 113,
+        "content": "This code extracts video metadata such as author, duration, title, and tags. It checks the length of the title against a limit and filters it for any static core topic. If the tag contains a static core topic, it creates a boolean flag for each tag. The function then returns the extracted metadata and flag list.",
+        "type": "comment"
     },
     "1392": {
-        "file_id": 109,
-        "content": "import random\nimport urllib.parse\nimport requests\nfrom base_opq import getGroupNameFromDict\n# disable all proxies.\nimport os\nimport time\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# do not use freaking proxy, otherwise QingYunKe will not respond.\ndef checkApi(func, message, name):\n    response_message = func(message)\n    if response_message != None:\n        print(\"{} RESPONSE:\".format(name), response_message)\ndef chatAtri(\n    msg: str, group_id, retryFlag=False, timeout=5, BASE=\"http://api.nekomimi.icu/v1/\"\n):\n    url = BASE + \"chat?msg=%s\" % urllib.parse.quote(msg)\n    response = requests.get(url, timeout=timeout)\n    if response.status_code == 200:\n        data = response.json()\n        if data[\"status\"] == \"success\":\n            return data[\"message\"]\n    # return None\n    # nothing is returned if have error.\n    print(\"ATRI ERROR:\", response.status_code, response.json())\ndef chatGPT2Local(\n    msg: str, group_id, retryFlag=False, timeout=5, BASE=\"http://127.0.0.1:8729/\"\n):\n    # url = BASE + '?text=%s' % urllib.parse.quote(msg)",
+        "file_id": 113,
+        "content": "                    mTagFlag = sum(tagContainStaticCoreTopicFlags) > 0\n                    if not mTagFlag:\n                        return\n                else:\n                    return\n                if duration_seconds == None:\n                    print(debugTag, \"VIDEO_METADATA\", videoMetadata)\n                    breakpoint()\n                elif play == None:\n                    print(debugTag, \"VIDEO_METADATA\", videoMetadata)\n                    breakpoint()\n                if len(bgms) > 0:\n                    bgm_list += bgms\n                try:\n                    if checkMinMaxDict(duration_seconds, duration_limit):\n                        if checkMinMaxDict(play, play_limit):\n                            bvid_list += [bvid]\n                            cover_list += [cover]\n                            title_list += [title]  # this for topic modeling?\n                            if description not in [\"\", None]:\n                                description_list += [description]\n                            if len(tags) > 0:",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chatApis.py:1-39"
+        "location": "/pyjom/platforms/bilibili/postMetadata.py:281-302"
     },
     "1393": {
-        "file_id": 109,
-        "content": "Code imports required libraries, disables proxies, and includes two chat functions (chatAtri and chatGPT2Local) for interacting with different APIs. chatAtri sends a message to the Atri API, while chatGPT2Local communicates with a local GPT-2 model through HTTP requests. Both return the response message if successful; otherwise, they print an error message.",
+        "file_id": 113,
+        "content": "This code checks if a video's metadata contains certain elements and whether they meet specific duration and play limits. If the video meets these criteria, it adds it to a list of bvids for further processing. It also handles potential errors by printing a debug message and breaking the execution. The title is added to a list for topic modeling purposes.",
         "type": "comment"
     },
     "1394": {
-        "file_id": 109,
-        "content": "    url = BASE\n    params = {\"text\": msg, \"retry\": retryFlag, \"group_id\": group_id}\n    response = requests.get(url, params=params)  # simply ignore timeout.\n    # response = requests.get(url, timeout=timeout, params = params)\n    if response.status_code == 200:\n        data = response.text\n        if len(data) > 0:\n            return data\n    # return None\n    # nothing is returned if have error.\n    print(\"GPT2LOCAL NO RESPONSE ERROR\")  # unknown error.\n# import subprocess\n# import json\ndef chatQingKeYun(\n    msg: str,\n    group_id,\n    retryFlag=False,\n    timeout=5,\n    url=\"http://api.qingyunke.com/api.php?key=free&appid=0&msg=\",\n):\n    msg = urllib.parse.quote(msg)\n    myUrl = url + msg\n    # print(myUrl)\n    # output = subprocess.check_output([\"curl\", myUrl])\n    # data = json.loads(output.decode(\"utf-8\"))\n    # import requests\n    data = requests.get(myUrl, timeout=timeout)\n    data = data.json()\n    print(data)\n    result = data[\"result\"]\n    assert result == 0  # 202 -> busy\n    content = data[\"content\"]\n    return content",
+        "file_id": 113,
+        "content": "                                tag_list += [\n                                    tags\n                                ]  # are you sure? this will make the tag_list into different shape!\n                except:\n                    traceError()\n                    breakpoint()\n            def updateMyListsWithIterable(\n                iterable,\n                duration_limit={\"min\": 70, \"max\": 5 * 60},\n                play_limit={\"min\": 10000},\n                titleLengthLimit={\"min\": 7, \"max\": 17},\n                debugTag=\"debug\",\n            ):\n                for videoMetadata in iterable:\n                    updateMyLists(\n                        videoMetadata,\n                        duration_limit=duration_limit,\n                        play_limit=play_limit,\n                        titleLengthLimit=titleLengthLimit,\n                        debugTag=debugTag,\n                    )\n            updateMyListsWithIterable(\n                parseSearchVideoResult(result),\n                duration_limit=duration_limit,",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chatApis.py:40-76"
+        "location": "/pyjom/platforms/bilibili/postMetadata.py:303-328"
     },
     "1395": {
-        "file_id": 109,
-        "content": "This function uses the QingKeYun API to process and return responses for a given message. It takes in parameters including the message text, group ID, retry flag, and timeout duration. The code handles potential errors, prints \"GPT2LOCAL NO RESPONSE ERROR\" when there is no response or an unknown error occurs.",
+        "file_id": 113,
+        "content": "The code defines a function updateMyListsWithIterable that takes an iterable of videoMetadata and applies the updateMyLists function to each element while applying duration, play, and title length limits. The parseSearchVideoResult is called with result and passed as an argument to updateMyListsWithIterable along with other parameters.",
         "type": "comment"
     },
     "1396": {
-        "file_id": 109,
-        "content": "    # breakpoint()\ndef chatOwnThink(msg: str, group_id, retryFlag=False, timeout=5):\n    url = \"https://api.ownthink.com/bot?appid=xiaosi&userid=user&spoken=\"\n    msg = urllib.parse.quote(msg)\n    myUrl = url + msg\n    data = requests.get(myUrl, timeout=timeout)\n    data = data.json()\n    # output = subprocess.check_output([\"curl\", myUrl])\n    # data = json.loads(output.decode(\"utf-8\"))\n    if data[\"message\"] == \"success\":\n        if data[\"data\"][\"type\"] == 5000:\n            return data[\"data\"][\"info\"][\"text\"]\n    # print(data)\n    # breakpoint()\n    # result = data['result']\n    # assert result == 0  # 202 -> busy\n    # content = data['content']\n    # return content\ndef chatXiaoIce(msg, group_id, retryFlag=False, timeout=5):\n    import requests\n    topic = getGroupNameFromDict(group_id)\n    if topic is None:\n        topic = \"aaa\"  # default topic. nothing.\n    r = requests.get(\n        \"http://localhost:8735/chat\",\n        params={\"topic\": topic, \"message\": msg},\n        timeout=timeout,\n    )\n    if r.status_code == 200:",
+        "file_id": 113,
+        "content": "                play_limit=play_limit,\n                titleLengthLimit=titleLengthLimit,\n                debugTag=\"searchVideoResult\",\n            )\n            # do the related video search?\n            if len(bvid_list) > 0:\n                # get video info!\n                from bilibili_api import video\n                bvid = random.choice(bvid_list)\n                v = video.Video(bvid=bvid)\n                videoInfo = sync(v.get_info())\n                from pyjom.platforms.bilibili.searchDataParser import parseVideoInfo\n                primaryVideoInfo, secondaryVideoInfoList = parseVideoInfo(videoInfo)\n                # for videoMetadata in secondaryVideoInfoList:\n                updateMyListsWithIterable(\n                    secondaryVideoInfoList, debugTag=\"secondaryVideoInfoList\"\n                )\n                # then we get related videos.\n                result = sync(v.get_related())\n                from pyjom.platforms.bilibili.searchDataParser import parseVideoRelated\n                # import json",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chatApis.py:77-111"
+        "location": "/pyjom/platforms/bilibili/postMetadata.py:329-353"
     },
     "1397": {
-        "file_id": 109,
-        "content": "chatOwnThink and chatXiaoIce are two functions used to communicate with the ownthink.com API and local XiaoIce API, respectively. They both take a message as input, along with a group ID and optional retry flag and timeout values. If the request is successful, the function returns the text response from the API. The code also contains comments for potential future implementation of error handling, assertion checks, and content retrieval.",
+        "file_id": 113,
+        "content": "Searching for a random Bilibili video and retrieving its information, then parsing the results to update the secondary video list and fetch related videos.",
         "type": "comment"
     },
     "1398": {
-        "file_id": 109,
-        "content": "        try:\n            content = r.json()\n            assert content[\"msg\"] == \"success\"\n            reply = content[\"reply\"]\n            return reply\n        except:\n            from lazero.utils.logger import traceError\n            traceError(\"xiaoice client error\")\n    else:\n        print(\"xiaoice client got abnormal response code:\", r.status_code)\n# changed. non_standard.\ndef getChatApiReply(\n    msg: str, group_id, chatApiIndex=0, retryFlag=False, timeout=15\n):  # 15 seconds of grace time.\n    # chatApis = [chatQingKeYun, chatAtri]\n    # blacklist chatOwnThink.\n    chatApis = [chatAtri, chatGPT2Local, chatXiaoIce]  # no random shit!\n    # chatApi = random.choice(chatApis)\n    chatApi = chatApis[chatApiIndex]\n    try:\n        reply = chatApi(msg, group_id, retryFlag=retryFlag, timeout=timeout)\n        # will be None anyway.\n        return reply\n    except:\n        pass",
+        "file_id": 113,
+        "content": "                # print(json.dumps(result, indent=4, ensure_ascii=False))\n                # print('parsing related video info')\n                # breakpoint()\n                updateMyListsWithIterable(\n                    parseVideoRelated(result), debugTag=\"videoRelated\"\n                )\n            # now what do you want? suggested keywords?\n            suggested_queries = sync(\n                search.get_suggest_keywords(keyword=metatopicString)\n            )\n            if type(suggested_queries) != list:\n                suggested_queries = []\n            # now we need to collect the keywords.\n            # notice: we can only update this for selected topic like cat or dog. these keywords might not be shared.\n            topic_modeling_source_sentences = suggested_queries.copy()\n            for tags in tag_list:\n                sentence = \" \".join(tags)\n                topic_modeling_source_sentences.append(sentence)\n            for title in title_list:\n                topic_modeling_source_sentences.append(title)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chatApis.py:112-139"
+        "location": "/pyjom/platforms/bilibili/postMetadata.py:355-377"
     },
     "1399": {
-        "file_id": 109,
-        "content": "This code defines a function `getChatApiReply` that selects a chat API from a list and tries to retrieve a response for the input message. If an exception occurs, it logs an error or returns None if the retry flag is set. The code also includes a try-except block to handle potential exceptions during the API request.",
+        "file_id": 113,
+        "content": "The code is parsing video-related information, updating lists with iterable data, and collecting suggested keywords for a specific topic by joining tags and titles into sentences.",
         "type": "comment"
     }
 }

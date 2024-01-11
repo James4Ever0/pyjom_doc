@@ -1,543 +1,535 @@
 {
     "2800": {
-        "file_id": 315,
-        "content": "use_cuda_cv2 = True # after we compile shit\nif use_cuda_cv2: # the freaking speed is awful.\n    import pathlib\n    import site\n    import sys\n    # this is root. this is not site-packages.\n    # site_path = pathlib.Path([x for x in site.getsitepackages() if \"site-packages\" in x][0])\n    site_path = pathlib.Path(\"/usr/local/lib/python3.9/site-packages\") # maybe it is done after you make install the whole cv2 shit.\n    cv2_libs_dir = site_path / 'cv2' / f'python-{sys.version_info.major}.{sys.version_info.minor}'\n    print(cv2_libs_dir)\n    cv2_libs = sorted(cv2_libs_dir.glob(\"*.so\"))\n    if len(cv2_libs) == 1:\n        print(\"INSERTING:\",cv2_libs[0].parent)\n        sys.path.insert(1, str(cv2_libs[0].parent))\nimport cv2\nimport numpy as np\nfrom PIL import Image, ImageFont, ImageDraw  \nimport Levenshtein\nimport math\n# from m2m100_1b_translator import zh_to_en_translator as translator\n# i just want to do the freaking inpainting.\n# import statistics\ndef redraw_english_to_chinese2(image,resultChineseInternal): \n    a,b,c = image.shape",
+        "file_id": 311,
+        "content": "import av\n# source = \"/root/Desktop/works/pyjom/samples/video/nearly_duplicate_frames_detection_30fps_blend.mp4\"  # this is evil. it defeats my shit.\n# KEYFRAME PERCENT: 1.36 %\n# source = \"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\"  # this is evil. it defeats my shit.\n# KEYFRAME PERCENT: 0.76 %\n# wtf?\n# even smaller.\nsource = \"/root/Desktop/works/pyjom/samples/video/karaoke_effects_source.mp4\"\ncontainer = av.open(source)\nmList = []\nfor frame in container.decode(video=0):\n    mList.append(frame.key_frame)\nprint(\"KEYFRAME PERCENT: {:.2f} %\".format(100*sum(mList)/len(mList)))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:1-30"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/pyav_effective_fps.py:1-18"
     },
     "2801": {
-        "file_id": 315,
-        "content": "The code is setting up the environment for using CUDA with OpenCV and importing necessary libraries. It checks if a specific OpenCV library file exists, and if so, it adds its parent directory to the system path. The function redraw_english_to_chinese2 is defined at the end of the code snippet, but its implementation is not visible in this chunk.",
+        "file_id": 311,
+        "content": "This code measures the keyframe percentage in a video file using Python and the AV library. It opens a video source, iterates over each frame, appends the keyframes to a list, calculates the percentage of keyframes relative to total frames, and prints the result.",
         "type": "comment"
     },
     "2802": {
-        "file_id": 315,
-        "content": "    total_area = a*b\n    total_center = (a/2,b/2)\n    total_corners = [(a,0),(0,0),(0,b),(a,b)]\n    total_strings = [\"scorpa\"]\n    area_threshold = 1/15 # don't know.\n    area_threshold = total_area*area_threshold\n    mask3_threshold = area_threshold*0.6\n    blank_image = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    blank_image2 = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    blank_image3 = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    def compareStringSimilarity(text,targetCompareString=\"scorpa\"):\n        # what is this?\n        comparedWaterMarkString = targetCompareString.lower() # the freaking name \n        comparedWaterMarkStringLength = len(comparedWaterMarkString)\n            # remove watermarks? how to filter?\n            # no fucking translation at all.\n        editDistanceThreshold = 4\n        textCompareCandidate = text.replace(\" \",\"\").lower() # original text, no translation.\n        distance = Levenshtein.distance(textCompareCandidate,comparedWaterMarkString)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:32-52"
+        "file_id": 312,
+        "content": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py",
+        "type": "filepath"
     },
     "2803": {
-        "file_id": 315,
-        "content": "This code calculates the total area and center of an image, sets the corners and initializes blank images. It defines a function to compare string similarity between two strings with an edit distance threshold, likely for text recognition or watermark detection.",
-        "type": "comment"
+        "file_id": 312,
+        "content": "The code tests centrality thresholds for nearly duplicate frames using OpenCV and numpy, addresses issues like double centers and incorrect percentages, and performs clustering with MiniBatchKMeans.",
+        "type": "summary"
     },
     "2804": {
-        "file_id": 315,
-        "content": "        string_length = len(text)\n        string_length_difference = abs(string_length-comparedWaterMarkStringLength)\n        length_difference_threshold = 3\n        if (distance < editDistanceThreshold and string_length_difference < length_difference_threshold):\n            return True\n        return False\n    def get_center(rectangle_coords):\n        x0,y0 = rectangle_coords[0]\n        x1,y1 = rectangle_coords[2]\n        return ((x0+x1)/2,(y0+y1)/2)\n    def get_distance(a,b): x = a[0]-b[0]; x2 = x**2; y = a[1]-b[1];y2 = y**2; return(math.sqrt(x2+y2))\n    resultChineseInternal2 = list(sorted(resultChineseInternal,key=lambda x:min([get_distance(corner,get_center(x[0])) for corner in total_corners]))) # sort by centrality. but not by corner. use corner instead.\n    resultChineseInternal2 = sorted(resultChineseInternal2,key=lambda x:1-max([int(compareStringSimilarity(x[1][0],tstring)) for tstring in total_strings])) # sort by centrality. but not by corner. use corner instead.\n    for coords, (text,prob) in resultChineseInternal2: # get boundary coords first.",
+        "file_id": 312,
+        "content": "# i'd say i want centrality below 6 percent. what's the catch?\n# we'd like to adjust the shift.\n# another tip: you have forgot the spatial coordinates.\n# fuck!\nsrc = \"/root/Desktop/works/pyjom/samples/image/cute_cat.bmp\"\n# CENTRALITY: 0.00 %\n# single not go beyond 4 percent.\n# total not go beyond 6 percent.\n# is that right? fuck?\n# src = \"/root/Desktop/works/pyjom/samples/image/dog_with_text.png\"\n# and yet this does not look right.\n# NEARBY CENTER PERCENTAGE: 0.84 %\n# CENTRALITY: 2.57 %\n# src = \"/root/Desktop/works/pyjom/samples/image/miku_on_green.png\"\n# for this one we have double centers. fuck.\n# CENTRALITY: 181.80 %\n# it is off the charge!\n# with text. a meme.\n# src = \"/root/Desktop/works/pyjom/samples/image/dog_saturday_night.bmp\"\n# CENTRALITY: 1.26 %\n# src = \"/root/Desktop/works/pyjom/samples/image/similar_color_extraction.bmp\"  # use some filter first, or rather not to?\n# CENTER: [254.62436869 254.63794192 254.79734848]\n# POSITIVE COUNT: 188772\n# SUM: 566316.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 81.93 %",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:53-66"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py:1-35"
     },
     "2805": {
-        "file_id": 315,
-        "content": "The code compares the length of a text string with a predefined length, and if the difference is within a certain threshold, it returns True. The code also calculates distances between points using coordinates, sorts a list based on these distances and centrality, and retrieves boundary coordinates for each text string.",
+        "file_id": 312,
+        "content": "The code appears to be testing and adjusting the centrality threshold for detecting nearly duplicate frames. The author is experimenting with different image file sources, and discussing various issues encountered during the process, such as double centers and incorrect centrality percentages. They also mention using filters for certain images.",
         "type": "comment"
     },
     "2806": {
-        "file_id": 315,
-        "content": "        polyArray = np.array(coords).astype(np.int64) # fuck.\n        # print(polyArray)\n        # print(polyArray.shape)\n        # breakpoint()\n        # points = np.array([[160, 130], [350, 130], [250, 300]])\n        # print(points.dtype)\n        # points = np.array([[454.0, 22.0], [464.0, 26.0], [464.0, 85.0]]).astype(np.int64)\n        # this is rectangular. simple shit. not simple for other shits.\n        color= 255\n        coord0, coord1, coord2 = coords[0],coords[1],coords[2]\n        sid1, sid2 = get_distance(coord0,coord1), get_distance(coord1,coord2)\n        polyArea = sid1*sid2\n        mask3_area = np.sum(blank_image3)\n        if polyArea >= area_threshold or mask3_area >= mask3_threshold:\n            cv2.fillPoly(blank_image,[polyArray],color)\n            isClosed = True\n            thickness = 20 # oh shit.\n            thickness2 = 40 # oh shit.\n            cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image2, [polyArray], isClosed, color, thickness2) # much better.",
+        "file_id": 312,
+        "content": "# CENTRALITY: 82.33 %\n# let's try some cats.\n# the filter: removegrain\n# src = \"/root/Desktop/works/pyjom/samples/image/kitty_flash.bmp\"  # use some filter first, or rather not to?\n# CENTER: [1.37254902 2.34313725 9.46078431]\n# POSITIVE COUNT: 2600\n# SUM: 7800.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 3.91 %\n# CENTRALITY: 3.91 %\n# now the 八点半配音\n# src = \"/root/Desktop/works/pyjom/samples/image/is_this_duck.bmp\"\n# CENTER: [252.66293811 177.62005966 126.37844892]\n# POSITIVE COUNT: 222893\n# SUM: 668679.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 36.49 %\n# CENTRALITY: 36.55 %\n# likely to be the blue.\n# src = \"/root/Desktop/works/pyjom/samples/image/pig_really.bmp\"\n# multiple centers.\n# CENTER: [246.76865924 226.40763256 216.41472476]\n# POSITIVE COUNT: 95497\n# SUM: 286491.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 6.74 %\n# CENTRALITY: 7.32 %\nimport numpy as np\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nuse_spatial=True\nimport cv2\nimage = cv2.imread(src)\nshape = image.shape\nif len(shape) != 3:",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:67-86"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py:36-76"
     },
     "2807": {
-        "file_id": 315,
-        "content": "Code creates a numpy array from given coordinates, checks if the area is above certain thresholds, and then uses cv2.fillPoly and cv2.polylines to draw on two images with different thicknesses.",
+        "file_id": 312,
+        "content": "This code reads an image from a specified source and checks if it's in the correct format (RGB). It then calculates the centrality and nearby center percentage, likely for duplicate frame detection. The code uses OpenCV to load images and numpy for data manipulation. The code has three different examples with different results: one cat image with high centrality and nearby center percentage, a duck image with very high centrality and nearby center percentage, and a pig image with multiple centers and lower centrality.",
         "type": "comment"
     },
     "2808": {
-        "file_id": 315,
-        "content": "        else:\n            cv2.fillPoly(blank_image3,[polyArray],color)\n            isClosed = True\n            thickness = 30 # oh shit.\n            thickness2 = 50 # oh shit.\n            # cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image3, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image2, [polyArray], isClosed, color, thickness2) # much better.\n    #     # cv2.fillPoly(blank_image,pts=[points],color=(255, 255,255))\n    # cv2.imshow(\"mask\",blank_image)\n    # cv2.waitKey(0)\n    # use wordninja.\n    # before translation we need to lowercase these shits.\n    # inpaint_alternative = cv2.INPAINT_NS\n    # dst = cv2.inpaint(image,blank_image,3,inpaint_alternative)\n    def partial_blur(image0,mask,kernel=(200,200)):\n        # need improvement. malnly the boundary.\n        mask_total = mask\n        inv_mask_total = 255-mask_total\n        # mask0 = mask\n        # mask0 = mask/255\n        # inv_mask0 = inv_mask/255",
+        "file_id": 312,
+        "content": "    print(\"weird shit.\")\nif shape[2] != 3:\n    print(\"depth not right.\")\n# for i in range(3):\n#     image[:,:,i] = i\nif use_spatial:\n    col_0, col_1 = shape[:2]\n    coords = []\n    bias_0 = 2\n    bias_1 = 2\n    for c0 in range(col_0):\n        for c1 in range(col_1):\n            coords.append((bias_0*c0/col_0,bias_1*c1/col_1))\n    coords = np.array(coords)\n# print(image.reshape(-1,3))\nreshapedImage = image.reshape(-1, 3)  # are you sure about this?\nlength, depth = reshapedImage.shape\nsample_size_limit = 5000\nreshapedImageIndexs = np.arange(0, length)\n# so now it is good.\nsampleIndexs = np.random.choice(reshapedImageIndexs, size=min(sample_size_limit, length))\nprint(sampleIndexs)\nprint(sampleIndexs.shape)\nsample_size = len(sampleIndexs)\nsample = reshapedImageIndexs[sampleIndexs]\nsample = reshapedImage[sample, :]\nprint(sample)\nprint(sample.shape)\n# breakpoint()\nif use_spatial:\n    sampleCoords = coords[sampleIndexs]\n    sample = np.hstack([sample, sampleCoords])\n    print(sample)\n    print(sample.shape)\n# breakpoint()\n# warning: OOM?",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:87-108"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py:77-123"
     },
     "2809": {
-        "file_id": 315,
-        "content": "This code uses OpenCV for image processing tasks. It fills polygons and draws lines on an image, then applies inpainting to replace the filled area with surrounding pixels. The function `partial_blur` is defined to blur a specific region of an image using a mask.",
+        "file_id": 312,
+        "content": "This code checks if the image depth is correct, then it reshapes and extracts samples from an image for further processing. The code also includes an option to use spatial coordinates, which are added as additional features to the sample data.",
         "type": "comment"
     },
     "2810": {
-        "file_id": 315,
-        "content": "        non_blur_image = cv2.bitwise_and(image0, image0, mask=inv_mask_total)\n        blur_image0 = cv2.blur(image0,kernel) # half quicklier.\n        blur_image0 = cv2.bitwise_and(blur_image0, blur_image0, mask=mask_total)\n        dst0 = blur_image0 + non_blur_image\n        return dst0\n    def partial_blur_deprecated(image0,mask,mask2):\n        # need improvement. malnly the boundary.\n        mask_total = mask + mask2 # not good.\n        dtype = mask.dtype\n        mask_total = mask_total>0\n        mask_total=mask_total.astype(dtype)\n        mask_total = mask_total*255\n        inv_mask_total = 255-mask_total\n        mask0 = mask_total - mask2\n        # mask0 = mask\n        # mask0 = mask/255\n        # inv_mask0 = inv_mask/255\n        non_blur_image = cv2.bitwise_and(image0, image0, mask=inv_mask_total)\n        blur_image0 = cv2.blur(image0,(50,50)) # half quicklier.\n        blur_image2 = cv2.blur(image0,(30,30)) # half quicklier.\n        # not enough baby\n        blur_image0 = cv2.bitwise_and(blur_image0, blur_image0, mask=mask0)",
+        "file_id": 312,
+        "content": "# now cluster shit shall we?\n# from sklearn.neighbors import NearestNeighbors\n# neigh = NearestNeighbors(n_neighbors=5)\n# X = sample\n# neigh.fit(X)\n# A = neigh.kneighbors_graph(X)\n# A.toarray()\n# print(A)\n# print(A.shape) # sparse matrix? wtf?\nfrom sklearn.cluster import MiniBatchKMeans  # better?\n# from sklearn.cluster import KMeans\nX = sample\nbatch_size = 45\n# kmeans = KMeans(n_clusters=5).fit(X) # not deterministic please?\nn_clusters = 5\nkmeans = MiniBatchKMeans(\n    init=\"k-means++\",\n    n_clusters=n_clusters,\n    batch_size=batch_size,\n    # n_init=10,\n    max_no_improvement=10,\n    verbose=0,\n).fit(X)\n# from lazero.utils import inspectObject\n# inspectObject(kmeans)\n# breakpoint()\nlabels = kmeans.labels_\ncluster_centers = kmeans.cluster_centers_\nprint(labels)\nprint(cluster_centers)\nlabel_percentage = {\n    x: np.count_nonzero(labels == x) / sample_size for x in range(n_clusters)\n}\nflagged_image = image.copy()\nflagged_image[:,:,:] = 1 # every element is 1 now.\nepsilon = 0.01 # shit man.\npercents = []\nshift=2\nfor center5 in cluster_centers:",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:109-130"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py:124-165"
     },
     "2811": {
-        "file_id": 315,
-        "content": "This code performs partial image blurring using OpenCV functions. It creates a total mask by adding two input masks, applies bitwise operations to separate areas of the image for non-blurred and blurred processing, and combines the results for output. The \"partial_blur_deprecated\" function needs improvement as it currently has hardcoded blur values and may not handle boundary areas well.",
+        "file_id": 312,
+        "content": "Code is performing clustering using MiniBatchKMeans from sklearn.cluster, with n_clusters=5 and batch_size=45 to handle larger datasets. After fitting the data, it prints labels and cluster centers. Then, it calculates label percentages based on the labels assigned by KMeans, initializes a flagged image with all elements set to 1, and starts iterating through each cluster center to perform further operations (not shown in code snippet).",
         "type": "comment"
     },
     "2812": {
-        "file_id": 315,
-        "content": "        blur_image2 = cv2.bitwise_and(blur_image2, blur_image2, mask=mask2)\n        dst0 = blur_image0 +blur_image2 + non_blur_image\n        return dst0\n    dst = partial_blur(image,blank_image)\n    dst = cv2.inpaint(dst,blank_image3,3,cv2.INPAINT_TELEA) # this shit. only do for small areas\n    dst = partial_blur(dst,blank_image2,kernel=(30,30))\n    # to compensate all sharp boundaries.\n    # from PIL import Image\n    def np2pillow(opencv_image):\n        color_coverted = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)\n        pil_image = Image.fromarray(color_coverted)\n        return pil_image\n        # pil_image.show()\n    def pillow2np(pil_image):\n        # pil_image=Image.open(\"demo2.jpg\") # open image using PIL\n        # use numpy to convert the pil_image into a numpy array\n        numpy_image=np.array(pil_image)  \n        # convert to a openCV2 image, notice the COLOR_RGB2BGR which means that \n        # the color is converted from RGB to BGR format\n        opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR) ",
+        "file_id": 312,
+        "content": "    # fetch area nearby given center\n    if use_spatial:\n        center = center5[:3]\n    else:\n        center = center5\n    # center_int = center.astype(np.uint8)\n    # i just don't know what the fuck is going on here.\n    upper = center + shift\n    lower = center - shift\n    mask = cv2.inRange(image, lower, upper)\n    # not image.\n    output = cv2.bitwise_and(flagged_image, flagged_image, mask=mask)\n    # print(output)\n    # print(output.shape)\n    mOutput = output.reshape(-1, 3)\n    mOutput = np.sum(mOutput, axis=1)\n    mSum = sum(mOutput)\n    # breakpoint()\n    positive_count = np.count_nonzero(abs(mOutput - 3) < epsilon)\n    percent = positive_count/len(mOutput)\n    # print(mOutput)\n    # print(mOutput.shape)\n    # breakpoint()\n    print(\"CENTER:\",center)\n    print('POSITIVE COUNT:', positive_count)\n    print(\"SUM:\", mSum, \"MIN:\", min(mOutput), 'MAX:', max(mOutput))\n    print(\"NEARBY CENTER PERCENTAGE: {:.2f} %\".format(percent*100))\n    percents.append(percent)\nprint(\"CENTRALITY: {:.2f} %\".format(sum(percents)*100))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:131-153"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_spatial_similar_color_extraction.py:166-195"
     },
     "2813": {
-        "file_id": 315,
-        "content": "Performs bitwise AND operation on blur_image2 using mask2, combines images, applies inpainting with CV2, compensates sharp boundaries, converts OpenCV image to PIL and back.",
+        "file_id": 312,
+        "content": "The code calculates the centrality of a center by extracting nearby pixel values and checking if they are within a specified epsilon threshold. It uses image processing functions from OpenCV (cv2) and numpy for masking, reshaping, and summing operations. The code then prints various metrics related to the center's centrality, such as positive count, sum of pixel values, minimum and maximum values, and finally calculates the overall centrality percentage.",
         "type": "comment"
     },
     "2814": {
-        "file_id": 315,
-        "content": "        return opencv_image\n    # draw text now!\n    mpil_image = np2pillow(dst)\n    draw = ImageDraw.Draw(mpil_image)\n    font_location = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\" # not usual english shit.\n    def draw_rotated_text(image, text, position, angle, font, fill=(255,255,255),stroke_width=1,stroke_fill=(0,0,0),align=\"left\"):\n    # Get rendered font width and height.\n        draw = ImageDraw.Draw(image)\n        width, height = draw.textsize(text, font=font,stroke_width=stroke_width)\n        # Create a new image with transparent background to store the text.\n        textimage = Image.new('RGBA', (width, height), (0,0,0,0))\n        # Render the text.\n        textdraw = ImageDraw.Draw(textimage)\n        textdraw.text((0,0), text, font=font, fill=fill,stroke_width=stroke_width,stroke_fill=stroke_fill,align=align)\n        # Rotate the text image.\n        rotated = textimage.rotate(angle, expand=1) # do you rotate shit?\n        # Paste the text into the image, using it as a mask for transparency.",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:154-170"
+        "file_id": 313,
+        "content": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py",
+        "type": "filepath"
     },
     "2815": {
-        "file_id": 315,
-        "content": "This code snippet is responsible for drawing rotated text on an OpenCV image using Pillow library. It first converts the OpenCV image to a Pillow image, then defines a function `draw_rotated_text()` to handle the text drawing process. The function calculates the text dimensions and creates a new image with a transparent background. It then renders the text onto this new image while accounting for stroke width and alignment. Finally, it rotates the text image by a specified angle and pastes it onto the original image using transparency.",
-        "type": "comment"
+        "file_id": 313,
+        "content": "The user is experiencing issues with image centrality and nearby center percentages when using OpenCV (cv2) and MiniBatchKMeans for clustering in numpy. The code extracts similar color frames, calculates percentages of nearby centers, and prints related statistics to calculate overall centrality.",
+        "type": "summary"
     },
     "2816": {
-        "file_id": 315,
-        "content": "        image.paste(rotated, position, rotated)\n        return image\n    def average(mlist):return sum(mlist) / len(mlist)\n    def get_coord_orientation_font_size_and_center(coords):\n        xlist, ylist = [x[0] for x in coords], [x[1] for x in coords]\n        min_x, max_x = min(xlist), max(xlist)\n        min_y, max_y = min(ylist), max(ylist)\n        width,height = max_x-min_x, max_y-min_y\n        position = (min_x,min_y)\n        c0,c1,c2,c3 = coords\n        real_width = average([get_distance(c0,c1) ,get_distance(c2,c3)])\n        real_height = average([get_distance(c1,c2) ,get_distance(c3,c0)])\n        # c0-------------c1\n        # |              |\n        # c3-------------c2\n        rotate_vectors = (c1[0]-c0[0],c1[1]-c0[1]),(c2[0]-c3[0],c2[1]-c3[1])\n        rotate_vector = (average([rotate_vectors[0][0],rotate_vectors[1][0]]),average([rotate_vectors[0][1],rotate_vectors[1][1]]))\n        rotate_angle = math.atan2(rotate_vector[1],rotate_vector[0]) # problem with angle.\n        # print(\"ROTATE_VECTORS:\",rotate_vectors)",
+        "file_id": 313,
+        "content": "# i'd say i want centrality below 6 percent. what's the catch?\n# we'd like to adjust the shift.\n# another tip: you have forgot the spatial coordinates.\n# fuck!\n# src = \"/root/Desktop/works/pyjom/samples/image/cute_cat.bmp\"\n# CENTRALITY: 0.00 %\n# single not go beyond 4 percent.\n# total not go beyond 6 percent.\n# is that right? fuck?\n# src = \"/root/Desktop/works/pyjom/samples/image/dog_with_text.png\"\n# and yet this does not look right.\n# NEARBY CENTER PERCENTAGE: 0.84 %\n# CENTRALITY: 2.57 %\n# src = \"/root/Desktop/works/pyjom/samples/image/miku_on_green.png\"\n# for this one we have double centers. fuck.\n# CENTRALITY: 181.80 %\n# it is off the charge!\n# with text. a meme.\n# src = \"/root/Desktop/works/pyjom/samples/image/dog_saturday_night.bmp\"\n# CENTRALITY: 1.26 %\n# src = \"/root/Desktop/works/pyjom/samples/image/similar_color_extraction.bmp\"  # use some filter first, or rather not to?\n# CENTER: [254.62436869 254.63794192 254.79734848]\n# POSITIVE COUNT: 188772\n# SUM: 566316.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 81.93 %",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:171-193"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:1-35"
     },
     "2817": {
-        "file_id": 315,
-        "content": "This code defines a function `get_coord_orientation_font_size_and_center` that takes in coordinates and returns the orientation, font size, and center based on the given points. It calculates the dimensions of the bounding rectangle, determines the real width and height by averaging the distances between corresponding points, and estimates the rotation angle using `math.atan2`. The function may be useful for image processing tasks involving text or shapes with specific orientations.",
+        "file_id": 313,
+        "content": "The code snippet is displaying image centrality, nearby center percentage, and other related information for several images. The user seems to be adjusting the shift and working with spatial coordinates. However, they are encountering issues like double centers and results that do not look right. They seem to be unsure about some parameters and considering using a filter on an image.",
         "type": "comment"
     },
     "2818": {
-        "file_id": 315,
-        "content": "        # print(\"ROTATE VECTOR:\",rotate_vector)\n        # print(\"ROTATE ANGLE:\", rotate_angle)\n        center = (int((max_x+min_x)/2),int((max_y+min_y)/2))\n        # what about rotation? forget about it...\n        if (width / height) < 0.8:\n            orientation = \"vertical\"\n            font_size = int(real_width) # shit.\n        else:\n            orientation = \"horizontal\"\n            font_size = int(real_height)\n        return orientation, font_size, center,(real_width,real_height),rotate_angle,position \n    readjust_size=False # just center.\n    for coords, (text,prob) in resultChineseInternal:\n        probThreshold = 0.8\n        if compareStringSimilarity(text) or prob < probThreshold: # this is somehow not right. i don't know.\n            # mask all with low probabilities?\n            continue # skip all shits.\n        # specified font size \n        # text = translator(text) # now translate.\n        # too freaking slow. i need to freaking change this shit.\n        orientation, font_size, center ,(width,height) ,rotate_angle,position = get_coord_orientation_font_size_and_center(coords)",
+        "file_id": 313,
+        "content": "# CENTRALITY: 82.33 %\n# let's try some cats.\n# the filter: removegrain\n# src = \"/root/Desktop/works/pyjom/samples/image/kitty_flash.bmp\"  # use some filter first, or rather not to?\n# CENTER: [1.37254902 2.34313725 9.46078431]\n# POSITIVE COUNT: 2600\n# SUM: 7800.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 3.91 %\n# CENTRALITY: 3.91 %\n# now the 八点半配音\n# src = \"/root/Desktop/works/pyjom/samples/image/is_this_duck.bmp\"\n# CENTER: [252.66293811 177.62005966 126.37844892]\n# POSITIVE COUNT: 222893\n# SUM: 668679.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 36.49 %\n# CENTRALITY: 36.55 %\n# likely to be the blue.\nsrc = \"/root/Desktop/works/pyjom/samples/image/pig_really.bmp\"\n# multiple centers.\n# CENTER: [246.76865924 226.40763256 216.41472476]\n# POSITIVE COUNT: 95497\n# SUM: 286491.0 MIN: 0 MAX: 3\n# NEARBY CENTER PERCENTAGE: 6.74 %\n# CENTRALITY: 7.32 %\nimport numpy as np\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\nimage = cv2.imread(src)\nshape = image.shape\nif len(shape) != 3:\n    print(\"weird shit.\")",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:194-217"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:36-75"
     },
     "2819": {
-        "file_id": 315,
-        "content": "This code is determining the orientation, font size, and center coordinates for a Chinese text. It checks if the aspect ratio of the image is vertical or horizontal and adjusts the font size accordingly. The function get_coord_orientation_font_size_and_center is called to get these values. If the probability threshold is met or the text is not similar enough, it will skip that particular text. It also considers rotation angle and position in its calculations.",
+        "file_id": 313,
+        "content": "This code reads an image from a specific file and applies filters to detect and remove duplicate frames. The results include information about centrality, positive counts, nearby center percentages, and more. The code uses OpenCV (cv2) for image processing and numpy for array manipulation.",
         "type": "comment"
     },
     "2820": {
-        "file_id": 315,
-        "content": "        if orientation == \"horizontal\":\n            font = ImageFont.truetype(font_location, font_size)\n            # text = original_text\n            # drawing text size \n            stroke_width = max((1,int(0.1*font_size)))\n            (string_width,string_height) = draw.textsize(text,font=font,stroke_width=stroke_width)\n            # print(string_width)\n            # breakpoint()\n            if readjust_size:\n                change_ratio = width/string_width\n                new_fontsize = font_size*change_ratio\n                font = ImageFont.truetype(font_location, new_fontsize)\n                (string_width,string_height) = draw.textsize(text,font=font,stroke_width=stroke_width)\n            #     start_x = int(center[0]-width2/2)\n            #     start_y = int(center[1]-height2/2)\n            # else:\n            theta  =rotate_angle\n            rot = np.array([[math.cos(theta), -math.sin(theta)], [math.sin(theta), math.cos(theta)]])\n            v1 = np.array([string_width,string_height])\n            v2 = np.array([string_width,-string_height])",
+        "file_id": 313,
+        "content": "if shape[2] != 3:\n    print(\"depth not right.\")\n# for i in range(3):\n#     image[:,:,i] = i\n# col_0, col_1 = shape[:2]\n# coords = []\n# for c0 in range(col_0):\n#     for c1 in range(col_1):\n#         coords.append((c0,c1))\n# coords = np.array(coords)\n# print(image.reshape(-1,3))\nreshapedImage = image.reshape(-1, 3)  # are you sure about this?\nlength, depth = reshapedImage.shape\nsample_size_limit = 5000\nreshapedImageIndexs = np.arange(0, length)\n# so now it is good.\nsampleIndexs = np.random.choice(reshapedImageIndexs, size=min(sample_size_limit, length))\nprint(sampleIndexs)\nprint(sampleIndexs.shape)\nsample_size = len(sampleIndexs)\nsample = reshapedImageIndexs[sampleIndexs]\nsample = reshapedImage[sample, :]\nprint(sample)\nprint(sample.shape)\n# breakpoint()\n# sampleCoords = coords[sampleIndexs]\n# sample = np.hstack([sample, sampleCoords])\n# print(sample)\n# print(sample.shape)\n# breakpoint()\n# warning: OOM?\n# now cluster shit shall we?\n# from sklearn.neighbors import NearestNeighbors\n# neigh = NearestNeighbors(n_neighbors=5)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:218-239"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:76-119"
     },
     "2821": {
-        "file_id": 315,
-        "content": "This code is calculating the size of a text string and adjusting its font size to fit within a specified width. If `readjust_size` is True, it recalculates the font size based on the new width. The text's rotation angle is calculated using trigonometry functions.",
+        "file_id": 313,
+        "content": "The code extracts color samples from an image and selects a random sample of up to 5000 indices. It then reshapes the image into a 1D array, creates new sample indices, retrieves the sample data, and prepares for clustering.",
         "type": "comment"
     },
     "2822": {
-        "file_id": 315,
-        "content": "            v3 = np.array([-string_width,-string_height])\n            v4 = np.array([-string_width,string_height])\n            # w = np.array([3, 4])\n            vc1 = np.dot(rot, v1)\n            vc2 = np.dot(rot, v2)\n            vc3 = np.dot(rot, v3)\n            vc4 = np.dot(rot, v4)\n            # sw2 = abs(float(vc2[0])) # no abs.\n            # sh2 = abs(float(vc2[1]))\n            start_x_arr = [int(center[0]-sw/2) for sw in [(float(x[0])) for x in [vc1,vc2,vc3,vc4]]]\n            start_y_arr = [int(center[1]-sh/2) for sh in [(float(x[1])) for x in [vc1,vc2,vc3,vc4]]]\n            # start_y = int(center[1]-string_height2/2)\n            start_x = int(min(start_x_arr))\n            start_y = int(min(start_y_arr))\n            # draw.text((start_x, start_y), text, font = font, fill=(255,255,255),stroke_fill=(0,0,0),stroke_width = stroke_width,align =\"left\") # what is the freaking align?\n            position2 = (start_x, start_y)\n            rotate_angle2 = -np.rad2deg(rotate_angle) # strange.\n            # debug_text = \"angle: {}\".format(rotate_angle2)",
+        "file_id": 313,
+        "content": "# X = sample\n# neigh.fit(X)\n# A = neigh.kneighbors_graph(X)\n# A.toarray()\n# print(A)\n# print(A.shape) # sparse matrix? wtf?\nfrom sklearn.cluster import MiniBatchKMeans  # better?\n# from sklearn.cluster import KMeans\nX = sample\nbatch_size = 45\n# kmeans = KMeans(n_clusters=5).fit(X) # not deterministic please?\nn_clusters = 5\nkmeans = MiniBatchKMeans(\n    init=\"k-means++\",\n    n_clusters=n_clusters,\n    batch_size=batch_size,\n    # n_init=10,\n    max_no_improvement=10,\n    verbose=0,\n).fit(X)\n# from lazero.utils import inspectObject\n# inspectObject(kmeans)\n# breakpoint()\nlabels = kmeans.labels_\ncluster_centers = kmeans.cluster_centers_\nprint(labels)\nprint(cluster_centers)\nlabel_percentage = {\n    x: np.count_nonzero(labels == x) / sample_size for x in range(n_clusters)\n}\nflagged_image = image.copy()\nflagged_image[:,:,:] = 1 # every element is 1 now.\nepsilon = 0.01 # shit man.\npercents = []\nshift=2\nfor center in cluster_centers:\n    # fetch area nearby given center\n    # center = center5[:3]\n    # center_int = center.astype(np.uint8)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:240-258"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:120-161"
     },
     "2823": {
-        "file_id": 315,
-        "content": "This code performs rotations on given points using a rotation matrix, then calculates the starting coordinates for drawing text based on the minimum x and y values among these transformed points. It also adjusts the angle to its equivalent in degrees before potentially performing further operations with it.",
+        "file_id": 313,
+        "content": "This code performs clustering using MiniBatchKMeans to find clusters in a dataset, extracts cluster centers, calculates label percentages for each cluster, and then sets the entire flagged image to 1 before iterating through cluster centers and performing an unknown operation on nearby areas.",
         "type": "comment"
     },
     "2824": {
-        "file_id": 315,
-        "content": "            mpil_image = draw_rotated_text(mpil_image,text,position2,rotate_angle2,font,stroke_width=stroke_width)\n    # mpil_image.show()\n    # mpil_image.save(\"redraw_eng_to_chinese.png\")\n    output_final_image = pillow2np(mpil_image)\n    return output_final_image",
+        "file_id": 313,
+        "content": "    # i just don't know what the fuck is going on here.\n    upper = center + shift\n    lower = center - shift\n    mask = cv2.inRange(image, lower, upper)\n    # not image.\n    output = cv2.bitwise_and(flagged_image, flagged_image, mask=mask)\n    # print(output)\n    # print(output.shape)\n    mOutput = output.reshape(-1, 3)\n    mOutput = np.sum(mOutput, axis=1)\n    mSum = sum(mOutput)\n    # breakpoint()\n    positive_count = np.count_nonzero(abs(mOutput - 3) < epsilon)\n    percent = positive_count/len(mOutput)\n    # print(mOutput)\n    # print(mOutput.shape)\n    # breakpoint()\n    print(\"CENTER:\",center)\n    print('POSITIVE COUNT:', positive_count)\n    print(\"SUM:\", mSum, \"MIN:\", min(mOutput), 'MAX:', max(mOutput))\n    print(\"NEARBY CENTER PERCENTAGE: {:.2f} %\".format(percent*100))\n    percents.append(percent)\nprint(\"CENTRALITY: {:.2f} %\".format(sum(percents)*100))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:259-264"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/knn_similar_color_extraction.py:162-185"
     },
     "2825": {
-        "file_id": 315,
-        "content": "This code snippet draws rotated text on an image, saves it as a PNG file, and then converts the image to a numpy array before returning it.",
+        "file_id": 313,
+        "content": "This code extracts similar color frames and calculates the percentage of nearby centers. It reshapes the output, sums values, counts non-zero absolute differences, and calculates the percentage of nearby centers. The code then appends the percentages to a list for later calculation of centrality. Finally, it prints various statistics about the image and calculates the overall centrality based on the accumulated percentages.",
         "type": "comment"
     },
     "2826": {
-        "file_id": 316,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py",
+        "file_id": 314,
+        "content": "/tests/nearly_duplicate_frames_detection_removal/fast_vqa_test.sh",
         "type": "filepath"
     },
     "2827": {
-        "file_id": 316,
-        "content": "The code uses PaddleOCR for OCR, focusing on English text detection and supporting multiple languages. It downloads the language model once at runtime and utilizes the `redraw_english_to_chinese` function to translate and display results over images. The developer's custom CUDA libraries may cause potential CUDA errors with OpenCV.",
+        "file_id": 314,
+        "content": "Code changes the video file being tested, mentions quality scores and potential issues with large white areas, suggests using k-NN (k=5), and runs the VQA script on a CPU.",
         "type": "summary"
     },
     "2828": {
-        "file_id": 316,
-        "content": "from paddleocr import PaddleOCR\nimport wordninja\n# from m2m100_1b_translator import zh_to_en_translator as translator\n# cannot translate everything... not frame by frame...\n# can summarize things. can block texts on location.\n# Paddleocr supports Chinese, English, French, German, Korean and Japanese.\n# You can set the parameter `lang` as `ch`, `en`, `french`, `german`, `korean`, `japan`\n# to switch the language model in order.\n# img_path = 'target.png' # only detect english. or not?\nocr = PaddleOCR(use_angle_cls=True, lang='en') # need to run only once to download and load model into memory\n# image = cv2.imread(img_path)\n# we will give it to you...\n# internalFrameCounter = 0\n# resultChineseInternal = []\ndef redraw_english_to_chinese(image): # whatever. it is dumb anyway. we need to be prudent. really?\n    # global resultChineseInternal, internalFrameCounter # we need to look ahead.\n    resultChineseInternal2 = ocr.ocr(image, cls=True) # you will be fucked if skip frames.\n    prob_thresh = 0.6 # found watermark somewhere. scorpa",
+        "file_id": 314,
+        "content": "cd FAST-VQA\n# VIDEO=\"/root/Desktop/works/pyjom/samples/video/nearly_duplicate_frames_detection_30fps.mp4\"\n# The quality score of the video is 0.11833.\nVIDEO=\"/root/Desktop/works/pyjom/samples/video/kitty_flash_15fps.mp4\"\n# The quality score of the video is 0.12778.\n# nothing serious. it does not produce significant shits.\npython3 vqa.py -o ./options/fast/f3dvqa-b.yml -v $VIDEO -d cpu\n# another feature is that this video produces a large area in white, which is not what we really want.\n# use knn?\n# k=5",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:1-19"
+        "location": "/tests/nearly_duplicate_frames_detection_removal/fast_vqa_test.sh:1-13"
     },
     "2829": {
-        "file_id": 316,
-        "content": "This code uses PaddleOCR to perform optical character recognition (OCR) on an image, specifically detecting and translating English text within it. It downloads and loads the language model only once during runtime. The code is designed to handle Chinese and other languages as well, but currently focuses on English detection. The function `redraw_english_to_chinese` takes an image as input, uses OCR to identify text, and returns the translated text results.",
+        "file_id": 314,
+        "content": "Code changes the video file being tested, mentions quality scores and potential issues with large white areas, suggests using k-NN (k=5), and runs the VQA script on a CPU.",
         "type": "comment"
     },
     "2830": {
-        "file_id": 316,
-        "content": "    resultChineseInternal = []\n    for index, line in enumerate(resultChineseInternal2):\n        # print(line)\n        # breakpoint()\n        coords, (text, prob) = line\n        prob = float(prob)\n        if prob > prob_thresh:\n            rectified_text = \" \".join(wordninja.split(text))\n            line[1] = (rectified_text, prob)\n            print(line)\n            resultChineseInternal.append(line)\n    return resultChineseInternal\n# cv2.imshow('dst',dst2)\n# cv2.waitKey(0)\n# cv2.destroyAllWindows()\n# expand the area somehow.\n# draw resultChineseInternal\n# simhei_path = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\"\n# from PIL import Image\n# image = Image.open(img_path).convert('RGB')\n# boxes = [line[0] for line in resultChineseInternal]\n# txts = [line[1][0] for line in resultChineseInternal]\n# scores = [line[1][1] for line in resultChineseInternal]\n# im_show = draw_ocr(image, boxes, txts, scores, font_path=simhei_path)\n# im_show = Image.fromarray(im_show)\n# im_show.save('resultChineseInternal.jpg')\n# we will be testing one image only. not the whole goddamn video.",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:20-50"
+        "file_id": 315,
+        "content": "/tests/conversation_talk_apis/api_tests.py",
+        "type": "filepath"
     },
     "2831": {
-        "file_id": 316,
-        "content": "Iterates over resultChineseInternal2, rectifies text using wordninja if prob > prob_thresh. Stores modified lines in resultChineseInternal. Displays image with OCR results using draw_ocr function and saves it as \"resultChineseInternal.jpg\".",
-        "type": "comment"
+        "file_id": 315,
+        "content": "This code imports modules, disables proxies, and uses requests library to send POST requests to Weibo API's direct messaging endpoint. It creates and sends messages, retrieves responses in JSON format, interacts with Weibo and OwnThink APIs, checks user messages against responses, performs API tests using checkApi function for different chatbot instances.",
+        "type": "summary"
     },
     "2832": {
-        "file_id": 316,
-        "content": "# may have cuda error when using my cv2 cuda libs.",
+        "file_id": 315,
+        "content": "import urllib.parse\nimport requests\n# disable all proxies.\nimport os\nimport time\nos.environ[\"http_proxy\"]=\"\"\nos.environ[\"https_proxy\"]=\"\"\n# do not use freaking proxy, otherwise QingYunKe will not respond.\ndef checkApi(func,message,name):\n    response_message = func(message)\n    if response_message!=None:\n        print(\"{} RESPONSE:\".format(name), response_message)\ndef chatAtri(msg: str, BASE='http://api.nekomimi.icu/v1/'):\n    url = BASE + 'chat?msg=%s' % msg\n    response = requests.get(url)\n    if response.status_code == 200:\n        data = response.json()\n        if data['status'] == 'success':\n            return data['message']\n    # return None\n    # nothing is returned if have error.\n    print(\"ATRI ERROR:\", response.status_code, response.json())\n# import subprocess\n# import json\ndef chatQingKeYun(msg: str, url=\"http://api.qingyunke.com/api.php?key=free&appid=0&msg=\"):\n    msg = urllib.parse.quote(msg)\n    myUrl = url+msg\n    # print(myUrl)\n    # output = subprocess.check_output([\"curl\", myUrl])\n    # data = json.loads(output.decode(\"utf-8\"))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:51-51"
+        "location": "/tests/conversation_talk_apis/api_tests.py:1-37"
     },
     "2833": {
-        "file_id": 316,
-        "content": "This code seems to be a comment expressing a potential issue when using the developer's custom CUDA libraries with OpenCV. It mentions that it might throw a CUDA error in those specific cases, possibly requiring attention or alternative solutions.",
+        "file_id": 315,
+        "content": "Code imports necessary modules, disables proxies, defines a function to check API responses, and includes two chat functions: 'chatAtri' for chatting with Atri using a Chinese language processing API, and 'chatQingKeYun' for chatting with QingYunKe using a free API key. The code also has a commented section that appears to be testing the use of subprocess and json modules but is not implemented yet.",
         "type": "comment"
     },
     "2834": {
-        "file_id": 317,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py",
-        "type": "filepath"
+        "file_id": 315,
+        "content": "    # import requests\n    data = requests.get(myUrl)\n    data = data.json()\n    print(data)\n    result = data['result']\n    assert result == 0  # 202 -> busy\n    content = data['content']\n    return content\n    # breakpoint()\ndef xiaobing(msg):\n    # 其实是新浪微博群发器 微博群发的逻辑类似于b站群发\n    # 刚关注的只能发一条消息\n    uid = '5175429989'\n    source = '209678993'\n    SUB = '_2A25PyitTDeRhGeBG7VAS8y_MwjmIHXVsvhubrDV8PUNbmtANLRfTkW9NRhxXNiVv6Qwut5wwnc8rys3cbJFAxVdX'\n    url_send = 'https://api.weibo.com/webim/2/direct_messages/new.json'\n    data = {\n        'text': msg,\n        'uid': uid,\n        'source': source\n    }\n    headers = {\n        'cookie': 'SUB='+SUB,\n        'Content-Type': 'application/x-www-form-urlencoded',\n        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36',\n        'Referer': 'https://api.weibo.com/chat/'\n    }\n    response = requests.post(url_send, data=data, headers=headers).json()\n    sendMsg = response['text']\n    time.sleep(1)\n    while True:",
+        "type": "code",
+        "location": "/tests/conversation_talk_apis/api_tests.py:38-69"
     },
     "2835": {
-        "file_id": 317,
-        "content": "This code utilizes Deepspeed ZeRO for model inference, translation using M2M100, and offers GPU/CPU options. It sets up a distributed environment with DeepSpeed for training, initializes the model, provides mixed precision training options on Ampere or higher GPUs, prepares a machine translation environment using Deepspeed ZeRO, partitions the model, creates an engine object for parallel processing, and measures time cost per iteration in translating Chinese to English using experimentation with varying parameters.",
-        "type": "summary"
+        "file_id": 315,
+        "content": "This code is using the requests library to send a POST request to the Weibo API's direct messaging endpoint. It creates a new message with the provided text, sends it to a specified user (uid), and retrieves the response from the API. The script includes necessary headers and uses JSON format for the data payload.",
+        "type": "comment"
     },
     "2836": {
-        "file_id": 317,
-        "content": "# loadable or not?\n# OOM ready?\n# maybe you want to load this shit over kaggle.\n# 3521MB on inference. does that mean you can do the big fucker now?\n# 1.9G model size.\nimport os\n# mt = dlt.TranslationModel(modelpath, model_family=\"m2m100\",device=\"gpu\") # OOM?\nfrom transformers import M2M100Tokenizer, M2M100ForConditionalGeneration\n# model = M2M100ForConditionalGeneration.from_pretrained(modelpath)\n# model_inputs = tokenizer(text_to_translate, return_tensors=\"pt\")\n# translate to French\n# gen_tokens = model.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"en\"))\n# print(tokenizer.batch_decode(gen_tokens, skip_special_tokens=True))\n# either load model with trainer or just use some other stuffs.\n#!/usr/bin/env python\n# This script demonstrates how to use Deepspeed ZeRO in an inference mode when one can't fit a model\n# into a single GPU\n#\n# 1. Use 1 GPU with CPU offload\n# 2. Or use multiple GPUs instead\n#\n# First you need to install deepspeed: pip install deepspeed\n#\n# Here we use a 3B \"bigscience/T0_3B\" model which needs about 15GB GPU RAM - so 1 largish or 2",
+        "file_id": 315,
+        "content": "        print(\"RETRYING\")\n        url_get = 'https://api.weibo.com/webim/2/direct_messages/conversation.json?uid={}&source={}'.format(uid, source)\n        response = requests.get(url_get, headers=headers).json()\n        getMsg = response['direct_messages'][0]['text']\n        if sendMsg == getMsg:\n            time.sleep(1)\n        else:\n            return getMsg\ndef chatOwnThink(msg:str):\n    url = \"https://api.ownthink.com/bot?appid=xiaosi&userid=user&spoken=\"\n    msg = urllib.parse.quote(msg)\n    myUrl = url+msg\n    data = requests.get(myUrl)\n    data = data.json()\n    # output = subprocess.check_output([\"curl\", myUrl])\n    # data = json.loads(output.decode(\"utf-8\"))\n    if data[\"message\"] == \"success\":\n        if data[\"data\"][\"type\"] == 5000:\n            return data[\"data\"][\"info\"][\"text\"]\n    # print(data)\n    # breakpoint()\n    # result = data['result']\n    # assert result == 0  # 202 -> busy\n    # content = data['content']\n    # return content\nif __name__ == '__main__':\n    # execute my tests.\n    message = \"你好\"",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:1-33"
+        "location": "/tests/conversation_talk_apis/api_tests.py:70-99"
     },
     "2837": {
-        "file_id": 317,
-        "content": "This code demonstrates how to use Deepspeed ZeRO for inference when the model size exceeds available GPU RAM. It loads a 1.9GB model and translates text from English to French using the M2M100 tokenizer and model. The code provides two options: using one GPU with CPU offload or multiple GPUs, and requires installing Deepspeed before running.",
+        "file_id": 315,
+        "content": "The code is attempting to interact with two APIs - Weibo and OwnThink. It first checks if the message from the user matches the response received from the Weibo API conversation. If it's a match, the code waits for a second before rechecking. If there's no match, it sends the message to the OwnThink API to get a response. The response is then checked for success and if the type of response is 5000, the text information from the response is returned.",
         "type": "comment"
     },
     "2838": {
-        "file_id": 317,
-        "content": "# small GPUs can handle it. or 1 small GPU and a lot of CPU memory.\n#\n# To use a larger model like \"bigscience/T0\" which needs about 50GB, unless you have an 80GB GPU -\n# you will need 2-4 gpus. And then you can adapt the script to handle more gpus if you want to\n# process multiple inputs at once.\n#\n# The provided deepspeed config also activates CPU memory offloading, so chances are that if you\n# have a lot of available CPU memory and you don't mind a slowdown you should be able to load a\n# model that doesn't normally fit into a single GPU. If you have enough GPU memory the program will\n# run faster if you don't want offload to CPU - so disable that section then.\n#\n# To deploy on 1 gpu:\n#\n# deepspeed --num_gpus 1 t0.py\n# or:\n# python -m torch.distributed.run --nproc_per_node=1 t0.py\n#\n# To deploy on 2 gpus:\n#\n# deepspeed --num_gpus 2 t0.py\n# or:\n# python -m torch.distributed.run --nproc_per_node=2 t0.py\nfrom transformers import AutoConfig\nfrom transformers.deepspeed import HfDeepSpeedConfig\nimport deepspeed\nimport os",
+        "file_id": 315,
+        "content": "    # checkApi(chatAtri, message, \"ATRI\")\n    # checkApi(xiaobing, message, \"XIAOBING\")\n    # checkApi(chatOwnThink, message, \"OWNTHINK\")\n    checkApi(chatQingKeYun, message, \"QINGYUNKE\")",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:34-61"
+        "location": "/tests/conversation_talk_apis/api_tests.py:100-103"
     },
     "2839": {
-        "file_id": 317,
-        "content": "The code snippet describes how to deploy a larger transformer model like \"bigscience/T0\" on a GPU or multiple GPUs using the DeepSpeed library. The code provides instructions for running the program on 1 or 2 GPUs, and mentions the benefits of CPU memory offloading if sufficient CPU memory is available. The code also imports necessary libraries and configurations.",
+        "file_id": 315,
+        "content": "This code is calling the checkApi function with different parameters for each chatbot instance: chatAtri, xiaobing, chatOwnThink, and chatQingKeYun. The function call passes a message and specific identifier to perform an API test on each chatbot.",
         "type": "comment"
     },
     "2840": {
-        "file_id": 317,
-        "content": "import torch\nos.environ[\"TOKENIZERS_PARALLELISM\"] = \"false\"  # To avoid warnings about parallelism in tokenizers\n# distributed setup\nlocal_rank = int(os.getenv(\"LOCAL_RANK\", \"0\"))\nworld_size = int(os.getenv(\"WORLD_SIZE\", \"1\"))\ntorch.cuda.set_device(local_rank)\ndeepspeed.init_distributed()\n# model_name = \"bigscience/T0_3B\"\nmodelpath = \"/media/root/Jumpcut/person_segmentation/paraphraser/m2m100_1.2B\"\nconfig = AutoConfig.from_pretrained(modelpath)\nmodel_hidden_size = config.d_model\n# batch size has to be divisible by world_size, but can be bigger than world_size\ntrain_batch_size = 1 * world_size\n# ds_config notes\n#\n# - enable bf16 if you use Ampere or higher GPU - this will run in mixed precision and will be\n# faster.\n#\n# - for older GPUs you can enable fp16, but it'll only work for non-bf16 pretrained models - e.g.\n# all official t5 models are bf16-pretrained\n#\n# - set offload_param.device to \"none\" or completely remove the `offload_param` section if you don't\n# - want CPU offload\n#\n# - if using `offload_param` you can manually finetune stage3_param_persistence_threshold to control",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:62-92"
+        "file_id": 316,
+        "content": "/tests/pyidm_yd_dlp_download_manager_multithread/test.py",
+        "type": "filepath"
     },
     "2841": {
-        "file_id": 317,
-        "content": "This code sets up a distributed environment with DeepSpeed, initializes the model using the specified path, defines the batch size divisible by world_size, and provides configuration options for mixed precision training on Ampere or higher GPUs.",
-        "type": "comment"
+        "file_id": 316,
+        "content": "Code checks the value of 'option' variable and performs different download tasks based on its value. If option is 1, it uses yt_dlp library to download a video file. If option is 2, it uses pySmartDL library to download a GIF file. If option is 3, it uses firedm library for the same purpose. After each download task, it prints the status and downloaded file path.",
+        "type": "summary"
     },
     "2842": {
-        "file_id": 317,
-        "content": "# - which params should remain on gpus - the larger the value the smaller the offload size\n#\n# For indepth info on Deepspeed config see\n# https://huggingface.co/docs/transformers/main/main_classes/deepspeed\n# keeping the same format as json for consistency, except it uses lower case for true/false\n# fmt: off\nds_config = {\n    \"fp16\": {\n        \"enabled\": True # to half the model precision.\n    },\n    \"zero_optimization\": {\n        \"stage\": 3,\n        \"offload_param\": {\n            \"device\": \"cpu\",\n            \"pin_memory\": True\n        },\n        \"overlap_comm\": True,\n        \"contiguous_gradients\": True,\n        \"reduce_bucket_size\": model_hidden_size * model_hidden_size,\n        \"stage3_prefetch_bucket_size\": 0.9 * model_hidden_size * model_hidden_size,\n        \"stage3_param_persistence_threshold\": 10 * model_hidden_size\n    },\n    \"steps_per_print\": 2000,\n    \"train_batch_size\": train_batch_size,\n    \"train_micro_batch_size_per_gpu\": 1,\n    \"wall_clock_breakdown\": False\n}\n# fmt: on\n# next line instructs transformers to partition the model directly over multiple gpus using",
+        "file_id": 316,
+        "content": "url = \"https://media3.giphy.com/media/wTrXRamYhQzsY/giphy.gif?cid=dda24d502m79hkss38jzsxteewhs4e3ocd3iqext2285a3cq&rid=giphy.gif&ct=g\"\n# url = \"https://media3.giphy.com/media/J9asIpW5apX7cjT2oh/giphy.gif\"\noption = 3\nif option == 1:\n    import yt_dlp\n    # import pyidm\n    path = \"./randomName.mp4\"\n    x = yt_dlp.YoutubeDL({\"outtmpl\":path,'format':'[ext=mp4]'})\n    y = x.download([url])\n    breakpoint()\nelif option == 2:\n    from pySmartDL import SmartDL\n    dest = \"./test.gif\"\n    obj = SmartDL(url, dest, threads=20)\n    obj.start()\n    # [*] 0.23 Mb / 0.37 Mb @ 88.00Kb/s [##########--------] [60%, 2s left]\n    print('DOWNLOAD FINISHED')\n    path = obj.get_dest()\n    print(\"DOWNLOADED AT:\", path)\nelif option == 3:\n    from firedm import FireDM\n    args = [\"-o\",\"./test.gif\", url]\n    settings = FireDM.pars_args(args)\n    urls = settings.pop('url')\n    controller = FireDM.Controller(view_class=FireDM.CmdView, custom_settings=settings)\n    controller.run()\n    controller.cmdline_download(urls, **settings)\n    print('FireDM download complete')",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:93-123"
+        "location": "/tests/pyidm_yd_dlp_download_manager_multithread/test.py:1-31"
     },
     "2843": {
-        "file_id": 317,
-        "content": "This code snippet is initializing a Deepspeed configuration for model training with specific settings. The configuration includes enabling FP16 (half precision) for the model, setting zero optimization stage to 3, and configuring offload parameters such as device and pin memory. Additionally, it specifies steps per print, train batch size, train micro-batch size per GPU, and whether to display wall clock breakdown. This configuration aims to optimize model training on multiple GPUs efficiently.",
+        "file_id": 316,
+        "content": "Code checks the value of 'option' variable and performs different download tasks based on its value. If option is 1, it uses yt_dlp library to download a video file. If option is 2, it uses pySmartDL library to download a GIF file. If option is 3, it uses firedm library for the same purpose. After each download task, it prints the status and downloaded file path.",
         "type": "comment"
     },
     "2844": {
         "file_id": 317,
-        "content": "# deepspeed.zero.Init when model's `from_pretrained` method is called.\n#\n# **it has to be run before loading the model AutoModelForSeq2SeqLM.from_pretrained(model_name)**\n#\n# otherwise the model will first be loaded normally and only partitioned at forward time which is\n# less efficient and when there is little CPU RAM may fail\ndschf = HfDeepSpeedConfig(ds_config)  # keep this object alive\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# now a model can be loaded.\n# model = AutoModelForSeq2SeqLM.from_pretrained(model_name)\nmodel = M2M100ForConditionalGeneration.from_pretrained(modelpath)\n# this will not fuck shit up.\n# initialise Deepspeed ZeRO and store only the engine object\nds_engine = deepspeed.initialize(model=model, config_params=ds_config)[0]\nds_engine.module.eval()  # inference\n# Deepspeed ZeRO can process unrelated inputs on each GPU. So for 2 gpus you process 2 inputs at once.\n# If you use more GPUs adjust for more.\n# And of course if you have just one input to process you then need to pass the same string to both gpus",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:124-146"
+        "content": "/tests/post_numpy_array/server.py",
+        "type": "filepath"
     },
     "2845": {
         "file_id": 317,
-        "content": "The code initializes Deepspeed ZeRO before loading the model and sets the engine object for parallel processing. This ensures efficient usage of resources by partitioning the model at initialization rather than during forward pass, and allows handling multiple inputs on each GPU if available.",
-        "type": "comment"
+        "content": "The code sets up a FastAPI server on port 5463, defines an endpoint that receives an image and returns \"good\", and runs a non-blocking Uvicorn server.",
+        "type": "summary"
     },
     "2846": {
         "file_id": 317,
-        "content": "# # If you use only one GPU, then you will have only rank 0.\n# rank = torch.distributed.get_rank()\n# if rank == 0:\n#     text_in = \"Is this review positive or negative? Review: this is the best cast iron skillet you will ever buy\"\n# elif rank == 1:\n#     text_in = \"Is this review positive or negative? Review: this is the worst restaurant ever\"\n# tokenizer = AutoTokenizer.from_pretrained(model_name)\n# sentence = \"你吃饭了没有\" # You have eaten. from m2m100 418M\ntokenizer = M2M100Tokenizer.from_pretrained(modelpath,src_lang=\"en\",tgt_lang=\"zh\")\n# source = tokenizer.get_lang_id(\"zh\")\n# tokenizer.src_lang = source\nmdevice = torch.device(\"cuda\")\n# tokenizer.to(mdevice)\n# inputs = tokenizer.encode(text_in, return_tensors=\"pt\").to(device=local_rank)\ndef get_response(sentence):\n    text_to_translate =sentence\n    model_inputs = tokenizer(text_to_translate, return_tensors=\"pt\")\n    # inputs = model.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"en\"))\n    model_inputs = {k:model_inputs[k].to(mdevice) for k in model_inputs.keys()}",
+        "content": "SERVER_PORT=5463\nif __name__ == '__main__':\n    # from pydantic import BaseModel\n    # import numpy as np\n    import numpy_serializer\n    # from typing import Union\n    # class Image(BaseModel):\n    #     image:Union[str,bytes]\n    from fastapi import FastAPI, Body\n    app = FastAPI()\n    @app.post(\"/\")\n    def receiveImage(image:bytes=Body(default=None),\n        isBytes:bool =False,\n    encoding:str='utf-8', debug:bool=False):\n        # return book\n        # print('image type:',type(image))\n        # print(image)\n        import urllib.parse\n        image = image.removeprefix(b'image=') # fuck man.\n        image = urllib.parse.unquote_to_bytes(image)\n        if debug:\n            print(\"isBytes:\",isBytes)\n        if not isBytes:\n            image = image.decode(encoding) #fuck?\n            # read image from path, url\n        else:\n            image = numpy_serializer.from_bytes(image)\n        if debug:\n            print('shape?',image.shape)\n            print('image?',image)\n        return \"good\"\n    import uvicorn\n ",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:147-174"
+        "location": "/tests/post_numpy_array/server.py:2-39"
     },
     "2847": {
         "file_id": 317,
-        "content": "This code is setting up the environment for a machine translation task using the M2M100 model. It assigns GPU ranks to different tasks, initializes the tokenizer, and defines a function called \"get_response\" that takes a sentence as input, tokenizes it, prepares inputs for the model, and performs translation. The code is specifically tailored for a CUDA device, meaning it will utilize GPUs for processing.",
+        "content": "This code is setting up a FastAPI server on port 5463. It defines an endpoint at the root (\"/\") that receives an image either in bytes or as a string, and returns \"good\" as a response. The image data can be decoded from bytes using numpy_serializer or read from a file or URL if it's received as a string.",
         "type": "comment"
     },
     "2848": {
         "file_id": 317,
-        "content": "    with torch.no_grad():\n        # outputs = ds_engine.module.generate(inputs, synced_gpus=True)\n        while True:\n            try:\n                gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True).cpu() # whatever. no too heavy lifting.\n                # gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True,top_k=0,num_beams=8,num_return_sequences=1,no_repeat_ngram_size=2,temperature=1.4).cpu() # whatever.\n                # gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True,top_k=0,top_p=0.92,num_beams=5,num_return_sequences=5,no_repeat_ngram_size=2,temperature=0.7).cpu() # whatever.\n                break\n            except:\n                import traceback\n                traceback.print_exc()\n                breakpoint() # translate speed is slow as hell. must do some summarization. or you cover them all.",
+        "content": "   # checking: https://9to5answer.com/python-how-to-use-fastapi-and-uvicorn-run-without-blocking-the-thread\n    def run(host='0.0.0.0',port=SERVER_PORT): \n        \"\"\"\n        This function to run configured uvicorn server.\n        \"\"\"\n        uvicorn.run(app=app, host=host, port=port)\n    run()",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:176-187"
+        "location": "/tests/post_numpy_array/server.py:39-46"
     },
     "2849": {
         "file_id": 317,
-        "content": "This code uses deepspeed engine to generate translated text using a model. It employs different generate() calls with varying parameters (top_k, top_p, num_beams) in a while loop, likely for experimentation purposes. The loop continues until a successful generation is achieved without any exceptions or until a breakpoint is hit, and it handles exceptions by printing the traceback and breaking out of the loop.",
+        "content": "This function runs a configured Uvicorn server non-blocking, allowing concurrent tasks.",
         "type": "comment"
     },
     "2850": {
-        "file_id": 317,
-        "content": "                # you may do this for pictures.\n    # text_out = tokenizer.decode(outputs[0], skip_special_tokens=True)\n    print(\"TRANSLATED:\")\n    return tokenizer.batch_decode(gen_tokens, skip_special_tokens=True)\n# print(get_response(\"你吃饭了没有\"))\n# print(\"PROMPT READY.\")\n# print(\"type exit to exit.\")\n# while True:\n#     targetSentence = input(\"\\nprompt>\")\n#     if \"exit\" not in targetSentence:\n#         result = get_response(targetSentence)\n#         print(result) # this is goddamly working. fuck!\n#     else:\n#         break\n# import time\n# values = []\n# for _ in range(3):\n#     a = time.time()\n#     translate_once()\n#     b = time.time()\n#     value = b-a\n#     # value = timeit.timeit(stmt=\"translate_once()\")\n#     print(\"TIME COST: {}\".format(value))\n#     values.append(value)\n# print(\"TOTAL COST:\",values)\n# print(\"AVERAGE COST:\",sum(values)/len(values))\n# stuck at the end.\n# TOTAL COST: [6.2853310108184814, 4.705244541168213, 4.688654661178589]\n# AVERAGE COST: 5.226410071055095\n# better not to use swap.",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:188-220"
+        "file_id": 318,
+        "content": "/tests/post_numpy_array/client.py",
+        "type": "filepath"
     },
     "2851": {
-        "file_id": 317,
-        "content": "This code is a functional implementation of a DL translator, likely for Chinese to English translation. It takes user input in the form of text and returns the translated output. The code includes batch decoding of tokenizer outputs and handles user input within a while loop. It also measures the time cost and average cost per iteration of the function.",
-        "type": "comment"
+        "file_id": 318,
+        "content": "Importing numpy, requests, and numpy_serializer; using SERVER_PORT from server module; creating a test image array; converting the image to bytes using numpy_serializer; sending the image data as a POST request to localhost; printing the response received. Includes a malformatted docstring function with textwrap usage.",
+        "type": "summary"
     },
     "2852": {
         "file_id": 318,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py",
-        "type": "filepath"
+        "content": "import numpy as np\nimport requests\nimport numpy_serializer\n# this is pure magic. shit.\nfrom server import SERVER_PORT\nimage = np.array([1,2,3])\nimage_bytes = numpy_serializer.to_bytes(image)\ndata = {'image':image_bytes}\nprint(\"BYTES?\", image_bytes)\nr = requests.post(\"http://localhost:{}\".format(SERVER_PORT),data=data,params={'isBytes':True,'debug':True})\nprint('RESPONSE?',r.text)\ndef docstring(): # malformat\n    import textwrap\n    a =\"\"\"\n    lmn\n    abcdefg \n    hijk\n    \"\"\"\n    print(a)\n    print()\n    print(textwrap.dedent(a))\n    # inspect.cleandoc\n    # https://9to5answer.com/how-to-remove-extra-indentation-of-python-triple-quoted-multi-line-strings\ndocstring()",
+        "type": "code",
+        "location": "/tests/post_numpy_array/client.py:1-28"
     },
     "2853": {
         "file_id": 318,
-        "content": "The code uses video processing libraries to read a source video, apply Chinese translation and color reduction to frames, save the processed frames in a dictionary, write JSON result to file, and finally saves the final video with h.264 codec.",
-        "type": "summary"
-    },
-    "2854": {
-        "file_id": 318,
-        "content": "from functional_redraw_chinese_text_offline2 import redraw_english_to_chinese2\nimport cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_json = \"japan_day.json\"\noutput_video = \"japan_day_change_color3.mp4\"\nimport os\nif os.path.exists(output_video): os.remove(output_video)\n# OOM for local translation!\n# this will not work. fucking shit. though ocr is speedy.\n# in this we will get no audio.\n# use ffmpeg and time strencher.\n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\nfourcc = cv2.VideoWriter_fourcc(*'H264') # h.264 # this will fail.\n# fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264\nvideo_writer = cv2.VideoWriter(output_video,fourcc,fps,frame_size)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:1-32"
-    },
-    "2855": {
-        "file_id": 318,
-        "content": "This code imports the necessary modules and sets up variables for video processing. It removes any existing output file, initializes a VideoCapture object to read the source video, determines the video's FPS, frame size, and total frames count, and creates a VideoWriter object with h.264 codec for the output video file.",
+        "content": "Importing numpy, requests, and numpy_serializer; using SERVER_PORT from server module; creating a test image array; converting the image to bytes using numpy_serializer; sending the image data as a POST request to localhost; printing the response received. Includes a malformatted docstring function with textwrap usage.",
         "type": "comment"
     },
+    "2854": {
+        "file_id": 319,
+        "content": "/tests/chatterbot_test/test.py",
+        "type": "filepath"
+    },
+    "2855": {
+        "file_id": 319,
+        "content": "This Python code sets up a Chinese language ChatBot, trains it using provided training data and embeddings, tests its responses, then continuously takes user input in an infinite loop for improved performance.",
+        "type": "summary"
+    },
     "2856": {
-        "file_id": 318,
-        "content": "# frame_index_counter = 0\n# this is determinism.\n# or you could use framedifference? come on...\n# while True:\nimport json\nmjson_result = open(output_json, 'r',encoding='utf8').read()\nmjson_result = json.loads(mjson_result)\nimport copy\n# use some tweening? pytweening?\n# from test_curve_converter import curve_converter\n    # for index, (orig, target) in enumerate(curve_function):\n    #     if value <= orig:\n    #         forig,ftarget = curve_function[index+1]\n    #         if value == orig: return target\n    #         elif value <=forig:\n    #             if value ==forig: return ftarget\n    #             else:\n    #                 loc = (value-orig)/(forig-orig)\n    #                 new_diff = loc*(ftarget-target)\n    #                 new_value = target+new_diff\n    #                 return new_value\n    # return curve_function[-1][1]\n# def remove_much_red(image,curve_function):\n#     target = copy.copy(image[:,:,2])\n#     target = curve_converter(target,curve_function)\n#     image[:,:,2] = target\n#     return image",
+        "file_id": 319,
+        "content": "#!/usr/bin/python\nimport os\n# looks like the only option we have is to forget the dialog in the past and retrain.\n# there is no native 'forget' option.\n# we use md5 to represent the image.\ndb_path = \"db.sqlite3\"\nif os.path.exists(db_path):\n    os.remove(db_path)\n# 手动设置一些语料\nfrom chatterbot import ChatBot\nfrom chatterbot.trainers import ListTrainer\nChinese_bot = ChatBot(\"Training demo\")\n# already trained on these shits.\n# these shits are not needed for our bot.\n# from chatterbot.trainers import ChatterBotCorpusTrainer\n# Create a new trainer for the chatbot\n# trainer = ChatterBotCorpusTrainer(Chinese_bot)\n# trainer.train(\"chatterbot.corpus.chinese\")\n# trainer.train(\"chatterbot.corpus.english\")\nlist_trainer = ListTrainer(Chinese_bot)\ntrainset_0 = [\n    \"你好\",\n    \"你好\",\n    \"有什么能帮你的？\",\n    \"想买数据科学的课程\",\n    \"具体是数据科学哪块呢？\" \"机器学习\",\n]\nimport random\nspeakers = [\"asoul\", \"猫猫\", \"小狗\"]\nimport uuid\nimages = [str(uuid.uuid4()) for _ in range(4)]\nembeddings = [\"猫咪\", \"绝对领域\", \"涩图\"]\nr = lambda mlist: random.choice(mlist)\ncontents = ['今天倒了血霉了',\"买兴业银行\",\"和家里借钱\"]",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:34-62"
+        "location": "/tests/chatterbot_test/test.py:1-40"
     },
     "2857": {
-        "file_id": 318,
-        "content": "Code imports json and copy libraries, reads a JSON file and converts its contents. It defines a function for curve conversion and a potential function for removing excessive red from an image.",
+        "file_id": 319,
+        "content": "The code is setting up a ChatBot in Python, specifically for the Chinese language. It first removes an existing database file and then manually sets some training data for the bot. The training data consists of a list of phrases and speakers, along with randomly assigned image IDs and embeddings. Additionally, there is a list of contents that may be related to the training or usage of the bot.",
         "type": "comment"
     },
     "2858": {
-        "file_id": 318,
-        "content": "def remove_much_red_with_rate(image,reduce_rate = 0.8):\n    target = copy.copy(image[:,:,2])\n    target = target*(1-reduce_rate)\n    image[:,:,2] = target\n    return image\n# curve_function = [[0,0],[40,30],[100,50],[150,100],[255,130]]\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?\n    success, frame = video_cap.read() # let's just use 1, no frame skip.\n    if not success: break\n    # print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file\n    string_frame_index_counter = str(frame_index_counter)  #inpainting is still slow somehow. freaking shit. though i have the freaking shit.\n    # maybe you can improvise.\n    # this is done purely in CPU.\n    processed_frame_data = mjson_result[string_frame_index_counter]# fucking string key.\n    processed_frame = redraw_english_to_chinese2(frame,processed_frame_data) # step 1\n    processed_frame = remove_much_red_with_rate(processed_frame)\n    # mjson_result.update({frame_index_counter:processed_frame_data})",
+        "file_id": 319,
+        "content": "trainset_1 = [ # make sure our names/embeddings/hashes are wrapped in spaces.\n    \"[[speaker] {} ] [[image] {} [embedding] {} ] {}\".format(\n        r(speakers),r(images), r(embeddings),r(contents)\n    )\n    for _ in range(20)\n]\nlist_trainer.train(trainset_0)\n# test if the bot will say what i have taught it before.\n# 测试一下\nquestion = \"你好\"\nprint(question)\nresponse = Chinese_bot.get_response(question)\nprint(response)\n# question: will this chatbot get infinitely large so we have to train another one?\nprint(\"\\n\")\nquestion = \"请问哪里能买数据科学的课程\"\nprint(question)\nresponse = Chinese_bot.get_response(question)\nprint(response)\nlist_trainer.train(trainset_1)\nwhile True:\n    question = input(\"> \")\n    response = Chinese_bot.get_response(question)\n    print(response)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:64-83"
+        "location": "/tests/chatterbot_test/test.py:41-72"
     },
     "2859": {
-        "file_id": 318,
-        "content": "The code reads a video frame by frame and applies two transformations: redrawing English to Chinese (step 1) and reducing the intensity of red color with a certain rate. The progress bar indicates the processing progress, and the processed frames are stored in a dictionary using frame index as the key.",
+        "file_id": 319,
+        "content": "This code trains a chatbot using provided training data and embeddings. It then tests the chatbot's responses to specific questions in Chinese. After that, it enters an infinite loop where it continuously takes user input, gets the chatbot's response, and prints them out. The training process can be repeated with new data to improve the chatbot's performance.",
         "type": "comment"
     },
     "2860": {
-        "file_id": 318,
-        "content": "    video_writer.write(processed_frame) # what frame?\n    # frame_index_counter+=1\n    # cv2.imshow(\"image\",processed_frame) #\n    # # cv2.waitKey(1) # not wait infinitely.\n    # if cv2.waitKey(20) == ord('q'):\n    #     break\n# with open(output_json,\"w+\",encoding=\"utf-8\") as f:\n#     data = json.dumps(mjson_result,indent=4)\n#     f.write(data)\n# cv2.close\nprint(\"VIDEO DONE. SAVED AT:\",output_video)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:84-95"
-    },
-    "2861": {
-        "file_id": 318,
-        "content": "This code writes the processed frame to the video, increments the frame index counter, displays the processed frame using OpenCV's imshow function, waits for a 'q' key press to break the loop, and finally writes the JSON result data to the file. The video is then saved at the specified output_video location.",
-        "type": "comment"
-    },
-    "2862": {
-        "file_id": 319,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py",
+        "file_id": 320,
+        "content": "/tests/chatterbot_test/README.md",
         "type": "filepath"
     },
-    "2863": {
-        "file_id": 319,
-        "content": "The code translates text, applies color correction, and processes frames from a video using ffmpeg and OpenCV for display and waiting for user input.",
+    "2861": {
+        "file_id": 320,
+        "content": "The code is indicating that the 'chatterbot' library requires training and should be replaced with an original 'levenshtein' based repeater bot. It also warns about potential Out Of Memory (OOM) issues when using 'chatterbot' alongside 'spacy', suggesting to reserve its use temporarily. The sentence-based vector search might be a better alternative than 'chatterbot'. Additionally, the code mentions installing 'chatterbot' without any dependencies.",
         "type": "summary"
     },
-    "2864": {
-        "file_id": 319,
-        "content": "from functional_redraw_chinese_text_offline2 import redraw_english_to_chinese2\nimport cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_json = \"japan_day.json\"\noutput_video = \"japan_day_change_color2.mp4\"\nimport os\nif os.path.exists(output_video): os.remove(output_video)\n# OOM for local translation!\n# this will not work. fucking shit. though ocr is speedy.\n# in this we will get no audio.\n# use ffmpeg and time strencher.\n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\n# fourcc = cv2.VideoWriter_fourcc(*'H264') # h.264\n# fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264 \n# this is builtin ffmpeg. not external shits.\n# video_writer = cv2.VideoWriter(output_video,fourcc,fps,frame_size)",
+    "2862": {
+        "file_id": 320,
+        "content": "this library needs to be trained. also we need to replace this with the original 'levenshtein' based repeater bot.\nwarning: chatterbot use spacy. it may leads to OOM. better reserve its use for now. maybe the sentence bert based vector search is better than chatterbot. maybe you want to also replace this with the GPT based dialog bot.\ni install chatterbot without dependencies.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:1-33"
+        "location": "/tests/chatterbot_test/README.md:1-5"
     },
-    "2865": {
-        "file_id": 319,
-        "content": "The code is preparing to process a video file frame by frame for translation. It imports necessary libraries, checks if the output video exists and deletes it, obtains video properties, and sets up variables for further processing. The code also comments on possible issues and suggests using ffmpeg for audio and video processing.",
+    "2863": {
+        "file_id": 320,
+        "content": "The code is indicating that the 'chatterbot' library requires training and should be replaced with an original 'levenshtein' based repeater bot. It also warns about potential Out Of Memory (OOM) issues when using 'chatterbot' alongside 'spacy', suggesting to reserve its use temporarily. The sentence-based vector search might be a better alternative than 'chatterbot'. Additionally, the code mentions installing 'chatterbot' without any dependencies.",
         "type": "comment"
     },
+    "2864": {
+        "file_id": 321,
+        "content": "/tests/patch_requests_timeout/server.py",
+        "type": "filepath"
+    },
+    "2865": {
+        "file_id": 321,
+        "content": "This code sets up a FastAPI server using uvicorn, listens on port 9341, and has a single route (\"/\") that returns \"hello world\" after a 10-second delay. The run() function is used to start the configured uvicorn server.",
+        "type": "summary"
+    },
     "2866": {
-        "file_id": 319,
-        "content": "# frame_index_counter = 0\n# this is determinism.\n# or you could use framedifference? come on...\n# while True:\nimport json\nmjson_result = open(output_json, 'r',encoding='utf8').read()\nmjson_result = json.loads(mjson_result)\nimport copy\n# use some tweening? pytweening?\nfrom test_curve_converter import curve_converter\n    # for index, (orig, target) in enumerate(curve_function):\n    #     if value <= orig:\n    #         forig,ftarget = curve_function[index+1]\n    #         if value == orig: return target\n    #         elif value <=forig:\n    #             if value ==forig: return ftarget\n    #             else:\n    #                 loc = (value-orig)/(forig-orig)\n    #                 new_diff = loc*(ftarget-target)\n    #                 new_value = target+new_diff\n    #                 return new_value\n    # return curve_function[-1][1]\ndef remove_much_red(image,curve_function):\n    target = copy.copy(image[:,:,2])\n    target = curve_converter(target,curve_function)\n    image[:,:,2] = target\n    return image\ndef remove_much_red_with_rate(image,reduce_rate = 0.8):",
+        "file_id": 321,
+        "content": "SERVER_PORT = 9341\nif __name__ == \"__main__\":\n    from fastapi import FastAPI\n    app = FastAPI()\n    import time\n    @app.get(\"/\")\n    def receiveImage():\n        time.sleep(10)\n        return \"hello world\"\n    import uvicorn\n    # checking: https://9to5answer.com/python-how-to-use-fastapi-and-uvicorn-run-without-blocking-the-thread\n    def run(host='0.0.0.0',port=SERVER_PORT): \n        \"\"\"\n        This function to run configured uvicorn server.\n        \"\"\"\n        uvicorn.run(app=app, host=host, port=port)\n    run()",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:35-65"
+        "location": "/tests/patch_requests_timeout/server.py:1-21"
     },
     "2867": {
-        "file_id": 319,
-        "content": "The code defines a function, `remove_much_red`, which takes an image and curve function as parameters. It applies the given curve function to the red channel of the image, effectively reducing the intensity of red colors. The code also includes another function, `remove_much_red_with_rate`, that allows for adjusting the reduction rate of red colors in images. Both functions modify the image by changing the values of its red channel based on a given curve function or reduction rate.",
+        "file_id": 321,
+        "content": "This code sets up a FastAPI server using uvicorn, listens on port 9341, and has a single route (\"/\") that returns \"hello world\" after a 10-second delay. The run() function is used to start the configured uvicorn server.",
         "type": "comment"
     },
     "2868": {
-        "file_id": 319,
-        "content": "    target = copy.copy(image[:,:,2])\n    target = target*(1-reduce_rate)\n    image[:,:,2] = target\n    return image\ncurve_function = [[0,0],[40,30],[100,50],[150,100],[255,130]]\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?\n    success, frame = video_cap.read() # let's just use 1, no frame skip.\n    if not success: break\n    # print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file\n    string_frame_index_counter = str(frame_index_counter)  #inpainting is still slow somehow. freaking shit. though i have the freaking shit.\n    # maybe you can improvise.\n    # this is done purely in CPU.\n    processed_frame_data = mjson_result[string_frame_index_counter]# fucking string key.\n    processed_frame = redraw_english_to_chinese2(frame,processed_frame_data) # step 1\n    processed_frame = remove_much_red(processed_frame,curve_function)\n    # mjson_result.update({frame_index_counter:processed_frame_data})\n    # video_writer.write(processed_frame) # what frame?",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:66-85"
+        "file_id": 322,
+        "content": "/tests/patch_requests_timeout/client.py",
+        "type": "filepath"
     },
     "2869": {
-        "file_id": 319,
-        "content": "The code reads frames from a video and applies color correction using a curve function. It also translates text on the frames and processes them. The progress bar shows the current frame being processed, and if a frame can't be read, the loop breaks. Finally, the processed frames are saved to an output file.",
-        "type": "comment"
+        "file_id": 322,
+        "content": "This code patches the requests library to set a default timeout for all requests made using it. It uses patchy module to modify the HTTPAdapter's send method, checking if a timeout is provided and setting it to REQUESTS_TIMEOUT (3 seconds) if none is given. The patch is then applied using the patchy module.",
+        "type": "summary"
     },
     "2870": {
-        "file_id": 319,
-        "content": "    # frame_index_counter+=1\n    cv2.imshow(\"image\",processed_frame) #\n    # # cv2.waitKey(1) # not wait infinitely.\n    if cv2.waitKey(20) == ord('q'):\n        break\n# with open(output_json,\"w+\",encoding=\"utf-8\") as f:\n#     data = json.dumps(mjson_result,indent=4)\n#     f.write(data)\n# cv2.close\nprint(\"VIDEO DONE. SAVED AT:\",output_video)",
+        "file_id": 322,
+        "content": "import patchy\nfrom requests.adapters import HTTPAdapter\nREQUESTS_TIMEOUT=3 # working! great.\ndef patch_requests_default_timeout() -> None:\n    \"\"\"\n    Set a default timeout for all requests made with “requests”.\n    Upstream is waiting on this longstanding issue:\n    https://github.com/psf/requests/issues/3070\n    \"\"\"\n    patchy.patch(\n        HTTPAdapter.send,\n        f\"\"\"\\\n        @@ -14,6 +14,8 @@\n             :param proxies: (optional) The proxies dictionary to apply to the request.\n             :rtype: requests.Response\n             \\\"\"\"\n        +    if timeout is None:\n        +        timeout = {REQUESTS_TIMEOUT}\n             try:\n                 conn = self.get_connection(request.url, proxies)\n        \"\"\",\n    )\npatch_requests_default_timeout()\nimport requests\nfrom server import SERVER_PORT\nr = requests.get(f\"http://localhost:{SERVER_PORT}\")",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:87-96"
+        "location": "/tests/patch_requests_timeout/client.py:2-36"
     },
     "2871": {
-        "file_id": 319,
-        "content": "This code displays a processed frame on the screen, waits for 20 milliseconds for input to break the loop, and saves the final video. It uses OpenCV to display frames and wait for user input to stop the process.",
+        "file_id": 322,
+        "content": "This code patches the requests library to set a default timeout for all requests made using it. It uses patchy module to modify the HTTPAdapter's send method, checking if a timeout is provided and setting it to REQUESTS_TIMEOUT (3 seconds) if none is given. The patch is then applied using the patchy module.",
         "type": "comment"
     },
     "2872": {
-        "file_id": 320,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor.py",
+        "file_id": 323,
+        "content": "/tests/bilibili_tag_recommend_activities/README.md",
         "type": "filepath"
     },
     "2873": {
-        "file_id": 320,
-        "content": "This code reads frames from a video, translates each frame using the redraw_english_to_chinese function, updates a dictionary with frame data, and saves the processed frames to an output JSON file. The process stops when no more frames can be read or if 'q' is pressed.",
+        "file_id": 323,
+        "content": "Code snippet provides a link to another file, \"bilibili_up.py\", which contains information on how to get the 'upload_id' in bilibili API.",
         "type": "summary"
     },
     "2874": {
-        "file_id": 320,
-        "content": "import cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_json = \"japan_day.json\"\n# output_video = \"japan_day_translated.mp4\"\n# OOM for local translation!\n# in this we will get no audio.\n# use ffmpeg and time strencher.\nfrom functional_redraw_chinese_text_offline import redraw_english_to_chinese\n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\nfourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264\n# video_writer =cv2.VideoWriter(output_video,fourcc,fps,frame_size)\n# frame_index_counter = 0\n# this is determinism.\n# or you could use framedifference? come on...\n# while True:\nimport json\nmjson_result = {}\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?",
+        "file_id": 323,
+        "content": "[how to get upload_id](https://github.com/xunsword/bilibil/blob/2abf66a9771daebc12c181f88d8af82613975548/bilibili_up.py)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor.py:1-34"
+        "location": "/tests/bilibili_tag_recommend_activities/README.md:1-1"
     },
     "2875": {
-        "file_id": 320,
-        "content": "The code is reading a video file, extracting frame-by-frame information including FPS, frame width, height, and the total number of frames. It initializes variables for output JSON result and a potential output video (currently commented out). The code uses progress bar to iterate through each frame, but the actual translation process is missing from the given code snippet. The original task seems to be long and might require a lot of computation resources.",
+        "file_id": 323,
+        "content": "Code snippet provides a link to another file, \"bilibili_up.py\", which contains information on how to get the 'upload_id' in bilibili API.",
         "type": "comment"
     },
     "2876": {
-        "file_id": 320,
-        "content": "    success, frame = video_cap.read() # let's just use 1, no frame skip.\n    if not success: break\n    print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file\n    processed_frame_data= redraw_english_to_chinese(frame) # step 1\n    mjson_result.update({frame_index_counter:processed_frame_data})\n    # video_writer.write(processed_frame) # what frame?\n    # frame_index_counter+=1\n    # if cv2.waitKey(20) == ord('q'):\n        # break\nwith open(output_json,\"w+\",encoding=\"utf-8\") as f:\n    data = json.dumps(mjson_result,indent=4)\n    f.write(data)\nprint(\"VIDEO DONE ANALYSING. SAVED AT:\",output_json)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor.py:35-48"
-    },
-    "2877": {
-        "file_id": 320,
-        "content": "This code reads frames from a video, processes one frame at a time by translating it using the redraw_english_to_chinese function, updates a dictionary with frame data, and saves the processed frames to an output JSON file. The process stops when no more frames can be read or if 'q' is pressed.",
-        "type": "comment"
-    },
-    "2878": {
-        "file_id": 321,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_iterator_copy.py",
+        "file_id": 324,
+        "content": "/tests/remove_subtle_watermark_local_contrast_ocr/test.py",
         "type": "filepath"
     },
-    "2879": {
-        "file_id": 321,
-        "content": "This code reads video frames, prints their indices, and writes them to an output file using video_writer. It tracks progress with a progress bar and checks for keypresses to exit. Upon completion, it displays the saved location as VIDEO DONE message.",
+    "2877": {
+        "file_id": 324,
+        "content": "This code imports the necessary library, Image, from wand. It opens and processes an image file called 'IWWS.jpeg'. The image is cloned and processed with local_contrast function at different radius and sigma values to enhance the contrast and text visibility. The resulting images are saved as 'local_contrast1.jpg' and 'local_contrast2.jpg'.",
         "type": "summary"
     },
-    "2880": {
-        "file_id": 321,
-        "content": "import cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_video = \"japan_day_copy.mp4\"\n# in this we will get no audio.\n# use ffmpeg and time strencher.\n# from functional_redraw_chinese_text_offline import \n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\nfourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264\nvideo_writer =cv2.VideoWriter(output_video,fourcc,fps,frame_size)\n# frame_index_counter = 0\n# while True:\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?\n    success, frame = video_cap.read()\n    if not success: break\n    print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file",
+    "2878": {
+        "file_id": 324,
+        "content": "# Import library from Image\nfrom wand.image import Image\n# Import the image\n# 2160x1080\n# the original image scale.\nwith Image(filename ='IWWS.jpeg') as image:\n\t# Clone the image in order to process\n\twith image.clone() as local_contrast:\n        # radius is related to text size and picture size.\n\t\t# Invoke local_contrast function with radius 12 and sigma 3\n\t\tlocal_contrast.local_contrast(4, 150) # radius, sigma\n\t\t# Save the image\n\t\tlocal_contrast.save(filename ='local_contrast1.jpg')\n\t\tlocal_contrast.local_contrast(8, 75) # radius, sigma\n\t\tlocal_contrast.local_contrast(12, 75) # radius, sigma\n\t\tlocal_contrast.save(filename ='local_contrast2.jpg')",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_iterator_copy.py:1-31"
+        "location": "/tests/remove_subtle_watermark_local_contrast_ocr/test.py:1-18"
     },
-    "2881": {
-        "file_id": 321,
-        "content": "This code reads a video file, gets its frame properties like FPS and dimensions, creates an output video file with the same format, then iterates through each frame of the input video, printing its index while processing it. It uses a progress bar for tracking frame index in a loop, but there's a potential issue with the usage of the range function (the video might not have that many frames). Finally, it writes each processed frame to the output file.",
+    "2879": {
+        "file_id": 324,
+        "content": "This code imports the necessary library, Image, from wand. It opens and processes an image file called 'IWWS.jpeg'. The image is cloned and processed with local_contrast function at different radius and sigma values to enhance the contrast and text visibility. The resulting images are saved as 'local_contrast1.jpg' and 'local_contrast2.jpg'.",
         "type": "comment"
     },
+    "2880": {
+        "file_id": 325,
+        "content": "/tests/remove_subtle_watermark_local_contrast_ocr/README.md",
+        "type": "filepath"
+    },
+    "2881": {
+        "file_id": 325,
+        "content": "This code snippet discusses an issue where watermarks in certain image formats (using wand or darktable) can be recognized even after local contrast enhancement. The original method failed to remove these watermarks. Additionally, the pymusica library does not currently support colored images, as mentioned in a GitHub issue.",
+        "type": "summary"
+    },
     "2882": {
-        "file_id": 321,
-        "content": "    video_writer.write(frame) # what frame?\n    # frame_index_counter+=1\n    # if cv2.waitKey(20) == ord('q'):\n        # break\nprint(\"VIDEO DONE. SAVED AT:\",output_video)",
+        "file_id": 325,
+        "content": "watermarks inside wand enhanced picture, darktable local contrast enhanced pictures can be recognized. the original one failed.\npymusica currently does not support colored images.\nhttps://github.com/lafith/pymusica/issues/2",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_iterator_copy.py:32-36"
+        "location": "/tests/remove_subtle_watermark_local_contrast_ocr/README.md:1-5"
     },
     "2883": {
-        "file_id": 321,
-        "content": "Writes frames to video file using video_writer, counts frame index, checks for keypress to exit. VIDEO DONE message with saved location output_video.",
+        "file_id": 325,
+        "content": "This code snippet discusses an issue where watermarks in certain image formats (using wand or darktable) can be recognized even after local contrast enhancement. The original method failed to remove these watermarks. Additionally, the pymusica library does not currently support colored images, as mentioned in a GitHub issue.",
         "type": "comment"
     },
     "2884": {
-        "file_id": 322,
-        "content": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py",
+        "file_id": 326,
+        "content": "/tests/remove_subtle_watermark_local_contrast_ocr/opencv_clahe.py",
         "type": "filepath"
     },
     "2885": {
-        "file_id": 322,
-        "content": "This code converts text to speech audio using PaddleSpeech, merges and normalizes audio segments, generates voice and video files, and exports final videos with background music.",
+        "file_id": 326,
+        "content": "This code enhances image contrast using OpenCV's CLAHE on the L channel, then saves the result as \"clahe_image.jpeg\" and \"clahe_image_double.jpeg\". The code also includes thresholding and image display steps which may be unrelated to the main operation of applying CLAHE.",
         "type": "summary"
     },
     "2886": {
-        "file_id": 322,
-        "content": "import os\nfrom test_common import *\ndef split_sentences(sent):\n    spliters = \"\\n，。、\"\n    cursent = \"\"\n    results = []\n    for elem in sent:\n        cursent += elem\n        if elem in spliters:\n            results.append(cursent)\n            cursent = \"\"\n    if len(cursent) > 0:\n        results.append(cursent)\n    return results\ndef get_speech(sent,output):\n    assert output.endswith(\".wav\")\n    with open(\"temp.txt\", \"w+\",encoding=\"utf-8\") as f:\n        f.write(sent)\n    os.system(\"cat temp.txt | paddlespeech tts --output {}\".format(output))\nfrom pydub import AudioSegment\nfrom functional_gen_typo_video_seq import gen_video\ndef merge_audio(asegs):\n    audio_3 = AudioSegment.empty() #shit\n    for seg in asegs:\n        try:\n            audio_3 = audio_3.append(seg,crossfade=100) # also shit.\n        except:\n            audio_3 = audio_3.append(seg,crossfade=0) # also shit.\n    return audio_3\n    # audio_3.export(\"audio_3.wav\", format=\"wav\")\nif __name__ == \"__main__\":\n    sents = split_sentences(demo_text)\n    # breakpoint()",
+        "file_id": 326,
+        "content": "# https://www.geeksforgeeks.org/clahe-histogram-eqalization-opencv/\nimport cv2\n# import numpy as np\n# Reading the image from the present directory\ncolorimage = cv2.imread(\"IWWS.jpeg\")\n# Resizing the image for compatibility\n# image = cv2.resize(image, (500, 600))\n# why?\n# The initial processing of the image\n# image = cv2.medianBlur(image, 3)\n# image_bw = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)\n# The declaration of CLAHE\n# clipLimit -> Threshold for contrast limiting\nclahe_model = cv2.createCLAHE(clipLimit = 5)\n# you may use grayscale image for the luminosity output.\n# final_img = clahe.apply(image)\n# For ease of understanding, we explicitly equalize each channel individually\n## highly unstable. do not use.\n# colorimage_b = clahe_model.apply(colorimage[:,:,0])\n# colorimage_g = clahe_model.apply(colorimage[:,:,1])\n# colorimage_r = clahe_model.apply(colorimage[:,:,2])\nimg = cv2.cvtColor(colorimage, cv2.COLOR_RGB2Lab)\n#configure CLAHE\n# clahe = cv2.createCLAHE(clipLimit=12,tileGridSize=(10,10))\nclahe = cv2.createCLAHE(clipLimit=10,tileGridSize=(8,8))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:1-38"
+        "location": "/tests/remove_subtle_watermark_local_contrast_ocr/opencv_clahe.py:1-36"
     },
     "2887": {
-        "file_id": 322,
-        "content": "This code performs text-to-speech (TTS) conversion and merges audio segments. It first splits a given sentence into individual sentences, then uses PaddleSpeech to convert the text to speech audio, which is saved with .wav extension. The resulting audio segments are merged using PyDub's AudioSegment module, allowing for seamless crossfades between audio chunks.",
+        "file_id": 326,
+        "content": "This code is for image processing using OpenCV's Contrast Limited Adaptive Histogram Equalization (CLAHE) to enhance the contrast of an input image. It reads the image, applies CLAHE on each RGB channel separately, and then converts the result back to Lab color space. The parameters clipLimit and tileGridSize are used for customizing the CLAHE algorithm.",
         "type": "comment"
     },
     "2888": {
-        "file_id": 322,
-        "content": "    voice_dir = \"voice\"\n    video_dir = \"video\"\n    os.system(\"rm -rf {}\".format(voice_dir))\n    os.system(\"rm -rf {}\".format(video_dir))\n    os.mkdir(\"{}\".format(voice_dir))\n    os.mkdir(\"{}\".format(video_dir))\n    index = 0\n    voice_clips = []\n    video_names = []\n    for i,sent in enumerate(sents):\n        print(\"READING:\",sent)\n        aname = \"{}/{}.wav\".format(voice_dir,i)\n        get_speech(sent,aname)\n        seg = AudioSegment.from_wav(aname)\n        duration = seg.duration_seconds\n        voice_clips.append(seg)\n        # get the duration you fuck.\n        # breakpoint()\n        lsent = len(sent)\n        current_indexs = list(range(index,index+lsent))\n        index += lsent\n        # you can generate video for it.\n        vname = \"{}/{}.mp4\".format(video_dir,i)\n        gen_video(vname,current_indexs,duration)\n        video_names.append(vname)\n    # and finally?\n    final_video = \"{}/final_video.mp4\".format(video_dir)\n    final_audio = \"{}/final_audio.wav\".format(voice_dir)\n    audio_merged = merge_audio(voice_clips)",
+        "file_id": 326,
+        "content": "# better?\n# https://www.appsloveworld.com/opencv/100/1/how-to-apply-clahe-on-rgb-color-images\n#0 to 'L' channel, 1 to 'a' channel, and 2 to 'b' channel\nimg[:,:,0] = clahe.apply(img[:,:,0])\nsimg = cv2.cvtColor(img, cv2.COLOR_Lab2RGB)\ncv2.imwrite(\"clahe_image.jpeg\", simg)\nimg[:,:,0] = clahe.apply(img[:,:,0])\nsimg = cv2.cvtColor(img, cv2.COLOR_Lab2RGB)\ncv2.imwrite(\"clahe_image_double.jpeg\", simg)\n# still need this?\n# img[:,:,1] = clahe.apply(img[:,:,1])\n# img[:,:,2] = clahe.apply(img[:,:,2])\n# colorimage_clahe = np.stack((colorimage_b,colorimage_g,colorimage_r), axis=2)\n# Ordinary thresholding the same image\n# _, ordinary_img = cv2.threshold(image_bw, 155, 255, cv2.THRESH_BINARY)\n# Showing all the three images\n# cv2.imshow(\"ordinary threshold\", ordinary_img)\n# cv2.imshow(\"CLAHE image\", final_img)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:39-68"
+        "location": "/tests/remove_subtle_watermark_local_contrast_ocr/opencv_clahe.py:38-61"
     },
     "2889": {
-        "file_id": 322,
-        "content": "This code clears the \"voice\" and \"video\" directories, creates new ones, reads each sentence from the input, converts it to audio, generates a video for each sentence, appends the corresponding audio clip and video name to their respective lists, and then merges all audio clips. The final video and audio files are named accordingly.",
+        "file_id": 326,
+        "content": "Code applies CLAHE to an image, converts it back to RGB, and saves the result as \"clahe_image.jpeg\". It then applies CLAHE again for double effect, saving the result as \"clahe_image_double.jpeg\". The comments suggest that applying CLAHE to all color channels might be unnecessary and retaining the comment about it indicates that only L channel requires CLAHE. The code also includes thresholding and image display steps which seem unrelated to the main operation of applying CLAHE.",
         "type": "comment"
     },
     "2890": {
-        "file_id": 322,
-        "content": "    bgm_path = \"/root/Desktop/works/bilibili_tarot/some_bgm.mp3\"\n    bgm = AudioSegment.from_mp3(bgm_path)\n    # duration2 = audio_merged.duration_seconds\n    # bgm = bgm[:duration2*1000] # really?\n    # breakpoint()\n    # audio_merged = audio_merged.overlay(audio_merged,bgm,loop=True)  #wtf?\n    audio_merged = audio_merged.overlay(bgm,loop=True)\n    # audio_merged = audio_merged.normalize()\n    # is it needed?\n    # shit.\n    audio_merged.export(final_audio, format=\"wav\")\n    final_video2 = \"{}/final_video2.mp4\".format(video_dir)\n    with open(\"mylist.txt\",\"w+\") as f:\n        for n in video_names:\n            f.write(\"file \"+n+\"\\n\")\n    os.system(\"ffmpeg -f concat -safe 0 -i mylist.txt -c copy {}\".format(final_video))\n    os.system(\"ffmpeg -i {} -i {} -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 {}\".format(final_video,final_audio,final_video2))",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:69-87"
+        "file_id": 327,
+        "content": "/tests/remove_subtle_watermark_local_contrast_ocr/mclahe_test.py",
+        "type": "filepath"
     },
     "2891": {
-        "file_id": 322,
-        "content": "The code imports audio files, merges them, normalizes the volume, and exports the final audio as a wav file. It then creates a mylist.txt file containing the video names, and uses ffmpeg to concatenate videos with the background music and export the final video2 in mp4 format.",
-        "type": "comment"
+        "file_id": 327,
+        "content": "This code imports the mclahe module and OpenCV library, reads an image, applies MCLAHE (Max Contrast Limited Averaging Hierarchical Equalization) using a specific kernel size, but fails to produce the expected result. Finally, it writes the processed image as \"clahe_image_mclahe.jpeg\".",
+        "type": "summary"
     },
     "2892": {
-        "file_id": 323,
-        "content": "/tests/bilibili_practices/bilibili_tarot/test_common.py",
-        "type": "filepath"
+        "file_id": 327,
+        "content": "import mclahe\nimport cv2\ncolorimage = cv2.imread(\"IWWS.jpeg\")\n# print(colorimage.shape)\nk = (30,30,1)\ncolorimage_clahe = mclahe.mclahe(colorimage, kernel_size=k) # not working! what the fuck?\ncv2.imwrite(\"clahe_image_mclahe.jpeg\", colorimage_clahe)",
+        "type": "code",
+        "location": "/tests/remove_subtle_watermark_local_contrast_ocr/mclahe_test.py:1-11"
     },
     "2893": {
-        "file_id": 323,
-        "content": "The code sets the http and https proxies to empty strings, preventing any proxy usage, and assigns a demo text for use in testing.",
-        "type": "summary"
-    },
-    "2894": {
-        "file_id": 323,
-        "content": "import os\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\ndemo_text = \"事情的开始，行动的改变，熟练的技术及技巧，贯彻我的意志，运用自然的力量来达到野心。\"",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/test_common.py:1-6"
-    },
-    "2895": {
-        "file_id": 323,
-        "content": "The code sets the http and https proxies to empty strings, preventing any proxy usage, and assigns a demo text for use in testing.",
+        "file_id": 327,
+        "content": "This code imports the mclahe module and OpenCV library, reads an image, applies MCLAHE (Max Contrast Limited Averaging Hierarchical Equalization) using a specific kernel size, but fails to produce the expected result. Finally, it writes the processed image as \"clahe_image_mclahe.jpeg\".",
         "type": "comment"
     },
-    "2896": {
-        "file_id": 324,
-        "content": "/tests/bilibili_practices/bilibili_tarot/test_command.sh",
+    "2894": {
+        "file_id": 328,
+        "content": "/tests/remove_subtle_watermark_local_contrast_ocr/jython_imagej_test_clahe.py",
         "type": "filepath"
     },
-    "2897": {
-        "file_id": 324,
-        "content": "This code is using the melt command to combine multiple screenshots into a single video file with transitions. It uses the \"composite\" and \"mix\" transitions, applies distortion effects, and outputs the final result at 60 FPS. The output is saved as a consumer XML file.",
+    "2895": {
+        "file_id": 328,
+        "content": "The code sets the system path, imports modules for image processing, and enhances local contrast using CLAHE. It opens an image, applies enhancement twice, saves as grayscale, and saves two output files.",
         "type": "summary"
     },
-    "2898": {
-        "file_id": 324,
-        "content": "melt -track \"color:#000000\" out=0 -track /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0000.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -track -blank :0.570312 /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0001.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -track -blank :1.140625 /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0002.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -track -blank :1.710938 /root/Desktop/works/bilibili_tarot/demo_typography/screenshot0003.png in=\":0.000000\" out=\":0.570312\" output_fps=\"60\" -transition composite distort=0 a_track=0 b_track=1 -transition mix a_track=0 b_track=1 -transition composite distort=0 a_track=0 b_track=2 -transition mix a_track=0 b_track=2 -transition composite distort=0 a_track=0 b_track=3 -transition mix a_track=0 b_track=3 -transition composite distort=0 a_track=0 b_track=4 -transition mix a_track=0 b_track=4 -consumer xml",
+    "2896": {
+        "file_id": 328,
+        "content": "import os\nimport sys\ncpdirs = [\n    \"/root/Desktop/works/pyjom/tests/remove_subtle_watermark_local_contrast_ocr/imagej_fiji_linux/Fiji.app/jars/\",\n    \"/root/Desktop/works/pyjom/tests/remove_subtle_watermark_local_contrast_ocr/imagej_fiji_linux/Fiji.app/plugins/\",\n]\nfor d in cpdirs:\n    abspath = os.path.abspath(d)\n    files = os.listdir(abspath)\n    jars = [f for f in files if f.endswith(\".jar\")]\n    for f in jars:\n        abs_jarpath = os.path.join(abspath, f)\n        sys.path.append(abs_jarpath)\n# now begin work.\nfrom ij import IJ\n# import os\nfrom mpicbg.ij.clahe import Flat\nfrom ij.process import ImageConverter\n# http://fiji.sc/wiki/index.php/Enhance_Local_Contrast_(CLAHE)\n# http://fiji.sc/cgi-bin/gitweb.cgi?p=mpicbg.git;a=blob;f=mpicbg/ij/clahe/PlugIn.java;h=663153764493547de560c08ee11f2e6b1e7e1a32;hb=HEAD\n# dir = \"/usr/people/tmacrina/seungmount/research/Julimaps/datasets/AIBS_pilot_v1/0_raw/\"\nblocksize = 40\nhistogram_bins = 255\nmaximum_slope = 5\nmask = \"*None*\"\ncomposite = False\nmask = None\n# files = os.listdir(dir)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/test_command.sh:1-1"
+        "location": "/tests/remove_subtle_watermark_local_contrast_ocr/jython_imagej_test_clahe.py:1-38"
+    },
+    "2897": {
+        "file_id": 328,
+        "content": "The code is setting the system path to include jar files from specific directories, and then importing necessary modules to begin image processing work. It defines some parameters for local contrast enhancement using CLAHE algorithm, but does not specify the file paths or operations it will perform on images.",
+        "type": "comment"
+    },
+    "2898": {
+        "file_id": 328,
+        "content": "# files.sort()\n# for file in files:\n#      if file.endswith(\".tif\")\n# fn = os.path.join(dir, 'original.tif')\nfn = \"IWWS.jpeg\"\nimp = IJ.openImage(fn)\noutput_fn = \"imagej_output_jython.jpg\"\nimp = IJ.openImage(fn)\nFlat.getFastInstance().run(\n    imp, blocksize, histogram_bins, maximum_slope, mask, composite\n)\nIJ.save(imp, output_fn)\nFlat.getFastInstance().run(\n    imp, blocksize, histogram_bins, maximum_slope, mask, composite\n)\n# ImageConverter(imp).convertToGray8()\nIJ.save(imp, \"imagej_double_jython.jpg\")",
+        "type": "code",
+        "location": "/tests/remove_subtle_watermark_local_contrast_ocr/jython_imagej_test_clahe.py:39-58"
     },
     "2899": {
-        "file_id": 324,
-        "content": "This code is using the melt command to combine multiple screenshots into a single video file with transitions. It uses the \"composite\" and \"mix\" transitions, applies distortion effects, and outputs the final result at 60 FPS. The output is saved as a consumer XML file.",
+        "file_id": 328,
+        "content": "This code opens an image file, applies contrast enhancement using Flat.getFastInstance(), saves the result as \"imagej_output_jython.jpg\", applies contrast enhancement again (probably unnecessarily), converts the image to grayscale, and saves it as \"imagej_double_jython.jpg\".",
         "type": "comment"
     }
 }
