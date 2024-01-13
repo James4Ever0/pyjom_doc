@@ -1,543 +1,541 @@
 {
     "4700": {
-        "file_id": 611,
-        "content": "from functional_dl_translator_1b_deepspeed import get_response as m2m100_zte_translator # this shit could consume much computational resource.\n# advice you to do it with json.\ndef fixline(line):\n    notEndings = [\"。\",\"，\"]\n    for x in notEndings:\n        if line.endswith(x): return line[:-1]\n    return line\ndef zh_to_en_translator(text,needFixLine=True):\n    result = m2m100_zte_translator(text)[0] # shit.\n    if needFixLine: result = fixline(result)\n    return result",
+        "file_id": 614,
+        "content": "        \"\"\"\n        功能：识别文本中的命名实体：地名，组织名和机构名\n        参数repead：表示是否进行去重处理 ，默认是不去重\n        参数Entity_dist：表示每个文本，返回的识别后的列表，还是抽取后的实体字典，默认返回的是列表\n        返回值的形式：1.[[['word1',u'O'],['word2',u'O'],['word3',u'O']],[['word2',u'O'],['word3',u'O'],['word4',u'O']],……]\n                        2.[{'person':[],'place':[],'organization':[]},{'person':[],'place':[],'organization':[]},{'person':[],'place':[],'organization':[]},……]\n        \"\"\"\n        words_list, postags_list = self.postagger(input_list, return_words_list=True)\n        entity_text_list = []\n        for words, postags in zip(words_list, postags_list):\n            netags = self.recognizer.recognize(\n                words, postags\n            )  # 命名实体识别 人名（Nh）、地名（Ns）、机构名（Ni）\n            text = list(zip(words, netags))\n            entity_text_list.append(text)\n        if Entity_dist:\n            extract_entity_list = []\n            for words_entity_note_list in entity_text_list:\n                extract_entity_list.append(\n                    self.get_entity_dict(words_entity_note_list, repead)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/m2m100_1b_translator.py:1-13"
+        "location": "/tests/title_cover_generator/pyltp_server.py:91-113"
     },
     "4701": {
-        "file_id": 611,
-        "content": "This code imports the `m2m100_zte_translator` function from the `functional_dl_translator_1b_deepspeed` module, and defines two helper functions: `fixline` to remove specific Chinese ending characters, and `zh_to_en_translator` which uses `m2m100_zte_translator` to translate Chinese text to English and applies the line-fixing function if needed.",
+        "file_id": 614,
+        "content": "This code snippet is responsible for identifying named entities in a given text, such as person names, place names, and organization names. It uses the postagger to identify words and their parts of speech (POS) and then applies the recognizer to recognize named entities based on these POS tags. If Entity_dist is set to True, it extracts entities into a dictionary format.",
         "type": "comment"
     },
     "4702": {
-        "file_id": 612,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/launch_frame_translate.sh",
-        "type": "filepath"
+        "file_id": 614,
+        "content": "                )\n            return extract_entity_list\n        else:\n            return entity_text_list\n    def get_entity_dict(self, words_entity_note_list, repead):\n        \"\"\"\n        功能：根据实体识别的标志，统计文本中的命名实体\n        参数repead：表示是否进行去重处理 ，默认是不去重\n        返回值：{'person':[],'place':[],'organization':[]}\n        \"\"\"\n        \"\"\"\n        O：这个词不是NE\n        S：这个词单独构成一个NE\n        B：这个词为一个NE的开始\n        I：这个词为一个NE的中间\n        E：这个词位一个NE的结尾\n        Nh：人名\n        Ni：机构名\n        Ns：地名\n        \"\"\"\n        name_entity_dist = {}\n        # 存储不同实体的列表\n        name_entity_list = []\n        place_entity_list = []\n        organization_entity_list = []\n        ntag_E_Nh = \"\"\n        ntag_E_Ni = \"\"\n        ntag_E_Ns = \"\"\n        for word, ntag in words_entity_note_list:\n            # print word+\"/\"+ntag,\n            if ntag[0] != \"O\":\n                if ntag[0] == \"S\":\n                    if ntag[-2:] == \"Nh\":\n                        name_entity_list.append(word)\n                    elif ntag[-2:] == \"Ni\":\n                        organization_entity_list.append(word)",
+        "type": "code",
+        "location": "/tests/title_cover_generator/pyltp_server.py:114-151"
     },
     "4703": {
-        "file_id": 612,
-        "content": "This code launches three different Python scripts for video frame translation: 'frame_translate_processor.py', 'frame_translate_processor2.py', and 'frame_translate_processor3.py'. Each script is likely used for a specific video frame translation task, potentially with improvements or updates from the previous versions.",
-        "type": "summary"
+        "file_id": 614,
+        "content": "This code segment is part of a class method that identifies and categorizes named entities such as persons, places, and organizations from a given list. The code iterates through the list of words along with their corresponding entity tags (O, S, B, I, E) and adds them to separate lists based on the type of entity they represent. If the repead parameter is True, it performs deduplication on the final result.",
+        "type": "comment"
     },
     "4704": {
-        "file_id": 612,
-        "content": "# python3 frame_translate_processor.py\npython3 frame_translate_processor2.py\n# python3 frame_translate_processor3.py",
+        "file_id": 614,
+        "content": "                    else:\n                        place_entity_list.append(word)\n                elif ntag[0] == \"B\":\n                    if ntag[-2:] == \"Nh\":\n                        ntag_E_Nh = ntag_E_Nh + word\n                    elif ntag[-2:] == \"Ni\":\n                        ntag_E_Ni = ntag_E_Ni + word\n                    else:\n                        ntag_E_Ns = ntag_E_Ns + word\n                elif ntag[0] == \"I\":\n                    if ntag[-2:] == \"Nh\":\n                        ntag_E_Nh = ntag_E_Nh + word\n                    elif ntag[-2:] == \"Ni\":\n                        ntag_E_Ni = ntag_E_Ni + word\n                    else:\n                        ntag_E_Ns = ntag_E_Ns + word\n                else:\n                    if ntag[-2:] == \"Nh\":\n                        ntag_E_Nh = ntag_E_Nh + word\n                        name_entity_list.append(ntag_E_Nh)\n                        ntag_E_Nh = \"\"\n                    elif ntag[-2:] == \"Ni\":\n                        ntag_E_Ni = ntag_E_Ni + word\n                        organization_entity_list.append(ntag_E_Ni)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/launch_frame_translate.sh:1-3"
+        "location": "/tests/title_cover_generator/pyltp_server.py:152-175"
     },
     "4705": {
-        "file_id": 612,
-        "content": "This code launches three different Python scripts for video frame translation: 'frame_translate_processor.py', 'frame_translate_processor2.py', and 'frame_translate_processor3.py'. Each script is likely used for a specific video frame translation task, potentially with improvements or updates from the previous versions.",
+        "file_id": 614,
+        "content": "The code is segmenting named entities (name and organization) using the NER (Named Entity Recognition) model. It appends words to separate variables based on their tags, forming name and organization lists when encountering \"Nh\" or \"Ni\". If no entity is detected, it simply adds the word to the place entity list.",
         "type": "comment"
     },
     "4706": {
-        "file_id": 613,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py",
-        "type": "filepath"
+        "file_id": 614,
+        "content": "                        ntag_E_Ni = \"\"\n                    else:\n                        ntag_E_Ns = ntag_E_Ns + word\n                        place_entity_list.append(ntag_E_Ns)\n                        ntag_E_Ns = \"\"\n        if repead:\n            name_entity_dist[\"person\"] = list(set(name_entity_list))\n            name_entity_dist[\"organization\"] = list(set(organization_entity_list))\n            name_entity_dist[\"place\"] = list(set(place_entity_list))\n        else:\n            name_entity_dist[\"person\"] = name_entity_list\n            name_entity_dist[\"organization\"] = organization_entity_list\n            name_entity_dist[\"place\"] = place_entity_list\n        return name_entity_dist\n    def SyntaxParser(self, input_list, return_words_pos=False):\n        \"\"\"\n        # head = parent+1\n        # relation = relate  可以从中间抽取head 和 relation 构成LTP 的标准输出，但是为了根据自己的情况，直接输出返回的全部的信息\n        功能：实现依存句法分析\n        返回值：每个文本的形成一个列表\n        [[{u'relate': u'WP', u'cont': u'\\uff0c', u'id': 4, u'parent': 3, u'pos': u'wp'},{u'relate': u'RAD', u'cont': u'\\u7684', u'id': 1, u'parent': 0, u'pos': u'u'}],……]",
+        "type": "code",
+        "location": "/tests/title_cover_generator/pyltp_server.py:176-198"
     },
     "4707": {
-        "file_id": 613,
-        "content": "This code uses CUDA with OpenCV for image processing, inpainting and masked blurring. It converts images to Pillow for text rotation, stroke width handling, and transparency blending. The function estimates text orientation, size, and center, then applies image processing tasks before saving and returning the result.",
-        "type": "summary"
+        "file_id": 614,
+        "content": "This code defines a function `name_entity_dist` that handles named entity recognition and extraction. It identifies named entities (person, organization, place) and stores them in separate lists. The function then adds these lists to a dictionary called `name_entity_dist`, which is returned at the end. Additionally, there's another function `SyntaxParser` that performs dependency syntax parsing on the input list and returns a list of parsed relations between words.",
+        "type": "comment"
     },
     "4708": {
-        "file_id": 613,
-        "content": "use_cuda_cv2 = True # after we compile shit\nif use_cuda_cv2: # the freaking speed is awful.\n    import pathlib\n    import site\n    import sys\n    # this is root. this is not site-packages.\n    # site_path = pathlib.Path([x for x in site.getsitepackages() if \"site-packages\" in x][0])\n    site_path = pathlib.Path(\"/usr/local/lib/python3.9/site-packages\") # maybe it is done after you make install the whole cv2 shit.\n    cv2_libs_dir = site_path / 'cv2' / f'python-{sys.version_info.major}.{sys.version_info.minor}'\n    print(cv2_libs_dir)\n    cv2_libs = sorted(cv2_libs_dir.glob(\"*.so\"))\n    if len(cv2_libs) == 1:\n        print(\"INSERTING:\",cv2_libs[0].parent)\n        sys.path.insert(1, str(cv2_libs[0].parent))\nimport cv2\nimport numpy as np\nfrom PIL import Image, ImageFont, ImageDraw  \nimport Levenshtein\nimport math\n# from m2m100_1b_translator import zh_to_en_translator as translator\n# i just want to do the freaking inpainting.\n# import statistics\ndef redraw_english_to_chinese2(image,resultChineseInternal): \n    a,b,c = image.shape",
+        "file_id": 614,
+        "content": "        \"\"\"\n        words_list, postags_list = self.postagger(input_list, return_words_list=True)\n        syntaxparser_text_list = []\n        for words, postags in zip(words_list, postags_list):\n            arcs = self.parser.parse(words, postags)  # 句法分析\n            # res = [(arc.head, arc.relation) for arc in arcs]\n            res = [arc for arc in arcs] # arguable.\n            # for arc in arcs:\n            #     print(arc)\n            # breakpoint()\n            text = []\n            for i in range(len(words)):\n                tt = {\n                    \"id\": i,\n                    \"cont\": words[i],\n                    \"pos\": postags[i],\n                    \"parent\": res[i][0],\n                    \"relate\": res[i][1],\n                }\n                text.append(tt)\n            syntaxparser_text_list.append(text)\n        if return_words_pos:\n            return words_list, postags_list, syntaxparser_text_list\n        else:\n            return syntaxparser_text_list\n    def triple_extract(self, intput_list):\n        \"\"\"",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:1-30"
+        "location": "/tests/title_cover_generator/pyltp_server.py:199-229"
     },
     "4709": {
-        "file_id": 613,
-        "content": "The code is setting up the environment for using CUDA with OpenCV and importing necessary libraries. It checks if a specific OpenCV library file exists, and if so, it adds its parent directory to the system path. The function redraw_english_to_chinese2 is defined at the end of the code snippet, but its implementation is not visible in this chunk.",
+        "file_id": 614,
+        "content": "The code is performing syntax parsing using a parser. It takes an input list of words and their corresponding part-of-speech tags, then applies the parser to generate a syntactic parse tree for each word in the input list. The resulting parse trees are stored as a list of dictionaries with information about each word's id, content, part-of-speech tag, parent, and relation. If 'return_words_pos' is True, it returns the words list, postags list, and syntaxparser_text_list. Otherwise, it only returns the syntaxparser_text_list.",
         "type": "comment"
     },
     "4710": {
-        "file_id": 613,
-        "content": "    total_area = a*b\n    total_center = (a/2,b/2)\n    total_corners = [(a,0),(0,0),(0,b),(a,b)]\n    total_strings = [\"scorpa\"]\n    area_threshold = 1/15 # don't know.\n    area_threshold = total_area*area_threshold\n    mask3_threshold = area_threshold*0.6\n    blank_image = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    blank_image2 = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    blank_image3 = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    def compareStringSimilarity(text,targetCompareString=\"scorpa\"):\n        # what is this?\n        comparedWaterMarkString = targetCompareString.lower() # the freaking name \n        comparedWaterMarkStringLength = len(comparedWaterMarkString)\n            # remove watermarks? how to filter?\n            # no fucking translation at all.\n        editDistanceThreshold = 4\n        textCompareCandidate = text.replace(\" \",\"\").lower() # original text, no translation.\n        distance = Levenshtein.distance(textCompareCandidate,comparedWaterMarkString)",
+        "file_id": 614,
+        "content": "        功能: 对于给定的句子进行事实三元组抽取\n        Args:\n            sentence: 要处理的语句\n                        形式是：'真实的句子'\n        \"\"\"\n        Subjective_guest = []  # 主谓宾关系(e1,r,e2)\n        Dynamic_relation = []  # 动宾关系\n        Guest = []  # 介宾关系\n        Name_entity_relation = []  # 命名实体之间的关系\n        # 分词后词的列表 words，词性列表 postags，实体标志列表 netags，语法分析列表 arcs\n        words = []\n        postags = []\n        netags = []\n        arcs = []\n        syntaxparser_text_list = self.SyntaxParser(intput_list)\n        entity_list = self.NamedEntityRecognizer(intput_list)\n        for words_property_list in syntaxparser_text_list[0]:\n            words.append(words_property_list[\"cont\"])\n            postags.append(words_property_list[\"pos\"])\n            arcs.append(\n                {\n                    \"head\": words_property_list[\"parent\"],\n                    \"relation\": words_property_list[\"relate\"],\n                }\n            )\n        for words_entity_list in entity_list[0]:\n            netags.append(words_entity_list[1])\n        child_dict_list = self.build_parse_child_dict(words, postags, arcs)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:32-52"
+        "location": "/tests/title_cover_generator/pyltp_server.py:230-258"
     },
     "4711": {
-        "file_id": 613,
-        "content": "This code calculates the total area and center of an image, sets the corners and initializes blank images. It defines a function to compare string similarity between two strings with an edit distance threshold, likely for text recognition or watermark detection.",
+        "file_id": 614,
+        "content": "This function performs triplet extraction for a given sentence. It initializes various lists for different relationships and then extracts words, postags, arcs (syntax), and netags (named entities) using the input list. Finally, it builds a dictionary of child relationships from the extracted data.",
         "type": "comment"
     },
     "4712": {
-        "file_id": 613,
-        "content": "        string_length = len(text)\n        string_length_difference = abs(string_length-comparedWaterMarkStringLength)\n        length_difference_threshold = 3\n        if (distance < editDistanceThreshold and string_length_difference < length_difference_threshold):\n            return True\n        return False\n    def get_center(rectangle_coords):\n        x0,y0 = rectangle_coords[0]\n        x1,y1 = rectangle_coords[2]\n        return ((x0+x1)/2,(y0+y1)/2)\n    def get_distance(a,b): x = a[0]-b[0]; x2 = x**2; y = a[1]-b[1];y2 = y**2; return(math.sqrt(x2+y2))\n    resultChineseInternal2 = list(sorted(resultChineseInternal,key=lambda x:min([get_distance(corner,get_center(x[0])) for corner in total_corners]))) # sort by centrality. but not by corner. use corner instead.\n    resultChineseInternal2 = sorted(resultChineseInternal2,key=lambda x:1-max([int(compareStringSimilarity(x[1][0],tstring)) for tstring in total_strings])) # sort by centrality. but not by corner. use corner instead.\n    for coords, (text,prob) in resultChineseInternal2: # get boundary coords first.",
+        "file_id": 614,
+        "content": "        for index in range(len(postags)):\n            # 抽取以谓词为中心的事实三元组\n            if postags[index] == \"v\":\n                child_dict = child_dict_list[index]\n                # 主谓宾\n                if \"SBV\" in child_dict and \"VOB\" in child_dict:\n                    e1 = self.complete_e(\n                        words, postags, child_dict_list, child_dict[\"SBV\"][0]\n                    )\n                    r = words[index]\n                    e2 = self.complete_e(\n                        words, postags, child_dict_list, child_dict[\"VOB\"][0]\n                    )\n                    Subjective_guest.append((e1, r, e2))\n                # 定语后置，动宾关系\n                if arcs[index][\"relation\"] == \"ATT\":\n                    if \"VOB\" in child_dict:\n                        e1 = self.complete_e(\n                            words, postags, child_dict_list, arcs[index][\"head\"] - 1\n                        )\n                        r = words[index]\n                        e2 = self.complete_e(\n                            words, postags, child_dict_list, child_dict[\"VOB\"][0]",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:53-66"
+        "location": "/tests/title_cover_generator/pyltp_server.py:260-284"
     },
     "4713": {
-        "file_id": 613,
-        "content": "The code compares the length of a text string with a predefined length, and if the difference is within a certain threshold, it returns True. The code also calculates distances between points using coordinates, sorts a list based on these distances and centrality, and retrieves boundary coordinates for each text string.",
+        "file_id": 614,
+        "content": "This code is extracting subject-predicate-object (SPO) triples from a natural language sentence using PyLTP library. It identifies the verb as the center of the triple and checks for two possible structures: \"SBV\" followed by \"VOB\" or \"ATT\" relation after the verb. The code fills in the subject, predicate, and object entities based on the identified positions in the sentence.",
         "type": "comment"
     },
     "4714": {
-        "file_id": 613,
-        "content": "        polyArray = np.array(coords).astype(np.int64) # fuck.\n        # print(polyArray)\n        # print(polyArray.shape)\n        # breakpoint()\n        # points = np.array([[160, 130], [350, 130], [250, 300]])\n        # print(points.dtype)\n        # points = np.array([[454.0, 22.0], [464.0, 26.0], [464.0, 85.0]]).astype(np.int64)\n        # this is rectangular. simple shit. not simple for other shits.\n        color= 255\n        coord0, coord1, coord2 = coords[0],coords[1],coords[2]\n        sid1, sid2 = get_distance(coord0,coord1), get_distance(coord1,coord2)\n        polyArea = sid1*sid2\n        mask3_area = np.sum(blank_image3)\n        if polyArea >= area_threshold or mask3_area >= mask3_threshold:\n            cv2.fillPoly(blank_image,[polyArray],color)\n            isClosed = True\n            thickness = 20 # oh shit.\n            thickness2 = 40 # oh shit.\n            cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image2, [polyArray], isClosed, color, thickness2) # much better.",
+        "file_id": 614,
+        "content": "                        )\n                        temp_string = r + e2\n                        if temp_string == e1[: len(temp_string)]:\n                            e1 = e1[len(temp_string) :]\n                        if temp_string not in e1:\n                            Dynamic_relation.append((e1, r, e2))\n                # 含有介宾关系的主谓动补关系\n                if \"SBV\" in child_dict and \"CMP\" in child_dict:\n                    # e1 = words[child_dict['SBV'][0]]\n                    e1 = self.complete_e(\n                        words, postags, child_dict_list, child_dict[\"SBV\"][0]\n                    )\n                    cmp_index = child_dict[\"CMP\"][0]\n                    r = words[index] + words[cmp_index]\n                    if \"POB\" in child_dict_list[cmp_index]:\n                        e2 = self.complete_e(\n                            words,\n                            postags,\n                            child_dict_list,\n                            child_dict_list[cmp_index][\"POB\"][0],\n                        )",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:67-86"
+        "location": "/tests/title_cover_generator/pyltp_server.py:285-306"
     },
     "4715": {
-        "file_id": 613,
-        "content": "Code creates a numpy array from given coordinates, checks if the area is above certain thresholds, and then uses cv2.fillPoly and cv2.polylines to draw on two images with different thicknesses.",
+        "file_id": 614,
+        "content": "This code checks for a specific relationship between the subject, verb, object, and complement in a sentence. It appends the relationship (e1, r, e2) to Dynamic_relation if it meets certain conditions such as not containing an existing temporary string or being part of the original text.",
         "type": "comment"
     },
     "4716": {
-        "file_id": 613,
-        "content": "        else:\n            cv2.fillPoly(blank_image3,[polyArray],color)\n            isClosed = True\n            thickness = 30 # oh shit.\n            thickness2 = 50 # oh shit.\n            # cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image3, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image2, [polyArray], isClosed, color, thickness2) # much better.\n    #     # cv2.fillPoly(blank_image,pts=[points],color=(255, 255,255))\n    # cv2.imshow(\"mask\",blank_image)\n    # cv2.waitKey(0)\n    # use wordninja.\n    # before translation we need to lowercase these shits.\n    # inpaint_alternative = cv2.INPAINT_NS\n    # dst = cv2.inpaint(image,blank_image,3,inpaint_alternative)\n    def partial_blur(image0,mask,kernel=(200,200)):\n        # need improvement. malnly the boundary.\n        mask_total = mask\n        inv_mask_total = 255-mask_total\n        # mask0 = mask\n        # mask0 = mask/255\n        # inv_mask0 = inv_mask/255",
+        "file_id": 614,
+        "content": "                        Guest.append((e1, r, e2))\n            # 尝试抽取命名实体有关的三元组\n            if netags[index][0] == \"S\" or netags[index][0] == \"B\":\n                ni = index\n                if netags[ni][0] == \"B\":\n                    while netags[ni][0] != \"E\":\n                        ni += 1\n                    e1 = \"\".join(words[index : ni + 1])\n                else:\n                    e1 = words[ni]\n                # 上面是抽取实体，没有判断是什么类型的实体。。\n                if (\n                    arcs[ni][\"relation\"] == \"ATT\"\n                    and postags[arcs[ni][\"head\"] - 1] == \"n\"\n                    and netags[arcs[ni][\"head\"] - 1] == \"O\"\n                ):\n                    r = self.complete_e(\n                        words, postags, child_dict_list, arcs[ni][\"head\"] - 1\n                    )\n                    if e1 in r:\n                        r = r[(r.index(e1) + len(e1)) :]\n                    if (\n                        arcs[arcs[ni][\"head\"] - 1][\"relation\"] == \"ATT\"\n                        and netags[arcs[arcs[ni][\"head\"] - 1][\"head\"] - 1] != \"O\"",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:87-108"
+        "location": "/tests/title_cover_generator/pyltp_server.py:307-331"
     },
     "4717": {
-        "file_id": 613,
-        "content": "This code uses OpenCV for image processing tasks. It fills polygons and draws lines on an image, then applies inpainting to replace the filled area with surrounding pixels. The function `partial_blur` is defined to blur a specific region of an image using a mask.",
+        "file_id": 614,
+        "content": "This code attempts to extract named entity triples. It checks if the current tag is a start or begin tag, and then extracts the named entity based on that. If it meets specific conditions involving \"ATT\" relation and certain postags, it completes the entity and checks if the extracted entity is in the result.",
         "type": "comment"
     },
     "4718": {
-        "file_id": 613,
-        "content": "        non_blur_image = cv2.bitwise_and(image0, image0, mask=inv_mask_total)\n        blur_image0 = cv2.blur(image0,kernel) # half quicklier.\n        blur_image0 = cv2.bitwise_and(blur_image0, blur_image0, mask=mask_total)\n        dst0 = blur_image0 + non_blur_image\n        return dst0\n    def partial_blur_deprecated(image0,mask,mask2):\n        # need improvement. malnly the boundary.\n        mask_total = mask + mask2 # not good.\n        dtype = mask.dtype\n        mask_total = mask_total>0\n        mask_total=mask_total.astype(dtype)\n        mask_total = mask_total*255\n        inv_mask_total = 255-mask_total\n        mask0 = mask_total - mask2\n        # mask0 = mask\n        # mask0 = mask/255\n        # inv_mask0 = inv_mask/255\n        non_blur_image = cv2.bitwise_and(image0, image0, mask=inv_mask_total)\n        blur_image0 = cv2.blur(image0,(50,50)) # half quicklier.\n        blur_image2 = cv2.blur(image0,(30,30)) # half quicklier.\n        # not enough baby\n        blur_image0 = cv2.bitwise_and(blur_image0, blur_image0, mask=mask0)",
+        "file_id": 614,
+        "content": "                    ):\n                        e2 = self.complete_e(\n                            words,\n                            postags,\n                            child_dict_list,\n                            arcs[arcs[ni][\"head\"] - 1][\"head\"] - 1,\n                        )\n                        mi = arcs[arcs[ni][\"head\"] - 1][\"head\"] - 1\n                        li = mi\n                        if netags[mi][0] == \"B\":\n                            while netags[mi][0] != \"E\":\n                                mi += 1\n                            e = \"\".join(words[li + 1 : mi + 1])\n                            e2 += e\n                        if r in e2:\n                            e2 = e2[(e2.index(r) + len(r)) :]\n                        if r + e2 in sentence:\n                            Name_entity_relation.append((e1, r, e2))\n        return Subjective_guest, Dynamic_relation, Guest, Name_entity_relation\n    def build_parse_child_dict(self, words, postags, arcs):\n        \"\"\"\n        功能：为句子中的每个词语维护一个保存句法依存儿子节点的字典",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:109-130"
+        "location": "/tests/title_cover_generator/pyltp_server.py:332-354"
     },
     "4719": {
-        "file_id": 613,
-        "content": "This code performs partial image blurring using OpenCV functions. It creates a total mask by adding two input masks, applies bitwise operations to separate areas of the image for non-blurred and blurred processing, and combines the results for output. The \"partial_blur_deprecated\" function needs improvement as it currently has hardcoded blur values and may not handle boundary areas well.",
+        "file_id": 614,
+        "content": "The code defines a function called `build_parse_child_dict` which takes in the words, postags, and arcs of a sentence. It creates a dictionary for each word in the sentence that stores its syntactic dependency children. If a relation word exists between two named entities, it is added to the Name_entity_relation list. The function returns four variables: Subjective_guest, Dynamic_relation, Guest, and Name_entity_relation",
         "type": "comment"
     },
     "4720": {
-        "file_id": 613,
-        "content": "        blur_image2 = cv2.bitwise_and(blur_image2, blur_image2, mask=mask2)\n        dst0 = blur_image0 +blur_image2 + non_blur_image\n        return dst0\n    dst = partial_blur(image,blank_image)\n    dst = cv2.inpaint(dst,blank_image3,3,cv2.INPAINT_TELEA) # this shit. only do for small areas\n    dst = partial_blur(dst,blank_image2,kernel=(30,30))\n    # to compensate all sharp boundaries.\n    # from PIL import Image\n    def np2pillow(opencv_image):\n        color_coverted = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)\n        pil_image = Image.fromarray(color_coverted)\n        return pil_image\n        # pil_image.show()\n    def pillow2np(pil_image):\n        # pil_image=Image.open(\"demo2.jpg\") # open image using PIL\n        # use numpy to convert the pil_image into a numpy array\n        numpy_image=np.array(pil_image)  \n        # convert to a openCV2 image, notice the COLOR_RGB2BGR which means that \n        # the color is converted from RGB to BGR format\n        opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR) ",
+        "file_id": 614,
+        "content": "        Args:\n            words: 分词列表\n            postags: 词性列表\n            arcs: 句法依存列表\n        \"\"\"\n        child_dict_list = []\n        for index in range(len(words)):\n            child_dict = dict()\n            for arc_index in range(len(arcs)):\n                if arcs[arc_index][\"head\"] == index + 1:\n                    if arcs[arc_index][\"relation\"] in child_dict:\n                        child_dict[arcs[arc_index][\"relation\"]].append(arc_index)\n                    else:\n                        child_dict[arcs[arc_index][\"relation\"]] = []\n                        child_dict[arcs[arc_index][\"relation\"]].append(arc_index)\n            child_dict_list.append(child_dict)\n        return child_dict_list\n    def complete_e(self, words, postags, child_dict_list, word_index):\n        \"\"\"\n        功能：完善识别的部分实体\n        \"\"\"\n        child_dict = child_dict_list[word_index]\n        prefix = \"\"\n        if \"ATT\" in child_dict:\n            for i in range(len(child_dict[\"ATT\"])):\n                prefix += self.complete_e(\n                    words, postags, child_dict_list, child_dict[\"ATT\"][i]",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:131-153"
+        "location": "/tests/title_cover_generator/pyltp_server.py:355-383"
     },
     "4721": {
-        "file_id": 613,
-        "content": "Performs bitwise AND operation on blur_image2 using mask2, combines images, applies inpainting with CV2, compensates sharp boundaries, converts OpenCV image to PIL and back.",
+        "file_id": 614,
+        "content": "This function takes in a list of words, their respective parts of speech (postags), and syntactic dependency relations (arcs) as input. It organizes the arcs into a dictionary structure for each word in the list, and returns this dictionary list. The next function aims to further refine or \"complete\" part of the identified entities by recursively calling itself with the appropriate parameters.",
         "type": "comment"
     },
     "4722": {
-        "file_id": 613,
-        "content": "        return opencv_image\n    # draw text now!\n    mpil_image = np2pillow(dst)\n    draw = ImageDraw.Draw(mpil_image)\n    font_location = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\" # not usual english shit.\n    def draw_rotated_text(image, text, position, angle, font, fill=(255,255,255),stroke_width=1,stroke_fill=(0,0,0),align=\"left\"):\n    # Get rendered font width and height.\n        draw = ImageDraw.Draw(image)\n        width, height = draw.textsize(text, font=font,stroke_width=stroke_width)\n        # Create a new image with transparent background to store the text.\n        textimage = Image.new('RGBA', (width, height), (0,0,0,0))\n        # Render the text.\n        textdraw = ImageDraw.Draw(textimage)\n        textdraw.text((0,0), text, font=font, fill=fill,stroke_width=stroke_width,stroke_fill=stroke_fill,align=align)\n        # Rotate the text image.\n        rotated = textimage.rotate(angle, expand=1) # do you rotate shit?\n        # Paste the text into the image, using it as a mask for transparency.",
+        "file_id": 614,
+        "content": "                )\n        postfix = \"\"\n        if postags[word_index] == \"v\":\n            if \"VOB\" in child_dict:\n                postfix += self.complete_e(\n                    words, postags, child_dict_list, child_dict[\"VOB\"][0]\n                )\n            if \"SBV\" in child_dict:\n                prefix = (\n                    self.complete_e(\n                        words, postags, child_dict_list, child_dict[\"SBV\"][0]\n                    )\n                    + prefix\n                )\n        return prefix + words[word_index] + postfix\nif __name__ == \"__main__\":\n    # intput_list = [\"中国自称为炎黄子孙、龙的传人\"]\n    # incorrect name spliters.\n    from commons import sample_data\n    intput_list = sample_data\n    model = LTP_MODEL()\n    input_sentence = \"雅生活服务的物业管理服务。\"\n    # print(model.SplitSentence(input_sentence))\n    # print(model.segment(intput_list))\n    # print(model.postagger(intput_list))\n    # print(model.NamedEntityRecognizer(intput_list, Entity_dist=True))\n    print(model.NamedEntityRecognizer(intput_list))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:154-170"
+        "location": "/tests/title_cover_generator/pyltp_server.py:384-414"
     },
     "4723": {
-        "file_id": 613,
-        "content": "This code snippet is responsible for drawing rotated text on an OpenCV image using Pillow library. It first converts the OpenCV image to a Pillow image, then defines a function `draw_rotated_text()` to handle the text drawing process. The function calculates the text dimensions and creates a new image with a transparent background. It then renders the text onto this new image while accounting for stroke width and alignment. Finally, it rotates the text image by a specified angle and pastes it onto the original image using transparency.",
+        "file_id": 614,
+        "content": "This code segment is a part of the Named Entity Recognizer function in a Chinese language processing model. It takes an input list containing sentences, and based on postags (part-of-speech tags), it identifies named entities within the text and returns them. The code snippet handles verbs with \"VOB\" or \"SBV\" child nodes differently by appending prefixes accordingly, and then combines prefix, word, and postfix to generate the final output.",
         "type": "comment"
     },
     "4724": {
-        "file_id": 613,
-        "content": "        image.paste(rotated, position, rotated)\n        return image\n    def average(mlist):return sum(mlist) / len(mlist)\n    def get_coord_orientation_font_size_and_center(coords):\n        xlist, ylist = [x[0] for x in coords], [x[1] for x in coords]\n        min_x, max_x = min(xlist), max(xlist)\n        min_y, max_y = min(ylist), max(ylist)\n        width,height = max_x-min_x, max_y-min_y\n        position = (min_x,min_y)\n        c0,c1,c2,c3 = coords\n        real_width = average([get_distance(c0,c1) ,get_distance(c2,c3)])\n        real_height = average([get_distance(c1,c2) ,get_distance(c3,c0)])\n        # c0-------------c1\n        # |              |\n        # c3-------------c2\n        rotate_vectors = (c1[0]-c0[0],c1[1]-c0[1]),(c2[0]-c3[0],c2[1]-c3[1])\n        rotate_vector = (average([rotate_vectors[0][0],rotate_vectors[1][0]]),average([rotate_vectors[0][1],rotate_vectors[1][1]]))\n        rotate_angle = math.atan2(rotate_vector[1],rotate_vector[0]) # problem with angle.\n        # print(\"ROTATE_VECTORS:\",rotate_vectors)",
+        "file_id": 614,
+        "content": "    # print(model.SyntaxParser(intput_list))\n    (\n        Subjective_guest,\n        Dynamic_relation,\n        Guest,\n        Name_entity_relation,\n    ) = model.triple_extract(intput_list)\n    print(\"=\" * 30)\n    print(Subjective_guest, Dynamic_relation, Guest, Name_entity_relation)\n    model.__release__()",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:171-193"
+        "location": "/tests/title_cover_generator/pyltp_server.py:415-426"
     },
     "4725": {
-        "file_id": 613,
-        "content": "This code defines a function `get_coord_orientation_font_size_and_center` that takes in coordinates and returns the orientation, font size, and center based on the given points. It calculates the dimensions of the bounding rectangle, determines the real width and height by averaging the distances between corresponding points, and estimates the rotation angle using `math.atan2`. The function may be useful for image processing tasks involving text or shapes with specific orientations.",
+        "file_id": 614,
+        "content": "Extracting triples from input list using the model's triple_extract method, then printing them and releasing resources.",
         "type": "comment"
     },
     "4726": {
-        "file_id": 613,
-        "content": "        # print(\"ROTATE VECTOR:\",rotate_vector)\n        # print(\"ROTATE ANGLE:\", rotate_angle)\n        center = (int((max_x+min_x)/2),int((max_y+min_y)/2))\n        # what about rotation? forget about it...\n        if (width / height) < 0.8:\n            orientation = \"vertical\"\n            font_size = int(real_width) # shit.\n        else:\n            orientation = \"horizontal\"\n            font_size = int(real_height)\n        return orientation, font_size, center,(real_width,real_height),rotate_angle,position \n    readjust_size=False # just center.\n    for coords, (text,prob) in resultChineseInternal:\n        probThreshold = 0.8\n        if compareStringSimilarity(text) or prob < probThreshold: # this is somehow not right. i don't know.\n            # mask all with low probabilities?\n            continue # skip all shits.\n        # specified font size \n        # text = translator(text) # now translate.\n        # too freaking slow. i need to freaking change this shit.\n        orientation, font_size, center ,(width,height) ,rotate_angle,position = get_coord_orientation_font_size_and_center(coords)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:194-217"
+        "file_id": 615,
+        "content": "/tests/title_cover_generator/spacy_word_swapper.py",
+        "type": "filepath"
     },
     "4727": {
-        "file_id": 613,
-        "content": "This code is determining the orientation, font size, and center coordinates for a Chinese text. It checks if the aspect ratio of the image is vertical or horizontal and adjusts the font size accordingly. The function get_coord_orientation_font_size_and_center is called to get these values. If the probability threshold is met or the text is not similar enough, it will skip that particular text. It also considers rotation angle and position in its calculations.",
-        "type": "comment"
+        "file_id": 615,
+        "content": "The code uses Spacy and Jieba tokenizer to check if a string contains English, removes non-English elements, and prints the tokens along with their POS and dependency tags. Proper nouns list may be updated and improvements are potential.",
+        "type": "summary"
     },
     "4728": {
-        "file_id": 613,
-        "content": "        if orientation == \"horizontal\":\n            font = ImageFont.truetype(font_location, font_size)\n            # text = original_text\n            # drawing text size \n            stroke_width = max((1,int(0.1*font_size)))\n            (string_width,string_height) = draw.textsize(text,font=font,stroke_width=stroke_width)\n            # print(string_width)\n            # breakpoint()\n            if readjust_size:\n                change_ratio = width/string_width\n                new_fontsize = font_size*change_ratio\n                font = ImageFont.truetype(font_location, new_fontsize)\n                (string_width,string_height) = draw.textsize(text,font=font,stroke_width=stroke_width)\n            #     start_x = int(center[0]-width2/2)\n            #     start_y = int(center[1]-height2/2)\n            # else:\n            theta  =rotate_angle\n            rot = np.array([[math.cos(theta), -math.sin(theta)], [math.sin(theta), math.cos(theta)]])\n            v1 = np.array([string_width,string_height])\n            v2 = np.array([string_width,-string_height])",
+        "file_id": 615,
+        "content": "# just use some simple analysis to extract the template. may not be cost effective like DianJing also you can try the freaking gpt2 model, or pegasus.\nfrom commons import sample_data\n# first assume all to be freaking chinese.\n# import nltk\nimport spacy\nimport jieba\nfrom spacy.lang.zh.examples import sentences \nimport re\ndef recursiveCompiledSearch(compiledRegex, pattern,initPos=0,resultTotal = []):\n    result = compiledRegex.search(pattern)\n    if result !=None:\n        match = result[0]\n        span = result.span()\n        realSpan = (span[0]+initPos, span[1]+initPos)\n        # initialSpan = span[0]\n        endSpan = span[1]\n        initPos += endSpan\n        mresult = {\"match\":match, \"span\":realSpan}\n        resultTotal.append(mresult)\n        newPattern = pattern[endSpan:]\n        return recursiveCompiledSearch(compiledRegex,newPattern,initPos,resultTotal)\n    else: return resultTotal\nnlp = spacy.load(\"zh_core_web_sm\")\n# proper_nouns = ['守望先锋','第五人格']\n# whatever. we can always change shit.\n# nlp.tokenizer.pkuseg_update_user_dict(proper_nouns)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:218-239"
+        "location": "/tests/title_cover_generator/spacy_word_swapper.py:1-30"
     },
     "4729": {
-        "file_id": 613,
-        "content": "This code is calculating the size of a text string and adjusting its font size to fit within a specified width. If `readjust_size` is True, it recalculates the font size based on the new width. The text's rotation angle is calculated using trigonometry functions.",
+        "file_id": 615,
+        "content": "The code is importing necessary libraries and defining a function for recursive text search. It uses the Spacy library for Chinese language processing, but it seems to be in progress as it mentions potential improvements and updates. The proper nouns list may be updated or changed later.",
         "type": "comment"
     },
     "4730": {
-        "file_id": 613,
-        "content": "            v3 = np.array([-string_width,-string_height])\n            v4 = np.array([-string_width,string_height])\n            # w = np.array([3, 4])\n            vc1 = np.dot(rot, v1)\n            vc2 = np.dot(rot, v2)\n            vc3 = np.dot(rot, v3)\n            vc4 = np.dot(rot, v4)\n            # sw2 = abs(float(vc2[0])) # no abs.\n            # sh2 = abs(float(vc2[1]))\n            start_x_arr = [int(center[0]-sw/2) for sw in [(float(x[0])) for x in [vc1,vc2,vc3,vc4]]]\n            start_y_arr = [int(center[1]-sh/2) for sh in [(float(x[1])) for x in [vc1,vc2,vc3,vc4]]]\n            # start_y = int(center[1]-string_height2/2)\n            start_x = int(min(start_x_arr))\n            start_y = int(min(start_y_arr))\n            # draw.text((start_x, start_y), text, font = font, fill=(255,255,255),stroke_fill=(0,0,0),stroke_width = stroke_width,align =\"left\") # what is the freaking align?\n            position2 = (start_x, start_y)\n            rotate_angle2 = -np.rad2deg(rotate_angle) # strange.\n            # debug_text = \"angle: {}\".format(rotate_angle2)",
+        "file_id": 615,
+        "content": "# this is imoortant.\nenglish = re.compile(r\"([a-zA-Z]+([ \\-,\\.:;?!]+)?)+\")\ndef check_has_language(string,language_re): result = recursiveCompiledSearch(language_re,string,resultTotal=[]); return len(result) >0\nfor elem in sample_data:\n    hasSpace = False\n    # we need to eliminate some english things.\n    # we also have some spaces. remove them before proceed.\n    if \" \" in elem:\n        hasSpace = True\n        elem = elem.replace(\" \", \"\")\n    # some flashy text will never be accepted. if outside of english, chinese we accept nothing.\n    # english is not included in spacy.\n    data = [x for x in jieba.cut(elem)] # contradictory.\n    english_check = check_has_language(elem,english)\n    if english_check:\n        print(\"HAS ENGLISH\")\n        print(elem)\n        continue\n    # check if words contains english. remove these titles.\n    # print(data)\n    nlp.tokenizer.pkuseg_update_user_dict(data)\n    doc = nlp(elem)\n    print(doc.text)\n    for token in doc:\n        print(token.text, token.pos_, token.dep_)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:240-258"
+        "location": "/tests/title_cover_generator/spacy_word_swapper.py:31-56"
     },
     "4731": {
-        "file_id": 613,
-        "content": "This code performs rotations on given points using a rotation matrix, then calculates the starting coordinates for drawing text based on the minimum x and y values among these transformed points. It also adjusts the angle to its equivalent in degrees before potentially performing further operations with it.",
+        "file_id": 615,
+        "content": "This code checks if a given string contains English language, removes spaces and non-English elements using Jieba tokenizer and Spacy, and then prints the tokens along with their part of speech (POS) and dependency tags for further analysis.",
         "type": "comment"
     },
     "4732": {
-        "file_id": 613,
-        "content": "            mpil_image = draw_rotated_text(mpil_image,text,position2,rotate_angle2,font,stroke_width=stroke_width)\n    # mpil_image.show()\n    # mpil_image.save(\"redraw_eng_to_chinese.png\")\n    output_final_image = pillow2np(mpil_image)\n    return output_final_image",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:259-264"
-    },
-    "4733": {
-        "file_id": 613,
-        "content": "This code snippet draws rotated text on an image, saves it as a PNG file, and then converts the image to a numpy array before returning it.",
-        "type": "comment"
-    },
-    "4734": {
-        "file_id": 614,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py",
+        "file_id": 616,
+        "content": "/tests/title_cover_generator/tokenizer.py",
         "type": "filepath"
     },
-    "4735": {
-        "file_id": 614,
-        "content": "The code uses PaddleOCR for OCR, focusing on English text detection and supporting multiple languages. It downloads the language model once at runtime and utilizes the `redraw_english_to_chinese` function to translate and display results over images. The developer's custom CUDA libraries may cause potential CUDA errors with OpenCV.",
+    "4733": {
+        "file_id": 616,
+        "content": "This code defines a custom tokenizer class, T5PegasusTokenizer, which extends the BertTokenizer. It takes an optional pre_tokenizer function as input and initializes the base tokenizer. The _tokenize method splits the text into tokens using the pre_tokenizer, and if the token is in the vocabulary, it adds it to split_tokens. If not, it extends split_tokens with tokens generated by the base tokenizer's _tokenize method.",
         "type": "summary"
     },
-    "4736": {
-        "file_id": 614,
-        "content": "from paddleocr import PaddleOCR\nimport wordninja\n# from m2m100_1b_translator import zh_to_en_translator as translator\n# cannot translate everything... not frame by frame...\n# can summarize things. can block texts on location.\n# Paddleocr supports Chinese, English, French, German, Korean and Japanese.\n# You can set the parameter `lang` as `ch`, `en`, `french`, `german`, `korean`, `japan`\n# to switch the language model in order.\n# img_path = 'target.png' # only detect english. or not?\nocr = PaddleOCR(use_angle_cls=True, lang='en') # need to run only once to download and load model into memory\n# image = cv2.imread(img_path)\n# we will give it to you...\n# internalFrameCounter = 0\n# resultChineseInternal = []\ndef redraw_english_to_chinese(image): # whatever. it is dumb anyway. we need to be prudent. really?\n    # global resultChineseInternal, internalFrameCounter # we need to look ahead.\n    resultChineseInternal2 = ocr.ocr(image, cls=True) # you will be fucked if skip frames.\n    prob_thresh = 0.6 # found watermark somewhere. scorpa",
+    "4734": {
+        "file_id": 616,
+        "content": "import jieba\nfrom transformers import BertTokenizer\n# alike structure as DianJing. but is it for gpt2?\nclass T5PegasusTokenizer(BertTokenizer):\n    def __init__(self, pre_tokenizer=lambda x: jieba.cut(x, HMM=False), *args, **kwargs):\n        super().__init__(*args, **kwargs)\n        self.pre_tokenizer = pre_tokenizer\n    def _tokenize(self, text, *arg, **kwargs):\n        split_tokens = []\n        for text in self.pre_tokenizer(text):\n            if text in self.vocab:\n                split_tokens.append(text)\n            else:\n                split_tokens.extend(super()._tokenize(text))\n        return split_tokens",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:1-19"
+        "location": "/tests/title_cover_generator/tokenizer.py:1-17"
     },
-    "4737": {
-        "file_id": 614,
-        "content": "This code uses PaddleOCR to perform optical character recognition (OCR) on an image, specifically detecting and translating English text within it. It downloads and loads the language model only once during runtime. The code is designed to handle Chinese and other languages as well, but currently focuses on English detection. The function `redraw_english_to_chinese` takes an image as input, uses OCR to identify text, and returns the translated text results.",
+    "4735": {
+        "file_id": 616,
+        "content": "This code defines a custom tokenizer class, T5PegasusTokenizer, which extends the BertTokenizer. It takes an optional pre_tokenizer function as input and initializes the base tokenizer. The _tokenize method splits the text into tokens using the pre_tokenizer, and if the token is in the vocabulary, it adds it to split_tokens. If not, it extends split_tokens with tokens generated by the base tokenizer's _tokenize method.",
         "type": "comment"
     },
+    "4736": {
+        "file_id": 617,
+        "content": "/tests/title_rewrite_paraphrase/test.py",
+        "type": "filepath"
+    },
+    "4737": {
+        "file_id": 617,
+        "content": "This code initializes a ClueAI client for paraphrasing, handles errors, and utilizes LRU cache. It generates paraphrased sentences using OpenAI's GPT2 model and allows configuration options. The \"clueai-base\" model is used to predict prompts and check if they are paraphrases of titles. Debug mode prints predicted text and success status, with an option to return scores.",
+        "type": "summary"
+    },
     "4738": {
-        "file_id": 614,
-        "content": "    resultChineseInternal = []\n    for index, line in enumerate(resultChineseInternal2):\n        # print(line)\n        # breakpoint()\n        coords, (text, prob) = line\n        prob = float(prob)\n        if prob > prob_thresh:\n            rectified_text = \" \".join(wordninja.split(text))\n            line[1] = (rectified_text, prob)\n            print(line)\n            resultChineseInternal.append(line)\n    return resultChineseInternal\n# cv2.imshow('dst',dst2)\n# cv2.waitKey(0)\n# cv2.destroyAllWindows()\n# expand the area somehow.\n# draw resultChineseInternal\n# simhei_path = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\"\n# from PIL import Image\n# image = Image.open(img_path).convert('RGB')\n# boxes = [line[0] for line in resultChineseInternal]\n# txts = [line[1][0] for line in resultChineseInternal]\n# scores = [line[1][1] for line in resultChineseInternal]\n# im_show = draw_ocr(image, boxes, txts, scores, font_path=simhei_path)\n# im_show = Image.fromarray(im_show)\n# im_show.save('resultChineseInternal.jpg')\n# we will be testing one image only. not the whole goddamn video.",
+        "file_id": 617,
+        "content": "# use our free api first. yes?\nimport yaml\nwith open(\"clueai_api.yaml\", \"r\") as f:\n    apiKey = yaml.load(f, Loader=yaml.FullLoader)[\"api_key\"]\n    print(\"Key?\", apiKey)\nimport clueai\n# initialize the Clueai Client with an API Key\n# 微调用户finetune_user=True\n# cl = clueai.Client(apiKey)\n# print(cl.check_usage(finetune_user=False))\n# shit. we are on trial.\n# {'使用量': 0, '剩余量': 5000, '用户类型': '免费用户'}\nfrom functools import lru_cache\n@lru_cache(maxsize=1)\ndef getClueAIClient(apiKey: str):\n    if apiKey == \"\":\n        return clueai.Client(\"\", check_api_key=False)\n    else:\n        return clueai.Client(apiKey)\ndef clueAIParaphraser(\n    title: str,\n    apiKey: str = \"\",\n    generate_config: dict = {\n        \"do_sample\": True,\n        \"top_p\": 0.8,\n        \"max_length\": 128,  # notice! not too long.\n        \"min_length\": 5,\n        \"length_penalty\": 1.0,\n        \"num_beams\": 1,\n    },\n    prompt_template: str = \"\"\"\n生成与下列文字相同意思的句子：\n{}\n答案：\n\"\"\",\n    debug: bool = False,\n):\n    cl = getClueAIClient(apiKey)  # good without API key\n    prompt = prompt_template.format(title)  # shit.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:20-50"
+        "location": "/tests/title_rewrite_paraphrase/test.py:1-46"
     },
     "4739": {
-        "file_id": 614,
-        "content": "Iterates over resultChineseInternal2, rectifies text using wordninja if prob > prob_thresh. Stores modified lines in resultChineseInternal. Displays image with OCR results using draw_ocr function and saves it as \"resultChineseInternal.jpg\".",
+        "file_id": 617,
+        "content": "The code initializes a ClueAI client using an API key and provides a function for generating paraphrased sentences. It also includes error handling for cases when no API key is provided or when the trial quota has been exceeded. The code uses LRU cache to store the ClueAI client instance, ensuring that subsequent calls will use the cached instance rather than creating a new one each time. The `clueAIParaphraser` function generates a paraphrased sentence using OpenAI's GPT2 model and provides options for configuring the generation process.",
         "type": "comment"
     },
     "4740": {
-        "file_id": 614,
-        "content": "# may have cuda error when using my cv2 cuda libs.",
+        "file_id": 617,
+        "content": "    # generate a prediction for a prompt\n    # 如果需要自由调整参数自由采样生成，添加额外参数信息设置方式：generate_config=generate_config\n    prediction = cl.generate(\n        model_name=\"clueai-base\", prompt=prompt, generate_config=generate_config\n    )\n    # 需要返回得分的话，指定return_likelihoods=\"GENERATION\"\n    output = prediction.generations[0].text\n    success = title.strip() != output.strip()\n    if debug:\n        # print the predicted text\n        print(\"prediction: {}\".format(output))\n        print(\"paraphrase success?\", success)\n    return output, success\n# title = \"世上所有小猫都是天使变的！\"\n# title = \"支持几十个不同类型的任务，具有较好的零样本学习能力和少样本学习能力。\"\ntitle = \"十只猫九只都拆家 ！\"\n# title = \"猫：脑子是个好东西但是我没有O.o\"\noutput, success = clueAIParaphraser(title, debug=True)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:51-51"
+        "location": "/tests/title_rewrite_paraphrase/test.py:47-67"
     },
     "4741": {
-        "file_id": 614,
-        "content": "This code seems to be a comment expressing a potential issue when using the developer's custom CUDA libraries with OpenCV. It mentions that it might throw a CUDA error in those specific cases, possibly requiring attention or alternative solutions.",
+        "file_id": 617,
+        "content": "This code generates a prediction for a given prompt using the \"clueai-base\" model and checks if it is a paraphrase of the provided title. It also has an optional parameter \"generate_config\" to adjust sampling and allows returning scores with \"return_likelihoods\". The code uses debug mode to print predicted text and success status.",
         "type": "comment"
     },
     "4742": {
-        "file_id": 615,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py",
+        "file_id": 618,
+        "content": "/tests/title_rewrite_paraphrase/test_api.py",
         "type": "filepath"
     },
     "4743": {
-        "file_id": 615,
-        "content": "This code utilizes Deepspeed ZeRO for model inference, translation using M2M100, and offers GPU/CPU options. It sets up a distributed environment with DeepSpeed for training, initializes the model, provides mixed precision training options on Ampere or higher GPUs, prepares a machine translation environment using Deepspeed ZeRO, partitions the model, creates an engine object for parallel processing, and measures time cost per iteration in translating Chinese to English using experimentation with varying parameters.",
+        "file_id": 618,
+        "content": "This code is a function that uses an API to paraphrase Chinese text. It takes input content, debug flag, target ID, timeout, and providers' URLs as parameters. The function sends a POST request to the selected provider's URL with the content data and retrieves the response. If the output is not equal to the original content (after removing leading/trailing spaces), it considers the paraphrasing successful. The debug flag controls whether to print the output, and the function returns the output and success status. The given code uses this function to paraphrase a specific Chinese text.",
         "type": "summary"
     },
     "4744": {
-        "file_id": 615,
-        "content": "# loadable or not?\n# OOM ready?\n# maybe you want to load this shit over kaggle.\n# 3521MB on inference. does that mean you can do the big fucker now?\n# 1.9G model size.\nimport os\n# mt = dlt.TranslationModel(modelpath, model_family=\"m2m100\",device=\"gpu\") # OOM?\nfrom transformers import M2M100Tokenizer, M2M100ForConditionalGeneration\n# model = M2M100ForConditionalGeneration.from_pretrained(modelpath)\n# model_inputs = tokenizer(text_to_translate, return_tensors=\"pt\")\n# translate to French\n# gen_tokens = model.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"en\"))\n# print(tokenizer.batch_decode(gen_tokens, skip_special_tokens=True))\n# either load model with trainer or just use some other stuffs.\n#!/usr/bin/env python\n# This script demonstrates how to use Deepspeed ZeRO in an inference mode when one can't fit a model\n# into a single GPU\n#\n# 1. Use 1 GPU with CPU offload\n# 2. Or use multiple GPUs instead\n#\n# First you need to install deepspeed: pip install deepspeed\n#\n# Here we use a 3B \"bigscience/T0_3B\" model which needs about 15GB GPU RAM - so 1 largish or 2",
+        "file_id": 618,
+        "content": "import requests\ndef chineseParaphraserAPI(    content:str,\ndebug:bool=False,\n    target_id:int =0,\n    timeout:int=10,\n    providers:list[str]=[\"http://www.wzwyc.com/api.php?key=\", \"http://ai.guiyigs.com/api.php?key=\"] # it is about to close! fuck. \"本站于2023年2月19日关站\" buy code from \"1900373358\"\n    ):\n    target = providers[\n        target_id\n    ]  # all the same?\n    data = {\"info\": content}\n    # target = \"http://www.xiaofamaoai.com/result.php\"\n    # xfm_uid = \"342206661e655450c1c37836d23dc3eb\"\n    # data = {\"contents\":content, \"xfm_uid\":xfm_uid, \"agreement\":\"on\"}\n    # nothing? fuck?\n    r = requests.post(target, data=data,timeout=timeout)\n    output = r.text\n    success = output.strip()!= content.strip()\n    if debug:\n        print(output)\n    return output, success\ncontent =  \"支持几十个不同类型的任务，具有较好的零样本学习能力和少样本学习能力。\"\n# content = \"hello world\"\n# it is clearly translation based.\n# since it did not detect source language. well that's just for fun.\noutput,success =chineseParaphraserAPI(content,debug=True)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:1-33"
+        "location": "/tests/title_rewrite_paraphrase/test_api.py:1-32"
     },
     "4745": {
-        "file_id": 615,
-        "content": "This code demonstrates how to use Deepspeed ZeRO for inference when the model size exceeds available GPU RAM. It loads a 1.9GB model and translates text from English to French using the M2M100 tokenizer and model. The code provides two options: using one GPU with CPU offload or multiple GPUs, and requires installing Deepspeed before running.",
+        "file_id": 618,
+        "content": "This code is a function that uses an API to paraphrase Chinese text. It takes input content, debug flag, target ID, timeout, and providers' URLs as parameters. The function sends a POST request to the selected provider's URL with the content data and retrieves the response. If the output is not equal to the original content (after removing leading/trailing spaces), it considers the paraphrasing successful. The debug flag controls whether to print the output, and the function returns the output and success status. The given code uses this function to paraphrase a specific Chinese text.",
         "type": "comment"
     },
     "4746": {
-        "file_id": 615,
-        "content": "# small GPUs can handle it. or 1 small GPU and a lot of CPU memory.\n#\n# To use a larger model like \"bigscience/T0\" which needs about 50GB, unless you have an 80GB GPU -\n# you will need 2-4 gpus. And then you can adapt the script to handle more gpus if you want to\n# process multiple inputs at once.\n#\n# The provided deepspeed config also activates CPU memory offloading, so chances are that if you\n# have a lot of available CPU memory and you don't mind a slowdown you should be able to load a\n# model that doesn't normally fit into a single GPU. If you have enough GPU memory the program will\n# run faster if you don't want offload to CPU - so disable that section then.\n#\n# To deploy on 1 gpu:\n#\n# deepspeed --num_gpus 1 t0.py\n# or:\n# python -m torch.distributed.run --nproc_per_node=1 t0.py\n#\n# To deploy on 2 gpus:\n#\n# deepspeed --num_gpus 2 t0.py\n# or:\n# python -m torch.distributed.run --nproc_per_node=2 t0.py\nfrom transformers import AutoConfig\nfrom transformers.deepspeed import HfDeepSpeedConfig\nimport deepspeed\nimport os",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:34-61"
+        "file_id": 619,
+        "content": "/tests/title_rewrite_paraphrase/test_baidu_paraphrase.py",
+        "type": "filepath"
     },
     "4747": {
-        "file_id": 615,
-        "content": "The code snippet describes how to deploy a larger transformer model like \"bigscience/T0\" on a GPU or multiple GPUs using the DeepSpeed library. The code provides instructions for running the program on 1 or 2 GPUs, and mentions the benefits of CPU memory offloading if sufficient CPU memory is available. The code also imports necessary libraries and configurations.",
-        "type": "comment"
+        "file_id": 619,
+        "content": "The code imports Baidu language models, defines functions for detecting and translating languages, and uses them to paraphrase text by randomly selecting intermediate languages. It employs the baiduParaphraserByTranslation function for iterative translation through multiple languages, with optional depth limit and debug mode.",
+        "type": "summary"
     },
     "4748": {
-        "file_id": 615,
-        "content": "import torch\nos.environ[\"TOKENIZERS_PARALLELISM\"] = \"false\"  # To avoid warnings about parallelism in tokenizers\n# distributed setup\nlocal_rank = int(os.getenv(\"LOCAL_RANK\", \"0\"))\nworld_size = int(os.getenv(\"WORLD_SIZE\", \"1\"))\ntorch.cuda.set_device(local_rank)\ndeepspeed.init_distributed()\n# model_name = \"bigscience/T0_3B\"\nmodelpath = \"/media/root/Jumpcut/person_segmentation/paraphraser/m2m100_1.2B\"\nconfig = AutoConfig.from_pretrained(modelpath)\nmodel_hidden_size = config.d_model\n# batch size has to be divisible by world_size, but can be bigger than world_size\ntrain_batch_size = 1 * world_size\n# ds_config notes\n#\n# - enable bf16 if you use Ampere or higher GPU - this will run in mixed precision and will be\n# faster.\n#\n# - for older GPUs you can enable fp16, but it'll only work for non-bf16 pretrained models - e.g.\n# all official t5 models are bf16-pretrained\n#\n# - set offload_param.device to \"none\" or completely remove the `offload_param` section if you don't\n# - want CPU offload\n#\n# - if using `offload_param` you can manually finetune stage3_param_persistence_threshold to control",
+        "file_id": 619,
+        "content": "from functools import lru_cache\nimport paddlehub as hub\n@lru_cache(maxsize=1)\ndef getBaiduLanguageTranslationModel():\n    language_translation_model = hub.Module(name=\"baidu_translate\")\n    return language_translation_model\n@lru_cache(maxsize=1)\ndef getBaiduLanguageRecognitionModel():\n    language_recognition_model = hub.Module(name=\"baidu_language_recognition\")\n    return language_recognition_model\nBAIDU_API_SLEEP_TIME = 1\nBAIDU_TRANSLATOR_LOCK_FILE = (\n    \"/root/Desktop/works/pyjom/tests/karaoke_effects/baidu_translator.lock\"\n)\ndef baidu_lang_detect(\n    content: str, sleep=BAIDU_API_SLEEP_TIME, lock_file=BAIDU_TRANSLATOR_LOCK_FILE\n):  # target language must be chinese.\n    import filelock\n    lock = filelock.FileLock(lock_file)\n    with lock:\n        import time\n        time.sleep(sleep)\n        language_recognition_model = getBaiduLanguageRecognitionModel()\n        langid = language_recognition_model.recognize(content)\n        return langid\ndef baidu_translate(\n    content: str,\n    source: str,\n    target: str,",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:62-92"
+        "location": "/tests/title_rewrite_paraphrase/test_baidu_paraphrase.py:1-41"
     },
     "4749": {
-        "file_id": 615,
-        "content": "This code sets up a distributed environment with DeepSpeed, initializes the model using the specified path, defines the batch size divisible by world_size, and provides configuration options for mixed precision training on Ampere or higher GPUs.",
+        "file_id": 619,
+        "content": "The code imports necessary modules, caches Baidu language translation and recognition models for efficient usage, and defines two functions: `baidu_lang_detect` for detecting the language of a given content, and `baidu_translate` for translating source text to target text using the cached Baidu language translation model. The code also includes variables for API sleep time and lock file path.",
         "type": "comment"
     },
     "4750": {
-        "file_id": 615,
-        "content": "# - which params should remain on gpus - the larger the value the smaller the offload size\n#\n# For indepth info on Deepspeed config see\n# https://huggingface.co/docs/transformers/main/main_classes/deepspeed\n# keeping the same format as json for consistency, except it uses lower case for true/false\n# fmt: off\nds_config = {\n    \"fp16\": {\n        \"enabled\": True # to half the model precision.\n    },\n    \"zero_optimization\": {\n        \"stage\": 3,\n        \"offload_param\": {\n            \"device\": \"cpu\",\n            \"pin_memory\": True\n        },\n        \"overlap_comm\": True,\n        \"contiguous_gradients\": True,\n        \"reduce_bucket_size\": model_hidden_size * model_hidden_size,\n        \"stage3_prefetch_bucket_size\": 0.9 * model_hidden_size * model_hidden_size,\n        \"stage3_param_persistence_threshold\": 10 * model_hidden_size\n    },\n    \"steps_per_print\": 2000,\n    \"train_batch_size\": train_batch_size,\n    \"train_micro_batch_size_per_gpu\": 1,\n    \"wall_clock_breakdown\": False\n}\n# fmt: on\n# next line instructs transformers to partition the model directly over multiple gpus using",
+        "file_id": 619,
+        "content": "    sleep: int = BAIDU_API_SLEEP_TIME,\n    lock_file: str = BAIDU_TRANSLATOR_LOCK_FILE,\n):  # target language must be chinese.\n    import filelock\n    lock = filelock.FileLock(lock_file)\n    with lock:\n        import time\n        time.sleep(sleep)\n        language_translation_model = getBaiduLanguageTranslationModel()\n        translated_content = language_translation_model.translate(\n            content, source, target\n        )\n        return translated_content\nfrom typing import Iterable, Union\nimport random\ndef baiduParaphraserByTranslation(\n    content: str,\n    debug: bool = False,\n    paraphrase_depth: Union[\n        int, Iterable\n    ] = 1,  # only 1 intermediate language, default.\n    suggested_middle_languages: list[str] = [\n        \"zh\",\n        \"en\",\n        \"jp\",\n    ],  # english, japanese, chinese\n):\n    if issubclass(type(paraphrase_depth), Iterable):\n        paraphrase_depth = random.choice(paraphrase_depth)\n    target_language_id = baidu_lang_detect(content)\n    all_middle_languages = list(set(suggested_middle_languages + [target_language_id]))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:93-123"
+        "location": "/tests/title_rewrite_paraphrase/test_baidu_paraphrase.py:42-81"
     },
     "4751": {
-        "file_id": 615,
-        "content": "This code snippet is initializing a Deepspeed configuration for model training with specific settings. The configuration includes enabling FP16 (half precision) for the model, setting zero optimization stage to 3, and configuring offload parameters such as device and pin memory. Additionally, it specifies steps per print, train batch size, train micro-batch size per GPU, and whether to display wall clock breakdown. This configuration aims to optimize model training on multiple GPUs efficiently.",
+        "file_id": 619,
+        "content": "This code defines a function called `baiduParaphraserByTranslation` that paraphrases text using the Baidu API. It first detects the target language, then randomly selects one or more intermediate languages from a list of suggested middle languages. The function uses the getBaiduLanguageTranslationModel() to translate the content through each intermediate language, resulting in a paraphrased version of the original text. The translation is done in multiple steps with a sleep time between each step.",
         "type": "comment"
     },
     "4752": {
-        "file_id": 615,
-        "content": "# deepspeed.zero.Init when model's `from_pretrained` method is called.\n#\n# **it has to be run before loading the model AutoModelForSeq2SeqLM.from_pretrained(model_name)**\n#\n# otherwise the model will first be loaded normally and only partitioned at forward time which is\n# less efficient and when there is little CPU RAM may fail\ndschf = HfDeepSpeedConfig(ds_config)  # keep this object alive\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# now a model can be loaded.\n# model = AutoModelForSeq2SeqLM.from_pretrained(model_name)\nmodel = M2M100ForConditionalGeneration.from_pretrained(modelpath)\n# this will not fuck shit up.\n# initialise Deepspeed ZeRO and store only the engine object\nds_engine = deepspeed.initialize(model=model, config_params=ds_config)[0]\nds_engine.module.eval()  # inference\n# Deepspeed ZeRO can process unrelated inputs on each GPU. So for 2 gpus you process 2 inputs at once.\n# If you use more GPUs adjust for more.\n# And of course if you have just one input to process you then need to pass the same string to both gpus",
+        "file_id": 619,
+        "content": "    assert paraphrase_depth > 0\n    if paraphrase_depth > 1:\n        assert len(all_middle_languages) >= 3\n    current_language_id = target_language_id\n    middle_content = content\n    head_tail_indexs = set([0, paraphrase_depth - 1])\n    intermediate_languages = []\n    for loop_id in range(paraphrase_depth):\n        forbid_langs = set([current_language_id])\n        if loop_id in head_tail_indexs:\n            forbid_langs.add(target_language_id)\n        non_target_middle_languages = [\n            langid for langid in all_middle_languages if langid not in forbid_langs\n        ]\n        if debug:\n            print(f\"INDEX: {loop_id} INTERMEDIATE LANGS: {non_target_middle_languages}\")\n        middle_language_id = random.choice(non_target_middle_languages)\n        middle_content = baidu_translate(\n            middle_content, source=current_language_id, target=middle_language_id\n        )\n        current_language_id = middle_language_id\n        intermediate_languages.append(middle_language_id)\n    output_content = baidu_translate(",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:124-146"
+        "location": "/tests/title_rewrite_paraphrase/test_baidu_paraphrase.py:83-109"
     },
     "4753": {
-        "file_id": 615,
-        "content": "The code initializes Deepspeed ZeRO before loading the model and sets the engine object for parallel processing. This ensures efficient usage of resources by partitioning the model at initialization rather than during forward pass, and allows handling multiple inputs on each GPU if available.",
+        "file_id": 619,
+        "content": "This code performs a paraphrasing operation by iteratively translating the content through multiple languages, excluding the target language. It checks for a minimum paraphrase depth and the number of available middle languages. The output is obtained by translating the initial content through each intermediate language, resulting in a paraphrased version of the original text.",
         "type": "comment"
     },
     "4754": {
-        "file_id": 615,
-        "content": "# # If you use only one GPU, then you will have only rank 0.\n# rank = torch.distributed.get_rank()\n# if rank == 0:\n#     text_in = \"Is this review positive or negative? Review: this is the best cast iron skillet you will ever buy\"\n# elif rank == 1:\n#     text_in = \"Is this review positive or negative? Review: this is the worst restaurant ever\"\n# tokenizer = AutoTokenizer.from_pretrained(model_name)\n# sentence = \"你吃饭了没有\" # You have eaten. from m2m100 418M\ntokenizer = M2M100Tokenizer.from_pretrained(modelpath,src_lang=\"en\",tgt_lang=\"zh\")\n# source = tokenizer.get_lang_id(\"zh\")\n# tokenizer.src_lang = source\nmdevice = torch.device(\"cuda\")\n# tokenizer.to(mdevice)\n# inputs = tokenizer.encode(text_in, return_tensors=\"pt\").to(device=local_rank)\ndef get_response(sentence):\n    text_to_translate =sentence\n    model_inputs = tokenizer(text_to_translate, return_tensors=\"pt\")\n    # inputs = model.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"en\"))\n    model_inputs = {k:model_inputs[k].to(mdevice) for k in model_inputs.keys()}",
+        "file_id": 619,
+        "content": "        middle_content, source=current_language_id, target=target_language_id\n    )\n    success = output_content.strip() != content.strip()\n    if debug:\n        print(\"SOURCE LANGUAGE:\", target_language_id)\n        print(\"USING INTERMEDIATE LANGUAGES:\", intermediate_languages)\n        print(\"PARAPHRASED:\", output_content)\n        print(\"paraphrase success?\", success)\n    return output_content, success\n# content = \"世上所有小猫都是天使变的！\"\ncontent =  \"支持几十个不同类型的任务，具有较好的零样本学习能力和少样本学习能力。\"\noutput, success = baiduParaphraserByTranslation(content, paraphrase_depth=3, debug=True)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:147-174"
+        "location": "/tests/title_rewrite_paraphrase/test_baidu_paraphrase.py:110-124"
     },
     "4755": {
-        "file_id": 615,
-        "content": "This code is setting up the environment for a machine translation task using the M2M100 model. It assigns GPU ranks to different tasks, initializes the tokenizer, and defines a function called \"get_response\" that takes a sentence as input, tokenizes it, prepares inputs for the model, and performs translation. The code is specifically tailored for a CUDA device, meaning it will utilize GPUs for processing.",
+        "file_id": 619,
+        "content": "The code is calling the baiduParaphraserByTranslation function to paraphrase a given content. It passes the content, specifies the maximum depth of paraphrasing (3), and sets the debug mode to True for printing additional information about the process. If successful, it returns the paraphrased output and a boolean success flag. The content in this case is \"支持几十个不同类型的任务，具有较好的零样本学习能力和少样本学习能力。\".",
         "type": "comment"
     },
     "4756": {
-        "file_id": 615,
-        "content": "    with torch.no_grad():\n        # outputs = ds_engine.module.generate(inputs, synced_gpus=True)\n        while True:\n            try:\n                gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True).cpu() # whatever. no too heavy lifting.\n                # gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True,top_k=0,num_beams=8,num_return_sequences=1,no_repeat_ngram_size=2,temperature=1.4).cpu() # whatever.\n                # gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True,top_k=0,top_p=0.92,num_beams=5,num_return_sequences=5,no_repeat_ngram_size=2,temperature=0.7).cpu() # whatever.\n                break\n            except:\n                import traceback\n                traceback.print_exc()\n                breakpoint() # translate speed is slow as hell. must do some summarization. or you cover them all.",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:176-187"
+        "file_id": 620,
+        "content": "/tests/title_rewrite_paraphrase/test_local.py",
+        "type": "filepath"
     },
     "4757": {
-        "file_id": 615,
-        "content": "This code uses deepspeed engine to generate translated text using a model. It employs different generate() calls with varying parameters (top_k, top_p, num_beams) in a while loop, likely for experimentation purposes. The loop continues until a successful generation is achieved without any exceptions or until a breakpoint is hit, and it handles exceptions by printing the traceback and breaking out of the loop.",
-        "type": "comment"
+        "file_id": 620,
+        "content": "The code defines a paraphrasing function using tokenizer, model, sample and top_p options. The displayed elapsed time indicates acceptable performance for the task.",
+        "type": "summary"
     },
     "4758": {
-        "file_id": 615,
-        "content": "                # you may do this for pictures.\n    # text_out = tokenizer.decode(outputs[0], skip_special_tokens=True)\n    print(\"TRANSLATED:\")\n    return tokenizer.batch_decode(gen_tokens, skip_special_tokens=True)\n# print(get_response(\"你吃饭了没有\"))\n# print(\"PROMPT READY.\")\n# print(\"type exit to exit.\")\n# while True:\n#     targetSentence = input(\"\\nprompt>\")\n#     if \"exit\" not in targetSentence:\n#         result = get_response(targetSentence)\n#         print(result) # this is goddamly working. fuck!\n#     else:\n#         break\n# import time\n# values = []\n# for _ in range(3):\n#     a = time.time()\n#     translate_once()\n#     b = time.time()\n#     value = b-a\n#     # value = timeit.timeit(stmt=\"translate_once()\")\n#     print(\"TIME COST: {}\".format(value))\n#     values.append(value)\n# print(\"TOTAL COST:\",values)\n# print(\"AVERAGE COST:\",sum(values)/len(values))\n# stuck at the end.\n# TOTAL COST: [6.2853310108184814, 4.705244541168213, 4.688654661178589]\n# AVERAGE COST: 5.226410071055095\n# better not to use swap.",
+        "file_id": 620,
+        "content": "# 加载模型\nfrom transformers import T5Tokenizer, T5ForConditionalGeneration\nmodelID = \"ClueAI/PromptCLUE-base-v1-5\"\n# https://github.com/James4Ever0/transformers/blob/main/src/transformers/models/auto/configuration_auto.py\n# https://github.com/James4Ever0/transformers/blob/main/src/transformers/modeling_utils.py (need change)\ntokenizer = T5Tokenizer.from_pretrained(modelID, local_files_first=True)\nmodel = T5ForConditionalGeneration.from_pretrained(\n    modelID, local_files_first=True\n)  # oh shit! 1G model\n# print(\"TOKENIZER?\", tokenizer) # always cpu. no \"device\" attribute.\n# print(\"_\"*20)\n# print(\"MODEL?\", model.device)\n# breakpoint()\n# what are these devices? all default CPU?\ndef preprocess(text):\n    return text.replace(\"\\n\", \"_\")\ndef postprocess(text):\n    return text.replace(\"_\", \"\\n\")\ndef answer(text, sample=True, top_p=0.8, device=\"cpu\"):\n    \"\"\"sample：是否抽样。生成任务，可以设置为True;\n    top_p：0-1之间，生成的内容越多样\"\"\"\n    text = preprocess(text)\n    encoding = tokenizer(\n        text=[text], truncation=True, padding=True, max_length=768, return_tensors=\"pt\"",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:188-220"
+        "location": "/tests/title_rewrite_paraphrase/test_local.py:1-33"
     },
     "4759": {
-        "file_id": 615,
-        "content": "This code is a functional implementation of a DL translator, likely for Chinese to English translation. It takes user input in the form of text and returns the translated output. The code includes batch decoding of tokenizer outputs and handles user input within a while loop. It also measures the time cost and average cost per iteration of the function.",
+        "file_id": 620,
+        "content": "Loading T5 tokenizer and model with specified ID from local files first. Preprocessing function replaces newline characters with underscores, while postprocessing does the opposite. Function answer generates text using tokenizer, model, sample option, top_p value, and specified device (default: CPU).",
         "type": "comment"
     },
     "4760": {
-        "file_id": 616,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py",
-        "type": "filepath"
+        "file_id": 620,
+        "content": "    ).to(device)\n    if not sample:\n        out = model.generate(\n            **encoding,\n            return_dict_in_generate=True,\n            output_scores=False,\n            max_length=128,\n            num_beams=4,\n            length_penalty=1\n        )\n    else:\n        out = model.generate(  # check \"generate_config\" in test.py?\n            **encoding,\n            return_dict_in_generate=True,\n            output_scores=False,\n            max_length=128,\n            min_length=5,\n            do_sample=True,\n            length_penalty=1,\n            num_beams=4,\n            top_p=top_p\n        )\n    out_text = tokenizer.batch_decode(out[\"sequences\"], skip_special_tokens=True)\n    return postprocess(out_text[0])\ndef my_function():\n    # Function code goes here\n    q = \"\"\"重写句子：\n支持几十个不同类型的任务，具有较好的零样本学习能力和少样本学习能力。\n答案：\n\"\"\"  # i think this model just doesn't get it.\n    output = answer(q)\n    print(\"Output:\", output)\nimport timeit\n# Time the function\nelapsed_time = timeit.timeit(my_function, number=1)\nprint(\"Elapsed time:\", elapsed_time)",
+        "type": "code",
+        "location": "/tests/title_rewrite_paraphrase/test_local.py:34-75"
     },
     "4761": {
-        "file_id": 616,
-        "content": "The code uses video processing libraries to read a source video, apply Chinese translation and color reduction to frames, save the processed frames in a dictionary, write JSON result to file, and finally saves the final video with h.264 codec.",
-        "type": "summary"
+        "file_id": 620,
+        "content": "The code defines a function that generates text using a model, specifically for the purpose of paraphrasing or rewriting sentences. The model takes an input sentence and outputs a generated response. The function also measures the elapsed time to execute the code.",
+        "type": "comment"
     },
     "4762": {
-        "file_id": 616,
-        "content": "from functional_redraw_chinese_text_offline2 import redraw_english_to_chinese2\nimport cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_json = \"japan_day.json\"\noutput_video = \"japan_day_change_color3.mp4\"\nimport os\nif os.path.exists(output_video): os.remove(output_video)\n# OOM for local translation!\n# this will not work. fucking shit. though ocr is speedy.\n# in this we will get no audio.\n# use ffmpeg and time strencher.\n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\nfourcc = cv2.VideoWriter_fourcc(*'H264') # h.264 # this will fail.\n# fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264\nvideo_writer = cv2.VideoWriter(output_video,fourcc,fps,frame_size)",
+        "file_id": 620,
+        "content": "# Elapsed time: 10.513529631891288\n# not too bad?",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:1-32"
+        "location": "/tests/title_rewrite_paraphrase/test_local.py:76-77"
     },
     "4763": {
-        "file_id": 616,
-        "content": "This code imports the necessary modules and sets up variables for video processing. It removes any existing output file, initializes a VideoCapture object to read the source video, determines the video's FPS, frame size, and total frames count, and creates a VideoWriter object with h.264 codec for the output video file.",
+        "file_id": 620,
+        "content": "These lines are displaying the elapsed time for a certain task or operation, and indicating that it was completed within an acceptable range. The comment suggests that the performance of this specific action is considered satisfactory by the developer.",
         "type": "comment"
     },
     "4764": {
-        "file_id": 616,
-        "content": "# frame_index_counter = 0\n# this is determinism.\n# or you could use framedifference? come on...\n# while True:\nimport json\nmjson_result = open(output_json, 'r',encoding='utf8').read()\nmjson_result = json.loads(mjson_result)\nimport copy\n# use some tweening? pytweening?\n# from test_curve_converter import curve_converter\n    # for index, (orig, target) in enumerate(curve_function):\n    #     if value <= orig:\n    #         forig,ftarget = curve_function[index+1]\n    #         if value == orig: return target\n    #         elif value <=forig:\n    #             if value ==forig: return ftarget\n    #             else:\n    #                 loc = (value-orig)/(forig-orig)\n    #                 new_diff = loc*(ftarget-target)\n    #                 new_value = target+new_diff\n    #                 return new_value\n    # return curve_function[-1][1]\n# def remove_much_red(image,curve_function):\n#     target = copy.copy(image[:,:,2])\n#     target = curve_converter(target,curve_function)\n#     image[:,:,2] = target\n#     return image",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:34-62"
+        "file_id": 621,
+        "content": "/tests/tkinter_tag_toggle_button/toggle_button.py",
+        "type": "filepath"
     },
     "4765": {
-        "file_id": 616,
-        "content": "Code imports json and copy libraries, reads a JSON file and converts its contents. It defines a function for curve conversion and a potential function for removing excessive red from an image.",
-        "type": "comment"
+        "file_id": 621,
+        "content": "This code uses Tkinter to create buttons for toggling video tags and feeds the information into the main logic using mlt xml format.",
+        "type": "summary"
     },
     "4766": {
-        "file_id": 616,
-        "content": "def remove_much_red_with_rate(image,reduce_rate = 0.8):\n    target = copy.copy(image[:,:,2])\n    target = target*(1-reduce_rate)\n    image[:,:,2] = target\n    return image\n# curve_function = [[0,0],[40,30],[100,50],[150,100],[255,130]]\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?\n    success, frame = video_cap.read() # let's just use 1, no frame skip.\n    if not success: break\n    # print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file\n    string_frame_index_counter = str(frame_index_counter)  #inpainting is still slow somehow. freaking shit. though i have the freaking shit.\n    # maybe you can improvise.\n    # this is done purely in CPU.\n    processed_frame_data = mjson_result[string_frame_index_counter]# fucking string key.\n    processed_frame = redraw_english_to_chinese2(frame,processed_frame_data) # step 1\n    processed_frame = remove_much_red_with_rate(processed_frame)\n    # mjson_result.update({frame_index_counter:processed_frame_data})",
+        "file_id": 621,
+        "content": "# Import Module\nfrom tkinter import *\n# Create Object\nroot = Tk()\n# Add Title\nroot.title('On/Off Switch!')\n# Add Geometry\nroot.geometry(\"500x300\")\n# Keep track of the button state on/off\n#global is_on\nis_on = {\"myTag\":False,\"myTag2\":False,\"myTag3\":False}\n# Create Label\n# Define our switch function\ndef switch(key, buttons, index, is_on):\n    button = buttons[index]\n    if is_on[key]:\n        button.config(text=key ,bg = \"grey\",fg=\"black\")\n        is_on[key] = False\n    else:\n        button.config(text = key,bg = \"green\",fg=\"white\")\n        is_on[key] = True\n# Define Our Images\n# on = PhotoImage(file = \"on.png\")\n# off = PhotoImage(file = \"off.png\")\n# Create A Button\non_buttons = []\nmfunctions = []\n# for j in range(n):\n#     e = Button(my_w, text=j) \n#     e.grid(row=i, column=j) \ndef getSwitchLambda(text, on_buttons, index, is_on):\n    return lambda:switch(text, on_buttons, index, is_on)\nfor index, text in enumerate(is_on.keys()):\n    # print(\"TEXT:\", text)\n    on_buttons.append(Button(root, text=text, bd = 0,bg=\"grey\",fg=\"black\"))",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:64-83"
+        "location": "/tests/tkinter_tag_toggle_button/toggle_button.py:1-46"
     },
     "4767": {
-        "file_id": 616,
-        "content": "The code reads a video frame by frame and applies two transformations: redrawing English to Chinese (step 1) and reducing the intensity of red color with a certain rate. The progress bar indicates the processing progress, and the processed frames are stored in a dictionary using frame index as the key.",
+        "file_id": 621,
+        "content": "Code imports the Tkinter module, creates a root window with title and geometry, defines a global dictionary to track button states, and defines a function to switch button text and colors based on its state. It also includes a placeholder for creating buttons with images for \"on\" and \"off\" states, but they are currently not implemented. A separate function is defined to create buttons with lambda functions that call the switch function when clicked. The loop creates buttons with their respective texts and sets initial state according to the dictionary.",
         "type": "comment"
     },
     "4768": {
-        "file_id": 616,
-        "content": "    video_writer.write(processed_frame) # what frame?\n    # frame_index_counter+=1\n    # cv2.imshow(\"image\",processed_frame) #\n    # # cv2.waitKey(1) # not wait infinitely.\n    # if cv2.waitKey(20) == ord('q'):\n    #     break\n# with open(output_json,\"w+\",encoding=\"utf-8\") as f:\n#     data = json.dumps(mjson_result,indent=4)\n#     f.write(data)\n# cv2.close\nprint(\"VIDEO DONE. SAVED AT:\",output_video)",
+        "file_id": 621,
+        "content": "    mfunctions.append(getSwitchLambda(text, on_buttons, index, is_on))\n    on_buttons[index].config(command=mfunctions[index])\n    on_buttons[index].grid(row=1, column=0+index)\n# for x in mfunctions: x()\n# def getLambda(x): return lambda:print(x)\n# # great. much fucking better.\n# for y in [getLambda(x) for x in range(3)]: y()\n# so that is what's weird about the freaking lambda!\n# on_button1 = Button(root, text=\"myTag2\", bd = 0,bg=\"grey\",fg=\"black\")\n# # on_button1.command = lambda:switch(key=\"myTag\", button=on_button1)\n# on_button1.config(command=lambda:switch(key=\"myTag2\", button=on_button1))\n# on_button1.pack(pady = 50)\n# Execute Tkinter\nroot.mainloop()\n# so we would also like to use shotcut to manually cut videos and feed that info into the main production logic, by means of mlt xml.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor3.py:84-95"
+        "location": "/tests/tkinter_tag_toggle_button/toggle_button.py:47-67"
     },
     "4769": {
-        "file_id": 616,
-        "content": "This code writes the processed frame to the video, increments the frame index counter, displays the processed frame using OpenCV's imshow function, waits for a 'q' key press to break the loop, and finally writes the JSON result data to the file. The video is then saved at the specified output_video location.",
+        "file_id": 621,
+        "content": "This code creates Tkinter buttons for toggling tags and configures them with lambda functions. It then executes the Tkinter event loop to display the buttons. The purpose is to allow users to manually cut videos and feed that information into the main production logic using mlt xml format.",
         "type": "comment"
     },
     "4770": {
-        "file_id": 617,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py",
+        "file_id": 622,
+        "content": "/tests/topic_modeling/english_test.py",
         "type": "filepath"
     },
     "4771": {
-        "file_id": 617,
-        "content": "The code translates text, applies color correction, and processes frames from a video using ffmpeg and OpenCV for display and waiting for user input.",
+        "file_id": 622,
+        "content": "This code utilizes NLTK, Spacy and TextBlob for text preprocessing, stemming, lemmatization, and token iteration. It processes tokens, collects POS and text values, stores them, and checks for \"-PRON-\" absence.",
         "type": "summary"
     },
     "4772": {
-        "file_id": 617,
-        "content": "from functional_redraw_chinese_text_offline2 import redraw_english_to_chinese2\nimport cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_json = \"japan_day.json\"\noutput_video = \"japan_day_change_color2.mp4\"\nimport os\nif os.path.exists(output_video): os.remove(output_video)\n# OOM for local translation!\n# this will not work. fucking shit. though ocr is speedy.\n# in this we will get no audio.\n# use ffmpeg and time strencher.\n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\n# fourcc = cv2.VideoWriter_fourcc(*'H264') # h.264\n# fourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264 \n# this is builtin ffmpeg. not external shits.\n# video_writer = cv2.VideoWriter(output_video,fourcc,fps,frame_size)",
+        "file_id": 622,
+        "content": "# https://huggingface.co/spacy/en_core_web_sm\n# https://medium.com/analytics-vidhya/nlp-essentials-removing-stopwords-and-performing-text-normalization-using-nltk-and-spacy-in-python-2c4024d2e343\nfrom nltk.corpus import stopwords\nfrom nltk.tokenize import word_tokenize\nfrom nltk.stem import PorterStemmer\nfrom lazero.utils import inspectObject\n# metalazero belongs to lazero package.\nset(stopwords.words(\"english\"))\ntext = \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and \nfishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had \nindeed the vaguest idea where the wood and river in question were.\"\"\"\nstop_words = set(stopwords.words(\"english\"))\nword_tokens = word_tokenize(text)\nfiltered_sentence = []\nfor w in word_tokens:\n    if w not in stop_words:\n        filtered_sentence.append(w)\nStem_words = []\nps = PorterStemmer()\nfor w in filtered_sentence:\n    rootWord = ps.stem(w)\n    Stem_words.append(rootWord)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:1-33"
+        "location": "/tests/topic_modeling/english_test.py:1-30"
     },
     "4773": {
-        "file_id": 617,
-        "content": "The code is preparing to process a video file frame by frame for translation. It imports necessary libraries, checks if the output video exists and deletes it, obtains video properties, and sets up variables for further processing. The code also comments on possible issues and suggests using ffmpeg for audio and video processing.",
+        "file_id": 622,
+        "content": "This code uses NLTK and Spacy libraries to perform text preprocessing. It loads the English stopwords, tokenizes the input text, removes stopwords, applies stemming using PorterStemmer, and stores the resulting words in Stem_words list.",
         "type": "comment"
     },
     "4774": {
-        "file_id": 617,
-        "content": "# frame_index_counter = 0\n# this is determinism.\n# or you could use framedifference? come on...\n# while True:\nimport json\nmjson_result = open(output_json, 'r',encoding='utf8').read()\nmjson_result = json.loads(mjson_result)\nimport copy\n# use some tweening? pytweening?\nfrom test_curve_converter import curve_converter\n    # for index, (orig, target) in enumerate(curve_function):\n    #     if value <= orig:\n    #         forig,ftarget = curve_function[index+1]\n    #         if value == orig: return target\n    #         elif value <=forig:\n    #             if value ==forig: return ftarget\n    #             else:\n    #                 loc = (value-orig)/(forig-orig)\n    #                 new_diff = loc*(ftarget-target)\n    #                 new_value = target+new_diff\n    #                 return new_value\n    # return curve_function[-1][1]\ndef remove_much_red(image,curve_function):\n    target = copy.copy(image[:,:,2])\n    target = curve_converter(target,curve_function)\n    image[:,:,2] = target\n    return image\ndef remove_much_red_with_rate(image,reduce_rate = 0.8):",
+        "file_id": 622,
+        "content": "print(filtered_sentence) # 1st step\nprint(Stem_words) # 3rd step\n# from textblob lib import Word method\n# if textblobTest:\nfrom textblob import Word\ntext = \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and \nfishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had \nindeed the vaguest idea where the wood and river in question were.\"\"\"\nlem = []\nfor i in text.split():\n    word1 = Word(i).lemmatize(\"n\")\n    word2 = Word(word1).lemmatize(\"v\")\n    word3 = Word(word2).lemmatize(\"a\")\n    lem.append(Word(word3).lemmatize())\nprint(lem) # incorrect and shitty. don't know what is its use\nimport en_core_web_sm\nnlp = en_core_web_sm.load()\ndoc = nlp(\n    \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and fishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had indeed the vaguest idea where the wood and river in question were.\"\"\"",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:35-65"
+        "location": "/tests/topic_modeling/english_test.py:31-56"
     },
     "4775": {
-        "file_id": 617,
-        "content": "The code defines a function, `remove_much_red`, which takes an image and curve function as parameters. It applies the given curve function to the red channel of the image, effectively reducing the intensity of red colors. The code also includes another function, `remove_much_red_with_rate`, that allows for adjusting the reduction rate of red colors in images. Both functions modify the image by changing the values of its red channel based on a given curve function or reduction rate.",
+        "file_id": 622,
+        "content": "Code imports the TextBlob library and uses lemmatization to simplify words in a given text. It first prints the original list of lemmatized words, then loads the English language model from TextBlob, and applies it to the same text, likely resulting in similar but potentially different lemmatized words. The purpose of this code is unclear due to incorrect usage and possible redundancy.",
         "type": "comment"
     },
     "4776": {
-        "file_id": 617,
-        "content": "    target = copy.copy(image[:,:,2])\n    target = target*(1-reduce_rate)\n    image[:,:,2] = target\n    return image\ncurve_function = [[0,0],[40,30],[100,50],[150,100],[255,130]]\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?\n    success, frame = video_cap.read() # let's just use 1, no frame skip.\n    if not success: break\n    # print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file\n    string_frame_index_counter = str(frame_index_counter)  #inpainting is still slow somehow. freaking shit. though i have the freaking shit.\n    # maybe you can improvise.\n    # this is done purely in CPU.\n    processed_frame_data = mjson_result[string_frame_index_counter]# fucking string key.\n    processed_frame = redraw_english_to_chinese2(frame,processed_frame_data) # step 1\n    processed_frame = remove_much_red(processed_frame,curve_function)\n    # mjson_result.update({frame_index_counter:processed_frame_data})\n    # video_writer.write(processed_frame) # what frame?",
+        "file_id": 622,
+        "content": ")\n# the sentence spliter includes unwanted \"\\n\" char\nlemma_word1 = []\n# this shit has the lang tag. it might be useful for language detection. really?\nfor token in doc:\n    # print(\"LEMMA\", token.lemma_)\n    # not reliable.\n    # ['ancestors', 'check_flag', 'children', 'cluster', 'conjuncts', 'dep', 'dep_', 'doc', 'ent_id', 'ent_id_', 'ent_iob', 'ent_iob_', 'ent_kb_id', 'ent_kb_id_', 'ent_type', 'ent_type_', 'get_extension', 'has_dep', 'has_extension', 'has_head', 'has_morph', 'has_vector', 'head', 'i', 'idx', 'iob_strings', 'is_alpha', 'is_ancestor', 'is_ascii', 'is_bracket', 'is_currency', 'is_digit', 'is_left_punct', 'is_lower', 'is_oov', 'is_punct', 'is_quote', 'is_right_punct', 'is_sent_end', 'is_sent_start', 'is_space', 'is_stop', 'is_title', 'is_upper', 'lang', 'lang_', 'left_edge', 'lefts', 'lemma', 'lemma_', 'lex', 'lex_id', 'like_email', 'like_num', 'like_url', 'lower', 'lower_', 'morph', 'n_lefts', 'n_rights', 'nbor', 'norm', 'norm_', 'orth', 'orth_', 'pos', 'pos_', 'prefix', 'pref",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:66-85"
+        "location": "/tests/topic_modeling/english_test.py:57-66"
     },
     "4777": {
-        "file_id": 617,
-        "content": "The code reads frames from a video and applies color correction using a curve function. It also translates text on the frames and processes them. The progress bar shows the current frame being processed, and if a frame can't be read, the loop breaks. Finally, the processed frames are saved to an output file.",
+        "file_id": 622,
+        "content": "This code segment seems to be part of a natural language processing (NLP) task. It appears to be iterating through each token in the given document and potentially performing some operations or extractions on them. The variable 'lemma_word1' is initially empty but will presumably store lemmatized words from the tokens, which could be useful for further analysis.",
         "type": "comment"
     },
     "4778": {
-        "file_id": 617,
-        "content": "    # frame_index_counter+=1\n    cv2.imshow(\"image\",processed_frame) #\n    # # cv2.waitKey(1) # not wait infinitely.\n    if cv2.waitKey(20) == ord('q'):\n        break\n# with open(output_json,\"w+\",encoding=\"utf-8\") as f:\n#     data = json.dumps(mjson_result,indent=4)\n#     f.write(data)\n# cv2.close\nprint(\"VIDEO DONE. SAVED AT:\",output_video)",
+        "file_id": 622,
+        "content": "ix_', 'prob', 'rank', 'remove_extension', 'right_edge', 'rights', 'sent', 'sent_start', 'sentiment', 'set_extension', 'set_morph', 'shape', 'shape_', 'similarity', 'subtree', 'suffix', 'suffix_', 'tag', 'tag_', 'tensor', 'text', 'text_with_ws', 'vector', 'vector_norm', 'vocab', 'whitespace_']\n    # print(dir(token))\n    # breakpoint()\n    # inspectObject(token)\n    elem = (token.pos_, token.text)\n    # breakpoint()\n    lemma_word1.append(elem)\nprint(lemma_word1)  # there is no such -PRON- thing.\n# 2nd step.",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor2.py:87-96"
+        "location": "/tests/topic_modeling/english_test.py:66-74"
     },
     "4779": {
-        "file_id": 617,
-        "content": "This code displays a processed frame on the screen, waits for 20 milliseconds for input to break the loop, and saves the final video. It uses OpenCV to display frames and wait for user input to stop the process.",
+        "file_id": 622,
+        "content": "The code appears to be processing tokens and collecting their pos (part of speech) and text values. These values are stored in the lemma_word1 list for further use, while a \"breakpoint()\" is included for debugging purposes, and a print statement shows that there is no \"-PRON-\" element present. The code continues with a 2nd step, implying further processing may follow.",
         "type": "comment"
     },
     "4780": {
-        "file_id": 618,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor.py",
+        "file_id": 623,
+        "content": "/tests/topic_modeling/poc_english_preprocessing.py",
         "type": "filepath"
     },
     "4781": {
-        "file_id": 618,
-        "content": "This code reads frames from a video, translates each frame using the redraw_english_to_chinese function, updates a dictionary with frame data, and saves the processed frames to an output JSON file. The process stops when no more frames can be read or if 'q' is pressed.",
+        "file_id": 623,
+        "content": "The code imports the spaCy English language model, tokenizes text, sets stopwords, applies Porter stemming, initializes a sentence splitter, and stores lemmatized words in a variable. The document is preprocessed by removing certain parts of speech and stop words, then stemmed using the PorterStemmer, resulting in Stem_words.",
         "type": "summary"
     },
     "4782": {
-        "file_id": 618,
-        "content": "import cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_json = \"japan_day.json\"\n# output_video = \"japan_day_translated.mp4\"\n# OOM for local translation!\n# in this we will get no audio.\n# use ffmpeg and time strencher.\nfrom functional_redraw_chinese_text_offline import redraw_english_to_chinese\n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\nfourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264\n# video_writer =cv2.VideoWriter(output_video,fourcc,fps,frame_size)\n# frame_index_counter = 0\n# this is determinism.\n# or you could use framedifference? come on...\n# while True:\nimport json\nmjson_result = {}\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?",
+        "file_id": 623,
+        "content": "# https://huggingface.co/spacy/en_core_web_sm\n# https://medium.com/analytics-vidhya/nlp-essentials-removing-stopwords-and-performing-text-normalization-using-nltk-and-spacy-in-python-2c4024d2e343\nfrom nltk.corpus import stopwords\nfrom nltk.tokenize import word_tokenize\nfrom nltk.stem import PorterStemmer\n# from lazero.utils import inspectObject\nfrom lazero.utils import sprint # print with spliter\n# metalazero belongs to lazero package.\nimport en_core_web_sm\nnlp = en_core_web_sm.load()\ndoc = nlp(\n    \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and fishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had indeed the vaguest idea where the wood and river in question were.\"\"\"\n)\n# the sentence spliter includes unwanted \"\\n\" char\nset(stopwords.words(\"english\"))\nstop_words = set([elem.lower() for elem in stopwords.words(\"english\")])\nlemma_word1 = []\n# this shit has the lang tag. it might be useful for language detection. really?",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor.py:1-34"
+        "location": "/tests/topic_modeling/poc_english_preprocessing.py:1-27"
     },
     "4783": {
-        "file_id": 618,
-        "content": "The code is reading a video file, extracting frame-by-frame information including FPS, frame width, height, and the total number of frames. It initializes variables for output JSON result and a potential output video (currently commented out). The code uses progress bar to iterate through each frame, but the actual translation process is missing from the given code snippet. The original task seems to be long and might require a lot of computation resources.",
+        "file_id": 623,
+        "content": "This code imports necessary libraries and loads the English language model from spaCy, tokenizes text, sets stopwords, applies Porter stemming, initializes a sentence splitter, and defines a variable to hold lemmatized words.",
         "type": "comment"
     },
     "4784": {
-        "file_id": 618,
-        "content": "    success, frame = video_cap.read() # let's just use 1, no frame skip.\n    if not success: break\n    print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file\n    processed_frame_data= redraw_english_to_chinese(frame) # step 1\n    mjson_result.update({frame_index_counter:processed_frame_data})\n    # video_writer.write(processed_frame) # what frame?\n    # frame_index_counter+=1\n    # if cv2.waitKey(20) == ord('q'):\n        # break\nwith open(output_json,\"w+\",encoding=\"utf-8\") as f:\n    data = json.dumps(mjson_result,indent=4)\n    f.write(data)\nprint(\"VIDEO DONE ANALYSING. SAVED AT:\",output_json)",
+        "file_id": 623,
+        "content": "for token in doc:\n    if token.pos_ in ['PRON','CCONJ','ADP','PART','PUNCT','AUX']:\n        continue\n    if token.text.lower() in stop_words:\n        continue\n    lemma_word1.append(token.text)\nsprint(lemma_word1)  # there is no such -PRON- thing.\n# 1st step.\nStem_words = []\nps = PorterStemmer()\nfor w in lemma_word1:\n    rootWord = ps.stem(w)\n    Stem_words.append(rootWord)\nsprint(Stem_words) # 3rd step",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_translate_processor.py:35-48"
+        "location": "/tests/topic_modeling/poc_english_preprocessing.py:28-42"
     },
     "4785": {
-        "file_id": 618,
-        "content": "This code reads frames from a video, processes one frame at a time by translating it using the redraw_english_to_chinese function, updates a dictionary with frame data, and saves the processed frames to an output JSON file. The process stops when no more frames can be read or if 'q' is pressed.",
+        "file_id": 623,
+        "content": "This code preprocesses a document by removing certain parts of speech and stop words, then applies stemming using the PorterStemmer to reduce words to their root form. The resulting list of stemmed words is stored in Stem_words.",
         "type": "comment"
     },
     "4786": {
-        "file_id": 619,
-        "content": "/tests/bilibili_practices/bilibili_video_translate/frame_iterator_copy.py",
+        "file_id": 624,
+        "content": "/tests/topic_modeling/poc_english_topic_modeling.py",
         "type": "filepath"
     },
     "4787": {
-        "file_id": 619,
-        "content": "This code reads video frames, prints their indices, and writes them to an output file using video_writer. It tracks progress with a progress bar and checks for keypresses to exit. Upon completion, it displays the saved location as VIDEO DONE message.",
+        "file_id": 624,
+        "content": "This code imports libraries, applies language models and topic modeling techniques using CountVectorizer and LatentDirichletAllocation to analyze document content.",
         "type": "summary"
     },
     "4788": {
-        "file_id": 619,
-        "content": "import cv2\nimport progressbar as pb\nsource_video = \"japan_day.webm\"\noutput_video = \"japan_day_copy.mp4\"\n# in this we will get no audio.\n# use ffmpeg and time strencher.\n# from functional_redraw_chinese_text_offline import \n# this is ideal for frame by frame processing.\n# oh shit!\n# the task is very long to run, i believe.\nvideo_cap = cv2.VideoCapture(source_video)\nfps = video_cap.get(cv2.CAP_PROP_FPS) # 60.\nframe_width = int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))\nframe_height = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))\nframe_size = (frame_width, frame_height)\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\nfourcc = cv2.VideoWriter_fourcc('X', 'V', 'I', 'D') # h.264\nvideo_writer =cv2.VideoWriter(output_video,fourcc,fps,frame_size)\n# frame_index_counter = 0\n# while True:\nfor frame_index_counter in pb.progressbar(range(frame_count)): # are you sure?\n    success, frame = video_cap.read()\n    if not success: break\n    print(\"processing frame\",frame_index_counter)\n    # write the frame to the output file",
+        "file_id": 624,
+        "content": "# https://huggingface.co/spacy/en_core_web_sm\n# https://medium.com/analytics-vidhya/nlp-essentials-removing-stopwords-and-performing-text-normalization-using-nltk-and-spacy-in-python-2c4024d2e343\nfrom nltk.corpus import stopwords\nfrom nltk.tokenize import word_tokenize\nfrom nltk.stem import PorterStemmer\n# from lazero.utils import inspectObject\nfrom lazero.utils import sprint  # print with spliter\n# metalazero belongs to lazero package.\nimport en_core_web_sm\nnlp = en_core_web_sm.load()\ndoc = nlp(\n    \"\"\"He determined to drop his litigation with the monastry, and relinguish his claims to the wood-cuting and fishery rihgts at once. He was the more ready to do this becuase the rights had become much less valuable, and he had indeed the vaguest idea where the wood and river in question were.\"\"\"\n)\n# the sentence spliter includes unwanted \"\\n\" char\nset(stopwords.words(\"english\"))\nstop_words = set([elem.lower() for elem in stopwords.words(\"english\")])\nlemma_word1 = []\n# this shit has the lang tag. it might be useful for language detection. really?",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_iterator_copy.py:1-31"
+        "location": "/tests/topic_modeling/poc_english_topic_modeling.py:1-27"
     },
     "4789": {
-        "file_id": 619,
-        "content": "This code reads a video file, gets its frame properties like FPS and dimensions, creates an output video file with the same format, then iterates through each frame of the input video, printing its index while processing it. It uses a progress bar for tracking frame index in a loop, but there's a potential issue with the usage of the range function (the video might not have that many frames). Finally, it writes each processed frame to the output file.",
+        "file_id": 624,
+        "content": "The code is importing necessary libraries, such as stopwords and tokenize from nltk, PorterStemmer for stemming, and spacy's en_core_web_sm model. It then loads the model and applies it to a text. The code also defines stop words which will be used to filter out common words like \"the\" or \"and\" from the text. Additionally, it initializes an empty list for lemma word 1 and mentions the inclusion of language tags in some elements.",
         "type": "comment"
     },
     "4790": {
-        "file_id": 619,
-        "content": "    video_writer.write(frame) # what frame?\n    # frame_index_counter+=1\n    # if cv2.waitKey(20) == ord('q'):\n        # break\nprint(\"VIDEO DONE. SAVED AT:\",output_video)",
+        "file_id": 624,
+        "content": "for token in doc:\n    if token.pos_ in [\"PRON\", \"CCONJ\", \"ADP\", \"PART\", \"PUNCT\", \"AUX\"]:\n        continue\n    if token.text.lower() in stop_words:\n        continue\n    lemma_word1.append(token.text)\nsprint(lemma_word1)  # there is no such -PRON- thing.\n# 1st step.\nStem_words = []\nps = PorterStemmer()\nfor w in lemma_word1:\n    rootWord = ps.stem(w)\n    Stem_words.append(rootWord)\nsprint(Stem_words)  # 3rd step\nStem_words += ((len(Stem_words) - 1) % 5) * [\"\"]  # padding\nimport numpy as np\nStem_words = np.array(Stem_words)\nStem_words = Stem_words.reshape(5, -1)\n# sprint(Stem_words)\n# row, col = Stem_words.shape\n# exit()\n# for reasons that shit can understand.\n# np.nditer is for iteration over every elem\ndataList = []\nfor row in Stem_words:\n    # print(row)\n    elem = \" \".join(row)\n    dataList.append(elem)\ndata = \"\\n\".join(dataList)\nfrom sklearn.feature_extraction.text import TfidfVectorizer\n# In[8]:\n# 创建一个CountVectoerizer实例\ntfidf = TfidfVectorizer(ngram_range=(1, 2))\n# 打开刚刚保存的txt文档\nfrom io import StringIO\nf = StringIO(data)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_video_translate/frame_iterator_copy.py:32-36"
+        "location": "/tests/topic_modeling/poc_english_topic_modeling.py:28-71"
     },
     "4791": {
-        "file_id": 619,
-        "content": "Writes frames to video file using video_writer, counts frame index, checks for keypress to exit. VIDEO DONE message with saved location output_video.",
+        "file_id": 624,
+        "content": "The code preprocesses text data by removing certain tokens, stemming words, and padding the resulting list. It then converts the list of words into a string, creates a TF-IDF vectorizer with unigrams and bigrams, and reads the string as input using StringIO.",
         "type": "comment"
     },
     "4792": {
-        "file_id": 620,
-        "content": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py",
-        "type": "filepath"
+        "file_id": 624,
+        "content": "# 使用CountVectorizer拟合数据\nx_train = tfidf.fit_transform(f)\nfrom sklearn.decomposition import LatentDirichletAllocation\nlda = LatentDirichletAllocation(n_components=5)\nlda.fit(x_train)\ndef print_topics(model, feature_names, n_top_words):\n    # 首先是遍历模型中存储的话题序号和话题内容\n    for topic_idx, topic in enumerate(model.components_):\n        # 然后打印话题的序号以及指定数量的最高频的关键词\n        message = \"topic #%d:\" % topic_idx\n        mList = [feature_names[i] for i in topic.argsort()[: -n_top_words - 1 : -1]]\n        mListStr = \" \".join(\n            mList\n        )\n        message += mListStr\n        mSet  = set(mList) # the set contains word groups like 'river question'\n        cDict = {k:mList.count(k) for k in mSet}\n        mRealList = mListStr.split(\" \")\n        mRealList = [x.strip() for x in mRealList if len(x.strip()) > 1] # usually things shorter than 2 letters are no good.\n        mRealSet = set(mRealList)\n        cRealDict = {k:mRealList.count(k) for k in mRealSet}\n        print(\"MESSAGE\",message)\n        print(\"SET\", mSet)\n        print(\"COUNT DICT\", cDict) # pointless to count here?",
+        "type": "code",
+        "location": "/tests/topic_modeling/poc_english_topic_modeling.py:72-99"
     },
     "4793": {
-        "file_id": 620,
-        "content": "This code converts text to speech audio using PaddleSpeech, merges and normalizes audio segments, generates voice and video files, and exports final videos with background music.",
-        "type": "summary"
+        "file_id": 624,
+        "content": "This code uses CountVectorizer to transform data and LatentDirichletAllocation to fit the transformed data, then defines a function print_topics that iterates over the topics in the model, prints their index, and displays the highest frequency words for each topic. It also calculates and prints the set of word groups, word count dictionary, and filtered list of meaningful words.",
+        "type": "comment"
     },
     "4794": {
-        "file_id": 620,
-        "content": "import os\nfrom test_common import *\ndef split_sentences(sent):\n    spliters = \"\\n，。、\"\n    cursent = \"\"\n    results = []\n    for elem in sent:\n        cursent += elem\n        if elem in spliters:\n            results.append(cursent)\n            cursent = \"\"\n    if len(cursent) > 0:\n        results.append(cursent)\n    return results\ndef get_speech(sent,output):\n    assert output.endswith(\".wav\")\n    with open(\"temp.txt\", \"w+\",encoding=\"utf-8\") as f:\n        f.write(sent)\n    os.system(\"cat temp.txt | paddlespeech tts --output {}\".format(output))\nfrom pydub import AudioSegment\nfrom functional_gen_typo_video_seq import gen_video\ndef merge_audio(asegs):\n    audio_3 = AudioSegment.empty() #shit\n    for seg in asegs:\n        try:\n            audio_3 = audio_3.append(seg,crossfade=100) # also shit.\n        except:\n            audio_3 = audio_3.append(seg,crossfade=0) # also shit.\n    return audio_3\n    # audio_3.export(\"audio_3.wav\", format=\"wav\")\nif __name__ == \"__main__\":\n    sents = split_sentences(demo_text)\n    # breakpoint()",
+        "file_id": 624,
+        "content": "        print(\"RealSET\", mRealSet)\n        print(\"RealCOUNT DICT\", cRealDict)\n    print()\nn_top_words = 10\nprint_topics(lda, tfidf.get_feature_names(), n_top_words)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:1-38"
+        "location": "/tests/topic_modeling/poc_english_topic_modeling.py:100-106"
     },
     "4795": {
-        "file_id": 620,
-        "content": "This code performs text-to-speech (TTS) conversion and merges audio segments. It first splits a given sentence into individual sentences, then uses PaddleSpeech to convert the text to speech audio, which is saved with .wav extension. The resulting audio segments are merged using PyDub's AudioSegment module, allowing for seamless crossfades between audio chunks.",
+        "file_id": 624,
+        "content": "This code section prints the real set (mRealSet) and count dictionary (cRealDict), then it displays the top words from LDA topic modeling using print_topics function. This helps in analyzing the distribution of topics across documents.",
         "type": "comment"
     },
     "4796": {
-        "file_id": 620,
-        "content": "    voice_dir = \"voice\"\n    video_dir = \"video\"\n    os.system(\"rm -rf {}\".format(voice_dir))\n    os.system(\"rm -rf {}\".format(video_dir))\n    os.mkdir(\"{}\".format(voice_dir))\n    os.mkdir(\"{}\".format(video_dir))\n    index = 0\n    voice_clips = []\n    video_names = []\n    for i,sent in enumerate(sents):\n        print(\"READING:\",sent)\n        aname = \"{}/{}.wav\".format(voice_dir,i)\n        get_speech(sent,aname)\n        seg = AudioSegment.from_wav(aname)\n        duration = seg.duration_seconds\n        voice_clips.append(seg)\n        # get the duration you fuck.\n        # breakpoint()\n        lsent = len(sent)\n        current_indexs = list(range(index,index+lsent))\n        index += lsent\n        # you can generate video for it.\n        vname = \"{}/{}.mp4\".format(video_dir,i)\n        gen_video(vname,current_indexs,duration)\n        video_names.append(vname)\n    # and finally?\n    final_video = \"{}/final_video.mp4\".format(video_dir)\n    final_audio = \"{}/final_audio.wav\".format(voice_dir)\n    audio_merged = merge_audio(voice_clips)",
-        "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:39-68"
+        "file_id": 625,
+        "content": "/tests/unittest_aegisub_ass_configure.py",
+        "type": "filepath"
     },
     "4797": {
-        "file_id": 620,
-        "content": "This code clears the \"voice\" and \"video\" directories, creates new ones, reads each sentence from the input, converts it to audio, generates a video for each sentence, appends the corresponding audio clip and video name to their respective lists, and then merges all audio clips. The final video and audio files are named accordingly.",
-        "type": "comment"
+        "file_id": 625,
+        "content": "This code reads a file using `readFile` function and stores its contents as a template in Jinja2. It then configures the template with specific font and size values from the `template_configs` dictionary, and prints the final configured template.",
+        "type": "summary"
     },
     "4798": {
-        "file_id": 620,
-        "content": "    bgm_path = \"/root/Desktop/works/bilibili_tarot/some_bgm.mp3\"\n    bgm = AudioSegment.from_mp3(bgm_path)\n    # duration2 = audio_merged.duration_seconds\n    # bgm = bgm[:duration2*1000] # really?\n    # breakpoint()\n    # audio_merged = audio_merged.overlay(audio_merged,bgm,loop=True)  #wtf?\n    audio_merged = audio_merged.overlay(bgm,loop=True)\n    # audio_merged = audio_merged.normalize()\n    # is it needed?\n    # shit.\n    audio_merged.export(final_audio, format=\"wav\")\n    final_video2 = \"{}/final_video2.mp4\".format(video_dir)\n    with open(\"mylist.txt\",\"w+\") as f:\n        for n in video_names:\n            f.write(\"file \"+n+\"\\n\")\n    os.system(\"ffmpeg -f concat -safe 0 -i mylist.txt -c copy {}\".format(final_video))\n    os.system(\"ffmpeg -i {} -i {} -c:v copy -c:a aac -map 0:v:0 -map 1:a:0 {}\".format(final_video,final_audio,final_video2))",
+        "file_id": 625,
+        "content": "from lazero.filesystem.io import readFile\nimport jinja2\ntemplate_configs = {\n    \"defaultFontname\": \"Arial\",\n    \"defaultFontsize\": 48,  # integer?\n    \"translationFontname\": \"Migu 1P\",\n    \"translationFontsize\": 48,\n    \"kanjiFontname\": \"Migu 1P\",\n    \"kanjiFontsize\": 46,\n    \"romajiFontname\": \"Migu 1P\",\n    \"romajiFontsize\": 38,\n}\n# template_configs = {'defaultFontname':'Anonymous Pro'}\ntemplate_path = \"/root/Desktop/works/pyjom/tests/karaoke_effects/in2.ass.j2\"\ntemplate = jinja2.Template(source=readFile(template_path))\ntemplate_configured = template.render(**template_configs)\nprint(template_configured)",
         "type": "code",
-        "location": "/tests/bilibili_practices/bilibili_tarot/voice_with_pictures.py:69-87"
+        "location": "/tests/unittest_aegisub_ass_configure.py:1-19"
     },
     "4799": {
-        "file_id": 620,
-        "content": "The code imports audio files, merges them, normalizes the volume, and exports the final audio as a wav file. It then creates a mylist.txt file containing the video names, and uses ffmpeg to concatenate videos with the background music and export the final video2 in mp4 format.",
+        "file_id": 625,
+        "content": "This code reads a file using `readFile` function and stores its contents as a template in Jinja2. It then configures the template with specific font and size values from the `template_configs` dictionary, and prints the final configured template.",
         "type": "comment"
     }
 }

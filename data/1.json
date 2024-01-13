@@ -1,546 +1,541 @@
 {
     "100": {
-        "file_id": 20,
-        "content": "/tasks/qq/qq_red_packet_collect/chat_local.py",
+        "file_id": 17,
+        "content": "/externals/torchrec_init.sh",
         "type": "filepath"
     },
     "101": {
-        "file_id": 20,
-        "content": "The code uses the Jiagu library for sentiment analysis, stack management, and string comparison to handle duplicates in chat stacks, calculating differences between strings, and ranking messages based on Levenshtein distance and sentiment before either releasing or removing the selected message.",
+        "file_id": 17,
+        "content": "This script clones torchrec, modifies setup.py, installs torchrec, and fixes paths for installation in third_party/fbgemm/fbgemm_gpu directory. It also exports CUB_DIR, CUDA_BIN_PATH, and CUDACXX environment variables before the final installation.",
         "type": "summary"
     },
     "102": {
-        "file_id": 20,
-        "content": "# local chatbot implemetation.\n# first, we need experimental data.\n# a unified stack for every group.\n# import this shit ahead of everything.\nimport Levenshtein\nimport jiagu\nimport random\nfrom base_opq import stderrPrint\ndef update_stack(stack, elem, stackSize=300, no_duplicate=True):\n    if no_duplicate:\n        # check for duplicates.\n        if stack == []:\n            duplicate = False\n        else:\n            duplicate = stack[-1] == elem\n        if duplicate:\n            return stack\n    stack += [elem]\n    length = len(stack)\n    return stack[max(0, length - stackSize) :]\ndef getSentiment(sentence):\n    flag, probability = jiagu.sentiment(sentence)\n    # the probability that flag is true.\n    return flag, probability\ndef getAbsSentiment(sentence):  # ignore positive or negative.\n    flag, probability = getSentiment(sentence)\n    return probability\ndef getLinearSentiment(sentence):\n    flag, probability = getSentiment(sentence)\n    if flag == \"negative\":\n        probability = -probability\n    return probability",
+        "file_id": 17,
+        "content": "# git clone --depth 1 --recurse-submodules https://github.com/pytorch/torchrec\ncd torchrec\n# modify the freaking setup.py first. don't want no trouble.\n# python3 setup.py install\nexport CUB_DIR=/usr/include/cub\nexport CUDA_BIN_PATH=/usr/lib/nvidia-cuda-toolkit\nexport CUDACXX=/usr/bin/nvcc\ncp -R /usr/local/lib/python3.9/dist-packages/torch/include/* third_party/fbgemm/fbgemm_gpu/include # great shit.\npython3 setup.py install \n# the freaking fix.\n# cd third_party/fbgemm/fbgemm_gpu\n# cp -R /usr/local/lib/python3.9/dist-packages/torch/include/* ./include # great shit.\n# export CUB_DIR=/usr/include/cub\n# export CUDA_BIN_PATH=/usr/lib/nvidia-cuda-toolkit\n# export CUDACXX=/usr/bin/nvcc\n# python3 setup.py install ",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:1-41"
+        "location": "/externals/torchrec_init.sh:1-17"
     },
     "103": {
-        "file_id": 20,
-        "content": "This code contains various functions for sentiment analysis and managing a stack. It imports necessary libraries, updates a stack without duplicates (if specified), determines the sentiment of a sentence using Jiagu, and calculates linear sentiment by reversing negative sentiment probability.",
+        "file_id": 17,
+        "content": "This script clones torchrec, modifies setup.py, installs torchrec, and fixes paths for installation in third_party/fbgemm/fbgemm_gpu directory. It also exports CUB_DIR, CUDA_BIN_PATH, and CUDACXX environment variables before the final installation.",
         "type": "comment"
     },
     "104": {
-        "file_id": 20,
-        "content": "def compareDifference(sent_0, sent_1):\n    distance = Levenshtein.distance(sent_0, sent_1)\n    return distance\ndef getRatioDifference(sent_0, sent_1, reverse=False):\n    if reverse:\n        base_length = len(sent_1)\n    else:\n        base_length = len(sent_0)\n    distance = compareDifference(sent_0, sent_1)\n    return min(1, distance / base_length)\ndef getMinDifference(sent_0, sent_1):\n    reverse = False\n    if len(sent_0) < len(sent_1):\n        reverse = True\n    return getRatioDifference(sent_0, sent_1, reverse=reverse)\nchat_stack = {}\nhistoricalReplies = []  # should also be a stack.\nchat_stack_lock = False\ndef updateChatStack(group_id, message, stackSize=300, no_duplicate=True):\n    chat_stack[group_id] = update_stack(\n        chat_stack.get(group_id, []),\n        message,\n        stackSize=stackSize,\n        no_duplicate=no_duplicate,\n    )\ndef sampleChatStack(\n    originGroup: int, msg: str, min_corpus_size=100, sample_size=2000, originGroupCut=50\n):  # must exclude sent messages.\n    # assert min_corpus_size >= sample_size",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:44-84"
+        "file_id": 18,
+        "content": "/pyjom/README.md",
+        "type": "filepath"
     },
     "105": {
-        "file_id": 20,
-        "content": "This code contains three functions: `compareDifference`, `getRatioDifference`, and `getMinDifference`. These functions calculate the difference between two strings by comparing their characters. The `updateChatStack` function updates a chat stack, ensuring no duplicate messages are included. The `sampleChatStack` function samples messages from the chat stack, excluding sent messages, for text generation.",
-        "type": "comment"
+        "file_id": 18,
+        "content": "The code discusses the challenges of a censored internet and half-automated media project, requiring manual interfaces for data selection and labeling. It aims for future automation improvements and mentions data storage in /dev/shm.",
+        "type": "summary"
     },
     "106": {
-        "file_id": 20,
-        "content": "    # do not do this\n    population = [\n        (group_id, max(0, len(chat_stack[group_id]) - 1))\n        for group_id in chat_stack.keys()\n        if group_id != originGroup\n    ]\n    # population_size = sum([x[1] for x in population]) # wrong.\n    population = [  # no need to check against the original group here.\n        # if (chat_stack[group_id][index] != msg or group_id != originGroup)\n        [\n            (group_id, index)\n            for index in range(group_msg_size)\n            if chat_stack[group_id][index + 1] not in historicalReplies\n        ]\n        for group_id, group_msg_size in population\n    ]  # allow other group with same message or same group with other message\n    originGroupLength = len(chat_stack[originGroup]) - 1\n    if originGroupLength > originGroupCut:\n        # THIS WAS BLOODY WRONG\n        # WAS MISPLACED.\n        population.append(\n            [\n                (originGroup, index)\n                for index in range(0, originGroupLength - originGroupCut)\n                if chat_stack[originGroup][index] != msg",
+        "file_id": 18,
+        "content": "due to heavy censored internet and the half-automated nature of media project, require interfaces to select and label data on the fly, when the project is somehow stablized.\nmanual labels can be therefore used later for better automation.\nsimple generation logic will be applied first, establishing basic feedback loop. then we may feature the details, enhancing product quality and so on.\nthis project may be the shadow of nature of life. no offense.\nsorting by priority is always crucial for all of us, all the time.\ndata stored in /dev/shm will be lost after reboot.\nafter months, if not years, you might blend in with this project.\nmany websites may match the structural complexity of yours.",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:85-110"
+        "location": "/pyjom/README.md:1-15"
     },
     "107": {
-        "file_id": 20,
-        "content": "Creates a list of group IDs and corresponding message indexes excluding the original group and message. Excludes groups with same messages or other messages from the same group. Retrieves number of messages in the original group and if more than the cutoff, adds original group's messages except the current one to the population list.",
+        "file_id": 18,
+        "content": "The code discusses the challenges of a censored internet and half-automated media project, requiring manual interfaces for data selection and labeling. It aims for future automation improvements and mentions data storage in /dev/shm.",
         "type": "comment"
     },
     "108": {
-        "file_id": 20,
-        "content": "            ]\n        )\n    population = [x for y in population for x in y]\n    population_size = len(population)\n    if population_size < min_corpus_size:\n        return []\n    sample_size = min(population_size, sample_size)\n    # it must equal.\n    sample = random.sample(population, sample_size)\n    return sample\ndef sentimentFilter(sentiment, threshold=0.85):\n    assert threshold > 0 and threshold < 1\n    # for too negative ones, we value it as 0.\n    if sentiment < -threshold or sentiment > threshold:\n        return 0\n    return abs(sentiment)\ndef getChatLocalResponse(\n    originGroup: int,\n    msg: str,\n    min_corpus_size=100,\n    sample_size=2000,\n    k_top=30,\n    originGroupCut=50,\n):\n    global chat_stack_lock\n    # assert min_corpus_size >= sample_size\n    if chat_stack_lock:\n        return  # do nothing. maybe another thread is holding the lock.\n    # must set a global lock.\n    chat_stack_lock = True\n    sample = sampleChatStack(\n        originGroup,\n        msg,\n        min_corpus_size=min_corpus_size,\n        sample_size=sample_size,",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:111-150"
+        "file_id": 19,
+        "content": "/pyjom/audiotoolbox.py",
+        "type": "filepath"
     },
     "109": {
-        "file_id": 20,
-        "content": "This function, getChatLocalResponse, samples recent chat messages from a local stack for the given originGroup and message. It takes in parameters like min_corpus_size, sample_size, k_top, and originGroupCut. The function first checks if the global lock is set before proceeding to sample recent chat messages. If the lock is held by another thread, it returns without doing anything. Otherwise, it sets the global lock and calls the sampleChatStack function to get a list of recent chat messages that can be used for further analysis or processing.",
-        "type": "comment"
+        "file_id": 19,
+        "content": "This code detects audio duration and volume using audioread library, adjusts media file volume with ffmpeg, normalizes audio, and handles errors.",
+        "type": "summary"
     },
     "110": {
-        "file_id": 20,
-        "content": "        originGroupCut=originGroupCut,\n    )\n    if len(sample) == 0 or len(sample) != sample_size:  # no sample received.\n        chat_stack_lock = False  # release lock\n        return\n    # this sample must not be empty.\n    # rank by Levenshtein distance.\n    ranks = [\n        (getMinDifference(msg, chat_stack[group_id][gm_index]), index)\n        for index, (group_id, gm_index) in enumerate(sample)\n    ]\n    ranks.sort(key=lambda x: x[0])\n    selected_ranks = ranks[:k_top]\n    selected_ranks = [sample[index] for difference_score, index in selected_ranks]\n    # do we have to match the mood? like positive/negative -> positive/negative?\n    # increase the negativity?\n    # sentiment shall be next sentence.\n    selected_emotional_ranks = [\n        (getLinearSentiment(chat_stack[group_id][gm_index + 1]), index)\n        for index, (group_id, gm_index) in enumerate(selected_ranks)\n    ]\n    selected_emotional_ranks.sort(\n        key=lambda x: -sentimentFilter(x[0])\n    )  # select the extremes. do not select too extreme ones.",
+        "file_id": 19,
+        "content": "# first and foremost is the audio correction, the volume detector, the audio detector.\n# https://trac.ffmpeg.org/wiki/AudioVolume\n# but first how to get the audio duration?\n# for video we have caer. but for audio?\nimport audioread\nfrom lazero.utils.logger import sprint\nimport ffmpeg\nfrom typing import Literal\nfrom pyjom.commons import *\nimport parse\ndef getAudioBitrate(mediaPath):\n    return int(getMediaBitrate(mediaPath, audioOnly=True)[\"streams\"][0][\"bit_rate\"])\ndef getAudioDuration(audioFilePath):\n    with audioread.audio_open(audioFilePath) as f:\n        totalSeconds = f.duration\n    return totalSeconds  # is this float number or integer?\n    # how about let's test this?\ndef detect_volume_average(mediapath, debug=False):\n    # ffmpeg -i input.wav -filter:a volumedetect -f null /dev/null\n    # audio = ffmpeg.input(mediapath)\n    audio = ffmpeg.input(mediapath).audio\n    # does not have audio track, so error occurs.\n    # don't know how to capture the track. anyway, do put the audio into the test video.\n    # might have exception. what to do with it then??",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:151-176"
+        "location": "/pyjom/audiotoolbox.py:1-32"
     },
     "111": {
-        "file_id": 20,
-        "content": "This code is sampling messages from a chat stack, ranking them by Levenshtein distance, and then selecting the top k ranks based on that distance. It also considers the sentiment of the next message in the selection process. If there's no valid sample or if the sample size doesn't match the expected value, it releases the lock and returns without any action.",
+        "file_id": 19,
+        "content": "This code retrieves the audio duration and volume average from an input media file using the audioread library. The getAudioDuration function returns the total duration in seconds, while the detect_volume_average function processes the media path to obtain the volume average. However, it may encounter exceptions if the audio track is not available or the track cannot be captured properly.",
         "type": "comment"
     },
     "112": {
-        "file_id": 20,
-        "content": "    mReplySentiment, mReplyIndex = selected_emotional_ranks[0]\n    mReply_group_id, mReply_gm_index = selected_ranks[mReplyIndex]\n    mReply = chat_stack[mReply_group_id][mReply_gm_index + 1]  # must plus one.\n    # before release lock we need to remove things from chat_stack and append things into historicalReplies(stack)\n    update_stack(historicalReplies, mReply)\n    # for _ in range(2):\n    #     del chat_stack[mReply_group_id][mReply_gm_index] # may cause problems. we might not delete this.\n    # discontinuality of message replies.\n    # you can somehow make the selected list immutable, into tuple.\n    chat_stack_lock = False\n    return mReply\n# must detect emotion level.\n# maybe do sampling on those stacks will help?\n# sample size must smaller tha population.",
+        "file_id": 19,
+        "content": "    volDict = {}\n    error = False\n    try:\n        stdout, stderr = (\n            audio.filter(\"volumedetect\")\n            .output(\"/dev/null\", f=\"null\")\n            .run(capture_stdout=True, capture_stderr=True)\n        )\n        # where is the output?\n        stderr = stderr.decode(\"utf-8\")\n        stderr_lines = stderr.split(\"\\n\")\n        formatString = \"[Parsed_volumedetect{}] {volumeType}_volume: {value:g} dB\"\n        for line in stderr_lines:\n            line = line.strip()\n            result = parse.parse(formatString, line)\n            if result is not None:\n                volumeType, value = result[\"volumeType\"], result[\"value\"]\n                volDict.update({volumeType: value})\n    except:\n        import traceback\n        traceback.print_exc()\n        # print(stderr)\n        # nothing will be shown in stderr, if there is no audio in the media container.\n        print(\"error when detecting volume for: %s\" % mediapath)\n        error = True\n    if debug:\n        print(\"MEDIA PATH: %s\" % mediapath)\n        print(\"VOLUME:\", volDict)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/chat_local.py:177-194"
+        "location": "/pyjom/audiotoolbox.py:33-61"
     },
     "113": {
-        "file_id": 20,
-        "content": "This code snippet selects a reply message from a chat_stack list, deletes the selected message from the stack, and updates a historicalReplies stack. The code intends to ensure message replies are immutable by removing them from the original list after selection, but this approach may cause issues.",
+        "file_id": 19,
+        "content": "This code attempts to detect the volume of audio files and stores the volume details in a dictionary. It uses the \"volumedetect\" filter, redirects output to \"/dev/null\", captures both stdout and stderr, and parses the error output for volume information. If there's no audio in the media container, it will show an error message. Debug mode prints the media path and volume dictionary if set.",
         "type": "comment"
     },
     "114": {
-        "file_id": 21,
-        "content": "/tasks/qq/qq_red_packet_collect/censorApis.py",
-        "type": "filepath"
+        "file_id": 19,
+        "content": "        sprint(\"ERROR STATUS:\", error)\n    return volDict, error\ndef adjustVolumeInMedia(\n    mediaPath,\n    outputPath,\n    targets={\n        \"mean\": -10.8,  # -13.2 fuck.\n        \"max\": 0.0,\n    },  # what is the real value anyway? we want the volume fetched from web.\n    overwrite_output=False,\n    bitrate=320000,\n    algorithm: Literal[\"rms\", \"ebu\", \"peak\"] = \"rms\",\n):  # must set target volume.\n    # use ffmpeg-normalize?\n    # use aac for mp4 output. let's do it!\n    target_level = targets.get(\"mean\", None)\n    true_peak = targets.get(\"max\", None)\n    commandline = [\n        \"ffmpeg-normalize\",\n        \"-o\",\n        outputPath,\n        \"-pr\",\n        \"-nt\",\n        algorithm,\n    ]\n    commandline += [\"-b:a\", str(bitrate)]  # the bitrate part.\n    # now much better. let's see if we have other methods.\n    # VOLUME NORMALIZATION SUCCESSFUL\n    # MEDIA PATH: normalized.mp4\n    # VOLUME: {'mean': -11.0, 'max': 0.0}\n    # ERROR STATUS: False\n    # commandline = [\"ffmpeg-normalize\", \"-o\", outputPath, \"-pr\"]\n    # VOLUME: {'mean': -13.2, 'max': 0.0}",
+        "type": "code",
+        "location": "/pyjom/audiotoolbox.py:62-97"
     },
     "115": {
-        "file_id": 21,
-        "content": "The code defines three functions for censoring replies based on sentiment analysis, including \"censorReply\", which sends a request to a censor API; \"censorReplyAbsSentiment\", which censors if the absolute sentiment score exceeds a certain threshold; and \"censorReplyLinearSentiment\", which censors if the linear sentiment score is below a certain level. However, there is an issue with the positive/negative flag for some sentences. The function also returns the original reply if the sentiment change after censoring is less than 0.5; otherwise, it returns the censored reply.",
-        "type": "summary"
+        "file_id": 19,
+        "content": "The function adjusts the volume of media files located at a specific path. It accepts parameters for output file path, target volume levels (mean and max), overwrite option, bitrate, and algorithm type. It uses ffmpeg-normalize command line tool to normalize the audio, and returns a dictionary containing mean and max volume values upon successful execution. If an error occurs, it returns the error status as well.",
+        "type": "comment"
     },
     "116": {
-        "file_id": 21,
-        "content": "import requests\nfrom chat_local import getLinearSentiment, getAbsSentiment\ndef censorReply(reply, moderate=True):\n    url = \"http://127.0.0.1:8932/filter\"\n    response = requests.get(url, params={\"text\": reply, \"moderate\": moderate})\n    response = response.json()\n    reply = response[\"response\"]\n    return reply\ndef censorReplyAbsSentiment(\n    reply, moderate=True, sentiment_abs_level=0.6, censored_sentiment_threshold=0.8\n):\n    sentiment = getAbsSentiment(reply)\n    if sentiment > sentiment_abs_level:\n        reply = censorReply(reply)\n        censored_sentiment = getAbsSentiment(reply)\n        if censored_sentiment > censored_sentiment_threshold:\n            return None\n    return reply\n# however these sentiment based function will not work very well since the positive/negative flag is not working properly for sentence like \"操你妈\" -> (\"positive\", 0.8)\ndef censorReplyLinearSentiment(reply, moderate=True, sentiment_level=-0.9):\n    sentiment = getLinearSentiment(reply)\n    if sentiment < sentiment_level:\n        reply = censorReply(reply)",
+        "file_id": 19,
+        "content": "    # the 'mean' is still not correctified.\n    # ERROR STATUS: False\n    # video codec we use 'copy' if the extension name is the same.\n    outputPathExtension = outputPath.lower().split(\".\")[-1]\n    mediaPathExtension = mediaPath.lower().split(\".\")[-1]\n    outputMediaType = determineMediaTypeByExtension(outputPathExtension)\n    # treat this as a common repository.\n    if outputPathExtension == mediaPathExtension and outputMediaType == \"video\":\n        commandline += [\"-c:v\", \"copy\"]\n    # problem is, the container must be video compabible.\n    # list the thing here?\n    if outputPathExtension == \"mp4\":\n        commandline += [\"-c:a\", \"aac\"]\n    if target_level:\n        commandline += [\"-t\", str(target_level)]\n    if true_peak:\n        commandline += [\"-tp\", str(true_peak)]\n    if overwrite_output:\n        commandline += [\"-f\"]\n    commandline += [mediaPath]\n    status = subprocess.run(commandline)  # is it even successful?\n    returncode = status.returncode\n    try:\n        assert returncode == 0\n        print(\"VOLUME NORMALIZATION SUCCESSFUL\")",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/censorApis.py:1-33"
+        "location": "/pyjom/audiotoolbox.py:98-122"
     },
     "117": {
-        "file_id": 21,
-        "content": "This code defines three functions for censoring replies based on sentiment analysis. The \"censorReply\" function sends a request to a censor API, the \"censorReplyAbsSentiment\" function censors a reply if its absolute sentiment score is above a certain threshold, and the \"censorReplyLinearSentiment\" function censors a reply if its linear sentiment score is below a certain level. However, the positive/negative flag does not work properly for some sentences.",
+        "file_id": 19,
+        "content": "This code is normalizing the volume of a video file and correcting its container type if necessary. It checks the input and output extensions, sets the video and audio codecs, handles target level, true peak, and overwrite settings, and runs subprocess command to execute FFmpeg for processing. The script prints \"VOLUME NORMALIZATION SUCCESSFUL\" if returncode is 0, indicating successful volume normalization.",
         "type": "comment"
     },
     "118": {
-        "file_id": 21,
-        "content": "    return reply\ndef censorReplySentimentDelta(reply, moderate=True, sentiment_delta_level=0.5):\n    reply2 = censorReply(reply)\n    sentiment = getLinearSentiment(reply)\n    sentiment2 = getLinearSentiment(reply2)\n    sentiment_delta = sentiment2 - sentiment\n    if sentiment_delta < sentiment_delta_level:  # is that good?\n        return reply\n    else:\n        return reply2",
+        "file_id": 19,
+        "content": "        return outputPath\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"error when normalizing audio for media: %s\" % mediaPath)\n    # media = ffmpeg.input(videoPath)\n    # audio = media.audio\n    # video = media.video\n    # audio = audio.filter()",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/censorApis.py:34-47"
+        "location": "/pyjom/audiotoolbox.py:123-132"
     },
     "119": {
-        "file_id": 21,
-        "content": "This function censors a reply and returns the original reply if the sentiment change after censoring is less than 0.5; otherwise, it returns the censored reply.",
+        "file_id": 19,
+        "content": "This code snippet is responsible for normalizing audio for a given media file. If an error occurs during the process, it prints the error message and stack trace using the traceback module.",
         "type": "comment"
     },
     "120": {
-        "file_id": 22,
-        "content": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py",
+        "file_id": 20,
+        "content": "/pyjom/commons.py",
         "type": "filepath"
     },
     "121": {
-        "file_id": 22,
-        "content": "The code manages functions like ad sending, chat APIs, and sentiment analysis in opqbot. It ensures proper messaging practices by checking for banned words and repetition, schedules periodic message sending, sets up a weighted random reply yielder, monitors group chats, categorizes messages about cats and dogs, updates the database, manages ad counters and penalties, processes media messages, handles Chinese conversion, logs for GPT training, filters message types, writes chat cursor data, and manages red packets asynchronously.",
+        "file_id": 20,
+        "content": "The code imports libraries, handles data operations and errors, interacts with Redis caching, supports debug mode, and maps media file extensions. It detects corrupted content, checks server availability, utilizes ffprobe and mediainfo for media details, configures YOLOv5 model, writes to a file, and prints log path.",
         "type": "summary"
     },
     "122": {
-        "file_id": 22,
-        "content": "# for arm64 version of opqbot\n# disable that 复读机 plugin.\nimport os\nos.environ['HTTP_PROXY'] = \"\"\nos.environ['HTTPS_PROXY'] = \"\"\n# shall you analyze the logs/redPacketLog_*.log to get topics from groups and individuals.\nfrom chat_local import *\nfrom adtools import sendCatOrDogAdToQQGroup, checkCatOrDog, makeCatOrDogConnections\nfrom chatApis import getChatApiReply\nfrom base_opq import *\nimport schedule\nfrom chat_local import getAbsSentiment\nfrom censorApis import censorReplyAbsSentiment\nfrom commons import (\n    weightedRandomYielder,\n    generatedSentenceFixer,\n    keywordDecorator,\n    removeDuplicateWords,\n    replaceDuplicateChar,\n)\nAD_INIT_COUNTER = 1\ngroupChatCursor = None\ngroupMsgSendStatus = {}\ngroupChatReplyHistory = []\ngroupNoReplyStack = {}  # 防止连续对一个群持续输出\n# qq群最多可以添加500个群 1500个好友 其中群可加的数量 = max(0,500 - 已加入群数量 - 好友数量)\n# 可以退出一些安静的群 不发红包的群 删除好友\n# action.getClusterInfo\n# \"\"\"获取当前集群信息\"\"\"\n# this is to get the current server running status. i suspect.\ndef groupMsgRepeater(msg: str, sentiment_threshold=0.7):\n    sentiment = getAbsSentiment(msg)",
+        "file_id": 20,
+        "content": "import traceback\nfrom pyjom.config import *\nfrom typing import Union\nfrom pyjom.mathlib import checkMinMaxDict\nimport datetime\nimport os\nimport shutil\nimport socket\nimport json\nimport mimetypes\nimport jinja2\nimport copy\nimport uuid\nimport numpy as np\nimport torch\nimport pathlib\nimport site\nimport sys\nimport random\n# from functools import lru_cache\ncommonRedisPort = 9291\nos.system(\"ulimit -n 1048576\")\nfrom lazero.utils.logger import sprint\nfrom functools import lru_cache\nimport time\ndef getJSTimeStamp():\n    return int(time.time() * 1000)\nfrom pymilvus import connections\n@lru_cache(maxsize=1)\ndef connectMilvusDatabase(alias=\"default\", host=\"localhost\", port=\"19530\"):\n    connection = connections.connect(\n        alias=alias, host=host, port=port\n    )  # can we reconnect?\n    print(\"milvus connected\")\n    return connection\n# what is the redis connection?\nimport redis\n@lru_cache(maxsize=1)\ndef getRedisConnection(host=\"localhost\", port=commonRedisPort):\n    connection = redis.Redis(host=host, port=port)\n    return connection\ndef removeRedisValueByKey(",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:1-45"
+        "location": "/pyjom/commons.py:1-58"
     },
     "123": {
-        "file_id": 22,
-        "content": "This code is for the arm64 version of opqbot, disabling the 复读机 plugin, and managing various functions like ad sending, chat APIs, base opq operations, sentiment analysis, censor replies, and more. It handles group messages, repeating them if necessary, while considering sentiment scores and maintaining a log for red packet collection.",
+        "file_id": 20,
+        "content": "The code imports various libraries and defines several functions. It connects to Milvus and Redis databases, gets the current JSTimeStamp, and provides functions for connecting to these databases and removing a Redis value by key. The redis connection is cached using LRU cache for performance optimization.",
         "type": "comment"
     },
     "124": {
-        "file_id": 22,
-        "content": "    if sentiment > sentiment_threshold:\n        return msg\ndef checkGroupMsgSendStatus(group_id, decrease=True):\n    if group_id in groupMsgSendStatus.keys():\n        if decrease:\n            groupMsgSendStatus[group_id] -= 1  # the feedback shall be elsewhere.\n        if groupMsgSendStatus[group_id] <= 0:\n            del groupMsgSendStatus[group_id]\n            return True\n        else:\n            return False\n    return True\n# now async.\n@asyncThread\ndef sendBotGroupTextMsg(\n    replyGetterYielder,\n    groupBannedErrorBuffer=100,  # 被禁言之后的buffer\n    retry=3,\n    min_reply_length=3,  # some impirical value.\n    delay_time_range=(5, 15),\n    context_size_range=(1, 3),  # maybe we do not need no context. or not?\n    maxRepeatRange=(2, 5),\n    noReplyThreshold=3,\n    noReplyBuffer=75,\n):  # the context parameter may lead to OOM.\n    global groupChatCursor\n    # will clear cursor after sending\n    if groupChatCursor is not None:\n        # do work here.\n        group_id = groupChatCursor[\"group_id\"]\n        # groupChatCursor = None",
+        "file_id": 20,
+        "content": "    key: str, debug: bool = False, host=\"localhost\", port=commonRedisPort\n):\n    connection = getRedisConnection(host=host, port=port)\n    returnCode = connection.delete(key)\n    messages = {\n        0: \"key {} not found\".format(key),\n        1: \"delete key {} successfully\".format(key),\n    }\n    if debug:\n        print(messages.get(returnCode, \"unknown return code: {}\".format(returnCode)))\n    return returnCode\ndef removeRedisValueByKeys(\n    keys: list[str], debug: bool = False, host=\"localhost\", port=commonRedisPort\n):\n    for key in keys:\n        removeRedisValueByKey(key, debug=debug, host=host, port=port)\n# @lru_cache(maxsize=1)\n# def getSafeEvalEnvironment():\n#     return sf\ndef safe_eval(\n    code, safenodes=[\"List\", \"Dict\", \"Tuple\", \"Set\", \"Expression\", \"Constant\", \"Load\"]\n):  # strange.\n    from evalidate import safeeval\n    result = safeeval(code, {}, safenodes=safenodes)\n    return result\nimport pickle, dill\ncommonIterableDataTypes = [tuple, list, dict, set]\ncommonNonIterableDataTypes = [int, float, str, bool]",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:46-80"
+        "location": "/pyjom/commons.py:59-96"
     },
     "125": {
-        "file_id": 22,
-        "content": "This function, when called with a replyGetterYielder object and other parameters such as groupBannedErrorBuffer, retry, delay_time_range, context_size_range, maxRepeatRange, noReplyThreshold, and noReplyBuffer, sends a message to a QQ group chat using an async thread. It also manages the groupMsgSendStatus dictionary to keep track of the number of messages sent to each group. The function checks if the group is currently banned or not, retries sending the message a certain number of times if necessary, and adjusts the send status accordingly.",
+        "file_id": 20,
+        "content": "This code includes two functions, one for deleting a single key from Redis and the other for deleting multiple keys. It also has constants for data types and imports necessary libraries for handling data serialization and evaluation. The getSafeEvalEnvironment function is likely used to cache an environment for safe evaluation, although it is not currently utilized. The safe_eval function uses the evalidate library to evaluate input code within a restricted environment. Common iterable and non-iterable data types are defined for potential usage throughout the codebase.",
         "type": "comment"
     },
     "126": {
-        "file_id": 22,
-        "content": "        # return\n        result = checkGroupMsgSendStatus(group_id, decrease=False)  # failsafe.\n        if not result:\n            return\n        # modify this textMessage somehow? with context.\n        context = random.randint(*context_size_range)\n        textMessage = groupChatCursor[\"msg\"]\n        groupChatCursorWithContext = groupChatCursor.copy()\n        messageContext = chat_stack[group_id][-context:-1] + [\n            textMessage\n        ]  # include the last message.\n        messageContext = \" \".join(messageContext)  # just use space.\n        groupChatCursorWithContext[\"msg\"] = messageContext\n        for (\n            replyGetter,\n            argumentList,\n            flag,\n            needContext,\n            enableRetryFlag,\n        ) in replyGetterYielder:  # use all methods.\n            if exit_event.is_set():\n                break\n            retried = False\n            for _ in range(retry):  # retry for three times.\n                if exit_event.is_set():\n                    break\n                extraFlags = {}",
+        "file_id": 20,
+        "content": "commonDataTypes = commonNonIterableDataTypes + commonIterableDataTypes\ndef stringifiableCheck(value, debug: bool = False):\n    try:\n        str_value = repr(value)\n        restored_value = safe_eval(value)\n        return restored_value == value\n    except:\n        if debug:\n            traceback.print_exc()\n    return False\ndef setRedisValueByKey(\n    key: str,\n    value,\n    dataType=None,\n    encoding: str = \"utf-8\",\n    host=\"localhost\",\n    port=commonRedisPort,\n    debug: bool = False,\n):\n    def stringifyAndEncode(value):\n        data = repr(value)\n        data = data.encode(encoding)\n        return data\n    connection = getRedisConnection(host=host, port=port)\n    if dataType is None:\n        dataType = type(value)\n        if dataType in commonDataTypes and stringifiableCheck(\n            value, debug=debug\n        ):  # this automation only happens when leaving blank for dataType.\n            data = stringifyAndEncode(value)\n        else:\n            dataType = \"dill\"\n            data = dill.dumps(value)\n    else:",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:81-109"
+        "location": "/pyjom/commons.py:97-135"
     },
     "127": {
-        "file_id": 22,
-        "content": "The code checks if the group message sending status is successful, then sets a context size range and uses it to construct a new text message. It joins all messages together with spaces and assigns the new message to the group chat cursor. Finally, it loops through multiple reply getters, trying them in order, with a maximum of three retries if the event is not set.",
+        "file_id": 20,
+        "content": "This code defines functions for handling data types and communicating with Redis. It checks if a value is stringifiable, encodes it, and stores it in Redis based on the provided data type. If no data type is given, it automatically determines the type and performs encoding if necessary.",
         "type": "comment"
     },
     "128": {
-        "file_id": 22,
-        "content": "                if enableRetryFlag:\n                    extraFlags.update({\"retryFlag\": retried})\n                # stderrPrint(extraFlags,replyGetter)\n                if needContext:\n                    reply = replyGetter(\n                        *[groupChatCursorWithContext[key] for key in argumentList],\n                        **extraFlags\n                    )\n                else:\n                    reply = replyGetter(\n                        *[groupChatCursor[key] for key in argumentList], **extraFlags\n                    )\n                if reply is not None:\n                    retried = True  # only plus one on retryIndex when there is no error during generation.\n                    maxRepeat = random.randint(*maxRepeatRange)\n                    reply = generatedSentenceFixer(\n                        reply, maxRepeat=maxRepeat\n                    )  # fix this reply first.\n                    # add a new filter here.\n                    reply = removeDuplicateWords(reply)\n                    if reply in groupChatReplyHistory or len(reply) < min_reply_length:",
+        "file_id": 20,
+        "content": "        if dataType in commonDataTypes:\n            data = stringifyAndEncode(value)\n        elif dataType == \"dill\":\n            data = dill.dumps(value)\n        elif dataType == \"pickle\":\n            data = pickle.dumps(value)\n        else:\n            raise Exception(\"unknown dataType:\", dataType)\n    connection.set(key, data)\n    return dataType\ndef getRedisValueByKey(\n    key: str,\n    dataType=None,\n    encoding: str = \"utf-8\",\n    debug: bool = False,\n    host=\"localhost\",\n    port=commonRedisPort,\n):\n    connection = getRedisConnection(host=host, port=port)\n    value = connection.get(key)\n    if value is not None:\n        if debug:\n            print('data \"{}\" is not None'.format(key))\n        if dataType == None:\n            return dataType\n        elif dataType in commonDataTypes:\n            decoded_value = value.decode(encoding)\n            if dataType in commonNonIterableDataTypes:\n                if dataType == str:\n                    return decoded_value\n                else:\n                    return dataType(decoded_value)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:110-132"
+        "location": "/pyjom/commons.py:136-169"
     },
     "129": {
-        "file_id": 22,
-        "content": "This code block retrieves a reply from a replyGetter function, depending on whether context is needed or not. If the reply is not None, it updates retryFlag and generates a new random maxRepeat value for generatedSentenceFixer to fix the reply. The reply is then passed through removeDuplicateWords filter before checking if it's already in groupChatReplyHistory or shorter than min_reply_length.",
+        "file_id": 20,
+        "content": "The code handles data storage and retrieval from Redis. It checks the data type, encodes or serializes the value accordingly (using stringifyAndEncode, dill, or pickle), and stores it in Redis using set method. The getRedisValueByKey function retrieves a value by key and decodes it based on the specified data type, if provided. It returns None if the value is not found or the data type is not specified. The code also handles debugging messages and exceptions for unknown data types.",
         "type": "comment"
     },
     "130": {
-        "file_id": 22,
-        "content": "                        continue  # do not send repeated messages or unusually short messages.\n                    else:\n                        update_stack(groupChatReplyHistory, reply)\n                    # 句子里面不能有违禁词语 不然就不能输出\n                    reply = censorReplyAbsSentiment(reply)\n                    if reply is None:\n                        continue  # skip too vulgar sentences.\n                    if reply.count(\"*\") > 3:  # too much censor will make it unreadable.\n                        continue  # retry to get a better thing.\n                    # do reply.\n                    # stderrPrint(\"PROCESSING GROUP MESSAGE CURSOR:\", groupChatCursor)\n                    stderrPrint(flag, reply)\n                    # must control this shit. 如果被禁言了该如何处理 一般需要缓冲30次\n                    groupChatCursor = None  # remove it only one reply was to be made.\n                    delay = random.randint(*delay_time_range)\n                    time.sleep(delay)  # to make it more humane.\n                    sendMessageStatus = action.sendGroupText(",
+        "file_id": 20,
+        "content": "            else:\n                # safe eval using nsjail?\n                return safe_eval(decoded_value)\n        elif dataType == \"pickle\":\n            return pickle.loads(value)\n        elif dataType == \"dill\":\n            return dill.loads(value)\n        else:\n            raise Exception(\"unknown dataType:\", dataType)\n    if debug:\n        print('data \"{}\" is None'.format(key))\ndef getRedisCachedSet(\n    setName: str,\n    debug: bool = False,\n    host=\"localhost\",\n    port=commonRedisPort,\n    dataType=\"dill\",\n) -> set:\n    # so we know this datatype is set!\n    # but what is our plan? we use dill by default.\n    data = getRedisValueByKey(\n        setName, debug=debug, host=host, port=port, dataType=dataType\n    )\n    if data is None:\n        return set()\n    assert type(data) == set\n    return data\ndef addToRedisCachedSet(\n    item,\n    setName: str,\n    debug: bool = False,\n    host=\"localhost\",\n    port=commonRedisPort,\n    dataType=\"dill\",\n):\n    cachedSet = getRedisCachedSet(\n        setName, debug=debug, host=host, port=port, dataType=dataType",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:133-152"
+        "location": "/pyjom/commons.py:170-210"
     },
     "131": {
-        "file_id": 22,
-        "content": "Code checks if the message contains banned words, censors them if necessary, and ensures messages are not too short or repeated. If a suitable reply is found, it sends the message after a random delay to avoid flooding and make it appear more human-like.",
+        "file_id": 20,
+        "content": "This code defines functions to interact with Redis cached sets. The `getRedisCachedSet` function retrieves a set from Redis, deserializing the data using either pickle or dill depending on the specified data type. If the data is None, it returns an empty set. The `addToRedisCachedSet` function adds an item to a Redis cached set after first retrieving the existing set and updating it with the new item before saving it back to Redis. Both functions support debug mode and have default values for host, port, and data type (dill).",
         "type": "comment"
     },
     "132": {
-        "file_id": 22,
-        "content": "                        group=group_id, content=reply\n                    )\n                    # stderrPrint(\"SENT MESSAGE STATUS:\",sendMessageStatus)\n                    if not (\n                        sendMessageStatus[\"ErrMsg\"] == \"\"\n                        and sendMessageStatus[\"Ret\"] == 0\n                    ):\n                        # some shit had happened. cannot send message without error.\n                        groupMsgSendStatus.update({group_id: groupBannedErrorBuffer})\n                    else:\n                        # no shit happened.\n                        groupNoReplyStack.update(\n                            {group_id: 1 + groupNoReplyStack.get(group_id, 0)}\n                        )\n                        # stderrPrint(\"UPDATE NOREPLYSTACK\", groupNoReplyStack)\n                        noReply = groupNoReplyStack.get(group_id, 0)\n                        if (\n                            noReply >= noReplyThreshold\n                        ):  # only this noReply greater than 0 we can write it to cursor. LOGIC ELSEWHERE",
+        "file_id": 20,
+        "content": "    )\n    cachedSet.add(item)\n    setRedisValueByKey(setName, cachedSet, dataType=dataType, host=host, port=port)\n    return cachedSet\ndef shuffleAndPopFromList(mlist):\n    import random\n    random.shuffle(mlist)\n    return mlist.pop(0)\ndef getMediaBitrate(mediaPath, audioOnly=False, videoOnly=False):\n    # demo output:\n    # {'programs': [], 'streams': [{'bit_rate': '130770'}]}\n    commandArguments = [\n        \"ffprobe\",\n        \"-i\",\n        mediaPath,\n        \"-v\",\n        \"quiet\",\n    ]\n    if audioOnly:\n        commandArguments += [\n            \"-select_streams\",\n            \"a:0\",\n        ]\n    elif videoOnly:\n        commandArguments += [\n            \"-select_streams\",\n            \"v:0\",\n        ]\n    commandArguments += [\n        \"-show_entries\",\n        \"stream=bit_rate\",\n        \"-hide_banner\",\n        \"-print_format\",\n        \"json\",\n    ]\n    result = subprocess.run(commandArguments, capture_output=True, encoding=\"UTF-8\")\n    stdout = result.stdout\n    stderr = result.stderr\n    try:\n        assert result.returncode == 0",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:153-172"
+        "location": "/pyjom/commons.py:211-255"
     },
     "133": {
-        "file_id": 22,
-        "content": "Code snippet handles sending messages to a group using the 'sendMessageStatus' response. If an error occurs (non-empty 'ErrMsg' or non-zero 'Ret'), the group is marked as banned. If no errors, the count of unsent messages is incremented for that group. If the count exceeds a threshold, it can be written to the cursor.",
+        "file_id": 20,
+        "content": "1. Defines functions for caching, shuffling lists, and retrieving media bitrate.\n2. Uses Redis to store sets of data with configurable host and port.\n3. Shuffles a list of items and returns the first item in the new order.\n4. Retrieves the bitrate of a video or audio stream using ffprobe, then prints it in JSON format.",
         "type": "comment"
     },
     "134": {
-        "file_id": 22,
-        "content": "                            groupNoReplyStack.update({group_id: -noReplyBuffer})\n                    # stderrPrint(\"sendMessageStatus:\", sendMessageStatus)\n                    return True\ndef sendRandomGroupMessage():\n    sendAtriGroupChatMessage = (\n        keywordDecorator(getChatApiReply, chatApiIndex=0),\n        [\"msg\", \"group_id\"],\n        \"SENDING ATRI API REPLY:\",\n        True,\n        True,\n    )  # last is enableRetryFlag\n    sendGPT2GroupChatMessage = (\n        keywordDecorator(getChatApiReply, chatApiIndex=1),\n        [\"msg\", \"group_id\"],\n        \"SENDING GPT2 API REPLY:\",\n        True,\n        True,\n    )  # last is enableRetryFlag\n    sendXiaoIceGroupChatMessage = (\n        keywordDecorator(getChatApiReply, chatApiIndex=2),\n        [\"msg\", \"group_id\"],\n        \"SENDING XIAOICE API REPLY:\",\n        True,\n        True,\n    )\n    sendChatLocalResponse = (\n        getChatLocalResponse,\n        [\"group_id\", \"msg\"],\n        \"SENDING CHATLOCAL REPLY:\",\n        False,\n        False,\n    )\n    sendRepeaterResponse = (",
+        "file_id": 20,
+        "content": "        stdout_json = json.loads(stdout)\n        return stdout_json\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"potential error logs:\")\n        print(stderr)\n        print(\"error when getting media bitrate\")\n        return {}\ndef getFileExtensionToMeaningDictFromString(inputString):\n    inputStringList = inputString.split(\"\\n\")\n    fileExtensionToMeaningDict = {}\n    for line in inputStringList:\n        line = line.strip()\n        if len(line) < 5:\n            continue\n        # try:\n        meaning, extensions = line.split(\" - \")  # problem fixed.\n        # except:\n        #     print('line:',[line])\n        #     breakpoint()\n        meaning = meaning.strip()\n        extensions = extensions.split(\" or \")\n        for extension in extensions:\n            extension = extension.strip()\n            if len(extension) > 0:\n                fileExtensionToMeaningDict.update({extension: meaning})\n    return fileExtensionToMeaningDict\n@lru_cache(maxsize=1)\ndef getMediaFileExtensionToMeaningDict():",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:173-209"
+        "location": "/pyjom/commons.py:256-290"
     },
     "135": {
-        "file_id": 22,
-        "content": "This code defines four different functions for sending messages to a group chat: `sendAtriGroupChatMessage`, `sendGPT2GroupChatMessage`, `sendXiaoIceGroupChatMessage`, and `sendChatLocalResponse`. Each function takes a \"group_id\" and a \"msg\", and has a specific label indicating the source of the message. The last parameter in each tuple indicates whether to retry sending if an error occurs.",
+        "file_id": 20,
+        "content": "This code loads a JSON from stdout, handles potential errors by printing them and returns an empty dictionary. It also defines a function to create a file extension to meaning dictionary using input string lines. Lastly, it caches a media file extension to meaning dictionary with the help of @lru_cache decorator.",
         "type": "comment"
     },
     "136": {
-        "file_id": 22,
-        "content": "        groupMsgRepeater,\n        [\"msg\"],\n        \"SENDING REPEATER REPLY:\",\n        False,\n        False,\n    )\n    replyGetterList = [\n        sendAtriGroupChatMessage,\n        sendGPT2GroupChatMessage,\n        sendChatLocalResponse,\n        sendRepeaterResponse,\n        sendXiaoIceGroupChatMessage,\n    ]\n    weightList = [2, 5, 1, 1, 5]\n    # weightList = [1, 3, 2, 2, 5] # said that is girish, because of xiaoice.\n    replyGetterYielder = weightedRandomYielder(replyGetterList, weightList)\n    sendBotGroupTextMsg(replyGetterYielder)\n# schedule.every(1).minute.do(sendApiGroupChatMessage)\n# schedule.every(30).seconds.do(sendChatLocalResponse) # will this shit work?\nschedule.every(1).minute.do(sendRandomGroupMessage)  # will this shit work?\ndef printGroupTextChatJson(group_id, sender_id, content):\n    message = {\"group_id\": group_id, \"sender_id\": sender_id, \"content\": content}\n    message = json.dumps(message, ensure_ascii=False)\n    stderrPrint(\n        \"[GROUP_TEXT_MESSAGE]\", message\n    )  # strange. who the fuck added this shit?",
+        "file_id": 20,
+        "content": "    # no input needed.\n    videoExtensions = \"\"\"MP4 or MPEG4 video file - .mp4\n264 video file - .h264\nAVI video file - .avi\nMKV or Matroska Multimedia Container - .mkv\nMPEG video file - .mpeg or .mpg\nMOV or Apple QuickTime video file - .mov\nApple MP4 video file - .m4v\nAdobe flash video - .flv\n3GP video file - .3gp\nWindows Media Video file - .wmv\nDVD Video Object - .vob\"\"\"\n    imageExtensions = \"\"\"JPEG image - .jpeg or .jpg\nPNG image - .png\nGIF image - .gif\nPhotoshop or PSD image - .psd\nAdobe Illustrator image - .ai\nTIFF image - .tif or .tiff\"\"\"\n    documentExtensions = \"\"\"Microsoft Word file - .doc or .docx\nPDF file - .pdf\nText file - .txt\nMicrosoft Excel file - .xls\nMicrosoft Excel Open XML file - .xlsx\nMicrosoft Excel file with macros - .xlsm\nMicrosoft PowerPoint presentation - .ppt\nMicrosoft PowerPoint slide show - .pps\nMicrosoft PowerPoint Open XML presentation - .pptx\"\"\"\n    audioExtensions = \"\"\"MP3 audio file - .mp3\nAAC audio file - .aac\nAC3 audio file - .ac3\nWAV audio file - .wav\nWMA audio file - .wma\nOgg Vorbis audio file - .ogg",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:210-240"
+        "location": "/pyjom/commons.py:291-323"
     },
     "137": {
-        "file_id": 22,
-        "content": "This code is setting up a weighted random reply yielder for a group chat bot, with multiple reply options and weights. It also schedules a function to send a random group message periodically and prints group text chat messages in JSON format. The schedule functionality seems to have some uncertainty about its effectiveness.",
+        "file_id": 20,
+        "content": "The code defines various file extensions for video, image, document, and audio formats. It includes common extension types for each category, allowing the codebase to identify and handle different file types appropriately.",
         "type": "comment"
     },
     "138": {
-        "file_id": 22,
-        "content": "# convert to simplified chinese.\nimport opencc\nchinese_t2s = opencc.OpenCC()\nadBuffer = {}\n# hook up this thing, send cat video only if we receive that topic.\nfrom adtools import checkIsCatOrDogImage\n@asyncThread\ndef catOrDogAsyncThread(group_id:str, sender_id:str,Content:str,is_image:bool=False, is_user:bool=False):\n    if is_image:\n        try:\n            cat_or_dog = checkIsCatOrDogImage(Content)\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"Exception when detecting image if it is cat or dog\")\n            return\n    else:\n        cat_or_dog = checkCatOrDog(Content)\n    # we need to update neo4j database, using group_id, sender_id, cat_or_dog.\n    if cat_or_dog:\n        makeCatOrDogConnections(\n            str(group_id), str(sender_id), cat_or_dog\n        )\n        # act accordingly. decide to send ad or not.\n        if adBuffer.get(str(group_id), 0) <= 0:\n            penalty = 10\n            # send the ad.\n            success = sendCatOrDogAdToQQGroup(str(group_id), cat_or_dog, action)",
+        "file_id": 20,
+        "content": "MIDI audio file - .midi or .mid\nCD audio file - .cda\nAIF audio file - .aif\"\"\"\n    mapping = [\n        (\"video\", videoExtensions),\n        (\"audio\", audioExtensions),\n        (\"image\", imageExtensions),  # gif could be video.\n        (\"document\", documentExtensions),\n    ]\n    mediaFileExtensionToMeaningDict = {\n        key: getFileExtensionToMeaningDictFromString(value) for key, value in mapping\n    }\n    return mediaFileExtensionToMeaningDict\ndef determineMediaTypeByExtension(extension):\n    extension = extension.strip()\n    if not extension.startswith(\".\"):\n        extension = \".\" + extension\n    extension_lower = extension.lower()\n    # this has to be cached.\n    mediaFileExtensionToMeaningDict = getMediaFileExtensionToMeaningDict()\n    for (\n        mediaType,\n        fileExtensionToMeaningDict,\n    ) in mediaFileExtensionToMeaningDict.items():\n        for fileExtension, meaning in fileExtensionToMeaningDict.items():\n            if fileExtension.lower == extension_lower:\n                return mediaType\n    return \"unknown\"",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:243-274"
+        "location": "/pyjom/commons.py:324-353"
     },
     "139": {
-        "file_id": 22,
-        "content": "This code defines a function that checks whether the content sent in a QQ group is an image of a cat or dog. If it is, the function updates a Neo4j database and decides whether to send an ad based on a counter for each group. The code uses OpenCC library for text simplification and imports traceback module for error handling.",
+        "file_id": 20,
+        "content": "This code defines a function getMediaFileExtensionToMeaningDict() that maps file extensions to their meanings (video, audio, image, document). It also includes a determineMediaTypeByExtension() function which takes an extension as input, checks it against the mapping and returns the corresponding media type. This code suggests that caching is necessary for efficiency.",
         "type": "comment"
     },
     "140": {
-        "file_id": 22,
-        "content": "            if success:\n                penalty += 40 # every 50 messages we have one ad.\n            adBuffer[str(group_id)] = penalty\n        # decrease that counter by standard group messages.\nfrom botoy.collection import MsgTypes\n@bot.on_group_msg\ndef group(ctx: GroupMsg, groupInitReplyDelayRange=(4, 15)):\n    # too broad for groupInitReplyDelayRange to be (2, 20)\n    # global groupChatCursor\n    #    stderrPrint('收到群消息，群号为', ctx.FromGroupId)\n    # recommed you to check the curret group only.\n    #    stderrPrint(\"checkGroupNoReply:\",groupNoReplyStack.get(ctx.FromGroupId,None))\n    data_dict = ctx.data  # recommend to use this json object. or not?\n    groupName = data_dict.get(\"FromGroupName\", None)\n    group_id = data_dict[\"FromGroupId\"]\n    # decrease that ad counter.\n    adCounter = adBuffer.get(str(group_id), AD_INIT_COUNTER)\n    if adCounter > 0:\n        adCounter -= 1\n    adBuffer[str(group_id)] = adCounter\n    if groupName is not None:\n        updateGroupNameDict(groupName, group_id)\n    sender_id = data_dict[\"FromUserId\"]",
+        "file_id": 20,
+        "content": "def corruptMediaFilter(\n    mediaPath, tag: str = \"media\", bad_words: list[str] = [\"invalid\", \"failed\", \"error\"]\n):\n    if not os.path.exists(mediaPath):\n        print(\"{} file does not exist\".format(tag))\n    import ffmpeg\n    not_nice = [word.lower() for word in bad_words]\n    corrupted = False\n    try:\n        stdout, stderr = (\n            ffmpeg.input(mediaPath)\n            .output(\"null\", f=\"null\")\n            .run(capture_stdout=True, capture_stderr=True)\n        )\n        stderr_lower = stderr.decode(\"utf-8\").lower()\n        for word in not_nice:\n            if word in stderr_lower:\n                print(\"{} is corrupted\".format(tag))\n                corrupted = True\n                break\n    except:\n        import traceback\n        traceback.print_exc()\n        corrupted = True\n        print(\"corrupt {}\".format(tag))\n    if not corrupted:\n        print(\"video is fine\")\n    # return True for fine video.\n    valid = not corrupted\n    sprint(\"{} file path:\".format(tag), mediaPath)\n    return valid\n## bring about 'redis cache' for faster testing.",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:275-301"
+        "location": "/pyjom/commons.py:356-392"
     },
     "141": {
-        "file_id": 22,
-        "content": "This code fragment monitors a group chat and manages ad counters based on the number of messages sent. For each message, it checks if a penalty should be added and updates an ad counter for the specific group ID. The ad counter is decreased with every standard group message received. It also updates the group name dictionary and handles user input data from messages sent to the group chat.",
+        "file_id": 20,
+        "content": "This function named 'corruptMediaFilter' takes the path of a media file and checks for potentially corrupted content by scanning the ffmpeg output. If any 'bad words' found in stderr, it considers the file corrupted. If no issues found, it declares the video as fine and returns True. It also prints status updates to stdout about file existence, corruption status, and video condition.",
         "type": "comment"
     },
     "142": {
-        "file_id": 22,
-        "content": "    RedBaginfoDict = data_dict[\"RedBaginfo\"]\n    RedBaginfo = ctx.RedBaginfo\n    MsgType = ctx.MsgType\n    # how to download these shits?\n    try:\n        from botoy.parser.group import Pic\n        if MsgType == MsgTypes.PicMsg:\n            pic_obj = Pic(**json.loads(ctx.Content))\n            pics = pic_obj.GroupPic\n            for pic in pics:\n                pic_url = pic.Url\n                catOrDogAsyncThread(str(group_id), str(sender_id),pic_url,is_image=True)\n        elif MsgType == MsgTypes.VideoMsg:\n            ...\n        elif MsgType == MsgTypes.VoiceMsg:\n            ...\n        elif MsgType == MsgTypes.JsonMsg:\n            ... # hope you can receive that? nope? you can only receive that by go-cqhttp.\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"ERROR WHEN PROCESSING MEDIA MESSAGES.\")\n        print(\"MSGTYPE:\",MsgType)\n    # first initialize random delay for every group in groupNoReplyStack\n    if group_id not in groupNoReplyStack.keys():\n        groupNoReplyStack.update({group_id: -random.randint(*groupInitReplyDelayRange)})",
+        "file_id": 20,
+        "content": "import redis\nfrom redis_lru import RedisLRU\n# from functools import lru_cache\noneDay = 60 * 60 * 24  # one day?\nredisExpire = oneDay * 7  # god damn it!\n# @lru_cache(maxsize=1)\ndef redisLRUCache(\n    ttl=redisExpire,\n    redisAddress=\"127.0.0.1\",\n    redisPort=commonRedisPort,\n    max_size=20,\n    debug=True,\n):\n    client = redis.StrictRedis(host=redisAddress, port=redisPort)\n    cache = RedisLRU(client, max_size=max_size, debug=debug)\n    return cache(ttl=ttl)\n# this is root. this is not site-packages.\ndef frameSizeFilter(frameMeta, frame_size_filter):\n    width, height = frameMeta[\"width\"], frameMeta[\"height\"]\n    flagWidth, (minWidth, maxWidth) = checkMinMaxDict(\n        width, frame_size_filter.get(\"width\", {}), getMinMaxVal=True\n    )  # type: ignore\n    flagHeight, (minHeight, maxHeight) = checkMinMaxDict(\n        height, frame_size_filter.get(\"height\", {}), getMinMaxVal=True\n    )  # type: ignore\n    if not (flagWidth and flagHeight):\n        print(\"Filter out invalid video with shape of {}x{}\".format(width, height))",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:302-329"
+        "location": "/pyjom/commons.py:393-423"
     },
     "143": {
-        "file_id": 22,
-        "content": "This code is handling media messages (images, videos, voice) in a chat group. It tries to download images and may process videos or voice messages. If the message type is not recognized, it logs an error. The code also initializes random delay for a group's no-reply stack if the group ID isn't present.",
+        "file_id": 20,
+        "content": "This code defines a function `redisLRUCache` that utilizes Redis LRU cache for storing data with Time-To-Live (TTL) and optional parameters like TTL, redisAddress, redisPort, max_size, and debug. It also includes a helper function `frameSizeFilter` that checks the dimensions of a frame against specified width and height ranges from a frame_size_filter dictionary. If both dimensions are filtered out, it prints a message indicating an invalid video shape.",
         "type": "comment"
     },
     "144": {
-        "file_id": 22,
-        "content": "    def writeGroupChatCursor(Content, enable_t2s=True):\n        if enable_t2s:\n            Content = chinese_t2s.convert(Content)\n        # content need to converted into simplified chinese.\n        global groupChatCursor, chat_stack_lock\n        # maybe we should create the mapping table here.\n        content_length = len(Content)\n        content_min_length = 4\n        # maybe we should split sentence into shorter ones, or via summarization/title generation apis.\n        content_max_length = 15\n        recv_content_min_length, recv_content_max_length = 4, 20\n        if not (Content.startswith(\"[\") or Content.endswith(\"]\")):\n            if (\n                content_length <= recv_content_max_length\n                and content_length >= recv_content_min_length\n            ):\n                printGroupTextChatJson(\n                    group_id, sender_id, Content\n                )  # why the fuck you are not printing?\n            if (\n                content_length <= content_max_length\n                and content_length >= content_min_length",
+        "file_id": 20,
+        "content": "        print(\n            \"Valid Width and Height are {}-{}x{}-{}\".format(\n                minWidth, maxWidth, minHeight, maxHeight\n            )\n        )\n        return False\n    return True\n# site_path = pathlib.Path([x for x in site.getsitepackages() if \"site-packages\" in x][0])\nos.environ[\"USE_NVIDIA_OPENCV\"] = \"yes\"\nif os.environ[\"USE_NVIDIA_OPENCV\"] == \"yes\":\n    site_path = pathlib.Path(\"/usr/local/lib/python3.9/site-packages\")\n    cv2_libs_dir = (\n        site_path / \"cv2\" / f\"python-{sys.version_info.major}.{sys.version_info.minor}\"\n    )\n    print(cv2_libs_dir)\n    cv2_libs = sorted(cv2_libs_dir.glob(\"*.so\"))\n    if len(cv2_libs) == 1:\n        print(\"INSERTING:\", cv2_libs[0].parent)\n        sys.path.insert(1, str(cv2_libs[0].parent))\nmimetypes.init()\ndef waitForServerUp(\n    port, message, timeout=1, messageLength: Union[None, int] = None  # for netease.\n):  # this messageLength is the length of the binary message.\n    import requests\n    while True:\n        try:\n            url = \"http://localhost:{}\".format(port)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:331-352"
+        "location": "/pyjom/commons.py:424-457"
     },
     "145": {
-        "file_id": 22,
-        "content": "Function writes group chat cursor data to a file, with support for Chinese simplified to traditional conversion. The content length is checked against minimum and maximum thresholds before printing or potentially splitting into shorter segments.",
+        "file_id": 20,
+        "content": "This code checks if the OpenCV library is installed correctly and sets the system path accordingly. It also initializes mimetypes and defines a function waitForServerUp that makes HTTP requests to localhost on a specified port, waiting for a response until the timeout is reached. The function accepts optional parameters for message and messageLength (for netease).",
         "type": "comment"
     },
     "146": {
-        "file_id": 22,
-        "content": "            ):  # 新版qq之类的信息\n                # we log group chat text for gpt training here. shall we?\n                result = checkGroupMsgSendStatus(group_id)\n                if (\n                    result\n                ):  # will not write banned group to cursor since we will not reply it.\n                    noReply = groupNoReplyStack.get(group_id, 0)\n                    # stderrPrint(\"NOREPLYSTACK:\",groupNoReplyStack)\n                    if noReply >= 0:\n                        groupChatCursor = {\"group_id\": group_id, \"msg\": Content}\n                    else:\n                        groupNoReplyStack.update({group_id: noReply + 1})\n                # chat_stack update logic within the content length filter\n                if chat_stack_lock:\n                    # do not do anything about the chat_stack while locked.\n                    return\n                else:\n                    # check if we are hit by something interesting?\n                    catOrDogAsyncThread(group_id, sender_id, Content)",
+        "file_id": 20,
+        "content": "            with requests.get(url, timeout=timeout) as r:\n                if messageLength is not None:\n                    contentLength = len(r.content)\n                    if messageLength <= contentLength:\n                        break\n                else:\n                    if type(message) == str:\n                        text = r.text.strip('\"').strip(\"'\")\n                    else:\n                        text = r.json()\n                    print(\"SERVER AT PORT %d RESPONDS:\" % port, [text])\n                    assert text == message\n                    print(\"SERVER AT PORT %d IS UP\" % port)\n                    break\n        except:\n            import traceback\n            traceback.print_exc()\n            print(\"SERVER AT PORT %d MIGHT NOT BE UP\" % port)\n            print(\"EXPECTED MESSAGE:\", [message])\n            import time\n            time.sleep(1)\nclass D2Point:\n    def __init__(self, x, y):\n        self.x = x\n        self.y = y\ndef doRectOverlap(l1, r1, l2, r2):\n    # if rectangle has area 0, no overlap",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:353-373"
+        "location": "/pyjom/commons.py:458-490"
     },
     "147": {
-        "file_id": 22,
-        "content": "This code block handles QQ group chat messages and logs them for GPT training. It also manages a \"noReply\" counter for groups where the bot should not reply, and updates a chat_stack based on certain conditions. The chat_stack lock is checked to ensure no simultaneous updates are made. If interesting content is detected, it triggers a catOrDogAsyncThread function.",
+        "file_id": 20,
+        "content": "Code fetches a message from server using URL, checks its length against expected length and prints the received response. If there is a mismatch, it raises an error. If the connection fails, it waits for a second before trying again.",
         "type": "comment"
     },
     "148": {
-        "file_id": 22,
-        "content": "                    updateChatStack(group_id, Content)\n                    # or we could simply add the filter on the reply side.\n    if sender_id != my_qq:  # skip text content sent by itself.\n        # how to act like the TextMsg? it could include video/image contents.\n        if MsgType == \"AtMsg\":\n            Content = ctx.Content  # this is string.\n            Content_json = json.loads(Content)\n            content_text = Content_json[\"Content\"].strip()\n            # print(Content_json)\n            # breakpoint()\n            # 'SrcContent', 'UserID'(list)\n            content_at_target = (\"@\" + content_text.split(\"@\")[1]).strip()\n            content_text = content_text.replace(content_at_target, \"\")\n            content_text = replaceDuplicateChar(content_text, \" \", maxRepeat=1)\n            # UserExt = Content_json[\"UserExt\"]\n            # # shit revised. no more 'UserExt'\n            # for elem in UserExt:\n            #     QQNick = elem[\"QQNick\"]\n            #     at_QQNick = \"@{}\".format(QQNick)\n            #     content_text = content_text.replace(at_QQNick + \" \" + at_QQNick, \"\")",
+        "file_id": 20,
+        "content": "    if l1.x == r1.x or l1.y == r1.y or r2.x == l2.x or l2.y == r2.y:\n        return False\n    # If one rectangle is on left side of other\n    if l1.x >= r2.x or l2.x >= r1.x:\n        return False\n    if l1.y >= r2.y or l2.y >= r1.y:\n        return False\n    return True\ndef checkRectOverlap(rect0, rect1):\n    assert len(rect0) == 2\n    assert len(rect1) == 2\n    return doRectOverlap(\n        D2Point(*rect0[0]), D2Point(*rect0[1]), D2Point(*rect1[0]), D2Point(*rect1[1])\n    )\ndef getOverlapRect(rect0, rect1):\n    if checkRectOverlap(rect0, rect1):\n        leftXList = (rect0[0][0], rect1[0][0])\n        leftYList = (rect0[0][1], rect1[0][1])\n        rightXList = (rect0[1][0], rect1[1][0])\n        rightYList = (rect0[1][1], rect1[1][1])\n        leftX = max(leftXList)\n        leftY = max(leftYList)\n        rightX = min(rightXList)\n        rightY = min(rightYList)\n        return [(leftX, leftY), (rightX, rightY)]\n    else:\n        return None\ndef makeValueInRange(value, minVal, maxVal):\n    assert minVal < maxVal\n    return min(max(minVal, value), maxVal)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:374-394"
+        "location": "/pyjom/commons.py:491-526"
     },
     "149": {
-        "file_id": 22,
-        "content": "This code checks if the message type is an \"AtMsg\" and extracts the content, removes the mentioned user, replaces duplicate characters with a maximum repeat of 1, and updates the chat stack. If the sender is not the bot itself, it performs these actions on the message content.",
+        "file_id": 20,
+        "content": "The code checks for rectangle overlap, returns the overlapping rectangle if exists, and clamps values within a given range.",
         "type": "comment"
     },
     "150": {
-        "file_id": 22,
-        "content": "            #     content_text = content_text.replace(at_QQNick, \"\")\n            # now the content is ready.\n            writeGroupChatCursor(content_text)\n        if MsgType == \"TextMsg\":\n            # is that group allowing sending messages?\n            content_text = ctx.Content  # must not be empty.\n            writeGroupChatCursor(content_text)\n    if RedBaginfoDict is not None:\n        prefix = \"[MREDBAG_LOG]\"\n        print(prefix, \"RECEIVED RED PACKET\", file=sys.stderr)\n        print(\n            prefix, \"_____________RedPacket Message Dump_____________\", file=sys.stderr\n        )\n        print(prefix, ctx, file=sys.stderr)\n        print(\n            prefix, \"_____________RedPacket Message Dump_____________\", file=sys.stderr\n        )\n        startThread(openRedBag, (RedBaginfoDict, group_id, RedBaginfo))\n    schedule.run_pending()  # this is async.\n    # breakpoint()\nif __name__ == \"__main__\":\n    bot.run()\n# do not send porn shits or you need to relogin.",
+        "file_id": 20,
+        "content": "# this sucks...\ndef infiniteShuffle(access_list, shuffle=True, infinite=True, endMark=True):\n    flag = True\n    while flag:\n        if shuffle:\n            random.shuffle(access_list)\n        for data in access_list:\n            yield data\n        if endMark and infinite:\n            yield None\n        if not infinite:\n            flag = False\ndef inRange(target, mRange, tolerance=1):\n    assert tolerance <= 1\n    assert tolerance > 0\n    start, end = mRange\n    start, end = start * tolerance, end / tolerance\n    return target >= start and target <= end\ndef overlapRange(range_a, range_b):\n    begin_a, end_a = range_a\n    begin_b, end_b = range_b\n    possible_overlap = (max(begin_a, begin_b), min(end_a, end_b))\n    if possible_overlap[0] < possible_overlap[1]:  # overlapping\n        return possible_overlap\n    # return common range.\nfrom lazero.utils.json import jsonWalk2, jsonify, jsonWalk, jsonLocate, jsonUpdate\njson.__dict__.update({\"walk\": jsonWalk, \"locate\": jsonLocate, \"update\": jsonUpdate})\ndef replacer(content, sources=[], target=\"\"):",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/botoy_redpacket_collect.py:395-421"
+        "location": "/pyjom/commons.py:529-565"
     },
     "151": {
-        "file_id": 22,
-        "content": "Code chunk handles messages and red packets in a QQ group chat. It filters the message type, prepares content for writing, writes to the group chat cursor, handles received red packets by starting a thread, and runs pending tasks asynchronously.",
+        "file_id": 20,
+        "content": "The code defines a function \"infiniteShuffle\" that shuffles and yields data from an access list, either stopping when the list ends or if set to infinite mode. Function \"inRange\" checks if a target value falls within specified range boundaries with optional tolerance. Function \"overlapRange\" calculates the overlap between two given ranges. The code also updates JSON functions (\"walk\", \"locate\", and \"update\") under the json module. Finally, a function named \"replacer\" is defined, but its functionality isn't clear from the given code snippet.",
         "type": "comment"
     },
     "152": {
-        "file_id": 23,
-        "content": "/tasks/qq/qq_red_packet_collect/base_opq.py",
-        "type": "filepath"
+        "file_id": 20,
+        "content": "    for source in sources:\n        content = content.replace(source, target)\n    return content\ndef multi_replacer(content, replacer_list=[[[], \"\"]]):\n    for sources, target in replacer_list:\n        content = replacer(content, sources=sources, target=target)\n    return content\nfrom pyjom.mathlib import extract_span, convoluted\nimport MediaInfo\nimport subprocess\ndef json_auto_float_int(jsonObj):\n    jsonObj = jsonify(jsonObj)\n    for location, content in jsonWalk(jsonObj):\n        # content = jsonLocate(jsonObj,location)\n        if type(content) == str:\n            if \"/\" in content:\n                try:\n                    content = eval(content)  # could be dangerous!\n                    if type(content) in [float, int]:\n                        jsonUpdate(jsonObj, location=location, update_content=content)\n                except:\n                    pass\n            elif \".\" in content:\n                try:\n                    content = float(content)\n                    jsonUpdate(jsonObj, location=location, update_content=content)",
+        "type": "code",
+        "location": "/pyjom/commons.py:566-600"
     },
     "153": {
-        "file_id": 23,
-        "content": "The code handles group management in a messaging platform using modules and botoy instance for QQ API communication, includes error printing helper functions, and performs searches with API requests. It also has an 'openRedBag' function that retries three times with sleep time backoff strategy and parameter checks, delay ranges, and forbidden keyword filtering. The asyncThread decorator starts new threads to execute original func functions.",
-        "type": "summary"
+        "file_id": 20,
+        "content": "The code appears to be a combination of functions that replace specific strings within a given content, update JSON objects by converting certain string types to either float or int, and potentially include some math-related operations. It seems to involve the use of external libraries such as MediaInfo and subprocess for possibly retrieving additional information or performing computations.",
+        "type": "comment"
     },
     "154": {
-        "file_id": 23,
-        "content": "from botoy import Action\nfrom botoy import Botoy, GroupMsg\nimport threading\nimport json\nimport time\nimport random\nimport sys\nimport traceback\nfrom threading import Event\nexit_event = Event()\nexit_event.clear()\ndef programExit():\n    exit_event.set()\n# my_qq = 1281727431 # freaking int! Yukio.\nimport argparse\nparser = argparse.ArgumentParser()\nparser.add_argument(\n    \"--qq\", type=int, default=1281727431, required=False\n)  # must not required since we have default value here.\nparser.add_argument(\"--port\", type=int, default=8780, required=False)\nparser.add_argument(\"--log\", action=\"store_true\")\nparser.add_argument(\"--log_file\", action=\"store_true\")\n# 忽略信息的blacklist 还有user_blacklist\ngroup_blacklist = [927825838]  # 微信的hook发布群\nfriend_blacklist = [364831018]  # 发给我微信hook的人\nparsed_args = parser.parse_args()\nmy_qq = parsed_args.qq\nserver_port = parsed_args.port\nlog = parsed_args.log\nlog_file = parsed_args.log_file\n# you can pass the qq via enviorment variable.\n# it is already inside. so the call fails.\n# you might check all friends list and grou list.",
+        "file_id": 20,
+        "content": "                except:\n                    pass\n            else:\n                try:\n                    content = int(content)\n                    jsonUpdate(jsonObj, location=location, update_content=content)\n                except:\n                    pass\n    return jsonObj\ndef ffprobe_media_info(filename, video_size: Union[None, str] = None):\n    cmd = \"ffprobe{} -v quiet -print_format json -show_format -show_streams\".format(\n        \" -video_size {}\".format(video_size.strip()) if video_size else \"\"\n    )\n    cmd = cmd.split(\" \")\n    cmd = cmd + [filename]\n    output = subprocess.check_output(cmd)\n    return json_auto_float_int(json.loads(output))\ndef json_media_info(filename):\n    cmd = [\"mediainfo\", \"--Output=JSON\", filename]\n    output = subprocess.check_output(cmd)\n    return json_auto_float_int(json.loads(output))\ndef get_media_info(filename):\n    mdf = MediaInfo.MediaInfo(filename=filename)\n    return json_auto_float_int(mdf.getInfo())\ndef getTextFileLength(path):\n    with open(path, \"r\", encoding=\"utf-8\") as f:",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:1-46"
+        "location": "/pyjom/commons.py:601-634"
     },
     "155": {
-        "file_id": 23,
-        "content": "The code imports necessary modules and defines functions for handling program exit, parsing command-line arguments, and managing blacklists. The script takes a QQ number as an input and determines which friends and groups to interact with based on the provided arguments. It also allows for logging and handling environment variables.",
+        "file_id": 20,
+        "content": "The code contains functions for retrieving media information. It uses ffprobe and mediainfo commands to extract video format, codec, size, duration, bitrate, and other details from the specified file. The information is returned in JSON format after converting floating-point numbers to integers if needed. The getTextFileLength function reads a text file's length using Python's built-in open() function.",
         "type": "comment"
     },
     "156": {
-        "file_id": 23,
-        "content": "lua_v1_api_path = \"/v1/LuaApiCaller\"\nopq_server = {\"host\": \"localhost\", \"port\": server_port}  # this is for arm\n# opq_server = {\"host\":\"localhost\",\"port\":8781} # this is for amd64\n# not 0.0.0.0 but freaking localhost.\naction = Action(qq=my_qq, port=opq_server[\"port\"], host=opq_server[\"host\"])\nbot = Botoy(\n    qq=my_qq,\n    port=opq_server[\"port\"],\n    host=opq_server[\"host\"],\n    log=log,\n    log_file=log_file,\n    group_blacklist=group_blacklist,\n    friend_blacklist=friend_blacklist,\n)  # have info. have custom log file.\n## this is the damn bot. how to get group name?\nmyGroupDict = {}\ntry:\n    myGroupList = action.getGroupList()\n    myGroupDict = {elem[\"GroupId\"]: elem[\"GroupName\"] for elem in myGroupList}\nexcept:\n    pass\n# [{'GroupId': 118794, 'GroupMemberCount': 2818, 'GroupName': '攻防世界交流群', 'GroupNotice': '第四届“第五空间”网络安全大赛\\n1、报名网站：\\x01https://ctf.360.net/5space\\x02\\n2、 报名时间：8月30日--9月9日（沿用DSCTF）\\n', 'GroupOwner': 41495, 'GroupTotalCount': 3000},...]\n# from lazero.utils.logger import sprint\n# sprint(myGroupList)",
+        "file_id": 20,
+        "content": "        return len(f.read())\ndef append_sublist(main_dict, sublist_key, item):\n    main_dict[sublist_key] = main_dict.get(sublist_key, []) + [item]\ndef update_subdict(mdict, key, subdict):\n    # print(\"UPDATING SUBDICT\", mdict,key, subdict)\n    if key not in mdict:\n        mdict[key] = subdict\n    else:\n        mdict[key].update(subdict)\n    return mdict\ndef read_json(filepath):\n    with open(filepath, \"r\") as f:\n        return json.loads(f.read())\ndef list_to_range(mlist, rangeLimit):\n    mlist = set(mlist)\n    mlist = list(sorted(mlist))\n    currentRange = []\n    lastElem = None\n    myRanges = []\n    for elem in mlist:\n        if lastElem == None:\n            lastElem = elem\n            currentRange = [elem]\n            continue\n        myRange = elem - lastElem\n        if rangeLimit >= myRange:\n            lastElem = elem\n            if len(currentRange) == 2:\n                currentRange[1] = elem\n            else:\n                currentRange.append(elem)\n        else:\n            myRanges.append(currentRange)\n            lastElem = elem",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:47-73"
+        "location": "/pyjom/commons.py:635-676"
     },
     "157": {
-        "file_id": 23,
-        "content": "This code sets up a botoy instance for communication with the QQ API, retrieves a list of groups, and stores them in a dictionary. The group information is obtained using the `getGroupList()` method from the action class, and the dictionary maps each group ID to its corresponding name. If an error occurs during this process, it is caught and ignored.",
+        "file_id": 20,
+        "content": "This code defines functions for working with dictionaries and JSON files. It includes functions to append a sublist, update a subdictionary, read a JSON file, and convert a list of elements into ranges based on their differences. These functions can be used together or separately depending on the specific task at hand.",
         "type": "comment"
     },
     "158": {
-        "file_id": 23,
-        "content": "# breakpoint()\ndef updateGroupNameDict(groupName, group_id):\n    global myGroupDict\n    group_id = int(group_id)\n    if group_id not in myGroupDict.keys():\n        print(\"UPDATING GROUP_ID -> GROUP_NAME DICT\")\n        print(\"OROUP ID:\", group_id)\n        print(\"GROUP NAME:\", groupName)\n        myGroupDict.update({group_id: groupName})\ndef getGroupNameFromDict(group_id):\n    global myGroupList, action, myGroupDict\n    if myGroupList in [None, []]:  # if not empty please update this dict elsewhere?\n        try:\n            myGroupList = action.getGroupList()\n            myGroupDict.update(\n                {elem[\"GroupId\"]: elem[\"GroupName\"] for elem in myGroupList}\n            )\n        except:\n            print(\"NO GROUP LIST AVALIABLE.\")\n            return\n    group_id = int(group_id)\n    groupName = myGroupDict.get(group_id, None)\n    if groupName is None:\n        print(\"NO GROUP NAME AVALIABLE.\")\n    return groupName\n#  \t搜索群组 添加好友\n# openRedBag \t打开红包\n# joinGroup \t加入群聊\n# dealFriend \t处理好友请求\ndef stderrPrint(*args, **kwargs):",
+        "file_id": 20,
+        "content": "            currentRange = [elem]\n    if len(myRanges) > 0:\n        if myRanges[-1] != currentRange:\n            myRanges.append(currentRange)\n    else:\n        myRanges.append(currentRange)\n    return myRanges\n# from youtube science.\ndef list_startswith(a, b):\n    value = 0\n    if len(a) < len(b):\n        return False\n    for i, v in enumerate(b):\n        v0 = a[i]\n        if v == v0:\n            value += 1\n    return value == len(b)\ndef list_endswith(a, b):\n    value = 0\n    if len(a) < len(b):\n        return False\n    c = a[-len(b) :]\n    for i, v in enumerate(b):\n        v0 = c[i]\n        if v == v0:\n            value += 1\n    return value == len(b)\ndef cv2_HWC2CHW(frame):\n    if len(frame.shape) == 3:\n        img = frame[:, :, ::-1].transpose((2, 0, 1))\n    else:\n        img = frame[np.newaxis, :, :]\n    return img\nocrCore = None\nocrConfig = {\n    \"use_angle_cls\": True,\n    \"lang\": \"ch\",\n}  # it can detect english too. but no space included.\ndef configOCR(**kwargs):\n    global ocrCore, ocrConfig\n    if ocrCore is not None:",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:74-109"
+        "location": "/pyjom/commons.py:677-727"
     },
     "159": {
-        "file_id": 23,
-        "content": "The code contains a function to update the group_id to group name dictionary, a function to get the group name from the dictionary based on the given group_id, and three uncommented function calls. The code seems to be related to handling groups and red packets in a messaging platform. It also includes a helper function for error printing.",
+        "file_id": 20,
+        "content": "This code defines several functions related to lists, image conversion, and OCR configuration. It checks if a list starts or ends with another list, converts an image's shape from HWC to CHW, and configures the OCR engine with language options. The global ocrCore and ocrConfig variables store the OCR engine and its configurations, which can be updated using the configOCR function.",
         "type": "comment"
     },
     "160": {
-        "file_id": 23,
-        "content": "    kwargs.update({\"file\": sys.stderr})\n    print(*args, **kwargs)\ndef searchGroup(keyword, pageNum=0):\n    payload = {\"Content\": keyword, \"Page\": pageNum}\n    result = action.post(\n        funcname=\"SearchGroup\", payload=payload, path=lua_v1_api_path\n    )  # do not pass params since it will auto complete.\n    print(\"SEARCH GROUP RESULT: \", result)\n    return result\ndef addFriend(friend_id, reason=\"\", sourceString=\"search\", group_id=0):\n    # some conversions\n    if friend_id != int:\n        friend_id = int(friend_id)\n    if group_id != int:\n        group_id = int(group_id)  # source group id.\n    add_friend_sources = {\n        \"qzone\": 2011,\n        \"search\": 2020,\n        \"group\": 2004,\n        \"discussion\": 2005,\n    }\n    source = add_friend_sources[sourceString]\n    source_dict = {\n        2011: \"空间\",\n        2020: \"QQ搜索\",\n        2004: \"群组\",\n        2005: \"讨论组\",\n    }  # you can make it into another dict.\n    assert source in source_dict.keys()\n    if source != 2004:\n        group_id = 0  # prevent issues.\n    payload = {",
+        "file_id": 20,
+        "content": "        if kwargs == ocrConfig:\n            pass\n    else:\n        ocrConfig = kwargs\n        from paddleocr import PaddleOCR\n        # breakpoint()\n        ocrCore = PaddleOCR(**kwargs)\n        # breakpoint() # this is not the problem. maybe.\n    return ocrCore\ndef getScriptFileBaseDir(script_file):\n    basepath = os.path.abspath(script_file)\n    basepath = basepath.replace(os.path.basename(basepath), \"\")\n    return basepath\ndef getTemplateFileBaseDir(tmpDir=\"templates\"):\n    basedir = getScriptFileBaseDir(__file__)\n    basedir = os.path.join(basedir, tmpDir)\n    assert os.path.exists(basedir)\n    return basedir\nyolov5_model = None\n@lru_cache(maxsize=1)\ndef configYolov5(model=\"yolov5s\"):\n    global yolov5_model  # not the same\n    if yolov5_model == None:\n        basedir = getTemplateFileBaseDir(tmpDir=\"models/yolov5\")\n        os.environ[\"YOLOV5_MODEL_DIR\"] = basedir\n        localModelPath = os.path.join(\n            basedir, \"ultralytics_yolov5_master/\"\n        )  # required to load it. we have modified this shit somehow.",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:110-146"
+        "location": "/pyjom/commons.py:728-764"
     },
     "161": {
-        "file_id": 23,
-        "content": "The code contains two functions: `searchGroup` and `addFriend`. The `searchGroup` function performs a search for a keyword in QQ groups and returns the result. It sends a POST request to a specified API endpoint with the keyword and page number as parameters. The `addFriend` function adds a friend using a given friend ID, reason (optional), source string (e.g., 'search'), and group ID. It first checks if the input is of correct type and then maps the source string to a specific QQ friend adding method. If the source is a group, it also checks if the group ID is provided.",
+        "file_id": 20,
+        "content": "This code snippet defines a function \"configYolov5\" that retrieves the YOLOv5 model configuration. It first checks if the global variable \"yolov5_model\" is set, and if not, it sets it based on the given \"model\" parameter. The function also includes the paths to the YOLOv5 model directory using the \"getScriptFileBaseDir\" and \"getTemplateFileBaseDir\" functions. Finally, an LRU cache decorator ensures efficient retrieval of the model configuration.",
         "type": "comment"
     },
     "162": {
-        "file_id": 23,
-        "content": "        \"Content\": reason,\n        \"AddFromSource\": source,\n        \"FromGroupID\": group_id,\n        \"AddUserUid\": friend_id,\n    }\n    result = action.post(\n        funcname=\"AddQQUser\", payload=payload, path=lua_v1_api_path\n    )  # do not pass params since it will auto complete.\n    print(\"ADD FRIEND RESULT: \", result)\n    return result\ndef openRedBag(\n    RedBaginfoDict,\n    group_id,\n    RedBaginfo,\n    delay=(5, 10),\n    prefix=\"[MREDBAG_LOG]\",\n    forbiddenKeywords=[\"test\", \"测试\", \"别抢\", \"不要\"],\n):\n    bag_type = RedBaginfoDict[\"RedType\"]\n    print(prefix, \"THREAD LAUCHED\", file=sys.stderr)\n    if bag_type in [4, 6, 12]:\n        print(prefix, \"COLLECTING RED BAG\", file=sys.stderr)\n        sleep_time = random.randint(*delay)\n        print(prefix, \"SLEEP TIME:\", sleep_time, file=sys.stderr)\n        time.sleep(sleep_time)\n        title = RedBaginfoDict[\"Tittle\"]\n        # filter this title shit.\n        if any(\n            [keyword in title.lower().replace(\" \", \"\") for keyword in forbiddenKeywords]\n        ):\n            stderrPrint(\"title containing forbidden keywords\")",
+        "file_id": 20,
+        "content": "        modelPath = model\n        # we set enviorment variable instead.\n        # breakpoint()\n        yolov5_model = torch.hub.load(localModelPath, modelPath, source=\"local\")\n    return yolov5_model\ndef getTemplatePath(template_dirs, template_path):\n    basedir = getTemplateFileBaseDir()\n    for template_dir in template_dirs:\n        basedir = os.path.join(basedir, template_dir)\n        assert os.path.exists(basedir)\n    template_path = os.path.join(basedir, template_path)\n    assert os.path.exists(template_path)\n    return template_path\ndef joinScriptFileBaseDir(script_file, local_file_path):\n    basepath = getScriptFileBaseDir(script_file)\n    file_path = os.path.join(basepath, local_file_path)\n    return file_path\ndef renderTemplate(template, template_args, enable_json=True):\n    template = jinja2.Template(template)\n    if enable_json:\n        for key in template_args.keys():\n            data = template_args[key]\n            if type(data) in [dict, list, tuple]:\n                try:\n                    data = json.dumps(data)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:147-179"
+        "location": "/pyjom/commons.py:765-795"
     },
     "163": {
-        "file_id": 23,
-        "content": "The code defines a function 'openRedBag' that takes parameters such as RedBaginfoDict, group_id, RedBaginfo, delay, prefix and forbiddenKeywords. It determines the bag type based on RedBaginfoDict[\"RedType\"] and checks if the bag type is either 4, 6 or 12. If so, it randomly selects a sleep time from the given delay range, sleeps for that amount of time, and then prints the message with prefix and sleep time to stderr. It also filters the title by checking if any keyword from forbiddenKeywords is present in the title (ignoring spaces).",
+        "file_id": 20,
+        "content": "Code snippet defines several functions:\n- `getTemplatePath()` joins template directory paths and asserts if the resulting path exists.\n- `joinScriptFileBaseDir()` combines script file base directory with a local file path.\n- `renderTemplate()` renders a Jinja2 template, optionally converting dictionaries/lists to JSON.",
         "type": "comment"
     },
     "164": {
-        "file_id": 23,
-        "content": "            stderrPrint(\"refuse to open red bag:\", title.__repr__())\n            return\n        if bag_type == 12:\n            action.sendGroupText(group=group_id, content=title)\n        for trial in range(3):  # try three times till we get there.\n            if exit_event.is_set():\n                break\n            try:\n                answer = action.openRedBag(RedBaginfo)\n                print(prefix, \"RESULT:\", answer, file=sys.stderr)\n                print(prefix, \"TRIAL %d: COLLECTED RED BAG\" % trial, file=sys.stderr)\n                assert answer[\"Ret\"] == 0  # assert no problem here.\n                break\n            except:\n                print(\"_____________RedPacket Exception____________\")\n                traceback.print_exc()\n                print(\"_____________RedPacket Exception____________\")\n                sleep_time = random.randint(*delay)\n                time.sleep(sleep_time)\ndef startThread(target, args=(), kwargs={}):\n    thread = threading.Thread(target=target, args=args, kwargs=kwargs, daemon=False)",
+        "file_id": 20,
+        "content": "                    template_args[key] = data\n                except:\n                    pass\n    script = template.render(**template_args)\n    return script\ndef configDecorator(func, config=\"config.json\"):\n    def mytarget(*args, **kwargs):\n        return func(*args, **(kwargs | {\"config\": config}))\n    return mytarget\ndef jsonPrettyPrint(feedback, indent=4):\n    assert type(indent) == int\n    mtype = \"json\"\n    feedback_type = type(feedback)\n    if feedback_type != str:\n        try:\n            mfeedback_content = json.dumps(feedback, indent=indent)\n        except:\n            mfeedback_content = str(feedback)\n            mtype = str(feedback_type)\n    else:\n        mfeedback_content = feedback\n        mtype = \"str\"\n    return mtype, mfeedback_content\ndef getFileType(fbase0):\n    # quick dirty fix.\n    # for gif we have a hard fix.\n    translateTable = {\"gif\": \"video\"}  # force conversion.\n    # print(\"FBASE:\", fbase0)\n    suffix = fbase0.split(\".\")[-1]\n    guessedType = translateTable.get(suffix, None)\n    # breakpoint()",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:180-202"
+        "location": "/pyjom/commons.py:796-833"
     },
     "165": {
-        "file_id": 23,
-        "content": "This code is trying to open a red bag and collect items. If the operation fails, it will attempt three times before giving up. The function uses a try-except block for error handling and includes logging and sleep time for backoff strategy. A startThread function is also defined which can be used to create new threads in the codebase.",
+        "file_id": 20,
+        "content": "commons.py file contains various utility functions, including a template rendering function with exception handling, a decorator that uses a specific configuration file, a function to pretty print JSON data with optional indentation, and a function for guessing the type of a file based on its extension.",
         "type": "comment"
     },
     "166": {
-        "file_id": 23,
-        "content": "    thread.start()\ndef asyncThread(func):\n    def new_func(*args, **kwargs):\n        startThread(func, args=args, kwargs=kwargs)\n    return new_func",
+        "file_id": 20,
+        "content": "    if guessedType:\n        return guessedType\n    mimestart = mimetypes.guess_type(fbase0)[0]\n    if mimestart != None:\n        mimestart = mimestart.split(\"/\")[0]\n        return mimestart\n    return \"unknown\"\ndef getAbsoluteFilePath(fpath):\n    assert os.path.exists(fpath)\n    if os.path.isabs(fpath):\n        return fpath\n    return os.path.abspath(fpath)\ndef getFileExtension(fpath):\n    basename = os.path.basename(fpath)\n    assert \".\" in basename\n    return basename.split(\".\")[-1]\ndef getLocalFileType(fpath):  # this is guessing, not file probing.\n    fbase = os.path.basename(fpath)\n    return getFileType(fbase)\ndef getHostname():\n    return socket.gethostname()\ndef keywordDecorator(func, **kwargs2):\n    def mytarget(*margs, **kwargs):\n        if \"trace_source\" in kwargs.keys():\n            if kwargs2[\"trace_source\"]:\n                return func(*margs, **(kwargs | kwargs2)), \".\".join(\n                    [__name__, func.__name__]\n                )\n        return func(*margs, **(kwargs | kwargs2))\n    return mytarget",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/base_opq.py:203-210"
+        "location": "/pyjom/commons.py:834-874"
     },
     "167": {
-        "file_id": 23,
-        "content": "This code defines an asyncThread decorator function that starts a new thread when called, using the startThread function to execute the original func function in a separate thread.",
+        "file_id": 20,
+        "content": "This code includes functions for getting file types, extensions, and local file names. It also includes a decorator for tracing source locations and a function to get the hostname. The \"getFileType\" function uses the guessed type or the mimetype of the file if it exists. The \"getAbsoluteFilePath\" returns an absolute path if given, otherwise it returns the absolute path of the relative path. The \"getFileExtension\" gets the extension of a file name. The \"getLocalFileType\" guesses the file type based on its name. The \"getHostname\" function retrieves the hostname of the current machine. Finally, the \"keywordDecorator\" is used for traceable source locations.",
         "type": "comment"
     },
     "168": {
-        "file_id": 24,
-        "content": "/tasks/qq/qq_red_packet_collect/adtools.py",
-        "type": "filepath"
+        "file_id": 20,
+        "content": "def decorator(func):\n    def mytarget(*args, **kwargs):\n        return func(*args, **kwargs), \".\".join([__name__, func.__name__])\n    return mytarget\ndef chineseDetector(string):\n    base, celi = 0x4E00, 0x9FA5\n    for elem in string:\n        mydata = ord(elem)\n        if mydata >= base and mydata <= celi:\n            return True\n    return False\ndef getTimestamp():\n    return datetime.datetime.now().timestamp()\ndef dumpTrashDir(trash_dir):\n    if os.path.exists(trash_dir):\n        if os.path.isdir(trash_dir):\n            shutil.rmtree(trash_dir)\n        else:\n            os.remove(trash_dir)\ndef writeFileWithPath(path, fname, content, mode, encoding=None):\n    if not os.path.exists(path):\n        os.makedirs(path)\n    log_path = os.path.join(path, fname)\n    if \"b\" not in mode:\n        if encoding == None:\n            with open(log_path, mode) as f:\n                f.write(content)\n        else:\n            with open(log_path, mode, encoding=encoding) as f:\n                f.write(content)\n    else:\n        with open(log_path, mode) as f:",
+        "type": "code",
+        "location": "/pyjom/commons.py:877-917"
     },
     "169": {
-        "file_id": 24,
-        "content": "The code uses image classification, conversation recording, and Neo4j driver for detecting cat and dog lovers, and generates ads from video dictionaries with cover images. It has various features like rate limiting, debug mode, and handles unimplemented styles randomly.",
-        "type": "summary"
+        "file_id": 20,
+        "content": "This code includes functions for a decorator, Chinese detector, timestamp generation, removing trash directories, and writing files. The decorator function takes a function as an argument and returns a wrapper function. The ChineseDetector function checks if a string contains Chinese characters. The getTimestamp function returns the current timestamp. The dumpTrashDir function removes the specified trash directory if it exists and is a directory. The writeFileWithPath function writes content to a file with the given path, filename, and mode.",
+        "type": "comment"
     },
     "170": {
-        "file_id": 24,
-        "content": "import rich\ncatSignals = [\"喵喵\", \"猫\", \"猫咪\", \"喵\"]\ndogSignals = [\n    \"狗狗\",\n    \"狗\",\n    \"汪汪\",\n    \"修勾\",\n    \"汪\",\n    \"狗子\",\n]\n# def getQueryWordFromSignals(signals:list):\n#     msignals = signals.copy()\n#     msignals.sort(key=lambda x: len(x))\n#     response = []\n#     for s in msignals:\n#         if s not in \" \".join(response):\n#             response.append(s)\n#     return \" \".join(response)\ncatDogElemDict = {\"cat\": catSignals, \"dog\": dogSignals}\n# catQueryWord = getQueryWordFromSignals(catSignals)\n# dogQueryWord = getQueryWordFromSignals(dogSignals)\n# # print(\"DOG QUERY WORD?\",dogQueryWord)\n# catDogQueryWords = {\"cat\": catQueryWord,\"dog\":dogQueryWord}\n# TODO: detect if some \"dog\" or \"cat\" lover is talking\ndef checkIsCatOrDogLover(qq_user_id):\n    # if both, return either one.\n    # TODO: for more topics, sort topics by popularity and views\n    ...\n# TODO: record those who talks to other.\n# TODO: decay this relationship counter by 0.8 everyday\ndef recordQQUserTalkingToAnotherUser(\n    former_speaker: dict, later_speaker: dict, threshold: int = 60",
+        "file_id": 20,
+        "content": "            f.write(content)\n    print(\"file written at:\\n{}\".format(log_path))",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:1-39"
+        "location": "/pyjom/commons.py:918-919"
     },
     "171": {
-        "file_id": 24,
-        "content": "This code defines a function that detects if a QQ user is a cat or dog lover, and includes functions to generate query words from signals for cats and dogs, and record users talking to each other. The code also sorts topics by popularity and views, and decays relationship counters daily.",
+        "file_id": 20,
+        "content": "Writes the content to a file, then prints the log path indicating successful file writing.",
         "type": "comment"
     },
     "172": {
-        "file_id": 24,
-        "content": "):\n    # only record those who answers within the time.\n    if former_speaker[\"UserID\"] != later_speaker[\"UserID\"]:\n        if abs(former_speaker[\"SpeakTime\"] - later_speaker[\"SpeakTime\"]) <= threshold:\n            # make the connection\n            ...\n# [DONE]: detect \"cat\" or \"dog\" image.\n# [DONE]: rate limit\n# from ratelimiter import RateLimiter\n# def rateLimitReached(until):\n#     raise Exception(f\"rate limit reached. wait {until} seconds\")\n# # this can slow me down.\n# @RateLimiter(max_calls=1, period=5,callback=rateLimitReached )\nimport time\nrateLimits = {}\nimport sys\ndef checkIsCatOrDogImage(\n    image_url,\n    download_timeout=2,\n    timeout=4,\n    port=4675,\n    endpoint=\"analyzeImage\",\n    rateLimitPeriod=5,\n    threshold=0.4,\n    debug=True\n):\n    lastRun = rateLimits.get(\"checkIsCatOrDogImage\", 0)\n    now = time.time()\n    if now - lastRun > rateLimitPeriod:\n        rateLimits[\"checkIsCatOrDogImage\"] = now\n    else:\n        raise Exception(\n            f\"Rate limit exceeded. One request per {rateLimitPeriod} seconds.\"",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:40-77"
+        "file_id": 21,
+        "content": "/pyjom/config/__init__.py",
+        "type": "filepath"
     },
     "173": {
-        "file_id": 24,
-        "content": "This function checks if an image is of a cat or dog. It also includes rate limiting to prevent overloading the server by allowing only one request per 5 seconds. The threshold parameter determines how close in time two users must respond for their answers to be connected. Debug mode can be enabled to provide additional information during testing.",
-        "type": "comment"
+        "file_id": 21,
+        "content": "This code imports all functions and variables from the \"sina\" and \"medialang\" modules within the pyjom.config package. These modules may contain configurations for different components or services used in the application, potentially related to Sina Weibo and Media Language processing.",
+        "type": "summary"
     },
     "174": {
-        "file_id": 24,
-        "content": "        )\n    try:\n        import requests\n        # img_bytes = requests.get(image_url, \n        # # timeout=download_timeout\n        # # also some damn timeout. fuck.\n        # ).content\n        # import cv2\n        # import numpy as np\n        # import numpy_serializer\n        # nparr = np.fromstring(img_bytes, np.uint8)\n        # img_np = cv2.imdecode(nparr, flags=1)  # cv2.IMREAD_COLOR in OpenCV 3.1\n        # np_array_bytes = numpy_serializer.to_bytes(img_np)\n        api_url = f\"http://localhost:{port}/{endpoint}\"\n        params = dict(isBytes=False)\n        # params = dict(isBytes=True)\n        before_request = time.time()\n        if debug:\n            print(\"DOG_CAT REQ SENT\",file=sys.stderr)\n        r = requests.post(\n            api_url, \n            data={\"image\":image_url}, \n            # data={\"image\": np_array_bytes}, \n            # timeout=timeout,\n            # oh shit.\n            params=params, proxies=None\n        )\n        result = r.json()\n        after_request = time.time()\n        if debug:\n            print(\"DOG_CAT REQ RECV\",file=sys.stderr)",
+        "file_id": 21,
+        "content": "from pyjom.config.sina import *\nfrom pyjom.config.medialang import *",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:78-110"
+        "location": "/pyjom/config/__init__.py:1-2"
     },
     "175": {
-        "file_id": 24,
-        "content": "This code is making a request to an API endpoint using the requests library. It attempts to send the image data as bytes or content depending on the value of `isBytes` parameter. If debug is set, it prints messages for request sending and receiving. The time taken for the request is also recorded.",
+        "file_id": 21,
+        "content": "This code imports all functions and variables from the \"sina\" and \"medialang\" modules within the pyjom.config package. These modules may contain configurations for different components or services used in the application, potentially related to Sina Weibo and Media Language processing.",
         "type": "comment"
     },
     "176": {
-        "file_id": 24,
-        "content": "            print(\"RESULT?\", file=sys.stderr)\n            print(result, file=sys.stderr)\n        if debug:\n            print(f\"DOG/CAT SERVER REQUEST TAKING TIME: {(after_request-before_request):.3f}s\",file=sys.stderr)\n        for species in result:\n            name = species[\"identity\"]\n            if name in [\"cat\", \"dog\"]:\n                conf = species[\"confidence\"]\n                if conf > threshold:\n                    if debug:\n                        print(\"CAT/DOG RESULT:\", name, file=sys.stderr)\n                    return name\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"Error when downloading and detecting image content if is cat or dog\")\n    return None\ndef checkCatOrDog(Content: str):\n    # cat? dog? None?\n    for key, elems in catDogElemDict.items():\n        for elem in elems:\n            if elem in Content.lower():\n                return key\n    return None\n# pip3 install python_cypher\n# pip3 install neo4j\nfrom functools import lru_cache\nNEO4J_PORT = 7687\n@lru_cache(maxsize=1)",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:111-148"
+        "file_id": 22,
+        "content": "/pyjom/config/medialang/__init__.py",
+        "type": "filepath"
     },
     "177": {
-        "file_id": 24,
-        "content": "Function `checkCatOrDog` checks if the given input string contains words related to cat or dog and returns \"cat\" or \"dog\" accordingly, otherwise it returns None. The function also utilizes `catDogElemDict`.\n\nThe code snippet uses an exception handling mechanism where if any error occurs during image downloading and content detection, it prints the error message and returns None. It imports traceback for printing the exception details. \n\nIt imports the necessary libraries for working with Neo4j: pip3 install python_cypher and pip3 install neo4j.\n\nThe `@lru_cache(maxsize=1)` decorator is used to cache the results of a function call, which can improve performance by avoiding redundant computations for the same inputs. In this case, it's applied to some function (not shown in the code snippet).",
-        "type": "comment"
+        "file_id": 22,
+        "content": "This code imports all modules from the \"pyjom.config.medialang.protocols\" package into the current namespace, allowing access to various media language protocols used within the application.",
+        "type": "summary"
     },
     "178": {
-        "file_id": 24,
-        "content": "def getNeo4jDriver(\n    address=\"neo4j://localhost:{}\".format(NEO4J_PORT),\n    username=\"neo4j\",\n    password=\"kali\",\n    debug=False,\n):  # so we bruteforced it. thanks to chatgpt.\n    from neo4j import GraphDatabase\n    driver = GraphDatabase.driver(address, auth=(username, password))\n    if debug:\n        print(\"login successful: username:%s password:%s\" % (username, password))\n    return driver\nfrom pypher import Pypher\ndef makeCatOrDogConnections(\n    group_id: str,\n    sender_id: str,\n    cat_or_dog: str,\n    debug: bool = False,\n    delete: bool = False,\n):  # whatever.\n    # Create a new Pypher object\n    with getNeo4jDriver().session() as session:\n        p = Pypher()\n        if delete:\n            p.MATCH.node(\"n1\", labels=\"qq_group\", group_id=group_id)\n            p.MATCH.node(\"n2\", labels=\"qq_user\", user_id=sender_id)\n            p.MATCH.node(\"n3\", labels=\"ad_keyword\", keyword=cat_or_dog)  # fine.\n            p.DETACHDELETE.node(\"n1\").DETACHDELETE.node(\"n2\").DETACHDELETE.node(\"n3\")\n        # Use the MERGE clause to create the nodes if they do not already exist",
+        "file_id": 22,
+        "content": "from pyjom.config.medialang.protocols import *",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:149-182"
+        "location": "/pyjom/config/medialang/__init__.py:1-1"
     },
     "179": {
-        "file_id": 24,
-        "content": "The function `getNeo4jDriver()` returns a Neo4j driver with the provided address, username, password, and debug option. The function `makeCatOrDogConnections()` uses Pypher to create or delete connections between nodes based on group_id, sender_id, cat_or_dog, debug, and delete options. It establishes a Neo4j session using the driver returned by `getNeo4jDriver()`.",
+        "file_id": 22,
+        "content": "This code imports all modules from the \"pyjom.config.medialang.protocols\" package into the current namespace, allowing access to various media language protocols used within the application.",
         "type": "comment"
     },
     "180": {
-        "file_id": 24,
-        "content": "        else:\n            p.MERGE.node(\"n1\", labels=\"qq_group\", group_id=group_id)\n            p.MERGE.node(\"n2\", labels=\"qq_user\", user_id=sender_id)\n            p.MERGE.node(\"n3\", labels=\"ad_keyword\", keyword=cat_or_dog)\n            # Use the MERGE clause to create the relationship between the nodes if it does not already exist\n            p.MERGE.node(\"n1\").rel_out(\"r\", labels=\"includes\").node(\"n2\")\n            p.MERGE.node(\"n2\").rel_out(\"r1\", labels=\"talks_of\").node(\"n3\")\n        # Generate the Cypher query string\n        query = str(p)\n        if debug:\n            print(\"QUERY?\", query)\n            print(\"QUERY TYPE?\", type(query))\n            # how to roll back?\n        # Execute the query using the Neo4j driver\n        result = session.run(query, parameters=p.bound_params)\n        if debug:\n            print(\"RESULT?\", result)\nfrom lazero.network.checker import waitForServerUp\nBILIBILI_RECOMMENDATION_SERVER_PORT = 7341\nwaitForServerUp(BILIBILI_RECOMMENDATION_SERVER_PORT, \"bilibili recommendation server\")",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:183-208"
+        "file_id": 23,
+        "content": "/pyjom/config/medialang/protocols.py",
+        "type": "filepath"
     },
     "181": {
-        "file_id": 24,
-        "content": "The code checks if a user is in a group and creates necessary nodes and relationships using the MERGE clause. It generates a Cypher query, prints it for debugging purposes (if enabled), and executes it with the Neo4j driver. Additionally, it waits for the BILIBILI_RECOMMENDATION_SERVER to be up before running the code.",
-        "type": "comment"
+        "file_id": 23,
+        "content": "The code defines a dictionary named `medialangProtocols` with two keys: \"input\" and \"output\". The \"input\" key holds an array of protocols for input data sources, while the \"output\" key holds an array of protocols for output data destinations.",
+        "type": "summary"
     },
     "182": {
-        "file_id": 24,
-        "content": "import requests\n# import random\nfrom bilibili_api.search import bilibiliSearchParams\n# you might just want some delay when searching online.\nfrom typing import Literal\ndef getCatOrDogAd(\n    cat_or_dog: str,\n    server: str = \"http://localhost:{}\".format(BILIBILI_RECOMMENDATION_SERVER_PORT),\n    debug: bool = False,\n    method: Literal[\"bm25\", \"online\"] = \"bm25\",\n):\n    # how do we get one? by label? by category? by name?\n    url = server + \"/searchUserVideos\"\n    # queryWord = catDogQueryWords.get(cat_or_dog,None)\n    queryWords = catDogElemDict.get(cat_or_dog, None)\n    try:\n        assert queryWords is not None\n    except Exception as e:\n        print(\"Could not find topic with keyword:\", cat_or_dog)\n        raise e\n    animalTid = bilibiliSearchParams.video.tids.动物圈.tid\n    # myTids = {\"cat\":bilibiliSearchParams.video.tids.动物圈.喵星人,\"dog\":bilibiliSearchParams.video.tids.动物圈.汪星人}\n    # myTid = myTids[cat_or_dog]\n    # queryWord = random.choice([\"\",random.choice(queryWords)]) # you can still have things without query",
+        "file_id": 23,
+        "content": "medialangProtocols = {\n    \"input\": [\"http://\", \"https://\", \"text://\", \"subtitle://\", \"sinafetch://\"],\n    \"output\": [\"bilibili_post://\"],\n}",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:210-240"
+        "location": "/pyjom/config/medialang/protocols.py:1-4"
     },
     "183": {
-        "file_id": 24,
-        "content": "This code defines a function called getCatOrDogAd that searches for user videos related to cats or dogs. It takes the type of animal as input, along with server details, search method, and debug flag as optional parameters. The function constructs the URL for the API call and retrieves the query words based on the animal type. It then performs an assertion to ensure that valid query words are provided. If not, it raises an exception with a relevant error message.",
+        "file_id": 23,
+        "content": "The code defines a dictionary named `medialangProtocols` with two keys: \"input\" and \"output\". The \"input\" key holds an array of protocols for input data sources, while the \"output\" key holds an array of protocols for output data destinations.",
         "type": "comment"
     },
     "184": {
         "file_id": 24,
-        "content": "    # queryWord = \" \".join(queryWords)\n    # queryWord = {\"cat\":'猫',\"dog\":'狗'}[cat_or_dog] # Whatever. fuck it. replace it with semantic search later? or you use multiple searches.\n    # you cannot just ignore the queryWord in bm25\n    responses = []\n    for queryWord in queryWords:\n        # data = {\"query\":queryWord,\"tid\":random.choice([0]*20+[animalTid]*10+[myTid]*5)} # you can specify my user id. you may make that empty?\n        data = {\"query\": queryWord, \"tid\": animalTid, \"method\": method}\n        if debug:\n            print(\"POSTING DATA:\")\n            rich.print(data)\n        r = requests.post(url, json=data)\n        response = r.json()\n        for elem in response:\n            if elem not in responses:\n                responses.append(elem)\n    responses.sort(key=lambda elem: -elem.get(\"pubdate\", -1))\n    if debug:\n        print(\"RESPONSES?\")\n        rich.print(responses)\n    return responses  # select one such response.\nfrom ad_template_2_functional import (\n    TMP_DIR_PATH,\n    generateBilibiliVideoAd,",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:241-267"
+        "content": "/pyjom/config/shared.py",
+        "type": "filepath"
     },
     "185": {
         "file_id": 24,
-        "content": "The code fetches relevant data for multiple query words, posts the data to a URL, filters and sorts the responses based on the publication date, and returns the filtered responses. The debug option allows printing of the posted data and response for troubleshooting purposes.",
-        "type": "comment"
+        "content": "The code initializes a dictionary named \"pyjom_config\" with a single key-value pair. The key is \"BEZIER_PADDLE_RESNET50_IMAGE_DOG_CAT_DETECTOR_SERVER_INSTANCE\", and its value is set to False. This configuration appears to relate to various components of an image detection system, possibly including a Bezier paddle, Paddle ResNet50 model, Dog/Cat detector, and server instance.",
+        "type": "summary"
     },
     "186": {
         "file_id": 24,
-        "content": "    getAdLock,\n)  # use the lock during sending the ad.\ndef generateAdFromVideoInfo(videoInfo):  # which style you want the most?\n    # selected video info.\n    bvid, pic, title = videoInfo[\"bvid\"], videoInfo[\"pic\"], videoInfo[\"title\"]\n    import os\n    extension = pic.split(\"?\")[0].split(\".\")[-1]\n    cover_download_path = os.path.join(TMP_DIR_PATH, \"video_cover.{}\".format(extension))\n    (\n        output_path,\n        output_standalone,\n        output_masked_path,\n    ), link = generateBilibiliVideoAd(bvid, title, pic, cover_download_path)\n    return (\n        output_path,\n        output_standalone,\n        output_masked_path,\n    ), link  # which one you want?\nfrom botoy import Action\nfrom typing import Literal\nimport random\n# you can send it to qq user, qq group, channels, qzone, email\n# if send by json, qzone, channels, email that will be ajax. set up another server to handle ajax requests.\ndef getBase64StringFromFilePath(\n    filePath: str, binary: bool = False, encoding: str = \"utf-8\"\n):\n    import os\n    assert os.path.isfile(filePath)",
+        "content": "pyjom_config=dict(BEZIER_PADDLE_RESNET50_IMAGE_DOG_CAT_DETECTOR_SERVER_INSTANCE=False)",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:268-305"
+        "location": "/pyjom/config/shared.py:1-1"
     },
     "187": {
         "file_id": 24,
-        "content": "This function `generateAdFromVideoInfo` takes a `videoInfo` dictionary as input, extracts the required fields (bvid, pic, and title), downloads the cover image if necessary, and generates three ad paths (output_path, output_standalone, output_masked_path) along with an associated link. These ads can be sent to various platforms like QQ user, group, channels, Qzone, or email. If sending via JSON, Qzone, channels, or email, a separate server is required to handle AJAX requests. The function `getBase64StringFromFilePath` converts a file path into a Base64 string, which can be used for sending images.",
+        "content": "The code initializes a dictionary named \"pyjom_config\" with a single key-value pair. The key is \"BEZIER_PADDLE_RESNET50_IMAGE_DOG_CAT_DETECTOR_SERVER_INSTANCE\", and its value is set to False. This configuration appears to relate to various components of an image detection system, possibly including a Bezier paddle, Paddle ResNet50 model, Dog/Cat detector, and server instance.",
         "type": "comment"
     },
     "188": {
-        "file_id": 24,
-        "content": "    import base64\n    with open(filePath, \"rb\") as img_file:\n        b64_string = base64.b64encode(img_file.read())\n    if not binary:\n        b64_string = b64_string.decode(encoding)\n    return b64_string\ndef sendCatOrDogAdToQQGroup(\n    group_id: str,\n    cat_or_dog: str,\n    action: Action,\n    style: Literal[\n        \"single_qr\", \"text_link\", \"image_link\", \"json\", \"random\", \"random_not_json\"\n    ] = \"random\",\n    recentLimits: int = 20,\n):  # many things not implemented yet.\n    totalStyles = [\n        \"single_qr\",\n        \"text_link\",\n        \"image_link\",\n        \"json\",\n        \"random\",\n        \"random_not_json\",\n    ]\n    notImplementedStyles = [\n        \"image_link\",\n        \"json\",\n    ]  # if json, first we search for avaliable json messages, if missing, we search for android devices, unlock the device then send the message. if failed, use other non-json methods.\n    usableStyles = [s for s in totalStyles if s not in notImplementedStyles]\n    nonRandomStyles = [s for s in usableStyles if not s.startswith(\"random\")]",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:306-339"
+        "file_id": 25,
+        "content": "/pyjom/config/sina/__init__.py",
+        "type": "filepath"
     },
     "189": {
-        "file_id": 24,
-        "content": "Function takes a file path, encodes its content in base64, and returns the string. It does not specify encoding type if binary is False.\nFunction sends a cat or dog ad to a QQ group with multiple available styles, but some features are currently unimplemented.",
-        "type": "comment"
+        "file_id": 25,
+        "content": "The code imports all the functions, classes, and variables from the \"sinaWeibo\" module in the \"pyjom.config.sina\" package.",
+        "type": "summary"
     },
     "190": {
-        "file_id": 24,
-        "content": "    nonRandomNorJsonStyles = [s for s in nonRandomStyles if s is not \"json\"]\n    def noSuchStyle(style: str):\n        raise NotImplementedError(\"Not implemented style: '{}'\".format(style))\n    if style in notImplementedStyles:\n        noSuchStyle(style)\n    if style == \"random\":\n        style = random.choice(nonRandomStyles)\n    elif style == \"random_not_json\":\n        style = random.choice(nonRandomNorJsonStyles)\n    responses = getCatOrDogAd(cat_or_dog)\n    success = False\n    with getAdLock():\n        if responses != []:\n            videoInfo = random.choice(responses[:recentLimits])\n            title_text = videoInfo[\"title\"]\n            (\n                output_path,\n                output_standalone,\n                output_masked_path,  # what is this?\n            ), link = generateAdFromVideoInfo(videoInfo)\n            if style == \"single_qr\":\n                content = \"\"\n                picturePath = output_path\n            elif style == \"text_link\":\n                # you must censor that.\n                from censorApis import censorReply",
+        "file_id": 25,
+        "content": "from pyjom.config.sina.sinaWeibo import *",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:340-370"
+        "location": "/pyjom/config/sina/__init__.py:1-1"
     },
     "191": {
-        "file_id": 24,
-        "content": "This code snippet checks the specified style for an ad and generates different types of ads based on the style. It handles unimplemented styles, selects random non-JSON styles, and generates outputs (paths, links) using a helper function generateAdFromVideoInfo(). It also mentions censoring a reply using another function censorReply() from censorApis module.",
+        "file_id": 25,
+        "content": "The code imports all the functions, classes, and variables from the \"sinaWeibo\" module in the \"pyjom.config.sina\" package.",
         "type": "comment"
     },
     "192": {
-        "file_id": 24,
-        "content": "                title_text = censorReply(title_text)\n                content = \"观看视频:\\n{}\\n{}\".format(link, title_text)\n                picturePath = output_standalone\n            else:\n                noSuchStyle(style)\n            picBase64Buf = getBase64StringFromFilePath(picturePath)\n            sendMessageStatus = action.sendGroupPic(\n                group=int(group_id), content=content, picBase64Buf=picBase64Buf\n            )\n            # stderrPrint(\"SENT AD STATUS:\",sendMessageStatus)\n            success = (\n                sendMessageStatus.get(\"ErrMsg\", None) is \"\"\n                or sendMessageStatus.get(\"Msg\", None) is \"\"\n                or sendMessageStatus.get(\"Ret\", None) is 0\n            )\n    return success",
-        "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/adtools.py:372-388"
-    },
-    "193": {
-        "file_id": 24,
-        "content": "The code censors reply text and creates a message with a video link and title. If no style is provided, it uses noSuchStyle function. It then sends a group picture message using the sendGroupPic action and returns whether the message was sent successfully based on the response's error message or return value.",
-        "type": "comment"
-    },
-    "194": {
-        "file_id": 25,
-        "content": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py",
+        "file_id": 26,
+        "content": "/pyjom/config/sina/sinaWeibo.py",
         "type": "filepath"
     },
-    "195": {
-        "file_id": 25,
-        "content": "The code initializes libraries, creates temp dirs, and defines functions for Bilibili short links and ad locking. It generates a Bilibili video ad with provided parameters, creates an ad cover image, detects QR codes using Pyzbar and OpenCV, removes them if necessary, adjusts positions and colors, and returns the final image for viewing.",
+    "193": {
+        "file_id": 26,
+        "content": "The code defines a dictionary named \"sinaWeiboApi\" with three API endpoints for interacting with Sina Weibo. The \"search_with_page\" endpoint performs search queries, \"weibo_status_by_blogid\" retrieves a specific weibo status by blog ID, and \"weibo_build_comments\" fetches comments for a given weibo status.",
         "type": "summary"
     },
-    "196": {
-        "file_id": 25,
-        "content": "import pixie\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\ndef getImageW2H(image_path):\n    image = cv2.imread(image_path)\n    height, width = image.shape[:2]\n    w2h = width / height\n    return w2h\nTMP_DIR_PATH = \"/dev/shm/qq_ad\"\nimport shutil\nimport os\nif os.path.exists(TMP_DIR_PATH):\n    shutil.rmtree(TMP_DIR_PATH)\nos.mkdir(TMP_DIR_PATH)\nimport random\ndef generateFakeVideoStats():\n    play_count = \"{:.1f}万\".format(\n        random.randint(100, 1000) * 0.1\n    )  # anyway both int and str are compatible\n    comment_count = random.randint(100, 1000)\n    danmaku_count = random.randint(500, 3000)\n    return play_count, comment_count, danmaku_count\nRESOURCE_PATH = \"/root/Desktop/works/pyjom/tests/bilibili_video_recommendation_server\"\nQRCODE_PATH = \"MyQRCode1.png\"\nFONT_PATH = \"wqy-microhei0.ttf\"\nFONT_BOLD_PATH = \"wqy-microhei1.ttf\"\nCOVER_PATH = \"sample_cover.jpg\"\nPLAY_BUTTON_PATH = \"play_white_b.png\"\nBILIBILI_LOGO_PATH = \"bili_white_b_cropped.png\"\nAD_LOCK = \"ad_lock.lock\"\nimport filelock",
+    "194": {
+        "file_id": 26,
+        "content": "sinaWeiboApi = {\n    \"search_with_page\": \"http://sinanews.sina.cn/interface/type_of_search.d.html?callback=initFeed&keyword={}&page={}&type=siftWb&size=20&newpage=0&chwm=&imei=&token=&did=&from=&oldchwm=\",\n    \"weibo_status_by_blogid\": \"https://www.weibo.com/ajax/statuses/show?id={}\",\n    \"weibo_build_comments\": \"https://weibo.com/ajax/statuses/buildComments?flow=0&is_reload=1&count={}&id={}&is_show_bulletin=2&is_mix=0&uid={}\",\n}",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:1-46"
+        "location": "/pyjom/config/sina/sinaWeibo.py:1-5"
     },
-    "197": {
-        "file_id": 25,
-        "content": "The code initializes necessary libraries and functions, creates a temporary directory for storing images and files, generates random video stats, defines file paths, and locks the ad using FileLock.",
+    "195": {
+        "file_id": 26,
+        "content": "The code defines a dictionary named \"sinaWeiboApi\" with three API endpoints for interacting with Sina Weibo. The \"search_with_page\" endpoint performs search queries, \"weibo_status_by_blogid\" retrieves a specific weibo status by blog ID, and \"weibo_build_comments\" fetches comments for a given weibo status.",
         "type": "comment"
     },
+    "196": {
+        "file_id": 27,
+        "content": "/pyjom/imagetoolbox.py",
+        "type": "filepath"
+    },
+    "197": {
+        "file_id": 27,
+        "content": "This code provides image processing functions such as cropping, text recognition, and K-means clustering using EasyOCR. It also includes a customizable FastAPI server for detecting animals using PaddlePaddle's ResNet50 classifier and applies preprocessing techniques on images to extract animal objects.",
+        "type": "summary"
+    },
     "198": {
-        "file_id": 25,
-        "content": "def getAdLock(lockPath: str = os.path.join(TMP_DIR_PATH, AD_LOCK)):\n    return filelock.FileLock(lockPath)\n# use this decorator outside. not here. not any function written in here.\ndef withAdLock(func):\n    def innerFunc(*args, **kwargs):\n        with getAdLock():\n            return func(*args, **kwargs)\n    return innerFunc\nRESOURCES_RELATIVE_PATH = [\n    FONT_PATH,\n    FONT_BOLD_PATH,\n    COVER_PATH,\n    PLAY_BUTTON_PATH,\n    BILIBILI_LOGO_PATH,\n]\nOUTPUT_STANDALONE = \"ad_2_standalone_cover.png\"\nOUTPUT_PATH = \"ad_2.png\"\nOUTPUT_MASKED_PATH = \"ad_2_mask.png\"\nimport progressbar\ndef prepareMaterials(tmpDirPath: str = TMP_DIR_PATH, resourcePath: str = RESOURCE_PATH):\n    print(\"Preparing materials...\")\n    for path in progressbar.progressbar(RESOURCES_RELATIVE_PATH):\n        shutil.copy(os.path.join(resourcePath, path), os.path.join(tmpDirPath, path))\nprepareMaterials()\ndef generateBilibiliShortLinkMethod2(videoLink: str):\n    apiUrl = (\n        \"https://service-ijd4slqi-1253419200.gz.apigw.tencentcs.com/release/short_url\"",
+        "file_id": 27,
+        "content": "from pyjom.commons import *\nimport numpy as np\nimport cv2\nfrom functools import lru_cache\nfrom lazero.utils.tools import flattenUnhashableList\nfrom typing import Literal\ndef imageCropWithDiagonalRectangle(\n    image, diagonalRectangle, order: Literal[\"opencv\", \"normal\"] = \"opencv\"\n):\n    # order is opencv.\n    assert order in [\"opencv\", \"normal\"]\n    x0, y0, x1, y1 = flattenUnhashableList(diagonalRectangle)\n    imageShape = image.shape\n    if len(imageShape) == 3:\n        if order == \"opencv\":\n            return image[y0:y1, x0:x1, :]\n        elif order == \"normal\":\n            return image[x0:x1, y0:y1, :]\n    elif len(imageShape) == 2:\n        if order == \"opencv\":\n            return image[y0:y1, x0:x1]\n        elif order == \"normal\":\n            return image[x0:x1, y0:y1]\n    else:\n        raise Exception(\"unknown image shape:\", imageShape)\ndef draw_bounding_box_with_contour(\n    contours, image, area_threshold=20, debug=False\n):  # are you sure?\n    # this is the top-k approach.\n    # Call our function to get the list of contour areas",
         "type": "code",
-        "location": "/tasks/qq/qq_red_packet_collect/ad_template_2_functional.py:49-89"
+        "location": "/pyjom/imagetoolbox.py:1-35"
     },
     "199": {
-        "file_id": 25,
-        "content": "This code defines a function `getAdLock` for acquiring a file lock, a decorator `withAdLock` to use the lock around a function execution, and prepares materials by copying resources to a temporary directory. The code also includes a function `generateBilibiliShortLinkMethod2` that calls an API endpoint to generate a short link on Bilibili using a given video link.",
+        "file_id": 27,
+        "content": "The code defines two functions: `imageCropWithDiagonalRectangle` and `draw_bounding_box_with_contour`. The first function crops an image based on a given diagonal rectangle, considering both opencv and normal orders. The second function draws bounding boxes around contours in an image, using the top-k approach. It takes contours, the image, area threshold, and debug flag as inputs.",
         "type": "comment"
     }
 }

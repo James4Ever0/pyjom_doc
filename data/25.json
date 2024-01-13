@@ -1,537 +1,535 @@
 {
     "2500": {
-        "file_id": 266,
-        "content": "# get video metadata first. we may filter unwanted videos by metadata.\n# let's just view here:\n# https://github.com/SocialSisterYi/bilibili-API-collect\n# i found new format of video shortlink:\n# https://b23.tv/BV1zW4y1p7RT\n# https://b23.tv/<bvid>\nvideoLinks = [\n    \"https://www.bilibili.com/video/BV1e54y1y7qy\",  # 女攻男受 emm\n    \"https://www.bilibili.com/video/BV1P441197oV\",  # in which you shall never find anything interesting. no related video.\n    \"https://www.bilibili.com/video/BV1Fs411k7e9\", # multiple chapters, you shall not find this interesting.\n    \"https://www.bilibili.com/video/av5842509\" # aid version of video link.\n]\n# import fake_useragent\n# ua = fake_useragent.UserAgent()\nimport re\nfrom pymaybe import maybe\nimport requests\nfrom urllib.parse import urlencode\ndef extractBVID(chars:str):\n    bvid = maybe(re.findall(r\"/(BV[a-zA-Z0-9]+)\",chars))[0]\n    return bvid\ndef extractAID(chars:str):\n    aid = maybe(re.findall(r\"/av([0-9]+)\",chars))[0]\n    return aid\n## remember the video is always scrapable via av id.",
+        "file_id": 265,
+        "content": "bilibili_logo = pixie.read_image(bilibili_logo_path)\nbilibili_logo = bilibili_logo.resize(50,100)\nimage.draw(bilibili_logo)\nplay_button_path = 'play_button.png'\nplay_button = pixie.read_image(play_button_path)\nplay_button = play_button.resize(50,50)\nt4 = pixie.translate(100,100)\nimage.draw(play_button, t4)\n# you can stroke path! what is it?\n# so no more masking here. we need some png magic.\n# we need to get the raw pixel data.\n# ['apply_opacity', 'arrangement_fill_text', 'arrangement_stroke_text', 'blur', 'copy', 'draw', 'fill', 'fill_gradient', 'fill_path', 'fill_text', 'flip_horizontal', 'flip_vertical', 'get_color', 'height', 'invert', 'magnify_by2', 'mask_draw', 'minify_by2', 'new_context', 'new_mask', 'ref', 'resize', 'set_color', 'shadow', 'stroke_path', 'stroke_text', 'sub_image', 'super_image', 'width', 'write_file']\n# raw_pixel = image.\n# print(dir(image))\n# breakpoint()\n# sorry you cannot do this.\n# image.write_file(\"ad_1.png\")",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/anime_compilation_video_metadata.py:1-31"
+        "location": "/tests/bilibili_video_recommendation_server/ad_template_1.py:117-135"
     },
     "2501": {
-        "file_id": 266,
-        "content": "This code retrieves video metadata from bilibili, a Chinese video hosting platform. It uses various video link formats and extracts unique identifiers (BVID or AID) to obtain metadata for further filtering unwanted videos. The code also imports relevant libraries and defines two functions to extract BVID and AID from the video links.",
+        "file_id": 265,
+        "content": "This code reads image files, resizes them, and draws them onto a canvas. It also performs translations and possibly has the capability to apply opacity and stroke path effects. The code then writes the final image as \"ad_1.png\".",
         "type": "comment"
     },
     "2502": {
         "file_id": 266,
-        "content": "## av5842509\n# https://api.bilibili.com/x/web-interface/view?aid=<AID>\n# https://api.bilibili.com/x/web-interface/view?bvid=<BVID>\n# videoDownloadPath = \"\"\n# shit!\n# why i need to download whole damn video? i need to cut it into bite-sized video!\n# for some video there's no possibility to determine the source.\n# let's see the video metadata.\n# import os\n# os.system(f'yt-dlp --dump-metadata --output metadata.json \"{videoLinks[0]}\"') # working?\n# bullshit. we shall get the video metadata first.\nurl = \"https://api.bilibili.com/x/web-interface/view\"\ntags_url = \"https://api.bilibili.com/x/tag/archive/tags\"\nrelated_url = \"https://api.bilibili.com/x/web-interface/archive/related\"\nfor videoLink in videoLinks:\n    bvid = extractBVID(videoLink)\n    if bvid:\n        params = {\"bvid\": bvid}\n    else:\n        aid = extractAID(videoLink)\n        if aid:\n            params = {\"aid\": aid}\n        else:\n            print(\"no valid bilibili video id found.\")\n            print(\"skipping video link:\", videoLink)\n            continue",
-        "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/anime_compilation_video_metadata.py:32-66"
+        "content": "/tests/bilibili_video_recommendation_server/ad_template_2.py",
+        "type": "filepath"
     },
     "2503": {
         "file_id": 266,
-        "content": "The code is trying to collect metadata for Bilibili videos using APIs and may download the video if needed. It first checks if there is a valid BVID or AID, then retrieves the video's metadata and possibly related tags. However, it encounters issues with determining the source and currently has a workaround using yt-dlp to get metadata but notes that this method isn't working properly.",
-        "type": "comment"
+        "content": "The code initializes and adjusts various objects, calculates aspect ratio, applies image transformations and text painting, creates a play button and QR code using Pixie library, handles ad images with masks, and considers night mode.",
+        "type": "summary"
     },
     "2504": {
         "file_id": 266,
-        "content": "    # print(\"PARAMS?\",params)\n    # shit.\n    r = requests.get(f\"{url}?{urlencode(params)}\") # why? what the fuck?\n    r_tags = requests.get(f\"{tags_url}?{urlencode(params)}\")\n    # r = requests.get(url,data=params,headers={\"User-Agent\":ua.random})\n    r_related = requests.get(f'{related_url}?{urlencode(params)}')\n    # r = requests.get(\"https://api.bilibili.com/x/web-interface/view?bvid=BV1e54y1y7qy\")\n    r.raise_for_status()\n    r_tags.raise_for_status()\n    r_related.raise_for_status()\n    # \"need_jump_bv\":false\n    # bvid only?\n    response_json = r.json()\n    response_tags_json = r_tags.json()\n    response_related_json = r_related.json()\n    # it must be json.\n    import rich\n    # rich.print(response_json)\n    assert response_json['code'] == 0\n    assert response_tags_json['code'] == 0\n    assert response_related_json['code'] == 0\n    data = response_json['data']\n    tags_data = response_tags_json['data']\n    related_data = response_related_json['data']\n    ## parsing video stats.\n    title = data['title']",
+        "content": "import pixie\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\ndef getImageW2H(image_path):\n    image = cv2.imread(image_path)\n    height, width = image.shape[:2]\n    w2h = width / height\n    return w2h\nnight_mode = True\nframework_only = False\n# framework_only=True\nad_width, ad_height = 1000, 1000\nfont_path = \"./wqy-microhei0.ttf\"\nfont_bold_path = \"./wqy-microhei1.ttf\"\ncover_path = \"sample_cover.jpg\"\nqrcode_path = \"MyQRCode1.png\"\nplay_button_path = \"play_white_b.png\"\n# play_button_path = \"play_b.png\"\nbilibili_logo_path = \"bili_white_b_cropped.png\"\nplay_count = comment_count = danmaku_count = \"1万\"\n# one extra space.\nstats_text = \" {}播放 {}评论 {}弹幕\".format(play_count, comment_count, danmaku_count)\nqrcode_scan_text = \"\\n\" + \"\\n\".join(list(\"扫码观看\"))\ntitle_text = \"真·朋克！揭秘《赛博朋克2077》屏幕之外的魔幻换弹操作\"\nwhite = pixie.Color(1, 1, 1, 1)\nblack = pixie.Color(0, 0, 0, 1)\nimage = pixie.Image(ad_width, ad_height)\n# we are creating this, not replacing qr code.\nif not framework_only:\n    if night_mode:",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/anime_compilation_video_metadata.py:68-97"
+        "location": "/tests/bilibili_video_recommendation_server/ad_template_2.py:1-38"
     },
     "2505": {
         "file_id": 266,
-        "content": "This code retrieves video metadata from Bilibili API using Python's `requests` library. It makes three separate requests for the video, tags, and related videos data. The responses are then parsed to extract relevant information such as video title, and the JSON responses are validated to ensure a successful response with status code 0.",
+        "content": "This code reads an image, calculates its aspect ratio, and then performs various tasks like adjusting the font path based on the night mode, creating a QR code string and a stats text string. It also initializes an image object of specific dimensions and creates a white and black color objects using pixie library. If not in framework-only mode, it checks if night mode is active.",
         "type": "comment"
     },
     "2506": {
         "file_id": 266,
-        "content": "    pic = data['pic']\n    tid,tname = data['tid'],data['tname']\n    # 27, \"综合\"\n    # 253, \"动漫杂谈\"\n    dynamic = data['dynamic'] # we can copy that.\n    desc = data['desc']\n    owner_mid = data['owner']['mid']\n    state = data['state']\n    assert state == 0 # make sure this video is downloadable.\n    stat =  data['stat']\n    view  = stat['view']\n    reply = stat['reply']\n    danmaku = stat['danmaku']\n    favorite = stat['favorite']\n    coin  = stat['coin']\n    share = stat['share']\n    like  = stat['like']\n    pages = data['pages']\n    page_count = len(pages) # data['videos']\n    for page in pages:\n        page_index = page['page']\n        page_name = page['part']\n        page_dimension = page['dimension']\n        page_width, page_height, page_rotate = page_dimension['width'], page_dimension['height'], page_dimension['rotate']\n        page_duration = page['duration']\n    # subtitle = data['subtitle']\n    # let's just skip.\n    ## parsing tags info.\n    for tag in tags_data:\n        tag_id = tag['tag_id']\n        tag_name = tag['tag_name']",
+        "content": "        image.fill(black)\n        # irreversible!\n    else:\n        image.fill(white)\nelse:\n    image2 = image.copy()  # as mask.\n# place the cover.\ncover_w2h = getImageW2H(cover_path)\ncover_width = int(ad_width * 0.9)\ncover_height = int(cover_width / cover_w2h)\ncover_round_corner_radius = int(ad_width * 0.05)\ncover = pixie.read_image(cover_path)\ncover = cover.resize(cover_width, cover_height)\n# cover gradient.\ngradient_paint = pixie.Paint(pixie.LINEAR_GRADIENT_PAINT)\ngradient_paint.gradient_handle_positions.append(\n    pixie.Vector2(100, int(cover_height) * 0.8)\n)\ngradient_paint.gradient_handle_positions.append(pixie.Vector2(100, cover_height))\ngradient_paint.gradient_stops.append(pixie.ColorStop(pixie.Color(0, 0, 0, 0), 0))\ngradient_paint.gradient_stops.append(pixie.ColorStop(pixie.Color(0, 0, 0, 0.3), 1))\ncover_mask_path = pixie.Path()\ncover_mask_path.rounded_rect(\n    0, 0, cover_width, cover_height, *([cover_round_corner_radius] * 4)\n)\nstroke_param = 100\nstroke_width = int(ad_width / stroke_param)\nstroke_width_half = int(ad_width / stroke_param / 2)",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/anime_compilation_video_metadata.py:98-135"
+        "location": "/tests/bilibili_video_recommendation_server/ad_template_2.py:39-71"
     },
     "2507": {
         "file_id": 266,
-        "content": "This code is fetching data from an API and extracting various information such as video ID, title, thumbnail URLs, description, owner's mid, video statistics (views, replies, danmaku, favorites, coins, shares, likes), and page dimensions. It also skips parsing subtitle info and processes tags data. The code checks if the state is 0 to ensure the video can be downloaded.",
+        "content": "Code resizes cover image to fit 90% of the ad width, sets round corner radius for the cover, reads cover image and creates a gradient paint with two handle positions and color stops. It also generates a rounded rectangular mask path for the cover.",
         "type": "comment"
     },
     "2508": {
         "file_id": 266,
-        "content": "        tag_used = tag['count']['use']\n        tag_attention = tag['count']['atten']\n        # introduction of tag.\n        tag_content = tag['content']\n        tag_short_content = tag['short_content']\n    ## extract related video info.\n    related_video_counts = len(related_data)\n    for related_video in related_data:\n        related_aid = related_video['aid']\n        related_bvid = related_video['bvid']\n        related_tid = related_video['tid']\n        related_tname = related_video['tname']\n        related_pic = related_video['pic']\n        related_title = related_video['title']\n        related_page_count = related_video['videos'] # make sure this is 1?\n        related_desc = related_video['desc']\n        related_state = related_video['state']\n        if related_state != 0: continue\n        related_duration = related_video['duration']\n        related_owner_mid = related_video['owner']['mid']\n        related_stat = related_video['stat']\n        related_dynamic = related_video['dynamic']\n        # well, we've got non-standard dimensions.",
+        "content": "cover_mask_path2 = pixie.Path()\ncover_round_corner_radius2 = int(cover_round_corner_radius * 0.85)\ncover_mask_path2.rounded_rect(\n    stroke_width_half,\n    stroke_width_half,\n    cover_width - stroke_width,\n    cover_height - stroke_width,\n    *([cover_round_corner_radius2] * 4)\n)\n# path = cover_mask_path\n# cover.fill_path(cover_mask_path, gradient_paint)\ncover_mask = pixie.Mask(cover_width, cover_height)\ncover_mask.fill_path(cover_mask_path)\ncover.mask_draw(cover_mask)\ncover_transform_width = cover_transform_height = int((ad_width - cover_width) / 2)\ncover_transform = pixie.translate(cover_transform_width, cover_transform_height)\nif framework_only:\n    # image2.fill(black)\n    image2_paint = pixie.Paint(pixie.SOLID_PAINT)\n    image2_paint.color = white\n    image2.fill_path(cover_mask_path, image2_paint, cover_transform)\ncover_stroke_paint = pixie.Paint(pixie.SOLID_PAINT)\ncover_stroke_paint.color = pixie.parse_color(\"#FC427B\")\nimage.stroke_path(\n    cover_mask_path,\n    cover_stroke_paint,\n    cover_transform,\n    stroke_width=stroke_width,",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/anime_compilation_video_metadata.py:136-160"
+        "location": "/tests/bilibili_video_recommendation_server/ad_template_2.py:72-110"
     },
     "2509": {
         "file_id": 266,
-        "content": "This code section is gathering data related to a video, including tag information, count of times the tags were used or caught attention, and details about related videos. It checks if the related state is not 0 before proceeding to gather more information like duration, owner's mid, statistics, etc.",
+        "content": "This code generates a rounded rectangle mask for an image, applies it to the cover image, and applies a stroke paint with specific color. It also creates a Paint object for possible future use but does not fill in any content if framework_only is True. The stroke width is specified and the transformed width and height of the cover are calculated.",
         "type": "comment"
     },
     "2510": {
         "file_id": 266,
-        "content": "        related_dimension = related_video['dimension']\n        # no tag here? you might want more!\n    breakpoint()",
+        "content": ")\nif not framework_only:\n    image.draw(cover, cover_transform)  # you can choose to discard the cover\nimage.fill_path(cover_mask_path2, gradient_paint, cover_transform)\n# now place the bilibili logo.\nbilibili_logo = pixie.read_image(bilibili_logo_path)\nbilibili_logo_w2h = getImageW2H(bilibili_logo_path)\nbilibili_logo_width = int(ad_width * 0.2)\nbilibili_logo_height = int(bilibili_logo_width / bilibili_logo_w2h)\nbilibili_logo = bilibili_logo.resize(bilibili_logo_width, bilibili_logo_height)\nbilibili_logo_transform = pixie.translate(\n    cover_transform_width + int(bilibili_logo_height / 8),\n    int(cover_transform_width + (bilibili_logo_height / 4)),\n)\n# bilibili_logo_transform = pixie.translate(\n#     cover_transform_width, 0\n# )\nimage.draw(bilibili_logo, bilibili_logo_transform)\n# now place the play button.\nplay_button = pixie.read_image(play_button_path)\nplay_button_w2h = getImageW2H(play_button_path)\nplay_button_width = play_button_height = int(ad_width * 0.2)\nplay_button = play_button.resize(play_button_width, play_button_height)",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/anime_compilation_video_metadata.py:161-163"
+        "location": "/tests/bilibili_video_recommendation_server/ad_template_2.py:111-138"
     },
     "2511": {
         "file_id": 266,
-        "content": "Checking video dimension and no tag found, further processing or error handling might be required.",
+        "content": "This code draws a cover image and adds the Bilibili logo and play button on top of it. It resizes the logo and play button to be 20% of the ad width, applies gradient fill to the mask path, and positions the elements accordingly.",
         "type": "comment"
     },
     "2512": {
-        "file_id": 267,
-        "content": "/tests/anime_highlight_cuts/theme_collector/anilist_to_anidb.py",
-        "type": "filepath"
+        "file_id": 266,
+        "content": "play_button_transform = pixie.translate(\n    int(cover_transform_width + (cover_width - play_button_width) / 2),\n    int(cover_transform_width + (cover_height - play_button_height) / 2),\n)\nimage.draw(play_button, play_button_transform)\n# place some stats.\nfont = pixie.read_font(font_path)\nfont.size = int(ad_width * 0.04)\nfont.paint.color = pixie.Color(1, 1, 1, 1)\nstats_transform = pixie.translate(\n    int(cover_transform_width * 1.3),\n    cover_transform_width + cover_height - int(font.size * 2),\n)\nimage.fill_text(font, stats_text, transform=stats_transform)\n# place the qrcode.\nqrcode = pixie.read_image(qrcode_path)\nqrcode_width = qrcode_height = int(0.3 * ad_width)\nqrcode = qrcode.resize(qrcode_width, qrcode_height)\nfont = pixie.read_font(font_path)\nfont.size = int(ad_width * 0.04)\nif night_mode:\n    font.paint.color = pixie.Color(1, 1, 1, 1)\nelse:\n    font.paint.color = pixie.Color(0, 0, 0, 1)\nqrcode_scan_text_transform_x = int(ad_width - qrcode_width * 1.1 - font.size * 1)\nqrcode_scan_text_transform = pixie.translate(",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/ad_template_2.py:140-170"
     },
     "2513": {
-        "file_id": 267,
-        "content": "The code is fetching anime information from Anilist using the AnilistPython API and storing anilist_ids for specific anime. It then prints the anime details, including name_romaji and name_english, and separates them with a horizontal line. The code also mentions a potential step to search for the same anime in anidb but it is not implemented in this snippet.",
-        "type": "summary"
+        "file_id": 266,
+        "content": "This code is positioning and drawing a play button, adding some stats text, placing a QR code with a scan text, and adjusting the font size and color. It uses the Pixie library for image transformations and text painting. The code also considers night mode settings to adjust font color accordingly.",
+        "type": "comment"
     },
     "2514": {
-        "file_id": 267,
-        "content": "anilist_ids = [\n    112788,  # 海边的异邦人\n    14813,  # Yahari Ore no Seishun Love Come wa Machigatteiru.\n]\n# first let's get name.\nfrom AnilistPython import Anilist\nanilist = Anilist()\nfor anilist_id in anilist_ids:\n    anime = anilist.get_anime_with_id(anilist_id)\n    # what about alias?\n    print(anime)\n    print(\"=\" * 20)\n    romaji = anime.get(\"name_romaji\", None)\n    english = anime.get(\"name_english\", None)\n    # genres = anime.get(\"genres\", []) # not so important. we don't have understanding.\n    # and you will search again.\n    # what is this manual select?\n    # anime2 = anilist.get_anime(romaji) # shit?\n    # print(anime2) # it will just be the same. no shit.\n    # print(\"=\" * 20)\n    # well let's search in anidb. get different names.",
+        "file_id": 266,
+        "content": "    qrcode_scan_text_transform_x + qrcode_width, int(ad_height - qrcode_height * 1.1)\n)\nimage.fill_text(font, qrcode_scan_text, transform=qrcode_scan_text_transform)\nqrcode_transform = pixie.translate(\n    int(ad_width - qrcode_width * 1.1 - font.size * 1.2),\n    int(ad_height - qrcode_height * 1.1),\n)\nqrcode_rounded_corner = int(0.05 * ad_width)\nqrcode_stroke_path = pixie.Path()\nqrcode_stroke_path.rounded_rect(\n    0, 0, qrcode_width, qrcode_height, *([qrcode_rounded_corner] * 4)\n)\nimage.stroke_path(\n    qrcode_stroke_path,\n    cover_stroke_paint,\n    qrcode_transform,\n    stroke_width=stroke_width,\n)\nqrcode_mask = pixie.Mask(qrcode_width, qrcode_width)\nqrcode_mask.fill_path(qrcode_stroke_path)\nqrcode.mask_draw(qrcode_mask)\nimage.draw(qrcode, qrcode_transform)\n# now for the title\nfont = pixie.read_font(font_bold_path)\nfont.size = int(ad_width * 0.06)\nif night_mode:\n    font.paint.color = pixie.parse_color(\"#B0B0B0\")\nelse:\n    font.paint.color = pixie.parse_color(\"#4F4F4F\")\n# use some gray text.\n# font.paint.color = pixie.parse_color(\"#4F42B5\")",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/anilist_to_anidb.py:1-25"
+        "location": "/tests/bilibili_video_recommendation_server/ad_template_2.py:171-209"
     },
     "2515": {
-        "file_id": 267,
-        "content": "The code is fetching anime information from Anilist using the AnilistPython API and storing anilist_ids for specific anime. It then prints the anime details, including name_romaji and name_english, and separates them with a horizontal line. The code also mentions a potential step to search for the same anime in anidb but it is not implemented in this snippet.",
+        "file_id": 266,
+        "content": "The code creates a QR code and a title using the Pixie library. It first calculates the positions for both elements, fills text in the QR code, defines rounded corners and stroke path for the QR code, masks the QR code with its stroke path, draws the QR code on the image, selects font for the title, adjusts font color based on night mode, and finally fills the title on the image.",
         "type": "comment"
     },
     "2516": {
-        "file_id": 268,
-        "content": "/tests/anime_highlight_cuts/theme_collector/anidb_search_parse.py",
-        "type": "filepath"
+        "file_id": 266,
+        "content": "# font.paint.color = pixie.parse_color(\"#FC427B\")\n# font.paint.color = pixie.Color(0,0,0,1)\ntitle_text_transform = pixie.translate(\n    int(font.size * 0.8), int(ad_height - qrcode_height * 1.1)\n)\ntitle_text_bounds = pixie.Vector2(\n    int(qrcode_scan_text_transform_x - font.size * 1.1), int(qrcode_height)\n)\nimage.fill_text(\n    font, title_text, bounds=title_text_bounds, transform=title_text_transform\n)\ndelta = int(cover_width * 0.02)\nsub_image_params = (\n    cover_transform_width - delta,\n    cover_transform_height - delta,\n    cover_width + 2 * delta,\n    cover_height + 2 * delta,\n)\nstandalone_cover_image = image.sub_image(*sub_image_params)\nstandalone_cover_image.write_file(\"ad_2_standalone_cover.png\")\nimage.write_file(\"ad_2.png\")\nif framework_only:\n    image2.sub_image(*sub_image_params).write_file(\"ad_2_mask.png\")",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/ad_template_2.py:210-232"
     },
     "2517": {
-        "file_id": 268,
-        "content": "This code searches AniDB for anime using a specified query and fake user agent, extracting title and link from the resulting HTML table. It then uses pandas to convert the table data into a DataFrame, retrieves video data as dictionaries, and prints keys of each dictionary.",
-        "type": "summary"
-    },
-    "2518": {
-        "file_id": 268,
-        "content": "url = \"https://anidb.net/anime/\"\n# query = \"Yahari Ore no Seishun Lovecome wa Machigatte Iru.\"\nquery = \"Yahari Ore no Seishun Love Come wa Machigatteiru.\"  # this will guide you to something different.\nparams = {\"adb.search\": query, \"do.update\": \"Search\", \"noalias\": 1}\nimport pandas\nimport requests\nimport fake_useragent\nua = fake_useragent.UserAgent()\nr = requests.get(\n    url, params=params, headers={\"User-Agent\": ua.random}\n)  # beautiful. really?\nstatus_code = r.status_code\nprint(\"STATUS CODE?\", status_code)\nassert status_code == 200\ntext = r.text\nfrom bs4 import BeautifulSoup\nsoup = BeautifulSoup(text, \"html.parser\")\n# print(soup) # forbidden? wtf?\n# breakpoint()\nimport pandas\n# table = soup.find('table')\ntable = soup.find(\"table\", attrs={\"class\": \"animelist\"})\nif not table:\n    print(\"table not found.\")\n    # you may want to change user agent.\n    breakpoint()\n    # or it is just a page jump. directly to your anime.\nelse:\n    table_str = str(table)\n    # ['No', 'Image', 'Title', 'Award', 'Type', 'Eps', 'Rating', 'Average', 'Reviews', 'User', 'Aired', 'Ended']",
-        "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/anidb_search_parse.py:1-38"
-    },
-    "2519": {
-        "file_id": 268,
-        "content": "This code is searching for anime on AniDB using the specified query. It makes a GET request with the query and fake user agent to ensure an accurate search result. The code checks if a table containing the search results is found, and if not, it may suggest changing the user agent or the page could be a page jump directly to the anime. The code uses BeautifulSoup to parse the HTML content of the response.",
+        "file_id": 266,
+        "content": "The code sets the font color, determines text transformation and bounds for a title, fills the text in the image, creates a standalone cover image with a margin, writes the main ad image and optional mask images.",
         "type": "comment"
     },
+    "2518": {
+        "file_id": 267,
+        "content": "/tests/bilibili_video_recommendation_server/bilibili_shortlink_get_2.py",
+        "type": "filepath"
+    },
+    "2519": {
+        "file_id": 267,
+        "content": "This code sets the URL for Bilibili's API click tracking, defines data payload and headers, sends a POST request to track clicks, and parses JSON response for success and link extraction.",
+        "type": "summary"
+    },
     "2520": {
-        "file_id": 268,
-        "content": "    # where is the damn link?\n    for title in table.find_all(\"td\", attrs={\"data-label\": \"Title\"}):\n        title_ref = table.find(\"a\")\n        title_text = title_ref.text\n        title_link = title_ref[\"href\"]\n        print(f\"[{title_link}] - {title_text}\")\n    data = pandas.read_html(table_str)[0]  # must be the first table.\n    # now you have it. sorted?\n    # print(data)\n    # breakpoint()\n    for index, videoDataFrame in data.iterrows():\n        videoData = videoDataFrame.to_dict()\n        print(videoData.keys())\n        # Main Title?\n        breakpoint()\n        # title = videoData['Title']\n        # # where's the damn link? we don't need such thing.\n        # aired, ended = videoData['Aired'], videoData['Ended']\n        # print(f'[{index}] - {title}')",
+        "file_id": 267,
+        "content": "url = \"https://api.bilibili.com/x/share/click\"\n# url = \"https://111.19.247.143/x/share/click\"\n# is it api.bilibili.com?\n# yes, it is.\n# use post.\n# the damn picture?\n# the damn picture is generated. it needs to be uploaded to tencent.\n# url = \"https://api.bilibili.com/x/share/click\"\n# burl=\"https://www.bilibili.com/video/BV1Wv41157Wz\"\n# burl = \"https://www.bilibili.com/v/pay/charge?upmid=85300402&upurl=%2F%2Fspace.bilibili.com%2F85300402&upname=J4D&upavatar=https%3A%2F%2Fi1.hdslb.com%2Fbfs%2Fface%2F73f1323696c857eb5f47f4a8bd03c1115a056af1.jpg&oid=85300402&otype=up&from=zone\"\n# only from \n# burl = \"https://space.bilibili.com/85300402\" # my space.\nburl = \"https://www.bilibili.com/read/cv19232041\" # my article with e-begging\ndata = {\n    \"build\": 6700300,\n        \"buvid\": 0,\n        \"oid\": burl,\n        \"platform\": \"android\",\n        \"share_channel\": \"COPY\",\n        \"share_id\": \"public.webview.0.0.pv\",\n        \"share_mode\": 3,\n    }\nimport requests\nheaders={'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36'}",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/anidb_search_parse.py:39-57"
+        "location": "/tests/bilibili_video_recommendation_server/bilibili_shortlink_get_2.py:1-24"
     },
     "2521": {
-        "file_id": 268,
-        "content": "The code is searching for a specific table on an anime website, extracting the title and link from each row. It then reads the HTML table into a pandas DataFrame, iterates over the rows to obtain the video data as a dictionary, and finally prints the keys of each video's data dictionary.",
+        "file_id": 267,
+        "content": "This code sets the URL to interact with Bilibili's API for click tracking and defines the necessary data payload. The URL is set to \"https://api.bilibili.com/x/share/click\" after checking if it should use \"api.bilibili.com\". It then sets various parameters in the 'data' dictionary, such as 'oid', 'platform', and 'share_channel'. Finally, it defines headers for an HTTP request using requests library.",
         "type": "comment"
     },
     "2522": {
-        "file_id": 269,
-        "content": "/tests/anime_highlight_cuts/theme_collector/anidb_anime_parse.py",
-        "type": "filepath"
+        "file_id": 267,
+        "content": "r=requests.post(url, data=data,headers=headers) # maybe you two share the same user agent!\n# we have the link!\nif r.status_code == 200:\n    # print(r.content)\n    r_json=r.json()\n    code=r_json[\"code\"]\n    if code==0:\n        link=r_json[\"data\"]['content']\n        print(link)",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/bilibili_shortlink_get_2.py:25-33"
     },
     "2523": {
-        "file_id": 269,
-        "content": "Code imports libraries and functions, uses BeautifulSoup to parse AniDB webpage for specific elements, handles potential null values with 'maybe' function, and reads data into a DataFrame using pandas.",
-        "type": "summary"
-    },
-    "2524": {
-        "file_id": 269,
-        "content": "# -*- parsing: pep505 -*-\n# import pep505\n# pep505.activate()\n# shit?\nurl = \"https://anidb.net/anime/9310\"\n# from pymonad.maybe import Nothing, Just\n# https://github.com/acaos/python-pep505\nfrom pymaybe import maybe\n# def checkNothing(value):\n#     if value in [None, 0, -1, [], {}, ()]:\n#         return Nothing\n#     return Just(value)\nimport requests\nimport fake_useragent\nua = fake_useragent.UserAgent()\n# r = requests.get(url, headers={\"User-Agent\": ua.random})\n# r.raise_for_status()\n# # assert r.status_code == 200\n# text = r.text\n# with open(\"anidb_info.html\", \"w+\") as f:\n#     f.write(text)\nwith open(\"anidb_info.html\", \"r\") as f:\n    text = f.read()\nfrom bs4 import BeautifulSoup\nsoup = BeautifulSoup(text, \"html.parser\")\n# must be non-empty.\nsimilarAnime = soup.find(attrs={\"id\": \"similaranime\"})\nindirectRelated = soup.find(attrs={\"id\": \"relations_indirect\"})\ndirectRelated = soup.find(attrs={\"id\": \"relations_direct\"})  # it could be none.\ntables = soup.find_all(\"table\")  # shit.\n# null safety?\n# pep 505:\n# https://peps.python.org/pep-0505/",
-        "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/anidb_anime_parse.py:1-43"
-    },
-    "2525": {
-        "file_id": 269,
-        "content": "The code is importing necessary libraries and functions, parsing a webpage's HTML using BeautifulSoup, and finding specific elements on the page. It appears to be scraping data from AniDB for similar or related anime information. The use of 'maybe' might indicate null safety measures are being implemented, possibly for handling potential None values in the data.",
+        "file_id": 267,
+        "content": "Sending a POST request to the URL with data and headers. If the response status code is 200, parse JSON content, check for success (code=0), and extract the link if successful.",
         "type": "comment"
     },
+    "2524": {
+        "file_id": 268,
+        "content": "/tests/bilibili_video_recommendation_server/concat_qrcode.sh",
+        "type": "filepath"
+    },
+    "2525": {
+        "file_id": 268,
+        "content": "This code uses FFmpeg to concatenate two identical QR Code images, MyQRCode1.png, into one output image named output_qrcode2.png. It overlay the top input image at the upper half and the bottom input image at the lower half of the output image.",
+        "type": "summary"
+    },
     "2526": {
-        "file_id": 269,
-        "content": "# videoInfo = checkNothing(soup.find(\"div\", attrs={\"class\": [\"pane\", \"info\"]})).maybe(\n#     Nothing, lambda x: x.find(\"table\")\n# )\nvideoInfo = maybe(soup.find(\"div\", attrs={\"class\": [\"pane\", \"info\"]})).find(\"table\")\n# if videoInfo:\n# videoInfo = videoInfo.find('table')\n# videoTitles = checkNothing(soup.find(\"div\", attrs={\"class\": [\"pane\", \"titles\"]})).maybe(\n#     Nothing, lambda x: x.find(\"table\")\n# )\nvideoTitles = maybe(soup.find(\"div\", attrs={\"class\": [\"pane\", \"titles\"]})).find(\"table\")\n# if videoTitles:\n# videoTitles = videoTitles.find('table')\n# i think monad is good.\n# import pandas\n# SAData = pandas.read_html(similarAnime)\n# print(SAData)\nbreakpoint()",
+        "file_id": 268,
+        "content": "ffmpeg -i MyQRCode1.png  -vf \"pad=iw:2*ih [top]; movie=MyQRCode1.png[bottom]; [top][bottom] overlay=0:main_h/2\" output_qrcode2.png",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/anidb_anime_parse.py:45-67"
+        "location": "/tests/bilibili_video_recommendation_server/concat_qrcode.sh:1-1"
     },
     "2527": {
-        "file_id": 269,
-        "content": "Code snippet is parsing HTML using BeautifulSoup to find specific elements (videoInfo and videoTitles) from a webpage. It uses maybe() function for handling potential missing or null values, and it imports pandas library to potentially read HTML data into a DataFrame.",
+        "file_id": 268,
+        "content": "This code uses FFmpeg to concatenate two identical QR Code images, MyQRCode1.png, into one output image named output_qrcode2.png. It overlay the top input image at the upper half and the bottom input image at the lower half of the output image.",
         "type": "comment"
     },
     "2528": {
-        "file_id": 270,
-        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs",
+        "file_id": 269,
+        "content": "/tests/bilibili_video_recommendation_server/convert_font.sh",
         "type": "filepath"
     },
     "2529": {
-        "file_id": 270,
-        "content": "The code downloads videos using Webtorrent, handles temporary directories and exceptions but has string concatenation issues. It suggests Unix domain sockets for performance improvement, uses FFmpeg to download segments, handles progress/errors and terminates upon torrent completion, though unpipe is unused and readstream may show progress issues.",
+        "file_id": 269,
+        "content": "The code is running a Python script, ttc2ttf.py, to convert the 'wqy-microhei.ttc' font file into a .ttf format. This conversion allows for wider compatibility and use across different software platforms. The 'python3' command ensures that the latest version of Python is used to execute the script.",
         "type": "summary"
     },
     "2530": {
-        "file_id": 270,
-        "content": "// webtorrent@^1.5.8\n// version mismatch?\n// nope. check how webtorrent-cli works. your code sucks.\n// now: 2.0.1\n// you make countdowns. you use managed temporary directories. you use port within range.\n// you might want a single, unified server instance. in that case you will manage resources within server, which could be error prone?\nvar torrentPath=\"/Users/jamesbrown/Downloads/anime_download/[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p].torrent\"\nvar selectedFilePath=\"[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]/SPs/[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [CM01][Ma10p_1080p][x265_flac].mkv\" // this is the goddamnly short mkv.\n// var selectedFilePath=\"[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]/[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [OVA][Ma10p_1080p][x265_flac].mkv\" // this is long\n// require_esm = require('esm')(module)",
+        "file_id": 269,
+        "content": "python3 ttc2ttf/ttc2ttf.py wqy-microhei.ttc",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:2-18"
+        "location": "/tests/bilibili_video_recommendation_server/convert_font.sh:1-1"
     },
     "2531": {
-        "file_id": 270,
-        "content": "This code sets the torrent path and selected file path for a video download using Webtorrent. It uses managed temporary directories and considers using a single server instance, which could potentially manage resources within the server and lead to error-prone situations.",
+        "file_id": 269,
+        "content": "The code is running a Python script, ttc2ttf.py, to convert the 'wqy-microhei.ttc' font file into a .ttf format. This conversion allows for wider compatibility and use across different software platforms. The 'python3' command ensures that the latest version of Python is used to execute the script.",
         "type": "comment"
     },
     "2532": {
         "file_id": 270,
-        "content": "// const{WebTorrent} = require_esm('webtorrent').default\n// console.log('IMPORT PATH?',process.env.NODE_PATH)\n// this system sucks. it does not support string concatenation.\n// maybe you can execute command to symlink global node_modules automatically? nope in javascript but in shell script, or it will not run as expected, since the import statements are running before anything would. \nimport ffmpeg from 'fluent-ffmpeg'\nimport fs from 'fs'\n// try {\nfs.rmdirSync('./[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]',{recursive: true})\n// maybe we shall not catch this exception? handle it yourself!\n// }\n// catch(e) { // you can omit the (e)\n//     // console.log(\"GIVEN DIRECTORY DOES NOT EXIST\")\n//     // it will execute even if the directory does not exist.\n//     console.log(\"UNKNOWN ERROR WHILE REMOVING DIRECTORY:\")\n//     console.log(e)\n// }\n// fuck it. let's symlink the NODE_PATH to here.\n// https://github.com/nodejs/node/issues/38687\n// https://nodejs.org/api/esm.html#esm_no_node_path",
-        "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:19-41"
+        "content": "/tests/bilibili_video_recommendation_server/create_invisible_blend_transparent_ebegging.py",
+        "type": "filepath"
     },
     "2533": {
         "file_id": 270,
-        "content": "This code attempts to import `WebTorrent` and `fluent-ffmpeg`, remove a directory, and symlink the NODE_PATH to the current location. It seems to be encountering issues with the system not supporting string concatenation in imports and handling exceptions.",
-        "type": "comment"
+        "content": "This code resizes and composes two images, applying opacity to create an invisible blending effect. The first image is scaled proportionally to the second image using a ratio factor. Both images are then overlaid onto each other with transparency applied, resulting in a final image where the first image serves as a background for the second image.",
+        "type": "summary"
     },
     "2534": {
         "file_id": 270,
-        "content": "// https://nodejs.org/api/esm.html\n// no template string available. shit.\n// import { Readable } from 'stream'\nimport WebTorrent from 'webtorrent'\n// // const WebTorrent = await import('webtorrent')\nconsole.log(\"WEBTORRENT OBJECT?\",WebTorrent)\nconst client=new WebTorrent({dht: true}) // nothing reading out. guess this is fucked.\n// please cache files under some KNOWN directories. otherwise, i will be fucked.\nconst serverPort=8970\nconst instance=client.createServer()\ninstance.server.listen(serverPort) // not random port? not zero? \nconst config={}\n// https://github.com/webtorrent/webtorrent/blob/master/docs/api.md#clientaddtorrentid-opts-function-ontorrent-torrent-\nconfig.path=process.cwd() // download to current directory?\n// pass different temp directory name for different torrents to prevent name clash? but what about the streaming URL?\n// default=`/tmp/webtorrent/`\n// now i fucking got you!\n// add trackers?\n// config.announce=[\"\"]\nclient.add(torrentPath,config,(torrent) => {\n    var selectedFile=torrent.files.find(file => {",
+        "content": "background = \"setu2.jpg\"\nebegging = \"ebegging_template.png\"\nimport pixie\nbgImage = pixie.read_image(background)\nebImage = pixie.read_image(ebegging)\nfactor = 7\nratio_0 = (1200 * factor / 5) / min(bgImage.width, bgImage.height)\nb_w, b_h = int(ratio_0 * bgImage.width), int(ratio_0 * bgImage.height)\nbgImage = bgImage.resize(b_w, b_h)\nratio = min(bgImage.width, bgImage.height) / (\n    max(ebImage.width, ebImage.height) * factor\n)\ne_w, e_h = int(ratio * ebImage.width), int(ratio * ebImage.height)\n# print(e_w, e_h)\n# print(ratio)\n# print(bgImage.width, bgImage.height)\nebImage = ebImage.resize(e_w, e_h)\nebImage.apply_opacity(0.5)\nt_w, t_h = bgImage.width - e_w, bgImage.height - e_h\nbgImage.draw(ebImage, transform=pixie.translate(t_w, t_h))\nbgImage.write_file(\"ebegging_setu_transparent.png\")",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:42-72"
+        "location": "/tests/bilibili_video_recommendation_server/create_invisible_blend_transparent_ebegging.py:1-31"
     },
     "2535": {
         "file_id": 270,
-        "content": "Code imports WebTorrent, creates a new client with DHT enabled, starts a server on port 8970, adds a torrent from the specified path using the default configuration, and searches for the desired file in the torrent's files.",
+        "content": "This code resizes and composes two images, applying opacity to create an invisible blending effect. The first image is scaled proportionally to the second image using a ratio factor. Both images are then overlaid onto each other with transparency applied, resulting in a final image where the first image serves as a background for the second image.",
         "type": "comment"
     },
     "2536": {
-        "file_id": 270,
-        "content": "        // console.log(\"FILENAME?\", file.name)\n        // it will only select the first file matching the criterion.\n        // return file.name.endsWith('.mkv')\n        return file.path==selectedFilePath\n    })\n    // console.log(\"SELECTED FILE?\")\n    // console.log(selectedFile)\n    // exit here?\n    // process.exit()\n    // now pass to fluent-ffmpeg.\n    // https://github.com/leeroybrun/webtorrent-transcode\n    setInterval(() => {console.log(\"SPEED?\",client.downloadSpeed)},2000) // why speed is zero now? wtf? are you finished?\n    // *******************READSTREAM RELATED*******************\n    // https://github.com/webtorrent/webtorrent/issues/2464\n    // const stream = Readable.from(selectedFile) // are you sure?\n    // this sucks. pipe is not seekable. consider something else? (like unix domain socket)\n    // var stream=selectedFile.createReadStream() // not working! fuck.\n    // // // var stream = fs.createReadStream(\"/Users/jamesbrown/Downloads/anime_download/[Sakurato] Onii-chan wa Oshimai! [01][AVC-8bit 1080p AAC][CHT].mp4\")",
-        "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:73-95"
+        "file_id": 271,
+        "content": "/tests/bilibili_video_recommendation_server/detect_qr_code.py",
+        "type": "filepath"
     },
     "2537": {
-        "file_id": 270,
-        "content": "The code is filtering files based on their name or path to match a predetermined file. It then logs the download speed periodically and attempts to create a readable stream from the selected file. The comments indicate frustration with non-working solutions, suggesting alternative approaches like Unix domain sockets or other methods for better performance.",
-        "type": "comment"
+        "file_id": 271,
+        "content": "This code detects and prints data from QR codes in an image using OpenCV and lazero.utils.importers. It displays the image with QR code bounding boxes, waits for user input, then destroys windows.",
+        "type": "summary"
     },
     "2538": {
-        "file_id": 270,
-        "content": "    // stream.unpipe=(nodeStream) => { } //doing nothing?\n    // stream.on('error',function(err) {\n    //     console.log('STREAM ERROR?',err);\n    //     // just ignore it?\n    // })\n    // console.log(\"STREAM?\",stream)\n    // while(true) {\n    //     var buffer=stream.read(200)\n    //     console.log(\"READING:\",buffer)\n    // }\n    // var reading=false\n    // stream.on('readable',function() {\n    //     if(!reading) {\n    //         reading=true\n    //         console.log(\"STREAM READABLE\")\n    //         ffmpeg(stream).ffprobe((err,data) => {\n    //             if(err) {\n    //                 console.log(\"FFPROBE ERROR:\",err)\n    //             } else {\n    //                 console.log(\"FFPROBE METADATA:\",data)\n    //             }\n    //             process.exit()\n    //         })\n    //     }\n    // })\n    // duration is fake.\n    // ffmpeg(stream).ffprobe((err,data) => {\n    //     if(err) {\n    //         console.log(\"FFPROBE ERROR:\",err)\n    //     } else {\n    //         console.log(\"FFPROBE METADATA:\",data)",
+        "file_id": 271,
+        "content": "# image = \"test_image_with_qr_code.png\"\n# fail to obtain the qrcode.\n# but we might want use our original qrcode.\n# image = \"output_qrcode2.png\"\nimage = \"MyQRCode1.png\"\n# shit! for picture with 2 qrcodes it fails to detect.\n# bbox return None\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\nimg = cv2.imread(image)\ndetector = cv2.QRCodeDetector()\ndata, bbox, _ = detector.detectAndDecode(img)\nqrcode_count = len(bbox)\nprint(\"total %d qrcode(s)\" % qrcode_count)\nif bbox is not None:\n    # display the image with lines\n    # print(bbox)\n    # breakpoint()\n    for i in range(len(bbox)):\n        # draw all lines\n        for index in range(4):\n            pt0 = tuple(bbox[i][index % 4].astype(int))\n            pt1 = tuple(bbox[i][(index + 1) % 4].astype(int))\n            cv2.line(\n                img,\n                pt0,\n                pt1,\n                color=(255, 0, 0),\n                thickness=2,\n            )\nif data:\n    print(\"[+] QR Code detected, data:\", data)\n    # what is the link inside the qr code?",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:96-130"
+        "location": "/tests/bilibili_video_recommendation_server/detect_qr_code.py:1-39"
     },
     "2539": {
-        "file_id": 270,
-        "content": "This code appears to be attempting to read a stream using ffmpeg and retrieve metadata. It handles potential errors, but the unpipe function seems unused, and it might be designed for testing purposes or handling partial downloads. The while loop for continuous reading may not be functional as well.",
+        "file_id": 271,
+        "content": "The code aims to detect QR codes in an image and print the data contained within them, if any. It loads an image using OpenCV and utilizes the QRCodeDetector class from lazero.utils.importers to identify and decode the QR codes present in the image. If there are multiple QR codes, it displays the image with lines drawn connecting the corners of each QR code's bounding box. The code also checks for any detected data and prints it if available.",
         "type": "comment"
     },
     "2540": {
-        "file_id": 270,
-        "content": "    //     }\n    //     // process.exit()\n    // })\n    // ffmpeg(stream).seekInput('0:10').duration(\"0:15\").on('progress',function(progress) {\n    //     // why not showing progress?\n    //     console.log('FFmpeg Processing: '+progress.percent+'% done');\n    // }).on('end',() => {\n    //     console.log(\"FFMPEG EXECUTION COMPLETE?\")\n    //     // let's rerun.\n    //     // instance.close()\n    //     client.destroy()\n    //     process.exit()\n    //     // the time range simply does not exist.\n    // }).outputOptions(['-c copy','-y']).output('output.mkv').run() // still not working?\n    // *******************READSTREAM RELATED*******************\n    // how about let's use url?\n    // how to urlencode?\n    // var urlSuffix = encodeURIComponent(selectedFilePath)\n    var fileRequestUrl=`http://localhost:${serverPort}`+selectedFile.streamURL\n    // console.log(\"STREAMING URL?\",fileRequestUrl)\n    // http://localhost:8970/webtorrent/421d78cadb5e1bb4fc1fec9dc2d6680e810c13c2/%5BKamigami&VCB-Studio%5D%20Yahari%",
+        "file_id": 271,
+        "content": "# display the result\ncv2.imshow(\"img\", img)\ncv2.waitKey(0)\ncv2.destroyAllWindows()",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:131-158"
+        "location": "/tests/bilibili_video_recommendation_server/detect_qr_code.py:40-43"
     },
     "2541": {
-        "file_id": 270,
-        "content": "This code snippet attempts to download a video file, process it using FFmpeg and stream it over Webtorrent. It encodes the streaming URL for the video and logs progress during the FFmpeg processing. The code may have issues with the FFmpeg processing not showing progress and potential problems in the readstream implementation.",
+        "file_id": 271,
+        "content": "This code displays an image with detected QR codes in a window and waits for the user to close it before destroying all windows.",
         "type": "comment"
     },
     "2542": {
-        "file_id": 270,
-        "content": "20Ore%20no%20Seishun%20Lovecome%20wa%20Machigatte%20Iru.%20%5BMa10p_1080p%5D/SPs/%5BKamigami&VCB-Studio%5D%20Yahari%20Ore%20no%20Seishun%20Lovecome%20wa%20Machigatte%20Iru.%20%5BCM01%5D%5BMa10p_1080p%5D%5Bx265_flac%5D.mkv\n    //shit?\n    // ffmpeg(fileRequestUrl).ffprobe((err,data) => {\n    //     if(err) {\n    //         console.log(\"FFPROBE ERROR:\",err)\n    //     } else {\n    //         console.log(\"FFPROBE METADATA:\",data)\n    //         var duration=data.format.duration\n    //         console.log(\"VIDEO DURATION?\",duration)\n    //         // you'd better read this. you fuck!\n    //         // i ask for 10 secs.\n    //         // output still contains metadata. but do we have subtitles?\n    //         // seeking is not so accurate but in minutes? easy.\n    //         // for file under 1 minute, please do not seek ok? (seek locally?)\n    //         // do not seek for segments that are too short. seek larger segments!\n    ffmpeg(fileRequestUrl).seekInput('0:10').duration(\"0:15\").on('progress',function(progress) {",
-        "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:158-176"
+        "file_id": 272,
+        "content": "/tests/bilibili_video_recommendation_server/detect_qr_code_payments.py",
+        "type": "filepath"
     },
     "2543": {
-        "file_id": 270,
-        "content": "This code uses FFmpeg to seek and download a video segment from the given URL. It seeks to 10 seconds, sets the duration to 15 seconds, and handles progress updates.",
-        "type": "comment"
+        "file_id": 272,
+        "content": "The code imports necessary libraries, defines a function 'detect_qr' that detects/decodes QR codes using pyzbar. It prints the total number of detected QR codes and their data if any is found. The current implementation struggles with handling multiple QR codes in an image.",
+        "type": "summary"
     },
     "2544": {
-        "file_id": 270,
-        "content": "        console.log('FFmpeg Processing: '+progress.percent+'% done');\n    }).on('end',() => {\n        console.log(\"FFMPEG EXECUTION COMPLETE?\")\n        // let's rerun.\n        instance.close()\n        client.destroy()\n        process.exit()\n        // the time range simply does not exist.\n    }).outputOptions(['-c copy',\n        '-y']).output('output.mkv').run()\n    // not top-level function or async function. fuck.\n})",
+        "file_id": 272,
+        "content": "# image = \"test_image_with_qr_code.png\"\n# fail to obtain the qrcode.\n# but we might want use our original qrcode.\n# image = \"output_qrcode2.png\"\nimages=['alipay_payment_code.png','wechat_payment_code.jpg']\n# qrcodes:\n# https://qr.alipay.com/tsx10243tdewwaxrvullge8\n# wxp://f2f0V92qUQI0aBO5PXtWezujxMm-C1KFub6qCi1Obt3cn1KjZqDPqoWKn8ICCcwdt8zU\n# they are both long urls. which one is effective in qq?\nfrom lazero.utils.importers import cv2_custom_build_init\nfrom PIL import Image\nfrom pyzbar.pyzbar import decode, ZBarSymbol\n# @function 'detect_qr' detect and decode qrcode from frame using pyzbar lib\n# @param 'inputFrame' type <class 'numpy.ndarray'>\n# @return if detected type 'bool'\ndef detect_qr(inputFrame):\n    img = Image.fromarray(inputFrame)\n    decodedImg = decode(img, symbols=[ZBarSymbol.QRCODE])\n    # it reads the content. but where is the code?\n    print('total %d qrcode detected' % len(decodedImg))\n    # breakpoint()\n    # length: 2\n    if len(decodedImg) > 0:\n        for code in decodedImg:\n            decodedBytes = code.data",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/webtorrent_streaming_test_cut_partial_download.mjs:177-188"
+        "location": "/tests/bilibili_video_recommendation_server/detect_qr_code_payments.py:1-32"
     },
     "2545": {
-        "file_id": 270,
-        "content": "The code is closing the FFmpeg instance and destroying the client after a torrent download completes. It also logs progress updates during the download process and ends the program execution upon completion.",
+        "file_id": 272,
+        "content": "The code imports necessary libraries, defines a function 'detect_qr' that takes an input frame and detects/decodes QR codes using pyzbar. The function returns true if a QR code is detected. It then prints the total number of detected QR codes and iterates through each one, storing its data in decodedBytes.",
         "type": "comment"
     },
     "2546": {
-        "file_id": 271,
-        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/torrent_analyzer.py",
-        "type": "filepath"
+        "file_id": 272,
+        "content": "            stringData = decodedBytes.decode(\"utf-8\")\n            print(\"QRCode content:\")\n            print(stringData)\n            polygon = code.polygon\n            print('POLYGON CONTENT:')\n            print(polygon)\n        return True\n    else:\n        return False\ncv2_custom_build_init()\nimport cv2\nfor image in images:\n# shit! for picture with 2 qrcodes it fails to detect.\n# bbox return None\n    img = cv2.imread(image)\n    result=detect_qr(img)\n    print(\"RESULT:\", result)\n    print(\"_\"*20)",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/detect_qr_code_payments.py:33-52"
     },
     "2547": {
-        "file_id": 271,
-        "content": "The code snippet imports libraries, defines paths and analyzes a torrent file using torrent_parser. It prints the data, checks for multiple files, stores their names and lengths (if applicable), formats size, prints file details, writes filenames to JSON, and prepares the file for further processing.",
-        "type": "summary"
-    },
-    "2548": {
-        "file_id": 271,
-        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nimport os\n# single file.\n# torrent_path = \"[桜都字幕組] 不當哥哥了！ _ Onii-chan wa Oshimai! [01][1080p][繁體內嵌].torrent\"\ntorrent_path = \"[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p].torrent\"\nbasepath = \"/Users/jamesbrown/Downloads/anime_download\"\ntorrent_path = os.path.join(basepath, torrent_path)\n# analyze this torrent file.\nimport torrent_parser as tp\ndata = tp.parse_torrent_file(torrent_path)\nimport rich\nrich.print(data)\n# will be complete name later?\nsingle_file = not('files' in data['info'].keys())\n# data['info']['name'] \n# length will be total length?\n# data['info']['length']\n# breakpoint()\n# does it preserve the order?\n# import humanize\n# well.\nfnames=[]\nimport json\nfrom humanfriendly import format_size\nif not single_file:\n    for index, fileInfo in enumerate(data['info']['files']):\n        aria2c_index = index+1\n        length = fileInfo['length']\n        path = fileInfo['path'] # multiple strings in a list\n        joined_path = \"/\".join(path)",
-        "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/torrent_analyzer.py:1-41"
-    },
-    "2549": {
-        "file_id": 271,
-        "content": "Code snippet imports necessary libraries, defines a torrent file path and basepath for downloads, joins the paths, analyzes the torrent file using torrent_parser, prints the parsed data, checks if the torrent contains multiple files or not, stores the name and length of each file (if applicable), converts file paths to single string format, and finally prepares the file for further processing.",
+        "file_id": 272,
+        "content": "This code reads images containing QR codes and attempts to detect them. If a QR code is detected, it prints the content of the QR code and its polygon shape. If no QR code is detected, it returns False. The current implementation has issues handling images with multiple QR codes.",
         "type": "comment"
     },
+    "2548": {
+        "file_id": 273,
+        "content": "/tests/bilibili_video_recommendation_server/e_begging_base_bilibili_donation_to_short_link.py",
+        "type": "filepath"
+    },
+    "2549": {
+        "file_id": 273,
+        "content": "The code provides two donation links for different bilibili users, one for the user with ID 85300402 and another for the user with ID 441381282. The my_payment_shortlink is a one-time payment short link, while other_donation_link is for donating to other famous uploaders on bilibili. However, the code requires bilibili cookies to function properly.",
+        "type": "summary"
+    },
     "2550": {
-        "file_id": 271,
-        "content": "        filesize_human_readable = format_size(length)\n        print(f\"[{aria2c_index}] ** [{filesize_human_readable}] ** {path[-1]}\")\n        # the index is right.\n        fnames.append(path[-1])\n        print(f\"FULLPATH: {joined_path}\")\nwith open(\"test_filenames.json\",'w+') as f:\n    f.write(json.dumps(fnames))",
+        "file_id": 273,
+        "content": "# about e-begging, way more easier than e-commerce.\n# well we could do something evil here\n# my shit.\n# it will generate a one-time payment code.\n# https://api.bilibili.com/x/ugcpay/trade/elec/pay/order/status?qr_token=1875b75b1299497888ce9c33089dc676\n# calling for the qrcode token status.\n# but we must have the cookie first.\nmy_donation_link = \"https://www.bilibili.com/v/pay/charge?upmid=85300402&upurl=%2F%2Fspace.bilibili.com%2F85300402&upname=J4D&upavatar=https%3A%2F%2Fi1.hdslb.com%2Fbfs%2Fface%2F73f1323696c857eb5f47f4a8bd03c1115a056af1.jpg&oid=85300402&otype=up&from=zone\"\nmy_payment_shortlink = \"https://b23.tv/zTT7V9O\"\n# for other famous uploader:\n# if you want to do this, you must have bilibili cookies.\nother_donation_link = \"https://www.bilibili.com/v/pay/charge?upmid=441381282&upurl=%2F%2Fspace.bilibili.com%2F441381282&upname=%E8%8A%B1%E4%B8%B8%E6%99%B4%E7%90%89Official&upavatar=http%3A%2F%2Fi0.hdslb.com%2Fbfs%2Fface%2F7328c4d2bd7f59a10be61589d3595880a8ebcff5.jpg&oid=441381282&otype=up&from=zone\"",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/torrent_analyzer.py:42-49"
+        "location": "/tests/bilibili_video_recommendation_server/e_begging_base_bilibili_donation_to_short_link.py:1-19"
     },
     "2551": {
-        "file_id": 271,
-        "content": "This code snippet formats the file size in human-readable format and prints it along with the aria2c index, file name, and full path. It then stores the filenames in a list and writes them to a JSON file named \"test_filenames.json\".",
+        "file_id": 273,
+        "content": "The code provides two donation links for different bilibili users, one for the user with ID 85300402 and another for the user with ID 441381282. The my_payment_shortlink is a one-time payment short link, while other_donation_link is for donating to other famous uploaders on bilibili. However, the code requires bilibili cookies to function properly.",
         "type": "comment"
     },
     "2552": {
-        "file_id": 272,
-        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/subtitle_extractor.py",
+        "file_id": 274,
+        "content": "/tests/bilibili_video_recommendation_server/ebegging_template.py",
         "type": "filepath"
     },
     "2553": {
-        "file_id": 272,
-        "content": "This code references three different tools for extracting subtitles from a video file: mkvextract, ffmpeg, and optical character recognition (OCR). It suggests using the appropriate tool based on the source being processed, with the assumption that it's easier to extract subtitles from fixed locations in Bangumi videos.",
+        "file_id": 274,
+        "content": "This code creates an eBegging template using defined colors and styles for Alipay and WeChat. It generates QR codes with text overlays, applies masks, determines font color, places text, and saves the final image to output file.",
         "type": "summary"
     },
     "2554": {
-        "file_id": 272,
-        "content": "# use mkvextract:\n# https://github.com/jorti/extract-subs/blob/master/extract-subs.py\n# use ffmpeg:\n# https://github.com/fdenivac/ffextract-subtitles/blob/master/ffextract-subtitles.py\n# use ocr to extract subtitles. since this is bangumi, it is easy to extract from fixed location.",
+        "file_id": 274,
+        "content": "# this is to make it look better than before\n# maybe.\n# according to the blend mode, that guy seems to be using some special blend mode to hide his qrcode from being detected. so you may want to do the same when you add this to your own picture.\nalipay_link = \"https://qr.alipay.com/tsx10243tdewwaxrvullge8\"\nwechat_link = (\n    \"wxp://f2f0V92qUQI0aBO5PXtWezujxMm-C1KFub6qCi1Obt3cn1KjZqDPqoWKn8ICCcwdt8zU\"\n)\nfrom generate_qr_code import makeAndSaveQrcode\nqrcode_path = \"test_ebegging.png\"\n# now we plan to draw this thing.\n# how big is the canvas? no fill?\nimport pixie\nfont_path = \"./wqy-microhei0.ttf\"\nad_height = 800\nad_width = 700\nnight_mode = True\nstyle_mode = True\noutput_path = \"ebegging_template.png\"\n# white = pixie.Color(1, 1, 1, 1)\n# black = pixie.Color(0, 0, 0, 1)\nbackground_opacity = 1\ndef makeColorAndPaintFromColorCode(color_code: str):\n    assert len(color_code) == 6 + 1 and color_code.startswith(\"#\")\n    color = pixie.parse_color(color_code)\n    paint = pixie.Paint(pixie.SOLID_PAINT)\n    paint.color = color",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/subtitle_extractor.py:1-7"
+        "location": "/tests/bilibili_video_recommendation_server/ebegging_template.py:1-35"
     },
     "2555": {
-        "file_id": 272,
-        "content": "This code references three different tools for extracting subtitles from a video file: mkvextract, ffmpeg, and optical character recognition (OCR). It suggests using the appropriate tool based on the source being processed, with the assumption that it's easier to extract subtitles from fixed locations in Bangumi videos.",
+        "file_id": 274,
+        "content": "This code imports necessary libraries, defines variables for image size and colors, and includes a function to convert color codes into paints. It will be used to create an eBegging template by drawing text, QR codes, and potentially adding effects such as blend modes.",
         "type": "comment"
     },
     "2556": {
-        "file_id": 273,
-        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_torrent_file_list.py",
-        "type": "filepath"
+        "file_id": 274,
+        "content": "    return color, paint\nocean_blue, ocean_blue_paint = makeColorAndPaintFromColorCode(\"#0A3CCF\")\ngrass_green, grass_green_paint = makeColorAndPaintFromColorCode(\"#00A619\")\nwhite, white_paint = makeColorAndPaintFromColorCode(\"#FFFFFF\")\nblack, black_paint = makeColorAndPaintFromColorCode(\"#000000\")\nstyleSuites = {\n    \"alipay\":{\n        'paint':ocean_blue_paint,\n        'qrcode':alipay_link,\n        'text':\"支付宝投喂\"\n    },\n    'wechat':{\n        'paint':grass_green_paint,\n        'qrcode':wechat_link,\n        'text':\"微信投喂\"\n    }\n}\n# selected_style_suite = styleSuites['wechat']\nselected_style_suite = styleSuites['alipay']\nqrcode_link = selected_style_suite['qrcode']\nmakeAndSaveQrcode(qrcode_link, qrcode_path)\nqrcode_stroke_paint = selected_style_suite['paint']  # for alipay\nqrcode_scan_text = selected_style_suite['text']\nimage = pixie.Image(ad_width, ad_height)\nqrcode = pixie.read_image(qrcode_path)\nqrcode_width = qrcode_height = int(0.9 * ad_width)\nqrcode = qrcode.resize(qrcode_width, qrcode_height)\nqrcode_rounded_corner = int((0.05 / 0.3) * qrcode_width)",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/ebegging_template.py:36-76"
     },
     "2557": {
-        "file_id": 273,
-        "content": "This code fetches data from the Nyaa.si website using requests library, parses it using NyaaPy's utils and torrent modules, and prints the parsed JSON data and the corresponding data class object.",
-        "type": "summary"
+        "file_id": 274,
+        "content": "The code defines colors and their corresponding paints, then creates a dictionary of style suites for Alipay and WeChat. It selects the Alipay style suite, extracts QR code link and paint, saves the QR code image, resizes it, and sets up an Image object for further processing.",
+        "type": "comment"
     },
     "2558": {
-        "file_id": 273,
-        "content": "url = \"https://nyaa.si/view/1627038\"\nimport requests\nfrom NyaaPy import utils, torrent\nr = requests.get(url)\nSITE = utils.TorrentSite.NYAASI\njson_data = utils.parse_single(request_text=r.text, site=SITE)\ndata_class = torrent.json_to_class(json_data)\nimport rich\n# json_data['seeders']\n# json_data['title']\n# json_data['files']\nrich.print(json_data)\nprint()\nprint(\"_\"*20)\nprint()\nrich.print(data_class)\nbreakpoint()",
+        "file_id": 274,
+        "content": "qrcode_stroke_path = pixie.Path()\nqrcode_stroke_path.rounded_rect(\n    0, 0, qrcode_width, qrcode_height, *([qrcode_rounded_corner] * 4)\n)\nqrcode_width_margin = int((ad_width - qrcode_width) / 2)\nqrcode_height_margin = int(ad_height - qrcode_height - qrcode_width_margin)\nebegging_mask_path = pixie.Path()\nebegging_mask_path.rounded_rect(\n    0, 0, ad_width, ad_height, *([int(qrcode_rounded_corner*1.2)] * 4)\n)\nif not style_mode:\n    if not night_mode:\n        fill_paint = white_paint\n    else:\n        fill_paint = black_paint\nelse:\n    fill_paint = qrcode_stroke_paint\nimport copy\nfill_paint = copy.deepcopy(fill_paint)\nfill_paint.color = copy.deepcopy(fill_paint.color)\nfill_paint.opacity = background_opacity\nimage.fill_path(\n    ebegging_mask_path, fill_paint\n)\n# fill the ebegging ad with appropriate color first\nfont = pixie.read_font(font_path)\nfont.size = int(\n    qrcode_width * (0.04 / 0.3)\n)  # questionable. we shall check the font size.\nif not style_mode:\n    if night_mode:\n        font.paint.color = white\n        # font.paint.color = qrcode_stroke_paint.color",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_torrent_file_list.py:1-25"
+        "location": "/tests/bilibili_video_recommendation_server/ebegging_template.py:77-118"
     },
     "2559": {
-        "file_id": 273,
-        "content": "This code fetches data from the Nyaa.si website using requests library, parses it using NyaaPy's utils and torrent modules, and prints the parsed JSON data and the corresponding data class object.",
+        "file_id": 274,
+        "content": "This code creates a QR code and applies it to an ad image with rounded corners. It calculates dimensions for the QR code and ad image, sets fill paint colors based on style and night mode, and fills the image with appropriate color before applying the font for the text. Font size adjustment is done based on QR code width, but may require further validation.",
         "type": "comment"
     },
     "2560": {
         "file_id": 274,
-        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_api_connector.py",
-        "type": "filepath"
+        "content": "    else:\n        # font.paint.color = qrcode_stroke_paint.color\n        font.paint.color = black\nelse:\n    font.paint.color = white\ntext_bound_x = ad_width\ntext_bound_y = qrcode_height_margin\nimage.fill_text(\n    font,\n    qrcode_scan_text,\n    bounds=pixie.Vector2(text_bound_x, text_bound_y),\n    h_align=pixie.CENTER_ALIGN,\n    v_align=pixie.MIDDLE_ALIGN,\n)\nqrcode_transform = pixie.translate(\n    qrcode_width_margin,\n    qrcode_height_margin,\n)\nstroke_param = 100 / 3\nstroke_width = int(qrcode_width / stroke_param)\nimage.stroke_path(\n    qrcode_stroke_path,\n    qrcode_stroke_paint,\n    qrcode_transform,\n    stroke_width=stroke_width,\n)\nqrcode_mask = pixie.Mask(qrcode_width, qrcode_width)\nqrcode_mask.fill_path(qrcode_stroke_path)\nqrcode.mask_draw(qrcode_mask)\nimage.draw(qrcode, qrcode_transform)\nimage.write_file(output_path)",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/ebegging_template.py:119-157"
     },
     "2561": {
         "file_id": 274,
-        "content": "The Python script uses requests and BeautifulSoup to search the Nyaa torrent site for anime with 7+ seeders, retrieves results, stores in \"output.html\", and checks if more pages exist using a template and NyaaPy library for torrent handling.",
-        "type": "summary"
-    },
-    "2562": {
-        "file_id": 274,
-        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nimport requests\nurl = \"https://nyaa.si\" # change this to mirror sites.\nMIN_SEEDERS=7 # must be greater than this.\nquery = \"oniichan wa oshimai! 01\"\nsort_term = \"seeders\"\nanime_categories = {\n    \"Anime\": \"1_0\",\n    \"Anime - Anime Music Video\": \"1_1\",\n    \"Anime - English-translated\": \"1_2\",\n    \"Anime - Non-English-translated\": \"1_3\",\n    \"Anime - Raw\": \"1_4\",\n}\ncategory_code = anime_categories[\"Anime\"]  # anime\npage = 1  # start page: 1\nend_of_page = False\n# better not to use rss version since it will not sort terms.\nparams = dict(f=0, c=category_code, q=query, s=sort_term, o=\"desc\", p=page)\n# better parse it yourself first huh?\n# r = requests.get(url, params=params)\n# assert r.code == 200\n# text = r.text\nwith open(\"output.html\", \"r\") as f:\n    text = f.read()\nfrom bs4 import BeautifulSoup\n# with open(\"output.html\",'w+') as f:\n#    f.write(text)\nsoup = BeautifulSoup(text, \"html.parser\")\n# breakpoint()\nimport parse\ntemplate = \"Displaying results {start:d}-{end:d} out of {total:d} results.\"",
-        "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_api_connector.py:1-48"
-    },
-    "2563": {
-        "file_id": 274,
-        "content": "The code is a Python script that uses the requests library to make an API request to the Nyaa torrent site. It searches for a specific anime with 7 or more seeders, retrieves the results, and stores them in a file named \"output.html\". The BeautifulSoup library is used to parse the HTML response, and the parse module seems to be utilized for further processing.",
+        "content": "This code generates a QR code image with text overlay and applies a mask to it. It first determines the font color based on the ad type, then places the text at the specified coordinates. A translation is applied to the QR code path, the stroke width is calculated, and a mask is created using the stroked path. Finally, the QR code image is drawn onto the main image with the transformation applied, and saved to the output file.",
         "type": "comment"
     },
+    "2562": {
+        "file_id": 275,
+        "content": "/tests/bilibili_video_recommendation_server/generate_cover.py",
+        "type": "filepath"
+    },
+    "2563": {
+        "file_id": 275,
+        "content": "The code uses Pixie library to generate a Chinese text image with rounded rectangle mask for bilibili video recommendation server, applies QR code, and saves as \"text.png\". The process is then reverse engineered.",
+        "type": "summary"
+    },
     "2564": {
-        "file_id": 274,
-        "content": "banner = soup.find(\"div\", class_=\"pagination-page-info\").text\npagination_info = banner.split(\"\\n\")[0]\npagination_info_result = parse.parse(template, pagination_info)\nif pagination_info_result:\n    if pagination_info_result[\"total\"] == pagination_info_result[\"end\"]:\n        print(\"Reached end of page.\")\n        end_of_page = True\nfrom NyaaPy import utils\nSITE = utils.TorrentSite.NYAASI\njson_info = utils.parse_nyaa(request_text=text, limit=None, site=SITE)\nimport rich\nrich.print(json_info)\n# breakpoint()\nfor videoInfo in json_info:\n    seeders = int(videoInfo['seeders'])\n    seeders_enough = seeders>=MIN_SEEDERS\n    print('seeders?',seeders)\n    print(\"seeders enough?\", seeders_enough)\n    # videoInfo['id'] -> \"https://nyaa.si/view/{}\"\n# you can also download torrent file for only file info.",
+        "file_id": 275,
+        "content": "# let's try to make it right.\npic_file = \"sample_cover.jpg\"\nqrcode_file = \"MyQRCode1.png\"\n# we need some font for this.\n# font_location = \"/usr/share/fonts/truetype/wqy/wqy-microhei.ttc\" # ttc -> ttf\nfont_location = \"./wqy-microhei0.ttf\"\nimport pixie\nfont = pixie.read_font(font_location)\nfont.size=20\ntext = \"中文能够显示么 超出了字符边缘能不能显示 Typesetting is the arrangement and composition of text in graphic design and publishing in both digital and traditional medias.\"\n# 可以显示 但是边缘的字符需要被注意到 看看是不是超出了边界\nimage = pixie.Image(200, 200)\nimage.fill(pixie.Color(1, 1, 1, 1))\nimage.fill_text(\n    font,\n    text,\n    bounds = pixie.Vector2(180, 180),\n    transform = pixie.translate(10, 10)\n)\n# print('image type:', type(image))\n# 'pixie.pixie.Image'\n# hard to say.\npath = pixie.Path()\npath.rounded_rect(0,0, 100, 100, 25, 25, 25, 25)\n# how to use mask?\ncover_width, cover_height = 100,100\nmask = pixie.Mask(cover_width, cover_height) # must match mask size?\nmask.fill_path(path)\npicture = pixie.read_image(pic_file)\n# we need to reshape this.\npict",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/nyaa_api_connector.py:50-77"
+        "location": "/tests/bilibili_video_recommendation_server/generate_cover.py:1-38"
     },
     "2565": {
-        "file_id": 274,
-        "content": "The code retrieves the banner from a webpage, extracts pagination information, and checks if it has reached the end of the page. It then parses the response using a template and determines if there are enough seeders for each video info. The code prints the number of seeders and whether they are enough based on a minimum seeders threshold. The code uses the NyaaPy library for site-specific torrent handling.",
+        "file_id": 275,
+        "content": "This code is using the Pixie library to create an image with text in Chinese, apply a rounded rectangle mask to it, and then read another image file. The purpose seems to be generating a cover for something related to bilibili video recommendation server.",
         "type": "comment"
     },
     "2566": {
         "file_id": 275,
-        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/name_resolution_parsing_chapter_recognition.py",
-        "type": "filepath"
+        "content": "ure = picture.resize(cover_width, cover_height) # recommend to do this in pyjom.imagetoolbox since that will be safer.\npicture.mask_draw(mask)\ntransform=pixie.translate(50,50)\nqrcode_width=qrcode_height = 50\nqrcode_image = pixie.read_image(qrcode_file)\nqrcode_image = qrcode_image.resize(qrcode_width, qrcode_height)\nqrcode_transform = pixie.translate(150,150)\nimage.draw(picture,transform=transform)\n# image.draw(picture)\n# image.draw(picture,transform=transform)\nimage.draw(qrcode_image,transform=qrcode_transform)\nimage.write_file(\"text.png\")\n# now we try to reverse engineer that thing.\n# first of all, the picture needs to be big.",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/generate_cover.py:38-58"
     },
     "2567": {
         "file_id": 275,
-        "content": "The code utilizes ffmpeg to extract subtitles, sets anime series constants, filters series names, and reads filenames from a JSON. It checks for bangume names, identifies episode index location, compares with expected position, and prints the episode index or displays \"EPISODE?\" if not recognized.",
-        "type": "summary"
-    },
-    "2568": {
-        "file_id": 275,
-        "content": "subtitle_types = [\"ass\", \"srt\"]\nvideo_types = [\n    \"mkv\",\n    \"mov\",\n    \"mp4\",\n    \"flv\",\n    \"avi\",\n    \"ogv\",\n    \"webm\",\n    \"ts\",\n    \"wmv\",\n    \"webm\",\n    \"m4v\",\n    \"3gp\",\n]\n# use ffmpeg for subtitle extraction?\nfiletypes = {\"subtitle\": subtitle_types, \"video\": video_types}\nBangumi_Name = \"Yahari Ore no Seishun Lovecome wa Machigatte Iru.\".strip()\nepisodeIndex = 3\nchinese_simplified_sub_types = [\"chs\", \"简体\", \"简日\"]\nchinese_traditional_sub_types = [\"繁日\", \"繁体\", \"繁體\", \"cht\"]\nimport json\n# replace non-alphanumeric charcters.\nepisode_formatter = lambda episode_index: str(episode_index).zfill(2)\nimport re\n# also replace all double spaces.\ndef double_space_replacer(chars: str):\n    if \"  \" in chars:\n        chars = chars.replace(\"  \", \" \")\n        return double_space_replacer(chars)\n    else:\n        return chars\nalphanumeric_filter = lambda chars: double_space_replacer(\n    re.sub(r\"[^a-z0-9]\", \" \", chars)\n)\nbangume_name_lower_alphanumeric = alphanumeric_filter(Bangumi_Name.lower())\nwith open(\"test_filenames.json\", \"r\") as f:",
-        "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/name_resolution_parsing_chapter_recognition.py:1-46"
-    },
-    "2569": {
-        "file_id": 275,
-        "content": "This code defines file types for subtitles and videos, uses ffmpeg for subtitle extraction, defines constants related to a specific anime series, applies an alphanumeric filter to the anime name, and reads filenames from a JSON file.",
+        "content": "The code resizes the picture to a recommended size, applies a mask, and translates it. A QR code image is also loaded, resized, and translated before being drawn on top of the main image. Finally, the resulting image is saved as \"text.png\". The code then tries to reverse engineer this process by first ensuring the picture is large enough.",
         "type": "comment"
     },
+    "2568": {
+        "file_id": 276,
+        "content": "/tests/bilibili_video_recommendation_server/generate_qr_code.py",
+        "type": "filepath"
+    },
+    "2569": {
+        "file_id": 276,
+        "content": "This code imports the qrcode library, defines a function makeAndSaveQrcode that generates and saves QR codes using the make() function from qrcode library, and includes an example usage in the if __name__ == \"__main__\": block.",
+        "type": "summary"
+    },
     "2570": {
-        "file_id": 275,
-        "content": "    fnames = json.loads(f.read())\nfor fname in fnames:\n    fname_lower = fname.lower()\n    fname_lower_alphanumeric = alphanumeric_filter(fname_lower)\n    file_extension = fname_lower.split(\".\")[-1]\n    current_file_type = \"unknown\"\n    for filetype, file_extensions in filetypes.items():\n        if file_extension in file_extensions:\n            current_file_type = filetype\n            break\n    print(f\"<{current_file_type}> {fname}\")\n    print(fname_lower_alphanumeric)\n    substring_location_start = fname_lower_alphanumeric.find(\n        bangume_name_lower_alphanumeric\n    )\n    if substring_location_start!=-1:\n        substring_location_end = substring_location_start + len(\n        bangume_name_lower_alphanumeric\n    )\n        assert fname_lower_alphanumeric[substring_location_start: substring_location_end] == bangume_name_lower_alphanumeric\n        episodeIndexLocation = fname_lower_alphanumeric.find(f\" {episode_formatter(episodeIndex)} \")\n        if episodeIndexLocation!=-1:\n            if episodeIndexLocation+1>=substring_location_end:",
+        "file_id": 276,
+        "content": "# Importing library\nimport qrcode\n# Encoding data using make() function\ndef makeAndSaveQrcode(data, save_path, debug=False):\n    img = qrcode.make(data)\n    if debug:\n        print(\"image type:\", type(img))\n    img.save(save_path)\n# <class 'qrcode.image.pil.PilImage'>\n# Saving as an image file\nif __name__ == \"__main__\":\n    data=\"https://b23.tv/DPn1G4p\"\n    save_path = 'MyQRCode1.png'\n    makeAndSaveQrcode(data, save_path)",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/name_resolution_parsing_chapter_recognition.py:47-71"
+        "location": "/tests/bilibili_video_recommendation_server/generate_qr_code.py:1-16"
     },
     "2571": {
-        "file_id": 275,
-        "content": "Reading file names from a JSON, filtering, and determining their types. Checking if the bangume name substring is present in the filename. Identifying the episode index location and comparing it with the expected position.",
+        "file_id": 276,
+        "content": "This code imports the qrcode library, defines a function makeAndSaveQrcode that generates and saves QR codes using the make() function from qrcode library, and includes an example usage in the if __name__ == \"__main__\": block.",
         "type": "comment"
     },
     "2572": {
-        "file_id": 275,
-        "content": "                print(\"EPISODE?\") # this is the index we want\n                print(episodeIndex)",
-        "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/name_resolution_parsing_chapter_recognition.py:72-73"
-    },
-    "2573": {
-        "file_id": 275,
-        "content": "Code snippet checks the episode index and prints it. If the desired index is not recognized, it displays \"EPISODE?\" for clarification.",
-        "type": "comment"
-    },
-    "2574": {
-        "file_id": 276,
-        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/name_fuzzy.py",
+        "file_id": 277,
+        "content": "/tests/bilibili_video_recommendation_server/get_bilibili_shortlink.py",
         "type": "filepath"
     },
-    "2575": {
-        "file_id": 276,
-        "content": "This code initializes two empty lists, 'filenames' and 'bangumi_names'. 'bangumi_names' contains two string values representing anime titles.",
+    "2573": {
+        "file_id": 277,
+        "content": "This code makes an HTTP request to a Tencent API for Bilibili short links, using URL and href parameters, extracts the 'short_url' if successful (status 200), and prints it.",
         "type": "summary"
     },
-    "2576": {
-        "file_id": 276,
-        "content": "filenames = []\nbangumi_names= [\"Yahari Ore no Seishun Lovecome wa Machigatte Iru.\",\"Yahari Ore no Seishun Love Come wa Machigatteiru.\"]",
+    "2574": {
+        "file_id": 277,
+        "content": "apiUrl = \"https://service-ijd4slqi-1253419200.gz.apigw.tencentcs.com/release/short_url\"\nlongUrl = \"https://www.bilibili.com/video/BV1Wv41157Wz\"\nimport urllib.parse as urlparse\n# params = {\"url\": longUrl}\nparams = {\"url\": urlparse.quote(longUrl).replace(\"/\",\"%2F\"), 'href':\"https://xiaojuzi.fun/bili-short-url/\"}\n# print(params)\n# exit()\nheaders = {\n    \"accept\": \"*/*\",\n    \"accept-language\": \"en-US,en;q=0.9\",\n    \"if-none-match\": 'W/\"35-oPDNsqBGaZKqGe83GW6wem+lkww\"',\n    \"sec-ch-ua\": '\"Google Chrome\";v=\"105\", \"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"105\"',\n    \"sec-ch-ua-mobile\": \"?0\",\n    \"sec-ch-ua-platform\": '\"macOS\"',\n    \"sec-fetch-dest\": \"empty\",\n    \"sec-fetch-mode\": \"cors\",\n    \"sec-fetch-site\": \"cross-site\",\n    \"Referer\": \"https://xiaojuzi.fun/\",\n    \"Referrer-Policy\": \"strict-origin-when-cross-origin\",\n    'user-agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36' # this is important.\n}\nimport requests\nrequest_url = apiUrl+\"?url={url}&href={href}\".format(**params)",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/name_fuzzy.py:1-3"
+        "location": "/tests/bilibili_video_recommendation_server/get_bilibili_shortlink.py:2-26"
+    },
+    "2575": {
+        "file_id": 277,
+        "content": "This code is making an HTTP request to the specified API endpoint for getting a Bilibili short link. It includes parameters like long URL and href, sets necessary headers, and constructs the request URL using the given parameters.",
+        "type": "comment"
+    },
+    "2576": {
+        "file_id": 277,
+        "content": "# request_url = 'https://service-ijd4slqi-1253419200.gz.apigw.tencentcs.com/release/short_url?url=https%3A%2F%2Fwww.bilibili.com%2Fvideo%2FBV1Wv41157Wz&href=https://xiaojuzi.fun/bili-short-url/'\n# print(request_url)\nr = requests.get(request_url, headers=headers)\nif r.status_code == 200:\n    # print(r.json())\n    r_json = r.json()\n    success = r_json.get('success', False)\n    if success:\n        short_url = r_json.get('short_url', None)\n        print(short_url)\n# starts with 'https://b23.tv'",
+        "type": "code",
+        "location": "/tests/bilibili_video_recommendation_server/get_bilibili_shortlink.py:27-37"
     },
     "2577": {
-        "file_id": 276,
-        "content": "This code initializes two empty lists, 'filenames' and 'bangumi_names'. 'bangumi_names' contains two string values representing anime titles.",
+        "file_id": 277,
+        "content": "This code retrieves the Bilibili video shortlink by making a GET request to the Tencent API with the URL and href parameters. If the response status code is 200, it extracts the 'short_url' from the JSON response and prints it if the 'success' flag is True. The resulting short link starts with 'https://b23.tv'.",
         "type": "comment"
     },
     "2578": {
-        "file_id": 277,
-        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/make_node_symlink.sh",
+        "file_id": 278,
+        "content": "/tests/bilibili_video_recommendation_server/get_masked_gif.sh",
         "type": "filepath"
     },
     "2579": {
-        "file_id": 277,
-        "content": "This script creates a symbolic link named \"node_modules\" pointing to the $NODE_PATH, presumably to resolve or fix an issue with file locations.",
+        "file_id": 278,
+        "content": "This code uses ffmpeg to resize, extract alpha channels, merge, and overlay images for a GIF. It applies an ad mask, creates an overlaid version of the GIF with a black background, and saves both as \"anime_masked.gif\" and \"anime_masked_overlay.gif\".",
         "type": "summary"
     },
     "2580": {
-        "file_id": 277,
-        "content": "ln -s $NODE_PATH node_modules # to fix shit.",
+        "file_id": 278,
+        "content": "WIDTH=936\nHEIGHT=598\n# ffmpeg -y -i anime.gif  -loop 1 -t 1 -i ad_2_mask.png -filter_complex \"[0]scale=$WIDTH:$HEIGHT[v0];[1]alphaextract[v1];[v0][v1]alphamerge[vf];color=black:d=1[c];[c][vf]scale2ref[cs][vf0];[cs][vf0]overlay\" anime_masked.gif\nffmpeg -y -i anime.gif  -loop 1 -t 1 -i ad_2_mask.png -i overlay.png -filter_complex \"[0]scale=$WIDTH:$HEIGHT[v0];[1]alphaextract[v1];[v0][v1]alphamerge[vf];color=black:d=1[c];[c][vf]scale2ref[cs][vf0];[cs][vf0]overlay[vf1];[vf1][2]overlay\" anime_masked_overlay.gif",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/make_node_symlink.sh:1-1"
+        "location": "/tests/bilibili_video_recommendation_server/get_masked_gif.sh:1-5"
     },
     "2581": {
-        "file_id": 277,
-        "content": "This script creates a symbolic link named \"node_modules\" pointing to the $NODE_PATH, presumably to resolve or fix an issue with file locations.",
+        "file_id": 278,
+        "content": "This code uses ffmpeg to resize, extract alpha channels, merge, and overlay images for a GIF. It applies an ad mask, creates an overlaid version of the GIF with a black background, and saves both as \"anime_masked.gif\" and \"anime_masked_overlay.gif\".",
         "type": "comment"
     },
     "2582": {
-        "file_id": 278,
-        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/kill_aria2c.sh",
+        "file_id": 279,
+        "content": "/tests/bilibili_video_recommendation_server/get_text_boundaries.py",
         "type": "filepath"
     },
     "2583": {
-        "file_id": 278,
-        "content": "This command is killing the aria2c process with a SIGINT signal, specifically targeting the specified anime episode titled 'Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]' from the Kamigami & VCB-Studio group.",
+        "file_id": 279,
+        "content": "The code imports Pixie and Lazorzero libraries to draw text on an image, save it, convert the image to grayscale, and then extract the bounding rectangle using OpenCV's boundingRect function. The output is a tuple containing (top left x, top left y, width, height) values representing the bounding box of the text in the image.",
         "type": "summary"
     },
     "2584": {
-        "file_id": 278,
-        "content": "ps aux | grep '[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]' | grep -v grep | awk '{print $1}' | xargs -Iabc kill -s INT abc",
+        "file_id": 279,
+        "content": "import pixie\ntext = 'test me please'\nexport_path = 'detect_text_bounds.png'\nimage = pixie.Image(200,200)\nfont_location = \"./wqy-microhei0.ttf\"\nfont = pixie.read_font(font_location)\nfont.size = 20\nfont.paint.color = pixie.Color(1,1,1,1)\nimage.fill_text(\n    font, text, bounds=pixie.Vector2(180, 180), transform=pixie.translate(10, 10)\n)\nimage.write_file(export_path)\nfrom lazero.utils.importers import cv2_custom_build_init\ncv2_custom_build_init()\nimport cv2\nimg = cv2.imread(export_path)\n# print(img.shape) #(200,200,3)\n# exit()\nimg_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)\n# print(img_gray)\nrect = cv2.boundingRect(img_gray)\n# fuck?\nprint(rect)\n# (10, 13, 130, 21)\n# x,y,w,h?",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/kill_aria2c.sh:1-1"
+        "location": "/tests/bilibili_video_recommendation_server/get_text_boundaries.py:1-32"
     },
     "2585": {
-        "file_id": 278,
-        "content": "This command is killing the aria2c process with a SIGINT signal, specifically targeting the specified anime episode titled 'Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]' from the Kamigami & VCB-Studio group.",
+        "file_id": 279,
+        "content": "The code imports Pixie and Lazorzero libraries to draw text on an image, save it, convert the image to grayscale, and then extract the bounding rectangle using OpenCV's boundingRect function. The output is a tuple containing (top left x, top left y, width, height) values representing the bounding box of the text in the image.",
         "type": "comment"
     },
     "2586": {
-        "file_id": 279,
-        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/dynamic_import.mjs",
+        "file_id": 280,
+        "content": "/tests/bilibili_video_recommendation_server/overlay_gif.sh",
         "type": "filepath"
     },
     "2587": {
-        "file_id": 279,
-        "content": "Code imports and initializes two modules, FfmpegCommand and WebTorrent, using dynamic import. The code checks the data types of the imported functions, with FfmpegCommand being a function and WebTorrent appearing as a class in the console despite its data type being \"function\".",
+        "file_id": 280,
+        "content": "This code uses FFmpeg to overlay a PNG image onto an anime GIF. It scales the GIF to 936x598 resolution, places the overlay at (0,0), and outputs a new GIF called \"anime_overlay.gif\".",
         "type": "summary"
     },
     "2588": {
-        "file_id": 279,
-        "content": "const FfmpegCommand = (await import(`${process.env.NODE_PATH}/fluent-ffmpeg/index.js`)).default \nconst WebTorrent = (await import(`${process.env.NODE_PATH}/webtorrent/index.js`)).default \n// promise!\n// shit this ESM can directly use await statements.\nconsole.log(FfmpegCommand)\nconsole.log(typeof(FfmpegCommand)) // \"function\", with default name.\nconsole.log(WebTorrent)\nconsole.log(typeof(WebTorrent)) // \"function\"? why i see \"class\" in console.log?\n// this syntax is not recommended. autocompletion will not work.",
+        "file_id": 280,
+        "content": "ffmpeg -i anime.gif -i overlay.png \\\n\t-filter_complex \"[0:v]scale=936:598[v1];[v1][1:v]overlay=0:0\" \\\n\t-c:a copy \\\n\tanime_overlay.gif",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/dynamic_import.mjs:1-12"
+        "location": "/tests/bilibili_video_recommendation_server/overlay_gif.sh:1-4"
     },
     "2589": {
-        "file_id": 279,
-        "content": "Code imports and initializes two modules, FfmpegCommand and WebTorrent, using dynamic import. The code checks the data types of the imported functions, with FfmpegCommand being a function and WebTorrent appearing as a class in the console despite its data type being \"function\".",
+        "file_id": 280,
+        "content": "This code uses FFmpeg to overlay a PNG image onto an anime GIF. It scales the GIF to 936x598 resolution, places the overlay at (0,0), and outputs a new GIF called \"anime_overlay.gif\".",
         "type": "comment"
     },
     "2590": {
-        "file_id": 280,
-        "content": "/tests/anime_highlight_cuts/bittorrent_downloader/download_given_file_to_given_name.sh",
+        "file_id": 281,
+        "content": "/tests/bilibili_video_recommendation_server/remove_background.sh",
         "type": "filepath"
     },
     "2591": {
-        "file_id": 280,
-        "content": "This script downloads a torrent file using aria2c and removes temporary files once finished. The script sets the base path, torrent name, and file ID for the download. It also includes two different command variations for stopping the download after completion with timeout options. The commands use kill and grep to end the aria2c process with a signal and remove temporary files.",
+        "file_id": 281,
+        "content": "This command uses ffmpeg to remove the black background from \"bilibili.png\" and save the result as \"bilibili_transparent.png\". The colorkey filter is applied with settings for black color, thresholding, and tolerance.",
         "type": "summary"
     },
     "2592": {
-        "file_id": 280,
-        "content": "# how to end downloading when finished?\n# using some command?\nBASE_PATH=\"/Users/jamesbrown/Downloads/anime_download\"\n# DOWNLOAD_FILE_PATH=\"$BASE_PATH/sample.webp\"\nTORRENT_NAME=\"[Kamigami&VCB-Studio] Yahari Ore no Seishun Lovecome wa Machigatte Iru. [Ma10p_1080p]\"\n# torrent name might be different.\nTORRENT_PATH=\"$BASE_PATH/$TORRENT_NAME.torrent\"\n# echo \"ps aux | grep '$TORRENT_NAME' | grep -v grep | awk '{print \\$1}' | xargs -Iabc kill -s INT abc\" > kill_aria2c.sh\nFILE_ID=\"117\"\n# timeout set to what?\n# rm \"$DOWNLOAD_FILE_PATH\"\nrm -rf \"$TORRENT_NAME\"\nrm -rf \"$TORRENT_NAME.aria2\"\n# this will be ignored.\n# change directory to our temp directory.\n# this speed shall be precalculated.\n# \n# you may check integrity.\n# just count seeders.\n# aria2c -x 16 --select-file=\"$FILE_ID\" --seed-time=0 --file-allocation=none \"$TORRENT_PATH\"\n# aria2c -x 16 --select-file=\"$FILE_ID\" --seed-time=0 --file-allocation=none --lowest-speed-limit=300K --bt-stop-timeout=60 \"$TORRENT_PATH\"",
+        "file_id": 281,
+        "content": "ffmpeg -i bilibili.png -vf \"colorkey=black:0.3:0.2\" bilibili_transparent.png",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/bittorrent_downloader/download_given_file_to_given_name.sh:1-27"
+        "location": "/tests/bilibili_video_recommendation_server/remove_background.sh:1-1"
     },
     "2593": {
-        "file_id": 280,
-        "content": "This script downloads a torrent file using aria2c and removes temporary files once finished. The script sets the base path, torrent name, and file ID for the download. It also includes two different command variations for stopping the download after completion with timeout options. The commands use kill and grep to end the aria2c process with a signal and remove temporary files.",
+        "file_id": 281,
+        "content": "This command uses ffmpeg to remove the black background from \"bilibili.png\" and save the result as \"bilibili_transparent.png\". The colorkey filter is applied with settings for black color, thresholding, and tolerance.",
         "type": "comment"
     },
     "2594": {
-        "file_id": 281,
-        "content": "/tests/conversation_talk_apis/api_tests.py",
+        "file_id": 282,
+        "content": "/tests/bilibili_video_recommendation_server/sample_video/create_sample_video_with_fade_and_metadata.py",
         "type": "filepath"
     },
     "2595": {
-        "file_id": 281,
-        "content": "This code imports modules, disables proxies, and uses requests library to send POST requests to Weibo API's direct messaging endpoint. It creates and sends messages, retrieves responses in JSON format, interacts with Weibo and OwnThink APIs, checks user messages against responses, performs API tests using checkApi function for different chatbot instances.",
+        "file_id": 282,
+        "content": "This code sets up a video processing task with image overlay, fade transition, and audio, saving a JSON object for Editly template and running the software using xvfb in subprocess.",
         "type": "summary"
     },
     "2596": {
-        "file_id": 281,
-        "content": "import urllib.parse\nimport requests\n# disable all proxies.\nimport os\nimport time\nos.environ[\"http_proxy\"]=\"\"\nos.environ[\"https_proxy\"]=\"\"\n# do not use freaking proxy, otherwise QingYunKe will not respond.\ndef checkApi(func,message,name):\n    response_message = func(message)\n    if response_message!=None:\n        print(\"{} RESPONSE:\".format(name), response_message)\ndef chatAtri(msg: str, BASE='http://api.nekomimi.icu/v1/'):\n    url = BASE + 'chat?msg=%s' % msg\n    response = requests.get(url)\n    if response.status_code == 200:\n        data = response.json()\n        if data['status'] == 'success':\n            return data['message']\n    # return None\n    # nothing is returned if have error.\n    print(\"ATRI ERROR:\", response.status_code, response.json())\n# import subprocess\n# import json\ndef chatQingKeYun(msg: str, url=\"http://api.qingyunke.com/api.php?key=free&appid=0&msg=\"):\n    msg = urllib.parse.quote(msg)\n    myUrl = url+msg\n    # print(myUrl)\n    # output = subprocess.check_output([\"curl\", myUrl])\n    # data = json.loads(output.decode(\"utf-8\"))",
+        "file_id": 282,
+        "content": "# maybe this time you can burn uploader logo to the video\n# the title of the video, intro, outro.\nvideo_path = \"/root/Desktop/works/pyjom/tests/bilibili_video_recommendation_server/sample_video/sample_video.mp4\"\nup_image_path = (\n    \"/root/Desktop/works/pyjom/tests/bilibili_video_recommendation_server/up_image.jpg\"\n)\noutput_path = \"output.mp4\"\nfontPath = \"/root/Desktop/works/pyjom/tests/bilibili_video_recommendation_server/wqy-microhei0.ttf\"\ncat_image = (\n    \"/root/Desktop/works/pyjom/tests/bilibili_video_recommendation_server/cat_image.jpg\"\n)\ntitle = \"世上所有的小猫\\n\\n都是天使变的！\" # add newline, change it into another catchy title, as compliment.\naudio_path = \"output.mp3.mp3\"\naudio_duration = 3.31\ntemplate_name = \"template.json\"\nfrom caer.video.frames_and_fps import get_duration, get_res\nvideo_duration = get_duration(video_path)\nvideo_width, video_height = get_res(video_path)\n# we shall use editly to do this job shall we?\nmin_video_scalar = min(video_width, video_height)\nup_image_scalar = int(min_video_scalar * 0.2)",
         "type": "code",
-        "location": "/tests/conversation_talk_apis/api_tests.py:1-37"
+        "location": "/tests/bilibili_video_recommendation_server/sample_video/create_sample_video_with_fade_and_metadata.py:1-24"
     },
     "2597": {
-        "file_id": 281,
-        "content": "Code imports necessary modules, disables proxies, defines a function to check API responses, and includes two chat functions: 'chatAtri' for chatting with Atri using a Chinese language processing API, and 'chatQingKeYun' for chatting with QingYunKe using a free API key. The code also has a commented section that appears to be testing the use of subprocess and json modules but is not implemented yet.",
+        "file_id": 282,
+        "content": "This code is setting up variables for video processing, such as the input video path, uploader logo path, output path, font path, and image path. It also includes a title, audio path, and template name. The code uses the get_duration() function to determine the video duration and get_res() to retrieve the video's width and height. Lastly, it calculates a minimum video scalar value for editing purposes using editly.",
         "type": "comment"
     },
     "2598": {
-        "file_id": 281,
-        "content": "    # import requests\n    data = requests.get(myUrl)\n    data = data.json()\n    print(data)\n    result = data['result']\n    assert result == 0  # 202 -> busy\n    content = data['content']\n    return content\n    # breakpoint()\ndef xiaobing(msg):\n    # 其实是新浪微博群发器 微博群发的逻辑类似于b站群发\n    # 刚关注的只能发一条消息\n    uid = '5175429989'\n    source = '209678993'\n    SUB = '_2A25PyitTDeRhGeBG7VAS8y_MwjmIHXVsvhubrDV8PUNbmtANLRfTkW9NRhxXNiVv6Qwut5wwnc8rys3cbJFAxVdX'\n    url_send = 'https://api.weibo.com/webim/2/direct_messages/new.json'\n    data = {\n        'text': msg,\n        'uid': uid,\n        'source': source\n    }\n    headers = {\n        'cookie': 'SUB='+SUB,\n        'Content-Type': 'application/x-www-form-urlencoded',\n        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36',\n        'Referer': 'https://api.weibo.com/chat/'\n    }\n    response = requests.post(url_send, data=data, headers=headers).json()\n    sendMsg = response['text']\n    time.sleep(1)\n    while True:",
+        "file_id": 282,
+        "content": "up_image_width = up_image_scalar / video_width\nup_image_height = up_image_scalar / video_height\n# some parameters are using floating point numbers between 0 and 1\n# image overlay can be done in editly\n# no need to render that silly karaoke effects.\neditlyJson = {\n    \"outPath\": output_path,\n    \"width\": video_width,\n    \"height\": video_height,\n    \"fps\": 30,  # different from the default value.\n    \"fast\": True,  # just for preview. if not turning this on, will be too slow.\n    \"keepSourceAudio\": True,  # it does!\n    \"defaults\": {\n        \"transition\": {\n            \"duration\": 0.5,\n            \"name\": \"fade\",\n            \"audioOutCurve\": \"tri\",\n            \"audioInCurve\": \"tri\",\n        }\n    },\n    \"clips\": [\n        # {\n        #     \"duration\": 0.5,\n        #     \"layers\": [\n        #         # {\"type\": \"fill-color\", \"color\": \"#000000\"},\n        #         # {\"type\": \"detached-audio\", \"path\": audio_path}, # will make sure nothing visual presents.\n        #     ],\n        # },\n        # we disable this clip.\n        {",
         "type": "code",
-        "location": "/tests/conversation_talk_apis/api_tests.py:38-69"
+        "location": "/tests/bilibili_video_recommendation_server/sample_video/create_sample_video_with_fade_and_metadata.py:25-57"
     },
     "2599": {
-        "file_id": 281,
-        "content": "This code is using the requests library to send a POST request to the Weibo API's direct messaging endpoint. It creates a new message with the provided text, sends it to a specified user (uid), and retrieves the response from the API. The script includes necessary headers and uses JSON format for the data payload.",
+        "file_id": 282,
+        "content": "This code sets up parameters for an editly job, which involves overlaying an image with specific dimensions and applying a fade transition effect. The video's audio will be kept, and the job is set to a fast preview mode.",
         "type": "comment"
     }
 }

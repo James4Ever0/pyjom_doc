@@ -1,531 +1,543 @@
 {
     "2300": {
-        "file_id": 236,
-        "content": "/tests/qq_share_autojs/appium_test.py",
-        "type": "filepath"
+        "file_id": 245,
+        "content": "# - which params should remain on gpus - the larger the value the smaller the offload size\n#\n# For indepth info on Deepspeed config see\n# https://huggingface.co/docs/transformers/main/main_classes/deepspeed\n# keeping the same format as json for consistency, except it uses lower case for true/false\n# fmt: off\nds_config = {\n    \"fp16\": {\n        \"enabled\": True # to half the model precision.\n    },\n    \"zero_optimization\": {\n        \"stage\": 3,\n        \"offload_param\": {\n            \"device\": \"cpu\",\n            \"pin_memory\": True\n        },\n        \"overlap_comm\": True,\n        \"contiguous_gradients\": True,\n        \"reduce_bucket_size\": model_hidden_size * model_hidden_size,\n        \"stage3_prefetch_bucket_size\": 0.9 * model_hidden_size * model_hidden_size,\n        \"stage3_param_persistence_threshold\": 10 * model_hidden_size\n    },\n    \"steps_per_print\": 2000,\n    \"train_batch_size\": train_batch_size,\n    \"train_micro_batch_size_per_gpu\": 1,\n    \"wall_clock_breakdown\": False\n}\n# fmt: on\n# next line instructs transformers to partition the model directly over multiple gpus using",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:93-123"
     },
     "2301": {
-        "file_id": 236,
-        "content": "Code sets up Appium test for Android device using the uiautomator2 automation, launches com.android.settings app, searches for \"Battery\" and clicks it, then quits the driver if open.",
-        "type": "summary"
+        "file_id": 245,
+        "content": "This code snippet is initializing a Deepspeed configuration for model training with specific settings. The configuration includes enabling FP16 (half precision) for the model, setting zero optimization stage to 3, and configuring offload parameters such as device and pin memory. Additionally, it specifies steps per print, train batch size, train micro-batch size per GPU, and whether to display wall clock breakdown. This configuration aims to optimize model training on multiple GPUs efficiently.",
+        "type": "comment"
     },
     "2302": {
-        "file_id": 236,
-        "content": "#!/usr/bin/env python\n# -*- coding: utf-8 -*-\nfrom appium import webdriver\nfrom appium.webdriver.common.appiumby import AppiumBy\ncapabilities = dict(\n    platformName='Android',\n    automationName='uiautomator2',\n    deviceName='Android',\n    appPackage='com.android.settings',\n    appActivity='.Settings',\n    language='en',\n    locale='US',\n    noSign=True\n)\nappium_server_url = 'http://localhost:4723'\ndriver = webdriver.Remote(appium_server_url, capabilities)\nel = driver.find_element(by=AppiumBy.XPATH, value='//*[@text=\"Battery\"]')\nel.click()\nif driver:\n    driver.quit()",
+        "file_id": 245,
+        "content": "# deepspeed.zero.Init when model's `from_pretrained` method is called.\n#\n# **it has to be run before loading the model AutoModelForSeq2SeqLM.from_pretrained(model_name)**\n#\n# otherwise the model will first be loaded normally and only partitioned at forward time which is\n# less efficient and when there is little CPU RAM may fail\ndschf = HfDeepSpeedConfig(ds_config)  # keep this object alive\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"\n# now a model can be loaded.\n# model = AutoModelForSeq2SeqLM.from_pretrained(model_name)\nmodel = M2M100ForConditionalGeneration.from_pretrained(modelpath)\n# this will not fuck shit up.\n# initialise Deepspeed ZeRO and store only the engine object\nds_engine = deepspeed.initialize(model=model, config_params=ds_config)[0]\nds_engine.module.eval()  # inference\n# Deepspeed ZeRO can process unrelated inputs on each GPU. So for 2 gpus you process 2 inputs at once.\n# If you use more GPUs adjust for more.\n# And of course if you have just one input to process you then need to pass the same string to both gpus",
         "type": "code",
-        "location": "/tests/qq_share_autojs/appium_test.py:1-27"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:124-146"
     },
     "2303": {
-        "file_id": 236,
-        "content": "Code sets up Appium test for Android device using the uiautomator2 automation, launches com.android.settings app, searches for \"Battery\" and clicks it, then quits the driver if open.",
+        "file_id": 245,
+        "content": "The code initializes Deepspeed ZeRO before loading the model and sets the engine object for parallel processing. This ensures efficient usage of resources by partitioning the model at initialization rather than during forward pass, and allows handling multiple inputs on each GPU if available.",
         "type": "comment"
     },
     "2304": {
-        "file_id": 237,
-        "content": "/tests/qq_share_autojs/adb_unlock.sh",
-        "type": "filepath"
+        "file_id": 245,
+        "content": "# # If you use only one GPU, then you will have only rank 0.\n# rank = torch.distributed.get_rank()\n# if rank == 0:\n#     text_in = \"Is this review positive or negative? Review: this is the best cast iron skillet you will ever buy\"\n# elif rank == 1:\n#     text_in = \"Is this review positive or negative? Review: this is the worst restaurant ever\"\n# tokenizer = AutoTokenizer.from_pretrained(model_name)\n# sentence = \"你吃饭了没有\" # You have eaten. from m2m100 418M\ntokenizer = M2M100Tokenizer.from_pretrained(modelpath,src_lang=\"en\",tgt_lang=\"zh\")\n# source = tokenizer.get_lang_id(\"zh\")\n# tokenizer.src_lang = source\nmdevice = torch.device(\"cuda\")\n# tokenizer.to(mdevice)\n# inputs = tokenizer.encode(text_in, return_tensors=\"pt\").to(device=local_rank)\ndef get_response(sentence):\n    text_to_translate =sentence\n    model_inputs = tokenizer(text_to_translate, return_tensors=\"pt\")\n    # inputs = model.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"en\"))\n    model_inputs = {k:model_inputs[k].to(mdevice) for k in model_inputs.keys()}",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:147-174"
     },
     "2305": {
-        "file_id": 237,
-        "content": "This code uses ADB to simulate touch events on an Android device. It performs a power button press, a swipe gesture, enters text, and presses the back key.",
-        "type": "summary"
+        "file_id": 245,
+        "content": "This code is setting up the environment for a machine translation task using the M2M100 model. It assigns GPU ranks to different tasks, initializes the tokenizer, and defines a function called \"get_response\" that takes a sentence as input, tokenizes it, prepares inputs for the model, and performs translation. The code is specifically tailored for a CUDA device, meaning it will utilize GPUs for processing.",
+        "type": "comment"
     },
     "2306": {
-        "file_id": 237,
-        "content": "adb -s 192.168.10.3:5555 shell input keyevent 26\nadb -s 192.168.10.3:5555 shell input swipe 500 500 500 0\nadb -s 192.168.10.3:5555 shell input text \"Bumper\\&Mountains\"\nadb -s 192.168.10.3:5555 shell input keyevent 66",
+        "file_id": 245,
+        "content": "    with torch.no_grad():\n        # outputs = ds_engine.module.generate(inputs, synced_gpus=True)\n        while True:\n            try:\n                gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True).cpu() # whatever. no too heavy lifting.\n                # gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True,top_k=0,num_beams=8,num_return_sequences=1,no_repeat_ngram_size=2,temperature=1.4).cpu() # whatever.\n                # gen_tokens = ds_engine.module.generate(**model_inputs, forced_bos_token_id=tokenizer.get_lang_id(\"zh\"),synced_gpus=True,do_sample=True,top_k=0,top_p=0.92,num_beams=5,num_return_sequences=5,no_repeat_ngram_size=2,temperature=0.7).cpu() # whatever.\n                break\n            except:\n                import traceback\n                traceback.print_exc()\n                breakpoint() # translate speed is slow as hell. must do some summarization. or you cover them all.",
         "type": "code",
-        "location": "/tests/qq_share_autojs/adb_unlock.sh:1-4"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:176-187"
     },
     "2307": {
-        "file_id": 237,
-        "content": "This code uses ADB to simulate touch events on an Android device. It performs a power button press, a swipe gesture, enters text, and presses the back key.",
+        "file_id": 245,
+        "content": "This code uses deepspeed engine to generate translated text using a model. It employs different generate() calls with varying parameters (top_k, top_p, num_beams) in a while loop, likely for experimentation purposes. The loop continues until a successful generation is achieved without any exceptions or until a breakpoint is hit, and it handles exceptions by printing the traceback and breaking out of the loop.",
         "type": "comment"
     },
     "2308": {
-        "file_id": 238,
-        "content": "/tests/qq_share_autojs/adb_check_lock.sh",
-        "type": "filepath"
+        "file_id": 245,
+        "content": "                # you may do this for pictures.\n    # text_out = tokenizer.decode(outputs[0], skip_special_tokens=True)\n    print(\"TRANSLATED:\")\n    return tokenizer.batch_decode(gen_tokens, skip_special_tokens=True)\n# print(get_response(\"你吃饭了没有\"))\n# print(\"PROMPT READY.\")\n# print(\"type exit to exit.\")\n# while True:\n#     targetSentence = input(\"\\nprompt>\")\n#     if \"exit\" not in targetSentence:\n#         result = get_response(targetSentence)\n#         print(result) # this is goddamly working. fuck!\n#     else:\n#         break\n# import time\n# values = []\n# for _ in range(3):\n#     a = time.time()\n#     translate_once()\n#     b = time.time()\n#     value = b-a\n#     # value = timeit.timeit(stmt=\"translate_once()\")\n#     print(\"TIME COST: {}\".format(value))\n#     values.append(value)\n# print(\"TOTAL COST:\",values)\n# print(\"AVERAGE COST:\",sum(values)/len(values))\n# stuck at the end.\n# TOTAL COST: [6.2853310108184814, 4.705244541168213, 4.688654661178589]\n# AVERAGE COST: 5.226410071055095\n# better not to use swap.",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_dl_translator_1b_deepspeed.py:188-220"
     },
     "2309": {
-        "file_id": 238,
-        "content": "This script checks if the phone is locked or unlocked by running \"adb -s 192.168.10.3:5555 shell dumpsys window | grep mDreamingLockscreen=false\" and then executes \"bash adb_unlock.sh\" if locked, otherwise exits. The check is performed in an infinite loop using a \"while true\" statement.",
-        "type": "summary"
-    },
-    "2310": {
-        "file_id": 238,
-        "content": "function checkScreen {\n  adb -s 192.168.10.3:5555 shell dumpsys window | grep mDreamingLockscreen=false\n  if [[ $? -eq 1 ]]; then\n    echo \"phone locked\"\n    bash adb_unlock.sh\n    sleep 2\n  else\n    echo \"phone unlocked\"\n    exit\n  fi\n}\nwhile true\ndo\n  checkScreen\ndone",
-        "type": "code",
-        "location": "/tests/qq_share_autojs/adb_check_lock.sh:1-16"
-    },
-    "2311": {
-        "file_id": 238,
-        "content": "This script checks if the phone is locked or unlocked by running \"adb -s 192.168.10.3:5555 shell dumpsys window | grep mDreamingLockscreen=false\" and then executes \"bash adb_unlock.sh\" if locked, otherwise exits. The check is performed in an infinite loop using a \"while true\" statement.",
+        "file_id": 245,
+        "content": "This code is a functional implementation of a DL translator, likely for Chinese to English translation. It takes user input in the form of text and returns the translated output. The code includes batch decoding of tokenizer outputs and handles user input within a while loop. It also measures the time cost and average cost per iteration of the function.",
         "type": "comment"
     },
-    "2312": {
-        "file_id": 239,
-        "content": "/tests/qq_share_autojs/adb_autox_launch.sh",
+    "2310": {
+        "file_id": 246,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py",
         "type": "filepath"
     },
-    "2313": {
-        "file_id": 239,
-        "content": "This code is using the 'adb' command to launch the 'ShortcutActivity' in AutoJS v6 on a specific device (192.168.10.3:5555). It starts an activity and passes an intent action with the path to the 'qq_share_auto.js' script as an extra parameter.",
+    "2311": {
+        "file_id": 246,
+        "content": "The code uses PaddleOCR for OCR, focusing on English text detection and supporting multiple languages. It downloads the language model once at runtime and utilizes the `redraw_english_to_chinese` function to translate and display results over images. The developer's custom CUDA libraries may cause potential CUDA errors with OpenCV.",
         "type": "summary"
     },
-    "2314": {
-        "file_id": 239,
-        "content": "adb -s 192.168.10.3:5555 shell am start -n org.autojs.autoxjs.v6/org.autojs.autojs.external.shortcut.ShortcutActivity -a android.intent.action.MAIN -e path \"/storage/emulated/0/脚本/qq_share_auto.js\"",
+    "2312": {
+        "file_id": 246,
+        "content": "from paddleocr import PaddleOCR\nimport wordninja\n# from m2m100_1b_translator import zh_to_en_translator as translator\n# cannot translate everything... not frame by frame...\n# can summarize things. can block texts on location.\n# Paddleocr supports Chinese, English, French, German, Korean and Japanese.\n# You can set the parameter `lang` as `ch`, `en`, `french`, `german`, `korean`, `japan`\n# to switch the language model in order.\n# img_path = 'target.png' # only detect english. or not?\nocr = PaddleOCR(use_angle_cls=True, lang='en') # need to run only once to download and load model into memory\n# image = cv2.imread(img_path)\n# we will give it to you...\n# internalFrameCounter = 0\n# resultChineseInternal = []\ndef redraw_english_to_chinese(image): # whatever. it is dumb anyway. we need to be prudent. really?\n    # global resultChineseInternal, internalFrameCounter # we need to look ahead.\n    resultChineseInternal2 = ocr.ocr(image, cls=True) # you will be fucked if skip frames.\n    prob_thresh = 0.6 # found watermark somewhere. scorpa",
         "type": "code",
-        "location": "/tests/qq_share_autojs/adb_autox_launch.sh:1-1"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:1-19"
+    },
+    "2313": {
+        "file_id": 246,
+        "content": "This code uses PaddleOCR to perform optical character recognition (OCR) on an image, specifically detecting and translating English text within it. It downloads and loads the language model only once during runtime. The code is designed to handle Chinese and other languages as well, but currently focuses on English detection. The function `redraw_english_to_chinese` takes an image as input, uses OCR to identify text, and returns the translated text results.",
+        "type": "comment"
+    },
+    "2314": {
+        "file_id": 246,
+        "content": "    resultChineseInternal = []\n    for index, line in enumerate(resultChineseInternal2):\n        # print(line)\n        # breakpoint()\n        coords, (text, prob) = line\n        prob = float(prob)\n        if prob > prob_thresh:\n            rectified_text = \" \".join(wordninja.split(text))\n            line[1] = (rectified_text, prob)\n            print(line)\n            resultChineseInternal.append(line)\n    return resultChineseInternal\n# cv2.imshow('dst',dst2)\n# cv2.waitKey(0)\n# cv2.destroyAllWindows()\n# expand the area somehow.\n# draw resultChineseInternal\n# simhei_path = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\"\n# from PIL import Image\n# image = Image.open(img_path).convert('RGB')\n# boxes = [line[0] for line in resultChineseInternal]\n# txts = [line[1][0] for line in resultChineseInternal]\n# scores = [line[1][1] for line in resultChineseInternal]\n# im_show = draw_ocr(image, boxes, txts, scores, font_path=simhei_path)\n# im_show = Image.fromarray(im_show)\n# im_show.save('resultChineseInternal.jpg')\n# we will be testing one image only. not the whole goddamn video.",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:20-50"
     },
     "2315": {
-        "file_id": 239,
-        "content": "This code is using the 'adb' command to launch the 'ShortcutActivity' in AutoJS v6 on a specific device (192.168.10.3:5555). It starts an activity and passes an intent action with the path to the 'qq_share_auto.js' script as an extra parameter.",
+        "file_id": 246,
+        "content": "Iterates over resultChineseInternal2, rectifies text using wordninja if prob > prob_thresh. Stores modified lines in resultChineseInternal. Displays image with OCR results using draw_ocr function and saves it as \"resultChineseInternal.jpg\".",
         "type": "comment"
     },
     "2316": {
-        "file_id": 240,
-        "content": "/tests/qq_share_autojs/account_management.sh",
-        "type": "filepath"
+        "file_id": 246,
+        "content": "# may have cuda error when using my cv2 cuda libs.",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline.py:51-51"
     },
     "2317": {
-        "file_id": 240,
-        "content": "The code is starting the \"com.tencent.mobileqq.activity.AccountManageActivity\" activity, which likely pertains to account management in a mobile application named MobileQQ.",
-        "type": "summary"
-    },
-    "2318": {
-        "file_id": 240,
-        "content": "am start  com.tencent.mobileqq.activity.AccountManageActivity",
-        "type": "code",
-        "location": "/tests/qq_share_autojs/account_management.sh:1-1"
-    },
-    "2319": {
-        "file_id": 240,
-        "content": "The code is starting the \"com.tencent.mobileqq.activity.AccountManageActivity\" activity, which likely pertains to account management in a mobile application named MobileQQ.",
+        "file_id": 246,
+        "content": "This code seems to be a comment expressing a potential issue when using the developer's custom CUDA libraries with OpenCV. It mentions that it might throw a CUDA error in those specific cases, possibly requiring attention or alternative solutions.",
         "type": "comment"
     },
-    "2320": {
-        "file_id": 241,
-        "content": "/tests/qq_share_autojs/autojs_scripts/wesee_search.js",
+    "2318": {
+        "file_id": 247,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py",
         "type": "filepath"
     },
-    "2321": {
-        "file_id": 241,
-        "content": "This code initiates the WeSee app, starts the GlobalSearchActivity, and inputs the search term \"猫猫\" before triggering a search with KEYCODE_ENTER.",
+    "2319": {
+        "file_id": 247,
+        "content": "This code uses CUDA with OpenCV for image processing, inpainting and masked blurring. It converts images to Pillow for text rotation, stroke width handling, and transparency blending. The function estimates text orientation, size, and center, then applies image processing tasks before saving and returning the result.",
         "type": "summary"
     },
-    "2322": {
-        "file_id": 241,
-        "content": "pkg=\"com.tencent.weishi\"\nact=\"com.tencent.oscar.module.discovery.ui.GlobalSearchActivity\"\napp.startActivity({root:true,\npackageName:pkg,className:act,\naction:\"View\"})\nwaitForActivity(act)\nsetText(\"猫猫\")\nKeyCode(\"KEYCODE_ENTER\")",
+    "2320": {
+        "file_id": 247,
+        "content": "use_cuda_cv2 = True # after we compile shit\nif use_cuda_cv2: # the freaking speed is awful.\n    import pathlib\n    import site\n    import sys\n    # this is root. this is not site-packages.\n    # site_path = pathlib.Path([x for x in site.getsitepackages() if \"site-packages\" in x][0])\n    site_path = pathlib.Path(\"/usr/local/lib/python3.9/site-packages\") # maybe it is done after you make install the whole cv2 shit.\n    cv2_libs_dir = site_path / 'cv2' / f'python-{sys.version_info.major}.{sys.version_info.minor}'\n    print(cv2_libs_dir)\n    cv2_libs = sorted(cv2_libs_dir.glob(\"*.so\"))\n    if len(cv2_libs) == 1:\n        print(\"INSERTING:\",cv2_libs[0].parent)\n        sys.path.insert(1, str(cv2_libs[0].parent))\nimport cv2\nimport numpy as np\nfrom PIL import Image, ImageFont, ImageDraw  \nimport Levenshtein\nimport math\n# from m2m100_1b_translator import zh_to_en_translator as translator\n# i just want to do the freaking inpainting.\n# import statistics\ndef redraw_english_to_chinese2(image,resultChineseInternal): \n    a,b,c = image.shape",
         "type": "code",
-        "location": "/tests/qq_share_autojs/autojs_scripts/wesee_search.js:1-12"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:1-30"
+    },
+    "2321": {
+        "file_id": 247,
+        "content": "The code is setting up the environment for using CUDA with OpenCV and importing necessary libraries. It checks if a specific OpenCV library file exists, and if so, it adds its parent directory to the system path. The function redraw_english_to_chinese2 is defined at the end of the code snippet, but its implementation is not visible in this chunk.",
+        "type": "comment"
+    },
+    "2322": {
+        "file_id": 247,
+        "content": "    total_area = a*b\n    total_center = (a/2,b/2)\n    total_corners = [(a,0),(0,0),(0,b),(a,b)]\n    total_strings = [\"scorpa\"]\n    area_threshold = 1/15 # don't know.\n    area_threshold = total_area*area_threshold\n    mask3_threshold = area_threshold*0.6\n    blank_image = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    blank_image2 = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    blank_image3 = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order\n    def compareStringSimilarity(text,targetCompareString=\"scorpa\"):\n        # what is this?\n        comparedWaterMarkString = targetCompareString.lower() # the freaking name \n        comparedWaterMarkStringLength = len(comparedWaterMarkString)\n            # remove watermarks? how to filter?\n            # no fucking translation at all.\n        editDistanceThreshold = 4\n        textCompareCandidate = text.replace(\" \",\"\").lower() # original text, no translation.\n        distance = Levenshtein.distance(textCompareCandidate,comparedWaterMarkString)",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:32-52"
     },
     "2323": {
-        "file_id": 241,
-        "content": "This code initiates the WeSee app, starts the GlobalSearchActivity, and inputs the search term \"猫猫\" before triggering a search with KEYCODE_ENTER.",
+        "file_id": 247,
+        "content": "This code calculates the total area and center of an image, sets the corners and initializes blank images. It defines a function to compare string similarity between two strings with an edit distance threshold, likely for text recognition or watermark detection.",
         "type": "comment"
     },
     "2324": {
-        "file_id": 242,
-        "content": "/tests/qq_share_autojs/autojs_scripts/taobao_gg_search.js",
-        "type": "filepath"
+        "file_id": 247,
+        "content": "        string_length = len(text)\n        string_length_difference = abs(string_length-comparedWaterMarkStringLength)\n        length_difference_threshold = 3\n        if (distance < editDistanceThreshold and string_length_difference < length_difference_threshold):\n            return True\n        return False\n    def get_center(rectangle_coords):\n        x0,y0 = rectangle_coords[0]\n        x1,y1 = rectangle_coords[2]\n        return ((x0+x1)/2,(y0+y1)/2)\n    def get_distance(a,b): x = a[0]-b[0]; x2 = x**2; y = a[1]-b[1];y2 = y**2; return(math.sqrt(x2+y2))\n    resultChineseInternal2 = list(sorted(resultChineseInternal,key=lambda x:min([get_distance(corner,get_center(x[0])) for corner in total_corners]))) # sort by centrality. but not by corner. use corner instead.\n    resultChineseInternal2 = sorted(resultChineseInternal2,key=lambda x:1-max([int(compareStringSimilarity(x[1][0],tstring)) for tstring in total_strings])) # sort by centrality. but not by corner. use corner instead.\n    for coords, (text,prob) in resultChineseInternal2: # get boundary coords first.",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:53-66"
     },
     "2325": {
-        "file_id": 242,
-        "content": "This code reduces music volume, opens Taobao app with custom URL, handles session ID and video player settings using item ID, GG search request, and referer origin, while waiting for prompts and handling expired ones by polling, clicking \"I know\" button, setting specific text, searching for \"猫猫\", and managing volume settings.",
-        "type": "summary"
+        "file_id": 247,
+        "content": "The code compares the length of a text string with a predefined length, and if the difference is within a certain threshold, it returns True. The code also calculates distances between points using coordinates, sorts a list based on these distances and centrality, and retrieves boundary coordinates for each text string.",
+        "type": "comment"
     },
     "2326": {
-        "file_id": 242,
-        "content": "package=\"com.taobao.taobao\";\nactivity=\"com.taobao.search.searchdoor.SearchDoorActivity\";\n//activity=\"com.taobao.search.searchdoor.MultipleSearchDoorActivity\";\nvar vol=device.getMusicVolume()\ndevice.setMusicVolume(0)\n// mute the thing please?\napp.startActivity({action:\"View\",\npackageName:package,className:activity,\nroot:true,\n//category:[\"com.taobao.intent.category.search.MULTI_SEARCHDOOR\"],\ndata:\"http://s.m.taobao.com/...\",})\n // not launching 淘宝逛逛\n /*\n 2221:2022-11-02 13:02:20.328 | startActivity { calling=com.taobao.taobao:-1--1, rc=10159-1987, iTS=false, requestCode=-1, startFlags=0, target=com.taobao.taobao/com.taobao.search.searchdoor.SearchDoorActivity<true>, intent=Intent { act=android.intent.action.VIEW dat=http://s.m.taobao.com/... pkg=com.taobao.taobao cmp=com.taobao.taobao/com.taobao.search.searchdoor.SearchDoorActivity (has extras) }, extras={ NAV_START_ACTIVITY_TIME:(java.lang.Long)1667365340316, ad_type:(java.lang.String)1.0, NAV_TO_URL_START_TIME:(java.lang.Long)1667365340268, referr",
+        "file_id": 247,
+        "content": "        polyArray = np.array(coords).astype(np.int64) # fuck.\n        # print(polyArray)\n        # print(polyArray.shape)\n        # breakpoint()\n        # points = np.array([[160, 130], [350, 130], [250, 300]])\n        # print(points.dtype)\n        # points = np.array([[454.0, 22.0], [464.0, 26.0], [464.0, 85.0]]).astype(np.int64)\n        # this is rectangular. simple shit. not simple for other shits.\n        color= 255\n        coord0, coord1, coord2 = coords[0],coords[1],coords[2]\n        sid1, sid2 = get_distance(coord0,coord1), get_distance(coord1,coord2)\n        polyArea = sid1*sid2\n        mask3_area = np.sum(blank_image3)\n        if polyArea >= area_threshold or mask3_area >= mask3_threshold:\n            cv2.fillPoly(blank_image,[polyArray],color)\n            isClosed = True\n            thickness = 20 # oh shit.\n            thickness2 = 40 # oh shit.\n            cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image2, [polyArray], isClosed, color, thickness2) # much better.",
         "type": "code",
-        "location": "/tests/qq_share_autojs/autojs_scripts/taobao_gg_search.js:1-19"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:67-86"
     },
     "2327": {
-        "file_id": 242,
-        "content": "The code sets the music volume to 0 and then launches the Taobao app's search function by starting the specified activity with a specific URL. The intent action is VIEW, and it targets com.taobao.taobao/com.taobao.search.searchdoor.SearchDoorActivity.",
+        "file_id": 247,
+        "content": "Code creates a numpy array from given coordinates, checks if the area is above certain thresholds, and then uses cv2.fillPoly and cv2.polylines to draw on two images with different thicknesses.",
         "type": "comment"
     },
     "2328": {
-        "file_id": 242,
-        "content": "er:(java.lang.String)http://market.m.taobao.com/app/tb-source-app/video-fullpage/pages/index2?wh_weex=false&wx_navbar_transparent=true&wx_navbar_hidden=true&id=380201806724&bizParameters=%7B%22itemIds%22%3A%22681366994883%22%2C%22contentId%22%3A%22380201806724%22%2C%22videoId%22%3A%22380201806724%22%7D&videoUrl=http%3A%2F%2Fcloud.video.taobao.com%2Fplay%2Fu%2F2208882892036%2Fp%2F1%2Fe%2F6%2Ft%2F1%2F380201806724.mp4&type=cainixihuansy&source=cainixihuansy&business_spm=a211r6.cjvideo&hideAccountInfo=false&extParams=%7B%2288_bucket%22%3A%220%22%7D&scm=1007.10088.311498.0&spm=a2141.1.guessitemtab_1.5&pvid=b9ca1499-6a25-4913-9b4a-a2c703576f45&utparam=%7B%22x_sid%22%3A%2252aa36213ede47006361f9b21dbc602d%22%2C%22card_subtype%22%3A%22xgc%22%2C%22up_pvid%22%3A%22f88bbfa6-c859-44a5-94bb-e0599c889e5a%22%2C%22x_sid_cpm%22%3A%22be353521ca7fc7006361f9b20c542845%22%2C%22x_object_type%22%3A%22VIDEO_916%22%2C%22x_ad_bucketid_cpm%22%3A%2212676854%2C17296858%22%2C%22hybrid_score%22%3A0.303358%2C%22x_biz%",
+        "file_id": 247,
+        "content": "        else:\n            cv2.fillPoly(blank_image3,[polyArray],color)\n            isClosed = True\n            thickness = 30 # oh shit.\n            thickness2 = 50 # oh shit.\n            # cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image3, [polyArray], isClosed, color, thickness) # much better.\n            cv2.polylines(blank_image2, [polyArray], isClosed, color, thickness2) # much better.\n    #     # cv2.fillPoly(blank_image,pts=[points],color=(255, 255,255))\n    # cv2.imshow(\"mask\",blank_image)\n    # cv2.waitKey(0)\n    # use wordninja.\n    # before translation we need to lowercase these shits.\n    # inpaint_alternative = cv2.INPAINT_NS\n    # dst = cv2.inpaint(image,blank_image,3,inpaint_alternative)\n    def partial_blur(image0,mask,kernel=(200,200)):\n        # need improvement. malnly the boundary.\n        mask_total = mask\n        inv_mask_total = 255-mask_total\n        # mask0 = mask\n        # mask0 = mask/255\n        # inv_mask0 = inv_mask/255",
         "type": "code",
-        "location": "/tests/qq_share_autojs/autojs_scripts/taobao_gg_search.js:19-19"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:87-108"
     },
     "2329": {
-        "file_id": 242,
-        "content": "This code appears to be a URL for a Taobao video page, containing various parameters and identifiers for tracking and customization purposes.",
+        "file_id": 247,
+        "content": "This code uses OpenCV for image processing tasks. It fills polygons and draws lines on an image, then applies inpainting to replace the filled area with surrounding pixels. The function `partial_blur` is defined to blur a specific region of an image using a mask.",
         "type": "comment"
     },
     "2330": {
-        "file_id": 242,
-        "content": "22%3A%22VIDEO_916%22%2C%22sessionid%22%3A%22b9ca1499-6a25-4913-9b4a-a2c703576f45%22%2C%22tpp_buckets%22%3A%22%7E9%7EU2wG6g9N1IaCq1M7J1Ia11K6A2Tg4x4I02E6nIfMi-u9KM9NveH1FhPjhxK7AniKCnO3mIO8Kj2dCQ6NhoMCwioGO1X6ddGN2W5qOUcWe41W2PePv31PMlSe11O2XcVr31EA5_s41zO2NubdRr-Z851Q1I7Li2dFU4S93dGSkxl5dU2TcFf7dBN8Cf8d_2ImFqbdY2A1JvbdM1U1P3cdX1y4IlcdZ1L6w9ddyCN9ddBN9AeedJL7Htgd_2Qpx2jdCW2QgjdzC4w2kdDJ8B6ldF%7EwpwFaf9z%7EZb7wWs29B%7EJhwQ4f9-B22y65-1Gp2BfmB2%7EGdwGfh9O1K52Nj5GSg2RplCB4V3mIN61FhfdIGcW041AEuHshdEDn1Lj7dFY5y98dB1O4H29dz-hw3cdPL1MqbdDVj1V4mdZ2C1WfkdFEp-4mdOF1IemdU%7EXk1wC0d9G%7EPi3wJh59wNeUo1Xp%7Ezv1wYcn5wEt7Uv2dD2C7Li3dGqKuQp7dU4zk1AcedZ4W7W0idRp%7EWecwFq49HPt8Dv9dNZ82U8gdKNqS6kdQWIbkdYU4VskdQ%7EFt4wG8g9A%22%2C%22miniapphc_score%22%3A0.0%2C%22x_summary_trackInfo%22%3A%22380569870474---380569870474-new_vp_4_3-new_vp_4_3%22%2C%22pvid%22%3A%22b9ca1499-6a25-4913-9b4a-a2c703576f45%22%2C%22evo_buckets%22%3A%22evo263227_118977%23275047_321220%23286254_324141%23337973_477247evo%22%2C%22auction_sco",
+        "file_id": 247,
+        "content": "        non_blur_image = cv2.bitwise_and(image0, image0, mask=inv_mask_total)\n        blur_image0 = cv2.blur(image0,kernel) # half quicklier.\n        blur_image0 = cv2.bitwise_and(blur_image0, blur_image0, mask=mask_total)\n        dst0 = blur_image0 + non_blur_image\n        return dst0\n    def partial_blur_deprecated(image0,mask,mask2):\n        # need improvement. malnly the boundary.\n        mask_total = mask + mask2 # not good.\n        dtype = mask.dtype\n        mask_total = mask_total>0\n        mask_total=mask_total.astype(dtype)\n        mask_total = mask_total*255\n        inv_mask_total = 255-mask_total\n        mask0 = mask_total - mask2\n        # mask0 = mask\n        # mask0 = mask/255\n        # inv_mask0 = inv_mask/255\n        non_blur_image = cv2.bitwise_and(image0, image0, mask=inv_mask_total)\n        blur_image0 = cv2.blur(image0,(50,50)) # half quicklier.\n        blur_image2 = cv2.blur(image0,(30,30)) # half quicklier.\n        # not enough baby\n        blur_image0 = cv2.bitwise_and(blur_image0, blur_image0, mask=mask0)",
         "type": "code",
-        "location": "/tests/qq_share_autojs/autojs_scripts/taobao_gg_search.js:19-19"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:109-130"
     },
     "2331": {
-        "file_id": 242,
-        "content": "The code seems to be related to tracking information, session ID, and possibly video player settings for a specific platform or application.",
+        "file_id": 247,
+        "content": "This code performs partial image blurring using OpenCV functions. It creates a total mask by adding two input masks, applies bitwise operations to separate areas of the image for non-blurred and blurred processing, and combines the results for output. The \"partial_blur_deprecated\" function needs improvement as it currently has hardcoded blur values and may not handle boundary areas well.",
         "type": "comment"
     },
     "2332": {
-        "file_id": 242,
-        "content": "re%22%3A0.0%2C%22scm%22%3A%221007.10088.311498.428654_37338_4631_438253_439584_428623_446528_434662_23752_438956_34262_433641_443307_25137_36851_22642_38173_25152_431777_445505_440772_438225_439515_37791_36729_1862_34124_26810_438089_445972_429366_447685_15345_10206_438387_19172_18035_439601%22%2C%22glc%22%3A%221%22%2C%22guessModelVersion%22%3A%2220211016%22%2C%22mtx_c%22%3A380201806724%2C%22matrix_score%22%3A0.0%2C%22miniapp_score%22%3A0.0%2C%22card_type%22%3A%22xgc%22%2C%22x_item_ids%22%3A%22681366994883%22%2C%22author_id%22%3A%222208882892036%22%2C%22guess_buckets%22%3A%226595_11513_11609_12894_13440_17348_19178_21337_21230_20634_22262%22%2C%22x_sytab%22%3A%221001%22%2C%22x_object_id%22%3A380201806724%7D&itemid=681366994883&item_id=681366994883&noDynamicRec=1&newItemList=1&utabtest=aliabtest184572_25123, URL_REFERER_ORIGIN:(java.lang.String)//s.m.taobao.com/h5entry?g_channelSrp=videointeract&g_tab=tbexperience&g_pfilter=daren&g_closeModues=tab&closeExpSubTab=true&g_csearchdoor_spm=a",
+        "file_id": 247,
+        "content": "        blur_image2 = cv2.bitwise_and(blur_image2, blur_image2, mask=mask2)\n        dst0 = blur_image0 +blur_image2 + non_blur_image\n        return dst0\n    dst = partial_blur(image,blank_image)\n    dst = cv2.inpaint(dst,blank_image3,3,cv2.INPAINT_TELEA) # this shit. only do for small areas\n    dst = partial_blur(dst,blank_image2,kernel=(30,30))\n    # to compensate all sharp boundaries.\n    # from PIL import Image\n    def np2pillow(opencv_image):\n        color_coverted = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)\n        pil_image = Image.fromarray(color_coverted)\n        return pil_image\n        # pil_image.show()\n    def pillow2np(pil_image):\n        # pil_image=Image.open(\"demo2.jpg\") # open image using PIL\n        # use numpy to convert the pil_image into a numpy array\n        numpy_image=np.array(pil_image)  \n        # convert to a openCV2 image, notice the COLOR_RGB2BGR which means that \n        # the color is converted from RGB to BGR format\n        opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR) ",
         "type": "code",
-        "location": "/tests/qq_share_autojs/autojs_scripts/taobao_gg_search.js:19-19"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:131-153"
     },
     "2333": {
-        "file_id": 242,
-        "content": "Code contains various parameters for a Taobao GG search request, including scm, glc, guessModelVersion, mtx_c, matrix_score, miniapp_score, card_type, x_item_ids, author_id, guess_buckets, x_sytab, and x_object_id. The item ID is 681366994883. It also includes parameters for noDynamicRec, newItemList, and utabtest, and the URL referer origin is s.m.taobao.com/h5entry.",
+        "file_id": 247,
+        "content": "Performs bitwise AND operation on blur_image2 using mask2, combines images, applies inpainting with CV2, compensates sharp boundaries, converts OpenCV image to PIL and back.",
         "type": "comment"
     },
     "2334": {
-        "file_id": 242,
-        "content": "310p.14955560&spm=a310p.13800399&launchMode=android_new_task&g_closeExpSubTab=true, WEEX_NAV_PROCESSOR_TIME:(java.lang.Long)1667365340292 } }.../xintent/logs #\n */\n waitForPackage(package);\n //跳转之后可能出现过期的提示\n //可能需要轮询\n for (var i=0;i<5;i++){//triple check?\n while (true){\n     sleep(200);\n  var succ=click(\"我知道了\");\n  if (succ){break;}\n if (currentActivity() ==activity)break;\n }\n }\n mytext=\"【淘宝】https://m.tb.cn/h.UfbOyIi?sm=26a80a?tk=XjXUd0OFtMN CZ0001 「这就是：我预判了你的预判吗」点击链接直接打开\"\n setText(mytext)\n //淘宝直接输入到搜索框里面 然后用这个进入视频搜索界面\n while(!click(\"搜索\"));\nwaitForActivity(\"com.taobao.android.interactive.timeline.VideoListActivity2\")\nid(\"imgSearch\").findOne().click()\nwaitForActivity(\"com.taobao.search.searchdoor.MultipleSearchDoorActivity\")\nsetText(\"猫猫\")\n//Text(\"猫猫\")\nwhile(!click(\"搜索\"));\n//可能出现搜索失败的情况 请注意\ndevice.setMusicVolume(vol)",
+        "file_id": 247,
+        "content": "        return opencv_image\n    # draw text now!\n    mpil_image = np2pillow(dst)\n    draw = ImageDraw.Draw(mpil_image)\n    font_location = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\" # not usual english shit.\n    def draw_rotated_text(image, text, position, angle, font, fill=(255,255,255),stroke_width=1,stroke_fill=(0,0,0),align=\"left\"):\n    # Get rendered font width and height.\n        draw = ImageDraw.Draw(image)\n        width, height = draw.textsize(text, font=font,stroke_width=stroke_width)\n        # Create a new image with transparent background to store the text.\n        textimage = Image.new('RGBA', (width, height), (0,0,0,0))\n        # Render the text.\n        textdraw = ImageDraw.Draw(textimage)\n        textdraw.text((0,0), text, font=font, fill=fill,stroke_width=stroke_width,stroke_fill=stroke_fill,align=align)\n        # Rotate the text image.\n        rotated = textimage.rotate(angle, expand=1) # do you rotate shit?\n        # Paste the text into the image, using it as a mask for transparency.",
         "type": "code",
-        "location": "/tests/qq_share_autojs/autojs_scripts/taobao_gg_search.js:19-54"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:154-170"
     },
     "2335": {
-        "file_id": 242,
-        "content": "Code snippet is performing actions in a Taobao app. It waits for the package, handles expired prompts by polling, clicks \"I know\" button, sets a specific text and searches for \"猫猫\". It ensures volume settings by setting music volume and possibly handles search failure scenarios.",
+        "file_id": 247,
+        "content": "This code snippet is responsible for drawing rotated text on an OpenCV image using Pillow library. It first converts the OpenCV image to a Pillow image, then defines a function `draw_rotated_text()` to handle the text drawing process. The function calculates the text dimensions and creates a new image with a transparent background. It then renders the text onto this new image while accounting for stroke width and alignment. Finally, it rotates the text image by a specified angle and pastes it onto the original image using transparency.",
         "type": "comment"
     },
     "2336": {
-        "file_id": 243,
-        "content": "/tests/qq_share_autojs/autojs_scripts/show_toast.js",
-        "type": "filepath"
+        "file_id": 247,
+        "content": "        image.paste(rotated, position, rotated)\n        return image\n    def average(mlist):return sum(mlist) / len(mlist)\n    def get_coord_orientation_font_size_and_center(coords):\n        xlist, ylist = [x[0] for x in coords], [x[1] for x in coords]\n        min_x, max_x = min(xlist), max(xlist)\n        min_y, max_y = min(ylist), max(ylist)\n        width,height = max_x-min_x, max_y-min_y\n        position = (min_x,min_y)\n        c0,c1,c2,c3 = coords\n        real_width = average([get_distance(c0,c1) ,get_distance(c2,c3)])\n        real_height = average([get_distance(c1,c2) ,get_distance(c3,c0)])\n        # c0-------------c1\n        # |              |\n        # c3-------------c2\n        rotate_vectors = (c1[0]-c0[0],c1[1]-c0[1]),(c2[0]-c3[0],c2[1]-c3[1])\n        rotate_vector = (average([rotate_vectors[0][0],rotate_vectors[1][0]]),average([rotate_vectors[0][1],rotate_vectors[1][1]]))\n        rotate_angle = math.atan2(rotate_vector[1],rotate_vector[0]) # problem with angle.\n        # print(\"ROTATE_VECTORS:\",rotate_vectors)",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:171-193"
     },
     "2337": {
-        "file_id": 243,
-        "content": "This code displays a toast notification with the message \"hello\" in the autojs_scripts directory.",
-        "type": "summary"
+        "file_id": 247,
+        "content": "This code defines a function `get_coord_orientation_font_size_and_center` that takes in coordinates and returns the orientation, font size, and center based on the given points. It calculates the dimensions of the bounding rectangle, determines the real width and height by averaging the distances between corresponding points, and estimates the rotation angle using `math.atan2`. The function may be useful for image processing tasks involving text or shapes with specific orientations.",
+        "type": "comment"
     },
     "2338": {
-        "file_id": 243,
-        "content": "toast(\"hello\");",
+        "file_id": 247,
+        "content": "        # print(\"ROTATE VECTOR:\",rotate_vector)\n        # print(\"ROTATE ANGLE:\", rotate_angle)\n        center = (int((max_x+min_x)/2),int((max_y+min_y)/2))\n        # what about rotation? forget about it...\n        if (width / height) < 0.8:\n            orientation = \"vertical\"\n            font_size = int(real_width) # shit.\n        else:\n            orientation = \"horizontal\"\n            font_size = int(real_height)\n        return orientation, font_size, center,(real_width,real_height),rotate_angle,position \n    readjust_size=False # just center.\n    for coords, (text,prob) in resultChineseInternal:\n        probThreshold = 0.8\n        if compareStringSimilarity(text) or prob < probThreshold: # this is somehow not right. i don't know.\n            # mask all with low probabilities?\n            continue # skip all shits.\n        # specified font size \n        # text = translator(text) # now translate.\n        # too freaking slow. i need to freaking change this shit.\n        orientation, font_size, center ,(width,height) ,rotate_angle,position = get_coord_orientation_font_size_and_center(coords)",
         "type": "code",
-        "location": "/tests/qq_share_autojs/autojs_scripts/show_toast.js:1-1"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:194-217"
     },
     "2339": {
-        "file_id": 243,
-        "content": "This code displays a toast notification with the message \"hello\" in the autojs_scripts directory.",
+        "file_id": 247,
+        "content": "This code is determining the orientation, font size, and center coordinates for a Chinese text. It checks if the aspect ratio of the image is vertical or horizontal and adjusts the font size accordingly. The function get_coord_orientation_font_size_and_center is called to get these values. If the probability threshold is met or the text is not similar enough, it will skip that particular text. It also considers rotation angle and position in its calculations.",
         "type": "comment"
     },
     "2340": {
-        "file_id": 244,
-        "content": "/tests/qq_share_autojs/autojs_scripts/qq_share_auto.js",
-        "type": "filepath"
+        "file_id": 247,
+        "content": "        if orientation == \"horizontal\":\n            font = ImageFont.truetype(font_location, font_size)\n            # text = original_text\n            # drawing text size \n            stroke_width = max((1,int(0.1*font_size)))\n            (string_width,string_height) = draw.textsize(text,font=font,stroke_width=stroke_width)\n            # print(string_width)\n            # breakpoint()\n            if readjust_size:\n                change_ratio = width/string_width\n                new_fontsize = font_size*change_ratio\n                font = ImageFont.truetype(font_location, new_fontsize)\n                (string_width,string_height) = draw.textsize(text,font=font,stroke_width=stroke_width)\n            #     start_x = int(center[0]-width2/2)\n            #     start_y = int(center[1]-height2/2)\n            # else:\n            theta  =rotate_angle\n            rot = np.array([[math.cos(theta), -math.sin(theta)], [math.sin(theta), math.cos(theta)]])\n            v1 = np.array([string_width,string_height])\n            v2 = np.array([string_width,-string_height])",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:218-239"
     },
     "2341": {
-        "file_id": 244,
-        "content": "This script performs activities for QQ Share, searches \"卷王培训基地\", clicks the contact number, attempts to find and click \"发送\" while waiting for \"返回哔哩哔哩\", then removes 'flag' file using AutoJS.",
-        "type": "summary"
+        "file_id": 247,
+        "content": "This code is calculating the size of a text string and adjusting its font size to fit within a specified width. If `readjust_size` is True, it recalculates the font size based on the new width. The text's rotation angle is calculated using trigonometry functions.",
+        "type": "comment"
     },
     "2342": {
-        "file_id": 244,
-        "content": "auto();\nvar cmd = \"am start -S -n com.tencent.mobileqq/com.tencent.mobileqq.activity.JumpActivity -a android.intent.action.VIEW -d 'mqqapi://share/to_fri?src_type=app&version=1&file_type=news&file_data=L3N0b3JhZ2UvZW11bGF0ZWQvMC9QaWN0dXJlcy9zaGFyZS9jYXQuZ2lm&file_uri=ZmlsZTovLy9zdG9yYWdlL2VtdWxhdGVkLzAvUGljdHVyZXMvc2hhcmUvY2F0LmdpZg%3D%3D&title=5ZOU5ZOp5ZOU5ZOp&description=5Za15Za15Za1&share_id=100951776&url=aHR0cHM6Ly9iMjMudHYvdUhNTDVtaQ%3D%3D&app_name=5ZOU5ZOp5ZOU5ZOp&req_type=Nw%3D%3D&mini_program_appid=MTEwOTkzNzU1Nw%3D%3D&mini_program_path=cGFnZXMvdmlkZW8vdmlkZW8%2FYnZpZD1CVjF6ZDR5MTE3V0Y%3D&mini_program_type=Mw%3D%3D&cflag=MA%3D%3D&third_sd=dHJ1ZQ%3D%3D' -e pkg_name tv.danmaku.bili\";\nshell(cmd,true);\nwaitForActivity(\"com.tencent.mobileqq.activity.ForwardRecentActivity\");\nwhile(!click(\"搜索\"));\nsetText(\"卷王培训基地\");\nwhile(!click(\"543780931\"));\nwhile(true){\nvar send =text(\"发送\").findOne(1000);\nif (send !=null){send.click();}\n// will be null.\nvar ret=text(\"返回哔哩哔哩\").findOne(1000);\nif (ret != null){ret.click();break;}",
+        "file_id": 247,
+        "content": "            v3 = np.array([-string_width,-string_height])\n            v4 = np.array([-string_width,string_height])\n            # w = np.array([3, 4])\n            vc1 = np.dot(rot, v1)\n            vc2 = np.dot(rot, v2)\n            vc3 = np.dot(rot, v3)\n            vc4 = np.dot(rot, v4)\n            # sw2 = abs(float(vc2[0])) # no abs.\n            # sh2 = abs(float(vc2[1]))\n            start_x_arr = [int(center[0]-sw/2) for sw in [(float(x[0])) for x in [vc1,vc2,vc3,vc4]]]\n            start_y_arr = [int(center[1]-sh/2) for sh in [(float(x[1])) for x in [vc1,vc2,vc3,vc4]]]\n            # start_y = int(center[1]-string_height2/2)\n            start_x = int(min(start_x_arr))\n            start_y = int(min(start_y_arr))\n            # draw.text((start_x, start_y), text, font = font, fill=(255,255,255),stroke_fill=(0,0,0),stroke_width = stroke_width,align =\"left\") # what is the freaking align?\n            position2 = (start_x, start_y)\n            rotate_angle2 = -np.rad2deg(rotate_angle) # strange.\n            # debug_text = \"angle: {}\".format(rotate_angle2)",
         "type": "code",
-        "location": "/tests/qq_share_autojs/autojs_scripts/qq_share_auto.js:1-21"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:240-258"
     },
     "2343": {
-        "file_id": 244,
-        "content": "The script starts an activity for QQ Share, sets text, and waits for a specific activity to launch. It then clicks on \"搜索\", enters the search term \"卷王培训基地\", clicks on the contact number \"543780931\", and repeatedly tries to find the \"发送\" button while waiting for the \"返回哔哩哔哩\" button to appear before finally clicking it and breaking the loop.",
+        "file_id": 247,
+        "content": "This code performs rotations on given points using a rotation matrix, then calculates the starting coordinates for drawing text based on the minimum x and y values among these transformed points. It also adjusts the angle to its equivalent in degrees before potentially performing further operations with it.",
         "type": "comment"
     },
     "2344": {
-        "file_id": 244,
-        "content": "}\nshell(\"rm /storage/emulated/0/flag\")",
+        "file_id": 247,
+        "content": "            mpil_image = draw_rotated_text(mpil_image,text,position2,rotate_angle2,font,stroke_width=stroke_width)\n    # mpil_image.show()\n    # mpil_image.save(\"redraw_eng_to_chinese.png\")\n    output_final_image = pillow2np(mpil_image)\n    return output_final_image",
         "type": "code",
-        "location": "/tests/qq_share_autojs/autojs_scripts/qq_share_auto.js:22-24"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/functional_redraw_chinese_text_offline2.py:259-264"
     },
     "2345": {
-        "file_id": 244,
-        "content": "Removes the 'flag' file from storage using AutoJS script.",
+        "file_id": 247,
+        "content": "This code snippet draws rotated text on an image, saves it as a PNG file, and then converts the image to a numpy array before returning it.",
         "type": "comment"
     },
     "2346": {
-        "file_id": 245,
-        "content": "/tests/qq_share_autojs/autojs_scripts/qq_account_switch.js",
+        "file_id": 248,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/launch_frame_translate.sh",
         "type": "filepath"
     },
     "2347": {
-        "file_id": 245,
-        "content": "This code starts the \"com.tencent.mobileqq\" application, specifically the AccountManageActivity, which allows switching between different QQ accounts.",
+        "file_id": 248,
+        "content": "This code launches three different Python scripts for video frame translation: 'frame_translate_processor.py', 'frame_translate_processor2.py', and 'frame_translate_processor3.py'. Each script is likely used for a specific video frame translation task, potentially with improvements or updates from the previous versions.",
         "type": "summary"
     },
     "2348": {
-        "file_id": 245,
-        "content": "app.startActivity({\n    root:true,\n        action: \"View\",\n        packageName:\"com.tencent.mobileqq\",\n        className: \"com.tencent.mobileqq.activity.AccountManageActivity\"\n    });",
+        "file_id": 248,
+        "content": "# python3 frame_translate_processor.py\npython3 frame_translate_processor2.py\n# python3 frame_translate_processor3.py",
         "type": "code",
-        "location": "/tests/qq_share_autojs/autojs_scripts/qq_account_switch.js:1-6"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/launch_frame_translate.sh:1-3"
     },
     "2349": {
-        "file_id": 245,
-        "content": "This code starts the \"com.tencent.mobileqq\" application, specifically the AccountManageActivity, which allows switching between different QQ accounts.",
+        "file_id": 248,
+        "content": "This code launches three different Python scripts for video frame translation: 'frame_translate_processor.py', 'frame_translate_processor2.py', and 'frame_translate_processor3.py'. Each script is likely used for a specific video frame translation task, potentially with improvements or updates from the previous versions.",
         "type": "comment"
     },
     "2350": {
-        "file_id": 246,
-        "content": "/tests/cpm_chinese_chitchat_model_gpt2/test.sh",
+        "file_id": 249,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/m2m100_1b_translator.py",
         "type": "filepath"
     },
     "2351": {
-        "file_id": 246,
-        "content": "This code changes the directory to GPT2-chitchat, checks RAM consumption and urges to buy new RAM for CPU model testing. It runs 'interact.py' with no CUDA and using a specific model path.",
+        "file_id": 249,
+        "content": "This code imports the `m2m100_zte_translator` function from the `functional_dl_translator_1b_deepspeed` module, and defines two helper functions: `fixline` to remove specific Chinese ending characters, and `zh_to_en_translator` which uses `m2m100_zte_translator` to translate Chinese text to English and applies the line-fixing function if needed.",
         "type": "summary"
     },
     "2352": {
-        "file_id": 246,
-        "content": "# no fucking gpu. just test how much RAM it consumes.\ncd GPT2-chitchat # 1.8GB mem consumption. freaking hell.\n# BUY NEW RAM AND RUN MODELS ON CPU!\npython3 interact.py --no_cuda --model_path ../model",
+        "file_id": 249,
+        "content": "from functional_dl_translator_1b_deepspeed import get_response as m2m100_zte_translator # this shit could consume much computational resource.\n# advice you to do it with json.\ndef fixline(line):\n    notEndings = [\"。\",\"，\"]\n    for x in notEndings:\n        if line.endswith(x): return line[:-1]\n    return line\ndef zh_to_en_translator(text,needFixLine=True):\n    result = m2m100_zte_translator(text)[0] # shit.\n    if needFixLine: result = fixline(result)\n    return result",
         "type": "code",
-        "location": "/tests/cpm_chinese_chitchat_model_gpt2/test.sh:1-4"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/m2m100_1b_translator.py:1-13"
     },
     "2353": {
-        "file_id": 246,
-        "content": "This code changes the directory to GPT2-chitchat, checks RAM consumption and urges to buy new RAM for CPU model testing. It runs 'interact.py' with no CUDA and using a specific model path.",
+        "file_id": 249,
+        "content": "This code imports the `m2m100_zte_translator` function from the `functional_dl_translator_1b_deepspeed` module, and defines two helper functions: `fixline` to remove specific Chinese ending characters, and `zh_to_en_translator` which uses `m2m100_zte_translator` to translate Chinese text to English and applies the line-fixing function if needed.",
         "type": "comment"
     },
     "2354": {
-        "file_id": 247,
-        "content": "/tests/cpm_chinese_chitchat_model_gpt2/init.sh",
+        "file_id": 250,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/main_mask_english_text.py",
         "type": "filepath"
     },
     "2355": {
-        "file_id": 247,
-        "content": "Code is cloning the GPT2-chitchat repository with a single commit from GitHub.",
+        "file_id": 250,
+        "content": "This code uses PaddleOCR to detect English text in images, applies a specific font for OCR, and visualizes the results. Testing is limited to one image, and CUDA errors may occur with certain CV2 libraries.",
         "type": "summary"
     },
     "2356": {
-        "file_id": 247,
-        "content": "git clone --depth 1 https://github.com/yangjianxin1/GPT2-chitchat",
+        "file_id": 250,
+        "content": "from paddleocr import PaddleOCR,draw_ocr\n# cannot translate everything... not frame by frame...\n# can summarize things. can block texts on location.\n# Paddleocr supports Chinese, English, French, German, Korean and Japanese.\n# You can set the parameter `lang` as `ch`, `en`, `french`, `german`, `korean`, `japan`\n# to switch the language model in order.\nocr = PaddleOCR(use_angle_cls=True, lang='en') # need to run only once to download and load model into memory\nimg_path = 'target.png' # only detect english. or not?\nimport cv2\nimage = cv2.imread(img_path)\nresult2 = ocr.ocr(image, cls=True)\nprob_thresh = 0.8\nresult = []\nimport wordninja\nfor index, line in enumerate(result2):\n    # print(line)\n    # breakpoint()\n    coords, (text, prob) = line\n    prob = float(prob)\n    if prob > prob_thresh:\n        rectified_text = \" \".join(wordninja.split(text))\n        line[1] = (rectified_text, prob)\n        print(line)\n        result.append(line)\nimport numpy as np\na,b,c = image.shape\nblank_image = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order",
         "type": "code",
-        "location": "/tests/cpm_chinese_chitchat_model_gpt2/init.sh:1-1"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_mask_english_text.py:1-38"
     },
     "2357": {
-        "file_id": 247,
-        "content": "Code is cloning the GPT2-chitchat repository with a single commit from GitHub.",
+        "file_id": 250,
+        "content": "The code uses PaddleOCR to detect English text in an image. It loads the model once and then reads the image file 'target.png'. The OCR function is used to recognize the text in the image, and a probability threshold is set. The detected lines with probabilities above the threshold are processed further using wordninja to rectify the text. These lines are stored in the result list. Finally, a blank image is created for an unknown purpose.",
         "type": "comment"
     },
     "2358": {
-        "file_id": 248,
-        "content": "/tests/anime_highlight_cuts/theme_collector/yolov8_train_save_test.py",
-        "type": "filepath"
+        "file_id": 250,
+        "content": "for coords, (text,prob) in result:\n    polyArray = np.array(coords).astype(np.int64) # fuck.\n    # print(polyArray)\n    # print(polyArray.shape)\n    # breakpoint()\n    # points = np.array([[160, 130], [350, 130], [250, 300]])\n    # print(points.dtype)\n    # points = np.array([[454.0, 22.0], [464.0, 26.0], [464.0, 85.0]]).astype(np.int64)\n    color= 255\n    cv2.fillPoly(blank_image,[polyArray],color)\n    isClosed = True\n    thickness = 30\n    cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n#     # cv2.fillPoly(blank_image,pts=[points],color=(255, 255,255))\n# cv2.imshow(\"mask\",blank_image)\n# cv2.waitKey(0)\n# use wordninja.\n# before translation we need to lowercase these shits.\ndst = cv2.inpaint(image,blank_image,3,cv2.INPAINT_TELEA)\ncv2.imshow('dst',dst)\ncv2.waitKey(0)\ncv2.destroyAllWindows()\n# expand the area somehow.\n# draw result\n# simhei_path = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\"\n# from PIL import Image\n# image = Image.open(img_path).convert('RGB')\n# boxes = [line[0] for line in result]",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_mask_english_text.py:40-68"
     },
     "2359": {
-        "file_id": 248,
-        "content": "The code is training a YOLO object detection model, validating its performance, and then exporting it to be used later. It uses the \"yolov8n.pt\" pre-trained model, trains it for 3 epochs with the provided dataset, evaluates its validation accuracy, displays the results, and finally exports the trained model as \"pip_detector.pth\".",
-        "type": "summary"
+        "file_id": 250,
+        "content": "Iterating through result coordinates, creating a numpy array for each set of coordinates, filling the poly with color and drawing polylines on blank image. Displaying and destroying windows after inpainting, expanding area, and converting to RGB using PIL Image.",
+        "type": "comment"
     },
     "2360": {
-        "file_id": 248,
-        "content": "from ultralytics import YOLO\n# pip install opencv-python==4.5.5.64\n# shit?\n# https://github.com/asweigart/pyautogui/issues/706\nmodel = YOLO(\"yolov8n.pt\")\n# print(model)\n# model.to('mps')\n# The operator 'aten::_slow_conv2d_forward' is not current implemented for the MPS device.\n# fuck.\n# breakpoint()\nimport rich\ntrain_result = model.train(epochs=3, data=\"./pip_dataset/pip_dataset.yaml\")\nprint(\"TRAIN RESULT?\")\nrich.print(train_result)\nval_result = model.val()\nprint(\"VALIDATION RESULT?\")\nrich.print(val_result)\ntest_result = model(\"./pip_dataset/images/test/000000003099.png\")\ntest_boxes = test_result[0].boxes\ntest_classes, test_xywh, test_confidence = (\n    test_boxes.cls.numpy(),\n    test_boxes.xywh.numpy(), # the xy in this xywh means the center of the bounding box.\n    test_boxes.conf.numpy(),\n)\nprint(\"XYWH?\", test_xywh)\nprint(\"CLASSES?\", test_classes)\nprint(\"CONFIDENCE?\", test_confidence)\n# model.export(format=\"pytorch\", path=\"./pip_detector.pth\")",
+        "file_id": 250,
+        "content": "# txts = [line[1][0] for line in result]\n# scores = [line[1][1] for line in result]\n# im_show = draw_ocr(image, boxes, txts, scores, font_path=simhei_path)\n# im_show = Image.fromarray(im_show)\n# im_show.save('result.jpg')\n# we will be testing one image only. not the whole goddamn video.\n# may have cuda error when using my cv2 cuda libs.",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/yolov8_train_save_test.py:1-39"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_mask_english_text.py:69-76"
     },
     "2361": {
-        "file_id": 248,
-        "content": "The code is training a YOLO object detection model, validating its performance, and then exporting it to be used later. It uses the \"yolov8n.pt\" pre-trained model, trains it for 3 epochs with the provided dataset, evaluates its validation accuracy, displays the results, and finally exports the trained model as \"pip_detector.pth\".",
+        "file_id": 250,
+        "content": "This code segment retrieves text and scores from the result, applies OCR to an image using a specific font, and saves the resulting image as 'result.jpg'. It mentions that testing is focused on one image only, and CUDA errors may occur when using certain CV2 libraries.",
         "type": "comment"
     },
     "2362": {
-        "file_id": 249,
-        "content": "/tests/anime_highlight_cuts/theme_collector/yolov8_test.py",
+        "file_id": 251,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_chinese_text.py",
         "type": "filepath"
     },
     "2363": {
-        "file_id": 249,
-        "content": "This code imports and processes images using the YOLO model, filters frames based on criteria, selects candidates for main frame detection, draws a rectangle around the detected frame, and displays an image with the PIP frame.",
+        "file_id": 251,
+        "content": "This code utilizes PaddleOCR for OCR, applies text rectification with probability threshold and WordNinja, performs color inpainting, filters coordinates, removes watermarks, adjusts font size/position, and outputs 'result.jpg'. Issues may arise with CUDA-based OpenCV libraries.",
         "type": "summary"
     },
     "2364": {
-        "file_id": 249,
-        "content": "from ultralytics import YOLO\n## yolov8 tracking needs special ultralytics version. it is been updated too damn often. you need to downgrade.\n## https://github.com/mikel-brostrom/yolov8_tracking\n## this might add unwanted overheads. warning!\n# no one will miss `genesis.pt`, right?\nmodel = YOLO(\"general_ver1.pt\")\n## TODO: create dataset to prevent detection of pure color/gradient borders\n# model = YOLO(\"ver3.pt\")\n# find trained weights on huggingface:\n# https://huggingface.co/James4Ever0/yolov8_pip_ultralytics\n# imagePaths = [\n#     \"000000003099.png\",\n#     \"simple_pip.png\",\n#     \"no_border_0.jpg\",\n#     \"has_border_0.jpg\",\n#     \"has_border_1.jpg\",\n#     \"has_border_2.jpg\",\n# ]\nimport os\nimagePaths = [\n    fpath\n    for fpath in os.listdir(\".\")\n    if fpath.split(\".\")[-1].lower() in (\"jpg\", \"jpeg\", \"png\")\n]\nimport cv2\nframeRatioFilters = [(16 / 9, 0.2, \"landscape\")]\nframeAreaThreshold = 0.15\nfor imagePath in imagePaths:\n    image = cv2.imread(imagePath)\n    output = model(image)\n    height, width, _ = image.shape\n    center = (width / 2, height / 2)",
+        "file_id": 251,
+        "content": "from paddleocr import PaddleOCR\n# cannot translate everything... not frame by frame...\n# can summarize things. can block texts on location.\n# Paddleocr supports Chinese, English, French, German, Korean and Japanese.\n# You can set the parameter `lang` as `ch`, `en`, `french`, `german`, `korean`, `japan`\n# to switch the language model in order.\nocr = PaddleOCR(use_angle_cls=True, lang='en') # need to run only once to download and load model into memory\nimg_path = 'target.png' # only detect english. or not?\nimport cv2\nimage = cv2.imread(img_path)\nresult2 = ocr.ocr(image, cls=True)\nprob_thresh = 0.6 # found watermark somewhere. scorpa\nresult = []\nimport wordninja\nfor index, line in enumerate(result2):\n    # print(line)\n    # breakpoint()\n    coords, (text, prob) = line\n    prob = float(prob)\n    if prob > prob_thresh:\n        rectified_text = \" \".join(wordninja.split(text))\n        line[1] = (rectified_text, prob)\n        print(line)\n        result.append(line)\nimport numpy as np\na,b,c = image.shape\nblank_image = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/yolov8_test.py:1-43"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_chinese_text.py:1-38"
     },
     "2365": {
-        "file_id": 249,
-        "content": "This code imports the YOLO model from ultralytics, loads a specific model file, and defines image paths. It also retrieves all image files in the current directory, filters frames based on aspect ratio and area threshold, and processes each image using the loaded YOLO model. This might involve downgrading the ultralytics version due to frequent updates and creating a dataset to prevent detection of pure color/gradient borders as TODO tasks.",
+        "file_id": 251,
+        "content": "This code uses PaddleOCR to perform optical character recognition (OCR) on an image file. It detects English text in the image and applies a probability threshold for accuracy. The code rectifies the detected text by splitting it into words using WordNinja, then stores the result in a list. The script also creates a blank image using NumPy.",
         "type": "comment"
     },
     "2366": {
-        "file_id": 249,
-        "content": "    # print(\"CENTER:\",center)\n    candidates = []\n    for xyxy in output[0].boxes.xyxy.numpy().astype(int).tolist():\n        x0, y0, x1, y1 = xyxy\n        currentFrameWidth = x1 - x0\n        currentFrameHeight = y1 - y0\n        currentFrameArea = currentFrameWidth * currentFrameHeight\n        # area filter? a must.\n        if currentFrameArea / (height * width) < frameAreaThreshold:\n            continue\n        else:\n            # filter out malformed frames? just for anime?\n            currentFrameRatio = currentFrameWidth / currentFrameHeight\n            if all(\n                [\n                    (\n                        currentFrameRatio < frameRatioStandard - frameRatioMargin\n                        or currentFrameRatio > frameRatioStandard + frameRatioMargin\n                    )\n                    for frameRatioStandard, frameRatioMargin, _ in frameRatioFilters\n                ]\n            ):\n                continue\n            candidates.append((x0, y0, x1, y1))\n    # sort it by area, then by centrality?",
+        "file_id": 251,
+        "content": "for coords, (text,prob) in result:\n    polyArray = np.array(coords).astype(np.int64) # fuck.\n    # print(polyArray)\n    # print(polyArray.shape)\n    # breakpoint()\n    # points = np.array([[160, 130], [350, 130], [250, 300]])\n    # print(points.dtype)\n    # points = np.array([[454.0, 22.0], [464.0, 26.0], [464.0, 85.0]]).astype(np.int64)\n    color= 255\n    cv2.fillPoly(blank_image,[polyArray],color)\n    isClosed = True\n    thickness = 30\n    cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n#     # cv2.fillPoly(blank_image,pts=[points],color=(255, 255,255))\n# cv2.imshow(\"mask\",blank_image)\n# cv2.waitKey(0)\n# use wordninja.\n# before translation we need to lowercase these shits.\ndst = cv2.inpaint(image,blank_image,3,cv2.INPAINT_TELEA)\n# from PIL import Image\nfrom PIL import Image, ImageFont, ImageDraw  \ndef np2pillow(opencv_image):\n    color_coverted = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)\n    pil_image = Image.fromarray(color_coverted)\n    return pil_image\n    # pil_image.show()",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/yolov8_test.py:44-69"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_chinese_text.py:40-67"
     },
     "2367": {
-        "file_id": 249,
-        "content": "This code filters out detected frames based on area, frame aspect ratio, and possibly malformed frames. It appends valid frames to the 'candidates' list, which may be sorted by area and centrality later in the script.",
+        "file_id": 251,
+        "content": "Iterates through result coordinates and text probabilities, converts coordinates to numpy array, fills polygon on the image, draws polyline, performs color inpainting on the image, and converts the final image from OpenCV to PIL format.",
         "type": "comment"
     },
     "2368": {
-        "file_id": 249,
-        "content": "    candidates.sort(\n        key=lambda points: -(points[2] - points[0]) * (points[3] - points[1])\n    )\n    # print(\"SORT_AREA:\", [(points[2] - points[0]) * (points[3] - points[1]) for points in candidates])\n    candidates = candidates[:2]\n    candidates.sort(\n        key=lambda points: (((points[2] + points[0]) / 2) - center[0]) ** 2\n        + (((points[3] + points[1]) / 2) - center[1]) ** 2\n    )\n    # print(\"SORT_CENTRALITY:\", [(((points[2] + points[0]) / 2) - center[0]) ** 2\n    # + (((points[3] + points[1]) / 2) - center[1]) ** 2 for points in candidates])\n    if len(candidates) > 0:\n        print(\"main frame found.\")\n        x0, y0, x1, y1 = candidates[0]\n        cv2.rectangle(image, (x0, y0), (x1, y1), (0, 0, 255), thickness=10)\n    else:\n        print(\"no main frame found.\")\n    cv2.imshow(\"PIP\", image)\n    cv2.waitKey(0)",
+        "file_id": 251,
+        "content": "def pillow2np(pil_image):\n    # pil_image=Image.open(\"demo2.jpg\") # open image using PIL\n    # use numpy to convert the pil_image into a numpy array\n    numpy_image=np.array(pil_image)  \n    # convert to a openCV2 image, notice the COLOR_RGB2BGR which means that \n    # the color is converted from RGB to BGR format\n    opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR) \n    return opencv_image\n# draw text now!\nmpil_image = np2pillow(dst)\ndraw = ImageDraw.Draw(mpil_image)\nfont_location = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\" # not usual english shit.\ndef get_coord_orientation_font_size_and_center(coords):\n    xlist, ylist = [x[0] for x in coords], [x[1] for x in coords]\n    min_x, max_x = min(xlist), max(xlist)\n    min_y, max_y = min(ylist), max(ylist)\n    width,height = max_x-min_x, max_y-min_y\n    center = (int((max_x+min_x)/2),int((max_y+min_y)/2))\n    # what about rotation? forget about it...\n    if (width / height) < 0.8:\n        orientation = \"vertical\"\n        font_size = int(width)\n    else:",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/yolov8_test.py:71-89"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_chinese_text.py:69-93"
     },
     "2369": {
-        "file_id": 249,
-        "content": "The code sorts the candidates by area and centrality, selects two candidates, and if a main frame is found, it draws a rectangle around it. If no main frame is found, it displays a message. Finally, it shows the image with the PIP frame.",
+        "file_id": 251,
+        "content": "Function `pillow2np` converts a PIL image to a numpy array and then to an OpenCV image, changing the color format from RGB to BGR.\nIn the `get_coord_orientation_font_size_and_center` function, it calculates width, height, center coordinates of the bounding box based on given coordinates, and determines the font size and orientation (vertical or horizontal) based on aspect ratio of the image.",
         "type": "comment"
     },
     "2370": {
-        "file_id": 250,
-        "content": "/tests/anime_highlight_cuts/theme_collector/view_boundingbox.py",
-        "type": "filepath"
+        "file_id": 251,
+        "content": "        orientation = \"horizontal\"\n        font_size = int(height)\n    return orientation, font_size, center,(width,height)\nreadjust_size=False # just center.\ncomparedWaterMarkString = \"scorpa\".lower() # the freaking name \ncomparedWaterMarkStringLength = len(comparedWaterMarkString)\nimport Levenshtein\nfrom web_translator import zh_to_en_translator as translator\nfor coords, (text,prob) in result:\n    # remove watermarks? how to filter?\n    editDistanceThreshold = 4\n    probThreshold = 0.8\n    textCompareCandidate = text.replace(\" \",\"\").lower() # original text, no translation.\n    distance = Levenshtein.distance(textCompareCandidate,comparedWaterMarkString)\n    string_length = len(text)\n    string_length_difference = abs(string_length-comparedWaterMarkStringLength)\n    length_difference_threshold = 3\n    if (distance < editDistanceThreshold and string_length_difference < length_difference_threshold) or prob < probThreshold:\n        continue # skip all shits.\n    # specified font size \n    text = translator(text) # now translate.",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_chinese_text.py:94-117"
     },
     "2371": {
-        "file_id": 250,
-        "content": "This code reads a bounding box coordinates, calculates the minimum x and y values, and then uses OpenCV to draw a rectangle on an image at these coordinates. The color of the rectangle is green (0, 255, 0) and the thickness is 3 pixels. Finally, it displays the image with the rectangle drawn in a window named \"PIP\".",
-        "type": "summary"
+        "file_id": 251,
+        "content": "Code snippet is filtering and translating text from a given list of coordinates and text-probability pairs. It removes watermarks by comparing the original text to \"scorpa\" (lowercase) and skips texts with high edit distance, length difference or low probability. The font size is set, and the translated text is returned.",
+        "type": "comment"
     },
     "2372": {
-        "file_id": 250,
-        "content": "x, y, w, h = [1118.5, 545.5, 1585, 1069]\nmin_x, min_y = int(x - (w / 2)), int(y - (h / 2))\nimport cv2\nimagePath = \"\"\nimage = cv2.imread(imagePath)\np0, p1 = (min_x, min_y), (min_x + w, min_y + h)\ncv2.rectangle(image, p0, p1, (0, 255, 0), 3)\ncv2.imshow(\"PIP\", image)",
+        "file_id": 251,
+        "content": "    orientation, font_size, center ,(width,height) = get_coord_orientation_font_size_and_center(coords)\n    if orientation == \"horizontal\":\n        font = ImageFont.truetype(font_location, font_size)\n        # text = original_text\n        # drawing text size \n        stroke_width = int(0.1*font_size)\n        (string_width,string_height) = draw.textsize(text,font=font,stroke_width=stroke_width)\n        # print(string_width)\n        # breakpoint()\n        if readjust_size:\n            change_ratio = width/string_width\n            new_fontsize = font_size*change_ratio\n            font = ImageFont.truetype(font_location, new_fontsize)\n            start_x = int(center[0]-width/2)\n            start_y = int(center[1]-height/2)\n        else:\n            start_x = int(center[0]-string_width/2)\n            start_y = int(center[1]-font_size/2)\n        draw.text((start_x, start_y), text, font = font, fill=(255,255,255),stroke_fill=(0,0,0),stroke_width = stroke_width,align =\"left\") # what is the freaking align?\n# mpil_image.show() ",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/view_boundingbox.py:1-11"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_chinese_text.py:118-138"
     },
     "2373": {
-        "file_id": 250,
-        "content": "This code reads a bounding box coordinates, calculates the minimum x and y values, and then uses OpenCV to draw a rectangle on an image at these coordinates. The color of the rectangle is green (0, 255, 0) and the thickness is 3 pixels. Finally, it displays the image with the rectangle drawn in a window named \"PIP\".",
+        "file_id": 251,
+        "content": "The code calculates the text's dimensions and adjusts the font size and position based on the provided coordinates. If 'readjust_size' is True, it resizes the font to fit within the given width. It then draws the text with specified alignment using the ImageDraw module.",
         "type": "comment"
     },
     "2374": {
         "file_id": 251,
-        "content": "/tests/anime_highlight_cuts/theme_collector/test_video_overlay.sh",
-        "type": "filepath"
+        "content": "mpil_image.save(\"redraw_eng_to_chinese.png\")\n# cv2.imshow('dst',dst2)\n# cv2.waitKey(0)\n# cv2.destroyAllWindows()\n# expand the area somehow.\n# draw result\n# simhei_path = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\"\n# from PIL import Image\n# image = Image.open(img_path).convert('RGB')\n# boxes = [line[0] for line in result]\n# txts = [line[1][0] for line in result]\n# scores = [line[1][1] for line in result]\n# im_show = draw_ocr(image, boxes, txts, scores, font_path=simhei_path)\n# im_show = Image.fromarray(im_show)\n# im_show.save('result.jpg')\n# we will be testing one image only. not the whole goddamn video.\n# may have cuda error when using my cv2 cuda libs.",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_chinese_text.py:139-157"
     },
     "2375": {
         "file_id": 251,
-        "content": "This script combines two video files, scales the first one to specific dimensions, and overlays them. It is used for creating a video highlight with theme overlay. The basepath variable contains the downloaded videos' location. The resulting video is saved as output.mp4 if both inputs are present, or output_1.mp4 if only the second input video is provided.",
-        "type": "summary"
+        "content": "This code saves an image, displays it using OpenCV, expands the area of the image and draws the result using a specific font, and finally saves the final output as 'result.jpg'. It is specifically testing one image from a video, and may encounter issues when using CUDA-based OpenCV libraries due to potential errors.",
+        "type": "comment"
     },
     "2376": {
-        "file_id": 251,
-        "content": "video_0=\"[Sakurato] Onii-chan wa Oshimai! [未删减][02][AVC-8bit 1080p AAC][CHT].mp4\"\nvideo_1=\"[MLU-S] Onii-chan wa Oshimai! - 03 [1080p][Multi Subs].mkv\"\nbasepath=\"/Users/jamesbrown/Downloads/anime_download\"\nvideo_2=\"[Sakurato] Onii-chan wa Oshimai! [01][AVC-8bit 1080p AAC][CHT].mp4\"\n# ffmpeg -y -t 0:04:00 -i \"$basepath/$video_0\" -t 0:04:00 -i \"$basepath/$video_1\" -filter_complex \"[0:v]scale=1152:648[v0];[1:v][v0]overlay=384:216\" output.mp4\nffmpeg -y -t 0:04:00 -i \"$basepath/$video_2\" output_1.mp4",
-        "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/test_video_overlay.sh:1-9"
+        "file_id": 252,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_english_text.py",
+        "type": "filepath"
     },
     "2377": {
-        "file_id": 251,
-        "content": "This script combines two video files, scales the first one to specific dimensions, and overlays them. It is used for creating a video highlight with theme overlay. The basepath variable contains the downloaded videos' location. The resulting video is saved as output.mp4 if both inputs are present, or output_1.mp4 if only the second input video is provided.",
-        "type": "comment"
+        "file_id": 252,
+        "content": "This code utilizes PaddleOCR to translate and rectify text from images, applies Levenshtein distance filtering, calculates text size and positioning, and saves results.",
+        "type": "summary"
     },
     "2378": {
         "file_id": 252,
-        "content": "/tests/anime_highlight_cuts/theme_collector/strip_optimizer_from_trained_best_model.py",
-        "type": "filepath"
+        "content": "from paddleocr import PaddleOCR\n# cannot translate everything... not frame by frame...\n# can summarize things. can block texts on location.\n# Paddleocr supports Chinese, English, French, German, Korean and Japanese.\n# You can set the parameter `lang` as `ch`, `en`, `french`, `german`, `korean`, `japan`\n# to switch the language model in order.\nocr = PaddleOCR(use_angle_cls=True, lang='en') # need to run only once to download and load model into memory\nimg_path = 'target.png' # only detect english. or not?\nimport cv2\nimage = cv2.imread(img_path)\nresult2 = ocr.ocr(image, cls=True)\nprob_thresh = 0.6 # found watermark somewhere. scorpa\nresult = []\nimport wordninja\nfor index, line in enumerate(result2):\n    # print(line)\n    # breakpoint()\n    coords, (text, prob) = line\n    prob = float(prob)\n    if prob > prob_thresh:\n        rectified_text = \" \".join(wordninja.split(text))\n        line[1] = (rectified_text, prob)\n        print(line)\n        result.append(line)\nimport numpy as np\na,b,c = image.shape\nblank_image = np.zeros(shape=[a,b], dtype=np.uint8) # the exact order",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_english_text.py:1-38"
     },
     "2379": {
         "file_id": 252,
-        "content": "This code imports the \"strip_optimizer\" function from the \"torch_utils\" module, then it specifies the original model path (\"general_ver1_with_optimizer.pt\") and the exported model path (\"general_ver1.pt\"). The \"strip_optimizer\" function is called with these paths to remove any optimizers associated with the original model while saving a new model without them at the specified export path.",
-        "type": "summary"
+        "content": "The code utilizes the PaddleOCR library to translate text from an image. It supports multiple languages and requires model downloading upon initialization. The code reads an image, detects English text using OCR, and applies a rectification process to improve readability. It then filters out results below a probability threshold before saving the final results.",
+        "type": "comment"
     },
     "2380": {
         "file_id": 252,
-        "content": "from ultralytics.yolo.utils.torch_utils import strip_optimizer\nmodel_path = \"general_ver1_with_optimizer.pt\"\nexport_path = \"general_ver1.pt\"\nstrip_optimizer(f=model_path, s=export_path)",
+        "content": "for coords, (text,prob) in result:\n    polyArray = np.array(coords).astype(np.int64) # fuck.\n    # print(polyArray)\n    # print(polyArray.shape)\n    # breakpoint()\n    # points = np.array([[160, 130], [350, 130], [250, 300]])\n    # print(points.dtype)\n    # points = np.array([[454.0, 22.0], [464.0, 26.0], [464.0, 85.0]]).astype(np.int64)\n    color= 255\n    cv2.fillPoly(blank_image,[polyArray],color)\n    isClosed = True\n    thickness = 30\n    cv2.polylines(blank_image, [polyArray], isClosed, color, thickness) # much better.\n#     # cv2.fillPoly(blank_image,pts=[points],color=(255, 255,255))\n# cv2.imshow(\"mask\",blank_image)\n# cv2.waitKey(0)\n# use wordninja.\n# before translation we need to lowercase these shits.\ndst = cv2.inpaint(image,blank_image,3,cv2.INPAINT_TELEA)\n# from PIL import Image\nfrom PIL import Image, ImageFont, ImageDraw  \ndef np2pillow(opencv_image):\n    color_coverted = cv2.cvtColor(opencv_image, cv2.COLOR_BGR2RGB)\n    pil_image = Image.fromarray(color_coverted)\n    return pil_image\n    # pil_image.show()",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/strip_optimizer_from_trained_best_model.py:1-6"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_english_text.py:40-67"
     },
     "2381": {
         "file_id": 252,
-        "content": "This code imports the \"strip_optimizer\" function from the \"torch_utils\" module, then it specifies the original model path (\"general_ver1_with_optimizer.pt\") and the exported model path (\"general_ver1.pt\"). The \"strip_optimizer\" function is called with these paths to remove any optimizers associated with the original model while saving a new model without them at the specified export path.",
+        "content": "Iterating through coordinates and text-probability pairs, converting coordinates to numpy array for drawing on image. Using cv2.fillPoly() and cv2.polylines() for shape fills and outlines. Inpainting image with cv2.inpaint(), then converting opencv image to pillow image using np2pillow() function.",
         "type": "comment"
     },
     "2382": {
-        "file_id": 253,
-        "content": "/tests/anime_highlight_cuts/theme_collector/screenshot_tracemoe.py",
-        "type": "filepath"
+        "file_id": 252,
+        "content": "def pillow2np(pil_image):\n    # pil_image=Image.open(\"demo2.jpg\") # open image using PIL\n    # use numpy to convert the pil_image into a numpy array\n    numpy_image=np.array(pil_image)  \n    # convert to a openCV2 image, notice the COLOR_RGB2BGR which means that \n    # the color is converted from RGB to BGR format\n    opencv_image=cv2.cvtColor(numpy_image, cv2.COLOR_RGB2BGR) \n    return opencv_image\n# draw text now!\nmpil_image = np2pillow(dst)\ndraw = ImageDraw.Draw(mpil_image)\nfont_location = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\" # not usual english shit.\ndef get_coord_orientation_font_size_and_center(coords):\n    xlist, ylist = [x[0] for x in coords], [x[1] for x in coords]\n    min_x, max_x = min(xlist), max(xlist)\n    min_y, max_y = min(ylist), max(ylist)\n    width,height = max_x-min_x, max_y-min_y\n    center = (int((max_x+min_x)/2),int((max_y+min_y)/2))\n    # what about rotation? forget about it...\n    if (width / height) < 0.8:\n        orientation = \"vertical\"\n        font_size = int(width)\n    else:",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_english_text.py:69-93"
     },
     "2383": {
-        "file_id": 253,
-        "content": "This code sends a JPEG image to the trace.moe API for anime character recognition and stores the results in the 'data' variable. It then prints the data using rich library, handles potential errors, and retrieves necessary information from the results, including anilist ID, filename, episode (if available), start and end timestamps, and similarity rating.",
-        "type": "summary"
+        "file_id": 252,
+        "content": "Function `pillow2np` converts a PIL image to a numpy array, then converts it to an OpenCV BGR format. Draws text on the image using PIL's ImageDraw module and specifies font location. Function `get_coord_orientation_font_size_and_center` calculates image dimensions, center, and determines orientation based on aspect ratio for possible vertical text.",
+        "type": "comment"
     },
     "2384": {
-        "file_id": 253,
-        "content": "# anilist has typo on \"Yahari Ore no Seishun Lovecome wa Machigatte Iru.\" which might be harmful.\n# imagePath = \"/Users/jamesbrown/Downloads/anime_download/dress_test_pictures/女装0.jpeg\"\nimagePath = \"/Users/jamesbrown/Downloads/gay_anime_shot.jpeg\"\nimport requests\ndata =requests.post(\"https://api.trace.moe/search\",\n  data=open(imagePath, \"rb\"), # since this is smallest\n  headers={\"Content-Type\": \"image/jpeg\"}\n).json() # remember you must change your ip later.\nimport rich\nrich.print(data) # the anime character recognition website is not running so well.\nerror = data['error']\nassert error == \"\"\nresults = data.get('result',[])\nfor result in results: # already sorted.\n    anilist_id = result['anilist'] # well. we only got one.\n    filename = result['filename'] # need parsing right?\n    episode = result.get('episode', None) # really we don't have episode here.\n    start, end = result['from'], result['to']\n    similarity = result['similarity']\nbreakpoint()",
+        "file_id": 252,
+        "content": "        orientation = \"horizontal\"\n        font_size = int(height)\n    return orientation, font_size, center,(width,height)\nreadjust_size=True\ncomparedWaterMarkString = \"scorpa\".lower() # the freaking name \ncomparedWaterMarkStringLength = len(comparedWaterMarkString)\nimport Levenshtein\nfor coords, (text,prob) in result:\n    # remove watermarks? how to filter?\n    editDistanceThreshold = 4\n    probThreshold = 0.8\n    textCompareCandidate = text.replace(\" \",\"\").lower()\n    distance = Levenshtein.distance(textCompareCandidate,comparedWaterMarkString)\n    string_length = len(text)\n    string_length_difference = abs(string_length-comparedWaterMarkStringLength)\n    length_difference_threshold = 3\n    if (distance < editDistanceThreshold and string_length_difference < length_difference_threshold) or prob < probThreshold:\n        continue # skip all shits.\n    # specified font size \n    orientation, font_size, center ,(width,height) = get_coord_orientation_font_size_and_center(coords)\n    if orientation == \"horizontal\":",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/screenshot_tracemoe.py:1-25"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_english_text.py:94-116"
     },
     "2385": {
-        "file_id": 253,
-        "content": "This code sends a JPEG image to the trace.moe API for anime character recognition and stores the results in the 'data' variable. It then prints the data using rich library, handles potential errors, and retrieves necessary information from the results, including anilist ID, filename, episode (if available), start and end timestamps, and similarity rating.",
+        "file_id": 252,
+        "content": "This code is filtering and processing text from the results. It checks the distance between the text and a given string (comparedWaterMarkString) using Levenshtein distance algorithm. If the difference in length is less than a threshold, or the probability of the text being correct is below a certain threshold, the code skips that particular text. The orientation, font size, center, and dimensions are obtained from the coordinates and returned.",
         "type": "comment"
     },
     "2386": {
-        "file_id": 254,
-        "content": "/tests/anime_highlight_cuts/theme_collector/screenshot_saucenao.py",
-        "type": "filepath"
+        "file_id": 252,
+        "content": "        font = ImageFont.truetype(font_location, font_size)\n        # text = original_text\n        # drawing text size \n        stroke_width = int(0.1*font_size)\n        (string_width,string_height) = draw.textsize(text,font=font,stroke_width=stroke_width)\n        # print(string_width)\n        # breakpoint()\n        if readjust_size:\n            change_ratio = width/string_width\n            new_fontsize = font_size*change_ratio\n            font = ImageFont.truetype(font_location, new_fontsize)\n            start_x = int(center[0]-width/2)\n            start_y = int(center[1]-height/2)\n        else:\n            start_x = int(center[0]-string_width/2)\n            start_y = int(center[1]-font_size/2)\n        draw.text((start_x, start_y), text, font = font, fill=(255,255,255),stroke_fill=(0,0,0),stroke_width = stroke_width,align =\"left\") # what is the freaking align?\n# mpil_image.show() \nmpil_image.save(\"redraw_english.png\")\n# cv2.imshow('dst',dst2)\n# cv2.waitKey(0)\n# cv2.destroyAllWindows()\n# expand the area somehow.",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_english_text.py:117-141"
     },
     "2387": {
-        "file_id": 254,
-        "content": "This code uses the SauceNao API to identify an anime source from a given image file, displaying results such as similarity and URLs, and extracting relevant data for anime cuts including part, title, estimated time, and IDs from various platforms.",
-        "type": "summary"
+        "file_id": 252,
+        "content": "This code calculates the size of text using a given font, adjusts it based on image size, and draws the text centered or aligned to the left. It then saves the resulting image.",
+        "type": "comment"
     },
     "2388": {
-        "file_id": 254,
-        "content": "# saucenao (if fail, use trace.moe)\n# use proxies, since we are using free tiers.\nimport os\nSAUCENAO_API_KEY=os.environ.get('SAUCENAO_API_KEY') # how to run this without api key?\nprint(\"API KEY?\", SAUCENAO_API_KEY)\n# sauce = SauceNao(api_key=SAUCENAO_API_KEY) # shit. not working!\nfilepath = \"/Users/jamesbrown/Downloads/anime_download/dress_test_pictures/女装0.jpeg\"\n# import asyncio\n# loop = asyncio.get_event_loop()\n# results = loop.run_until_complete(sauce.from_file(filepath))\n# results = await sauce.from_url('https://i.imgur.com/QaKpV3s.png')\n# no api key. fuck.\nfrom saucenao_api import SauceNao\nsauce = SauceNao(SAUCENAO_API_KEY)\nwith open(filepath,'rb') as f:\n    results = sauce.from_file(f)\n    long_remaining = results.long_remaining # wait till next day? wtf?\n    short_remaining = results.short_remaining\n    result_results = len(results)\n    print(results)\n    best = results[0]\n    similarity = best.similarity\n    # just trust anilist.\n    urls = best.urls # https://anilist.co/anime/ https://anidb.net/anime/ https://myanimelist.net/anime/",
+        "file_id": 252,
+        "content": "# draw result\n# simhei_path = \"/root/Desktop/works/bilibili_tarot/SimHei.ttf\"\n# from PIL import Image\n# image = Image.open(img_path).convert('RGB')\n# boxes = [line[0] for line in result]\n# txts = [line[1][0] for line in result]\n# scores = [line[1][1] for line in result]\n# im_show = draw_ocr(image, boxes, txts, scores, font_path=simhei_path)\n# im_show = Image.fromarray(im_show)\n# im_show.save('result.jpg')\n# we will be testing one image only. not the whole goddamn video.\n# may have cuda error when using my cv2 cuda libs.",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/screenshot_saucenao.py:1-25"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/main_redraw_english_text.py:142-154"
     },
     "2389": {
-        "file_id": 254,
-        "content": "The code aims to use the SauceNao API to identify an anime source from a given image file. It first checks if the SAUCENAO_API_KEY is set in the environment variables and prints it out. Then, it creates a SauceNao object with the API key and tries to find similar images using the image file path. The code then displays the remaining time before the results become available (long_remaining and short_remaining), the number of results found (result_results), the best match's similarity, and the URLs associated with the best match. If no API key is provided, the code indicates that it will not be able to use SauceNao API.",
+        "file_id": 252,
+        "content": "This code snippet is responsible for drawing OCR results on an image, saving the result as 'result.jpg'. It uses a specific font path and processes one image only to avoid potential CUDA errors with cv2 CUDA libraries.",
         "type": "comment"
     },
     "2390": {
-        "file_id": 254,
-        "content": "    best_data =  best.raw.get('data',{})\n    part = best_data.get('part', None) # not always.\n    title = best.title\n    est_time =best_data.get('est_time',None) # be like: '00:16:21 / 00:25:12'\n    if est_time:\n        start_end = [timestamp.strip() for timestamp in est_time.split(\"/\")]\n        start_time, end_time = start_end\n    # these ids must be the same across different images.\n    anidb_aid = best_data.get('anidb_aid',None)\n    mal_id = best_data.get('mal_id',None)\n    anilist_id = best_data.get('anilist_id',None)\n    breakpoint()",
-        "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/screenshot_saucenao.py:26-37"
-    },
-    "2391": {
-        "file_id": 254,
-        "content": "Extracts relevant data for an anime cut: part (may not always be available), title, estimated time (in the format \"start / end\"), and IDs from different platforms - AniDB (anidb_aid), MyAnimeList (mal_id), and AniList (anilist_id).",
-        "type": "comment"
-    },
-    "2392": {
-        "file_id": 255,
-        "content": "/tests/anime_highlight_cuts/theme_collector/pack_source_dataset.sh",
+        "file_id": 253,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/test_curve_converter.py",
         "type": "filepath"
     },
-    "2393": {
-        "file_id": 255,
-        "content": "This command uses 7-Zip (7z) to create a compressed archive named \"pip_source_dataset.7z\" that includes all .mp4 and .csv files in the current directory, likely for efficient storage or transfer.",
+    "2391": {
+        "file_id": 253,
+        "content": "The code defines a function `curve_converter` that applies bitwise operations and conditional logic on an input value using a provided curve function, transforming it into an output array after iterating through pairs of points from the curve and maintaining data types.",
         "type": "summary"
     },
-    "2394": {
-        "file_id": 255,
-        "content": "7z a pip_source_dataset.7z *.mp4 *.csv",
+    "2392": {
+        "file_id": 253,
+        "content": "import numpy as np\ndef curve_converter(value,curve_function):\n    # do bitwise operation.\n    marray = None\n    curve2 = zip(curve_function[:-1],curve_function[1:])\n    dtype = value.dtype\n    for (orig, target0), (forig,ftarget) in curve2:\n        locs1 = value>orig # forget about zero.\n        locs1 = locs1.astype(dtype)\n        locs2 = value<=forig\n        locs2 = locs2.astype(dtype)\n        # new_value = locs1 and locs2\n        new_value = locs1 * locs2\n        mask_backup = new_value.copy()\n        # print(\"LOCMAP:\",new_value)\n        # new_value = new_value.astype(dtype)\n        new_value = value * new_value\n        # print(\"MASKED VALUES:\", new_value)\n        new_value = new_value.astype(np.float32)\n        new_value2 = (new_value-orig)/(forig-orig)\n        new_diff = new_value2*(ftarget-target0)\n        new_value = target0+new_diff\n        new_value = new_value*mask_backup\n        new_value = new_value.astype(dtype)\n        if marray is None:\n            marray = new_value.copy()\n        else:\n            # assert np.all(marray< value) # NOT RIGHT. WHERE?",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/pack_source_dataset.sh:1-1"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/test_curve_converter.py:1-33"
+    },
+    "2393": {
+        "file_id": 253,
+        "content": "This code defines a function `curve_converter` that performs bitwise operations on an input `value` using a provided curve function. The function iterates through pairs of points from the curve and applies conditional logic based on the value's relationship to these points, resulting in a transformed output array. The function also checks for duplicate values and ensures the proper data types are maintained throughout the process.",
+        "type": "comment"
+    },
+    "2394": {
+        "file_id": 253,
+        "content": "            marray += new_value\n        # print(\"INTERMEDIATES:\",marray)\n    return marray\nif __name__ == '__main__':\n    data = np.array([1,40,100,245])\n    curve_function = [[0,0],[40,30],[100,50],[150,100],[255,130]]\n    out = curve_converter(data,curve_function)\n    print(data)\n    print(out)",
+        "type": "code",
+        "location": "/tests/bilibili_practices/bilibili_video_translate/test_curve_converter.py:34-44"
     },
     "2395": {
-        "file_id": 255,
-        "content": "This command uses 7-Zip (7z) to create a compressed archive named \"pip_source_dataset.7z\" that includes all .mp4 and .csv files in the current directory, likely for efficient storage or transfer.",
+        "file_id": 253,
+        "content": "The code defines a function called curve_converter that takes two inputs - data and curve_function. It then adds the new values to marray, which seems to be an array of intermediate values. The code returns the marray after performing the calculations. In the main block, it tests the function by creating arrays for data and curve_function and prints out both the original data and the output of the curve_converter function.",
         "type": "comment"
     },
     "2396": {
-        "file_id": 256,
-        "content": "/tests/anime_highlight_cuts/theme_collector/make_picture_in_picture_challange.py",
+        "file_id": 254,
+        "content": "/tests/bilibili_practices/bilibili_video_translate/translate_srt.py",
         "type": "filepath"
     },
     "2397": {
-        "file_id": 256,
-        "content": "This code sets the base path for video files, imports os module, and uses os.path.join() to create file paths for source_video and background_video. It also sets a placeholder value for video duration (10) and comments on using ffplay and saving metadata in filenames.",
+        "file_id": 254,
+        "content": "Code reads an SRT file, translates each line of the content using a web translator, wraps the translated lines to meet a certain character limit, and then saves the results in a new SRT file. The process involves parsing the input SRT file using the \"srt\" library, translating text with \"web_translator\", and modifying the line wrapping for better readability.",
         "type": "summary"
     },
     "2398": {
-        "file_id": 256,
-        "content": "basepath = \"/Users/jamesbrown/Downloads/anime_download\"\nimport os\nsource_video = os.path.join(\n    basepath, \"[Sakurato] Onii-chan wa Oshimai! [未删减][02][AVC-8bit 1080p AAC][CHT].mp4\"\n)\nbackground_video = os.path.join(\n    basepath, \"[MLU-S] Onii-chan wa Oshimai! - 03 [1080p][Multi Subs].mkv\"\n)\nvideo_duration = 10  # just for test.\n# use ffplay?\n# better save metadata in the filename.",
+        "file_id": 254,
+        "content": "src = \"en_.srt\"\nfinal_srt = \"zh_translated.srt\"\nimport srt\nwrap_limit = 20\nsource_srt = open(src, \"r\",encoding=\"utf-8\").read()\nssrt = srt.parse(source_srt)\nfrom web_translator import translator\nimport math\ndef wrapLine(line):\n    lines = [line[x*wrap_limit:(x+1)*wrap_limit] for x in range(math.ceil(len(line)/wrap_limit))]\n    return \"\\n\".join(lines)\ndef fixline(line):\n    notEndings = [\"。\",\"，\"]\n    for x in notEndings:\n        if line.endswith(x): return line[:-1]\n    return line\nnew_ssrt = []\nfor line in ssrt:\n    # print(line)\n    start = line.start\n    end = line.end # timedelta.\n    content = line.content\n    index = line.index\n    unwrapped_content = content.replace(\"\\n\",\" \")\n    result = translator(unwrapped_content)\n    result = fixline(result)\n    print(result)\n    line.content = result\n    new_ssrt.append(line)\n    # wrapped = wrapLine(result)\n    # print(wrapped)\n    # print(start, end, content, index)\nfinal_content = srt.compose(new_ssrt)\nwith open(final_srt,\"w+\",encoding=\"utf-8\") as f:\n    f.write(final_content)",
         "type": "code",
-        "location": "/tests/anime_highlight_cuts/theme_collector/make_picture_in_picture_challange.py:1-16"
+        "location": "/tests/bilibili_practices/bilibili_video_translate/translate_srt.py:1-45"
     },
     "2399": {
-        "file_id": 256,
-        "content": "This code sets the base path for video files, imports os module, and uses os.path.join() to create file paths for source_video and background_video. It also sets a placeholder value for video duration (10) and comments on using ffplay and saving metadata in filenames.",
+        "file_id": 254,
+        "content": "Code reads an SRT file, translates each line of the content using a web translator, wraps the translated lines to meet a certain character limit, and then saves the results in a new SRT file. The process involves parsing the input SRT file using the \"srt\" library, translating text with \"web_translator\", and modifying the line wrapping for better readability.",
         "type": "comment"
     }
 }

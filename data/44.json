@@ -1,535 +1,540 @@
 {
     "4400": {
-        "file_id": 559,
-        "content": "/tests/english_chinese_mixing_spliter/test_tts.py",
-        "type": "filepath"
+        "file_id": 567,
+        "content": "orig = image.copy()\n(H, W) = image.shape[:2]\n# set the new width and height and then determine the ratio in change\n# for both the width and height\n(newW, newH) = (args[\"width\"], args[\"height\"])\nrW = W / float(newW)\nrH = H / float(newH)\n# resize the image and grab the new image dimensions\nimage = cv2.resize(image, (newW, newH))\n(H, W) = image.shape[:2]\n# define the two output layer names for the EAST detector model that\n# we are interested -- the first is the output probabilities and the\n# second can be used to derive the bounding box coordinates of text\nlayerNames = [\n    \"feature_fusion/Conv_7/Sigmoid\",\n    \"feature_fusion/concat_3\"]\n# load the pre-trained EAST text detector\nprint(\"[INFO] loading EAST text detector...\")\nnet = cv2.dnn.readNet(args[\"east\"])\n# construct a blob from the image and then perform a forward pass of\n# the model to obtain the two output layer sets\nblob = cv2.dnn.blobFromImage(image, 1.0, (W, H),\n                             (123.68, 116.78, 103.94), swapRB=True, crop=False)\nstart = time.time()",
+        "type": "code",
+        "location": "/tests/still_watermark_auto_removal/EAST-Detector-for-text-detection-using-OpenCV-master/opencv_text_detection_image.py:27-55"
     },
     "4401": {
-        "file_id": 559,
-        "content": "This code imports TTS module and generates audio from a given text, iterating through analyzed data for each language. English tool is needed as no English option available currently.",
-        "type": "summary"
+        "file_id": 567,
+        "content": "This code performs image preprocessing, resizing and loads the EAST text detector model for text detection. It sets the original image copy, calculates new width and height based on arguments, resizes the image, gets updated dimensions, defines output layer names for the model, loads the pre-trained EAST text detector model, constructs a blob from the image, performs a forward pass of the model to obtain two output layers.",
+        "type": "comment"
     },
     "4402": {
-        "file_id": 559,
-        "content": "from paddlebobo_paddletools_tts import TTSExecutor\nfrom english_grepper import analyze_mixed_text\nmtext = \"你这dollar有问题啊\"\n# analyze this shit.\n# you can translate all english into chinese. doesn't hurt.\ntext_analyze_result = analyze_mixed_text(mtext)\n# print(text_analyze_result)\n# breakpoint()\ntts_config = {\"zh\": {\"model_tag\": 'fastspeech2_csmsc-zh',\n                     \"voc_tag\": \"hifigan_csmsc-zh\", \"lang\": \"zh\"}, \"en\": {\"model_tag\": 'fastspeech2_ljspeech-en',\n                                                                          \"voc_tag\": \"hifigan_ljspeech-en\", \"lang\": \"en\"}}\n# tts_config = {\"zh\": {\"model_tag\": 'tacotron2_csmsc-zh',\n#                      \"voc_tag\": \"hifigan_csmsc-zh\", \"lang\": \"zh\"}, \"en\": {\"model_tag\": 'tacotron2_ljspeech-en',\n#                      \"voc_tag\": \"hifigan_ljspeech-en\", \"lang\": \"en\"}}\nfor langid in [\"en\", \"zh\"]:\n    lang_config = tts_config[langid]\n    TTS = TTSExecutor('default.yaml', **lang_config)  # PaddleSpeech语音合成模块\n    # do we need to delete the TTS?\n    for data in text_analyze_result[langid]:",
+        "file_id": 567,
+        "content": "net.setInput(blob)\n(scores, geometry) = net.forward(layerNames)\nend = time.time()\n# show timing information on text prediction\nprint(\"[INFO] text detection took {:.6f} seconds\".format(end - start))\n# grab the number of rows and columns from the scores volume, then\n# initialize our set of bounding box rectangles and corresponding\n# confidence scores\n(numRows, numCols) = scores.shape[2:4]\nrects = []\nconfidences = []\n# loop over the number of rows\nfor y in range(0, numRows):\n    # extract the scores (probabilities), followed by the geometrical\n    # data used to derive potential bounding box coordinates that\n    # surround text\n    scoresData = scores[0, 0, y]\n    xData0 = geometry[0, 0, y]\n    xData1 = geometry[0, 1, y]\n    xData2 = geometry[0, 2, y]\n    xData3 = geometry[0, 3, y]\n    anglesData = geometry[0, 4, y]\n    # loop over the number of columns\n    for x in range(0, numCols):\n        # if our score does not have sufficient probability, ignore it\n        if scoresData[x] < args[\"min_confidence\"]:\n            continue",
         "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/test_tts.py:1-25"
+        "location": "/tests/still_watermark_auto_removal/EAST-Detector-for-text-detection-using-OpenCV-master/opencv_text_detection_image.py:56-86"
     },
     "4403": {
-        "file_id": 559,
-        "content": "The code imports necessary modules, defines a mixed text string, analyzes the text for English and Chinese segments using 'analyze_mixed_text' function, creates a TTSExecutor object with specified configurations for English (en) and Chinese (zh), and finally, iterates through the analyzed data for each language.",
+        "file_id": 567,
+        "content": "Code performs text detection using OpenCV and EAST Detector. It calculates the time taken for text prediction, extracts scores and geometrical data, filters out low-confidence detections, and stores bounding box rectangles and corresponding confidence scores in lists.",
         "type": "comment"
     },
     "4404": {
-        "file_id": 559,
-        "content": "        index, text = data[\"index\"], data[\"text\"]\n        wavfile = TTS.run(\n            text=text, output='output_{}_{}.wav'.format(langid, index))  # 合成音频\n    del TTS\n# there is no freaking english shit.\n# we need english tool.\n# you can also translate this shit.",
+        "file_id": 567,
+        "content": "        # compute the offset factor as our resulting feature maps will\n        # be 4x smaller than the input image\n        (offsetX, offsetY) = (x * 4.0, y * 4.0)\n        # extract the rotation angle for the prediction and then\n        # compute the sin and cosine\n        angle = anglesData[x]\n        cos = np.cos(angle)\n        sin = np.sin(angle)\n        # use the geometry volume to derive the width and height of\n        # the bounding box\n        h = xData0[x] + xData2[x]\n        w = xData1[x] + xData3[x]\n        # compute both the starting and ending (x, y)-coordinates for\n        # the text prediction bounding box\n        endX = int(offsetX + (cos * xData1[x]) + (sin * xData2[x]))\n        endY = int(offsetY - (sin * xData1[x]) + (cos * xData2[x]))\n        startX = int(endX - w)\n        startY = int(endY - h)\n        # add the bounding box coordinates and probability score to\n        # our respective lists\n        rects.append((startX, startY, endX, endY))\n        confidences.append(scoresData[x])\n# apply non-maxima suppression to suppress weak, overlapping bounding",
         "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/test_tts.py:26-32"
+        "location": "/tests/still_watermark_auto_removal/EAST-Detector-for-text-detection-using-OpenCV-master/opencv_text_detection_image.py:88-115"
     },
     "4405": {
-        "file_id": 559,
-        "content": "This code is importing the TTS module and running it to generate audio from a given text. The output file name includes the language ID and index, indicating different languages or speakers may be involved. However, an English tool is needed as there currently seems to be no English option available in the existing codebase.",
+        "file_id": 567,
+        "content": "This code computes the bounding box coordinates and confidence scores for text predictions, using input data such as angles, offsets, xData values. It then applies non-maxima suppression to suppress weak overlapping bounding boxes, likely for further processing or object detection purposes.",
         "type": "comment"
     },
     "4406": {
-        "file_id": 560,
-        "content": "/tests/english_chinese_mixing_spliter/sample_strings.txt",
-        "type": "filepath"
+        "file_id": 567,
+        "content": "# boxes\nboxes = non_max_suppression(np.array(rects), probs=confidences)\n# loop over the bounding boxes\nfor (startX, startY, endX, endY) in boxes:\n    # scale the bounding box coordinates based on the respective\n    # ratios\n    startX = int(startX * rW)\n    startY = int(startY * rH)\n    endX = int(endX * rW)\n    endY = int(endY * rH)\n    # draw the bounding box on the image\n    cv2.rectangle(orig, (startX, startY), (endX, endY), (0, 255, 0), 2)\n# show the output image\ncv2.imshow(\"Text Detection\", orig)\ncv2.waitKey(0)",
+        "type": "code",
+        "location": "/tests/still_watermark_auto_removal/EAST-Detector-for-text-detection-using-OpenCV-master/opencv_text_detection_image.py:116-133"
     },
     "4407": {
-        "file_id": 560,
-        "content": "The code contains a mix of English and Chinese text, representing a sample of mixed-language strings for testing purposes. It includes phrases such as \"你这dollar有问题啊\" (This dollar has a problem), \"版本号2.1.0alpha\" (Version 2.1.0 alpha), and \"mixed-content warning别说我没提醒你\" (Mixed content warning, I told you not to say anything).",
-        "type": "summary"
-    },
-    "4408": {
-        "file_id": 560,
-        "content": "你这dollar有问题啊\n2000万巨资！经费燃烧\n版本号2.1.0alpha，但是这个premature state让人担心\nDo not say a word.她睡觉了。mixed-content warning别说我没提醒你",
-        "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/sample_strings.txt:1-4"
-    },
-    "4409": {
-        "file_id": 560,
-        "content": "The code contains a mix of English and Chinese text, representing a sample of mixed-language strings for testing purposes. It includes phrases such as \"你这dollar有问题啊\" (This dollar has a problem), \"版本号2.1.0alpha\" (Version 2.1.0 alpha), and \"mixed-content warning别说我没提醒你\" (Mixed content warning, I told you not to say anything).",
+        "file_id": 567,
+        "content": "This code performs non-maximum suppression on bounding box coordinates, scales the coordinates based on image ratios, draws bounding boxes on the original image using OpenCV, and displays the resulting image.",
         "type": "comment"
     },
-    "4410": {
-        "file_id": 561,
-        "content": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py",
+    "4408": {
+        "file_id": 568,
+        "content": "/tests/still_watermark_auto_removal/automatic-watermark-detection/video_watermark_detection.py",
         "type": "filepath"
     },
-    "4411": {
-        "file_id": 561,
-        "content": "This code creates a text-to-speech synthesis model, initializes the architecture, and processes English and Chinese models. It concatenates audio files and deletes objects upon deallocation.",
+    "4409": {
+        "file_id": 568,
+        "content": "The code employs OpenCV and Deep Learning for watermark detection, estimation, and removal. It detects video watermarks using adaptive thresholding, applies Gaussian blur, scales, and draws boxes before saving the information to a JSON file.",
         "type": "summary"
     },
-    "4412": {
-        "file_id": 561,
-        "content": "import os\nimport numpy as np\nimport paddle\nimport soundfile as sf\nimport yaml\nfrom yacs.config import CfgNode\nfrom paddlespeech.cli.utils import download_and_decompress\nfrom paddlespeech.cli.utils import MODEL_HOME\nfrom paddlespeech.t2s.frontend import English\nfrom paddlespeech.s2t.utils.dynamic_import import dynamic_import\nfrom paddlespeech.t2s.frontend.zh_frontend import Frontend\nfrom paddlespeech.t2s.modules.normalizer import ZScore\nfrom paddlespeech.cli.tts.infer import model_alias, pretrained_models\nmodel_alias2 = {\n    # acoustic model\n    \"fastspeech2\": \"paddlespeech.t2s.models.fastspeech2:FastSpeech2\",\n    \"fastspeech2_inference\": \"paddlespeech.t2s.models.fastspeech2:StyleFastSpeech2Inference\",\n    # voc\n    \"pwgan\":\n    \"paddlespeech.t2s.models.parallel_wavegan:PWGGenerator\",\n    \"pwgan_inference\":\n    \"paddlespeech.t2s.models.parallel_wavegan:PWGInference\",\n}\nmodel_alias.update(model_alias2)\n# pretrained_models = {\n#     # fastspeech2\n#     \"fastspeech2_csmsc-zh\": {\n#         'url':\n#         'https://p",
+    "4410": {
+        "file_id": 568,
+        "content": "# sample few images from a video.\nimport random\n## we import our version of cv2 here? or uninstall and reinstall opencv-python with custom things?\nimport pathlib\nimport sys\nsite_path = pathlib.Path(\"/usr/local/lib/python3.9/site-packages\")\ncv2_libs_dir = site_path / 'cv2' / f'python-{sys.version_info.major}.{sys.version_info.minor}'\nprint(cv2_libs_dir)\ncv2_libs = sorted(cv2_libs_dir.glob(\"*.so\"))\nif len(cv2_libs) == 1:\n    print(\"INSERTING:\",cv2_libs[0].parent)\n    sys.path.insert(1, str(cv2_libs[0].parent))\nimport cv2\nimport progressbar as pb\nvideoPaths = [\n    \"/root/Desktop/works/pyjom/tests/still_watermark_auto_removal/kunfu_cat.mp4\", # bilibili animal video compilation\n    \"/root/Desktop/works/pyjom/tests/bilibili_practices/bilibili_video_translate/japan_day.webm\", # youtube animation with watermark\n    \"/root/Desktop/works/pyjom/samples/video/LiGHT3ZCi.mp4\", # animal video compilation with pip and large area of watermark\n]  # his watermark. scorpa.\nvideo_path = videoPaths[2]\n# will change this shit.\n# shall we downscale this thing?",
         "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:1-35"
+        "location": "/tests/still_watermark_auto_removal/automatic-watermark-detection/video_watermark_detection.py:1-25"
+    },
+    "4411": {
+        "file_id": 568,
+        "content": "The code imports necessary libraries, checks and inserts custom OpenCV library paths, defines a list of video paths, and selects the third video for processing.",
+        "type": "comment"
+    },
+    "4412": {
+        "file_id": 568,
+        "content": "# video = cv2.\n# video_path = \"\"\n# long loading time since we are backing up.\nsample_count = 60\nvideo_cap = cv2.VideoCapture(video_path)\nfps = video_cap.get(cv2.CAP_PROP_FPS)  # 60.\nframe_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))\nprint(frame_count)\nsample_indexs = [x for x in range(frame_count)]\nsample_indexs = random.sample(sample_indexs, sample_count)\n# import copy\nimageSet = []\nfor frame_index_counter in pb.progressbar(range(frame_count)):  # are you sure?\n    success, frame = video_cap.read()\n    if not success:\n        break\n    if frame_index_counter in sample_indexs:\n        imageSet.append(frame.copy())\nfrom src import *\ngx, gy, gxlist, gylist = estimate_watermark_imgSet(imageSet)\n# print(len(imageSet))\ncropped_gx, cropped_gy, watermark_location = crop_watermark(gx, gy, location=True)\nW_m = poisson_reconstruct(cropped_gx, cropped_gy)\nW_full = poisson_reconstruct(gx, gy)\nprint(cropped_gx.shape, cropped_gy.shape, W_m.shape)  # (50, 137, 3) may vary.\nprint(watermark_location)  # ((1022, 21), (1072, 158)) inverted x,y! hell.",
+        "type": "code",
+        "location": "/tests/still_watermark_auto_removal/automatic-watermark-detection/video_watermark_detection.py:27-62"
     },
     "4413": {
-        "file_id": 561,
-        "content": "The code is importing necessary libraries and modules, defining model aliases for acoustic models (fastspeech2) and vocoders (pwgan), and potentially updating pretrained_models dictionary.",
+        "file_id": 568,
+        "content": "This code reads frames from a video, randomly selects some frames to analyze for watermark detection, and then estimates the watermark using poisson reconstruction. The code also outputs the shape of the detected watermark and its location on the frames. It may not use progress bar properly and has an issue with inverted x and y coordinates for watermark location.",
         "type": "comment"
     },
     "4414": {
-        "file_id": 561,
-        "content": "addlespeech.bj.bcebos.com/Parakeet/released_models/fastspeech2/fastspeech2_nosil_baker_ckpt_0.4.zip',\n#         'md5':\n#         '637d28a5e53aa60275612ba4393d5f22',\n#         'config':\n#         'default.yaml',\n#         'ckpt':\n#         'snapshot_iter_76000.pdz',\n#         'speech_stats':\n#         'speech_stats.npy',\n#         'phones_dict':\n#         'phone_id_map.txt',\n#         'pitch_stats':\n#         'pitch_stats.npy',\n#         'energy_stats':\n#         'energy_stats.npy',\n#     },\n#     # pwgan\n#     \"pwgan_csmsc-zh\": {\n#         'url':\n#         'https://paddlespeech.bj.bcebos.com/Parakeet/released_models/pwgan/pwg_baker_ckpt_0.4.zip',\n#         'md5':\n#         '2e481633325b5bdf0a3823c714d2c117',\n#         'config':\n#         'pwg_default.yaml',\n#         'ckpt':\n#         'pwg_snapshot_iter_400000.pdz',\n#         'speech_stats':\n#         'pwg_stats.npy',\n#     },\n# }\nfor k in [\"fastspeech2_csmsc-zh\",\"fastspeech2_ljspeech-en\"]:\n    model_config = {'pitch_stats':\n        'pitch_stats.npy',\n        'energy_stats':",
+        "file_id": 568,
+        "content": "# cv2.imshow(\"WATERMARK\",W_m)\n# cv2.imshow(\"WATERMARK_FULL\",W_full)\n# # remove the freaking watermark please?\n# cv2.waitKey(0)\n# east_net = \"/media/root/help/pyjom/tests/still_watermark_auto_removal/EAST-Detector-for-text-detection-using-OpenCV-master/frozen_east_text_detection.pb\"\n# net = cv2.dnn.readNet(east_net)\n# H,W = W_full.shape[:2]\n# newH = (H//32)*32\n# newW = (W//32)*32\n# rH, rW = H/float(newH), W/float(newW)\n# W_full = cv2.resize(W_full,(newW,newH))\nmaxval, minval = np.max(W_full), np.min(W_full)\nW_full = (W_full - minval) * (255 / (maxval - minval))  # is that necessary?\n# # print(,W_full.shape,W_full.dtype)\nW_full = W_full.astype(np.uint8)\n# # breakpoint()\n# newH,newW = W_full.shape[:2]\n# # 14.122540090957173 -17.575702620638673 (1080, 1920, 3) float64\n# # you even have negative values. what the fuck?\n# blob = cv2.dnn.blobFromImage(W_full, 1.0, (newW, newH), (123.68, 116.78, 103.94), swapRB=True, crop=False)\n# # start = time.time()\n# net.setInput(blob)\n# layerNames = [\n# \t\"feature_fusion/Conv_7/Sigmoid\",",
         "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:35-69"
+        "location": "/tests/still_watermark_auto_removal/automatic-watermark-detection/video_watermark_detection.py:64-91"
     },
     "4415": {
-        "file_id": 561,
-        "content": "This code is a dictionary containing two models: \"fastspeech2_csmsc-zh\" and \"fastspeech2_ljspeech-en\". Each model has its URL, MD5, config file, checkpoint file, and optional statistics files. These models seem to be used for speech synthesis, as they require pitch and energy stats.",
+        "file_id": 568,
+        "content": "The code is using OpenCV and TensorFlow to detect and remove a watermark from an input image. It resizes the input image, normalizes pixel values, preprocesses the image with a DNN (Deep Neural Network), and then sets the input for the network's feature extraction layer.",
         "type": "comment"
     },
     "4416": {
-        "file_id": 561,
-        "content": "        'energy_stats.npy',}\n    pretrained_models[k].update(model_config)\nclass TTSExecutor():\n    def __init__(self, config,model_tag = 'fastspeech2_csmsc-zh', voc_tag = \"pwgan_csmsc-zh\",lang=\"zh\"):\n        langId1 = model_tag.split(\"-\")[-1]\n        langId2 = voc_tag.split(\"-\")[-1]\n        assert langId1 == langId2\n        assert langId2 == lang\n        assert lang in [\"zh\",\"en\"]\n        self.lang = lang\n        # match the freaking dataset!\n        #FastSpeech2 or something else. we need freaking english!\n        am_res_path = self._get_pretrained_path(model_tag)\n        am_config = os.path.join(am_res_path,pretrained_models[model_tag]['config'])\n        am_ckpt = os.path.join(am_res_path,pretrained_models[model_tag]['ckpt'])\n        am_stat = os.path.join(am_res_path, pretrained_models[model_tag]['speech_stats'])\n        # must have phones_dict in acoustic\n        phones_dict = os.path.join(am_res_path, pretrained_models[model_tag]['phones_dict'])\n        # StyleFastSpeech\n        pitch_stats = os.path.join(am_res_path, pretrained_models[model_tag]['pitch_stats'])",
+        "file_id": 568,
+        "content": "# \t\"feature_fusion/concat_3\"]\n# (scores, geometry) = net.forward(layerNames)\n# def decode_predictions(scores, geometry,min_confidence=0.5):\n# \t# grab the number of rows and columns from the scores volume, then\n# \t# initialize our set of bounding box rectangles and corresponding\n# \t# confidence scores\n# \t(numRows, numCols) = scores.shape[2:4]\n# \trects = []\n# \tconfidences = []\n# \t# loop over the number of rows\n# \tfor y in range(0, numRows):\n# \t\t# extract the scores (probabilities), followed by the\n# \t\t# geometrical data used to derive potential bounding box\n# \t\t# coordinates that surround text\n# \t\tscoresData = scores[0, 0, y]\n# \t\txData0 = geometry[0, 0, y]\n# \t\txData1 = geometry[0, 1, y]\n# \t\txData2 = geometry[0, 2, y]\n# \t\txData3 = geometry[0, 3, y]\n# \t\tanglesData = geometry[0, 4, y]\n# \t\t# loop over the number of columns\n# \t\tfor x in range(0, numCols):\n# \t\t\t# if our score does not have sufficient probability,\n# \t\t\t# ignore it\n# \t\t\tif scoresData[x] < min_confidence:\n# \t\t\t\tcontinue\n# \t\t\t# compute the offset factor as our resulting feature",
         "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:70-91"
+        "location": "/tests/still_watermark_auto_removal/automatic-watermark-detection/video_watermark_detection.py:92-119"
     },
     "4417": {
-        "file_id": 561,
-        "content": "The code is initializing a TTSExecutor object with config and model_tag parameters. It checks if the model_tag matches the language specified, and then retrieves the necessary paths for the acoustic model, phones dictionary, and pitch statistics using the pretrained_models dictionary.",
+        "file_id": 568,
+        "content": "The code is decoding the predictions of a deep learning model for watermark detection. It iterates through the scores and geometrical data to extract bounding box coordinates and angles, discarding low-confidence predictions.",
         "type": "comment"
     },
     "4418": {
-        "file_id": 561,
-        "content": "        energy_stats = os.path.join(am_res_path, pretrained_models[model_tag]['energy_stats'])\n        #VOC\n        voc_res_path = self._get_pretrained_path(voc_tag)\n        voc_config = os.path.join(voc_res_path,pretrained_models[voc_tag]['config'])\n        voc_ckpt = os.path.join(voc_res_path,pretrained_models[voc_tag]['ckpt'])\n        voc_stat = os.path.join(voc_res_path, pretrained_models[voc_tag]['speech_stats'])\n        # Init body.\n        with open(am_config) as f:\n            self.am_config = CfgNode(yaml.safe_load(f))\n        with open(voc_config) as f:\n            voc_config = CfgNode(yaml.safe_load(f))\n        with open(config) as f:\n            self.style_config = CfgNode(yaml.safe_load(f))\n        with open(phones_dict, \"r\") as f:\n            phn_id = [line.strip().split() for line in f.readlines()]\n        vocab_size = len(phn_id)\n        #print(\"vocab_size:\", vocab_size)\n        # acoustic model\n        odim = self.am_config.n_mels\n        # wtf?\n        main_name0 = model_tag.split(\"_\")[0]",
+        "file_id": 568,
+        "content": "# \t\t\t# maps will be 4x smaller than the input image\n# \t\t\t(offsetX, offsetY) = (x * 4.0, y * 4.0)\n# \t\t\t# extract the rotation angle for the prediction and\n# \t\t\t# then compute the sin and cosine\n# \t\t\tangle = anglesData[x]\n# \t\t\tcos = np.cos(angle)\n# \t\t\tsin = np.sin(angle)\n# \t\t\t# use the geometry volume to derive the width and height\n# \t\t\t# of the bounding box\n# \t\t\th = xData0[x] + xData2[x]\n# \t\t\tw = xData1[x] + xData3[x]\n# \t\t\t# compute both the starting and ending (x, y)-coordinates\n# \t\t\t# for the text prediction bounding box\n# \t\t\tendX = int(offsetX + (cos * xData1[x]) + (sin * xData2[x]))\n# \t\t\tendY = int(offsetY - (sin * xData1[x]) + (cos * xData2[x]))\n# \t\t\tstartX = int(endX - w)\n# \t\t\tstartY = int(endY - h)\n# \t\t\t# add the bounding box coordinates and probability score\n# \t\t\t# to our respective lists\n# \t\t\trects.append((startX, startY, endX, endY))\n# \t\t\tconfidences.append(scoresData[x])\n# \t# return a tuple of the bounding boxes and associated confidences\n# \treturn (rects, confidences)\n# (rects, confidences) = decode_predictions(scores, geometry)",
         "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:92-118"
+        "location": "/tests/still_watermark_auto_removal/automatic-watermark-detection/video_watermark_detection.py:120-144"
     },
     "4419": {
-        "file_id": 561,
-        "content": "This code is loading pre-trained models and configuration files for an automatic speech recognition (ASR) system. It joins different file paths, opens the configuration files to parse them into CfgNodes, and determines the vocabulary size based on a phone ID list. The code seems to be part of a larger ASR system implementation, initializing variables before using the models for prediction or inference tasks.",
+        "file_id": 568,
+        "content": "This code block extracts the rotation angle, computes sin and cosine values, derives bounding box width and height from geometry volume, calculates starting and ending coordinates of text prediction bounding boxes, appends these coordinates to rects list, and probability scores to confidences list. Finally, it returns a tuple containing the bounding boxes and associated confidences.",
         "type": "comment"
     },
     "4420": {
-        "file_id": 561,
-        "content": "        am_class = dynamic_import(main_name0, model_alias)\n        am_inference_class = dynamic_import('{}_inference'.format(main_name0), model_alias)\n        am = am_class(idim=vocab_size, odim=odim, spk_num=1, **self.am_config[\"model\"])\n        am.set_state_dict(paddle.load(am_ckpt)[\"main_params\"])\n        am.eval()\n        am_mu, am_std = np.load(am_stat)\n        am_mu = paddle.to_tensor(am_mu)\n        am_std = paddle.to_tensor(am_std)\n        am_normalizer = ZScore(am_mu, am_std)\n        if lang == \"en\":\n            self.am_inference = am_inference_class(am_normalizer, am) # you can also try tensorflowTTS, hifigan with high clarity.\n        else:\n            self.am_inference = am_inference_class(am_normalizer, am, pitch_stats, energy_stats)\n        self.am_inference.eval()\n        # vocoder\n        main_name1 = voc_tag.split(\"_\")[0]\n        voc_class = dynamic_import(main_name1, model_alias)\n        voc_inference_class = dynamic_import('{}_inference'.format(main_name1), model_alias)\n        voc = voc_class(**voc_config[\"generator_params\"])",
+        "file_id": 568,
+        "content": "# from imutils.object_detection import non_max_suppression\n# boxes = non_max_suppression(np.array(rects), probs=confidences)\n# rW=rH=1\n# no box painting.\n# for (startX, startY, endX, endY) in boxes:\n#     # scale the bounding box coordinates based on the respective\n#     # ratios\n#     startX = int(startX * rW)\n#     startY = int(startY * rH)\n#     endX = int(endX * rW)\n#     endY = int(endY * rH)\n#     # draw the bounding box on the frame\n#     cv2.rectangle(W_full, (startX, startY), (endX, endY), (0, 255, 0), 2)\n# # you could implement your own watermark detector network so far. it is easy.\n# # maybe directly using optical flow and gradients will be prettier?\n# W_full\nsrc = W_full\nscale_percent = 50\n# calculate the 50 percent of original dimensions\nwidth = int(src.shape[1] * scale_percent / 100)\nheight = int(src.shape[0] * scale_percent / 100)\n# dsize\ndsize = (width, height)\n# resize image\noutput = cv2.resize(src, dsize)\ngray_output = cv2.cvtColor(output, cv2.COLOR_BGR2GRAY)\ngray_output = cv2.GaussianBlur(gray_output, (11, 3), 0)",
         "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:119-141"
+        "location": "/tests/still_watermark_auto_removal/automatic-watermark-detection/video_watermark_detection.py:146-181"
     },
     "4421": {
-        "file_id": 561,
-        "content": "The code dynamically imports classes based on model aliases and tags, instantiates models for speech synthesis and vocoder, loads model parameters and normalization stats, and sets up the inference environment for both English and Chinese languages.",
+        "file_id": 568,
+        "content": "The code performs non-maximum suppression on rectangles, scales bounding box coordinates based on aspect ratios, draws bounding boxes on frames, and resizes the image with 50% scale while converting it to grayscale and applying Gaussian blur.",
         "type": "comment"
     },
     "4422": {
-        "file_id": 561,
-        "content": "        voc.set_state_dict(paddle.load(voc_ckpt)[\"generator_params\"])\n        voc.remove_weight_norm()\n        voc.eval()\n        voc_mu, voc_std = np.load(voc_stat)\n        voc_mu = paddle.to_tensor(voc_mu)\n        voc_std = paddle.to_tensor(voc_std)\n        voc_normalizer = ZScore(voc_mu, voc_std)\n        self.voc_inference = voc_inference_class(voc_normalizer, voc)\n        self.voc_inference.eval()\n        if lang == \"zh\":\n            self.frontend = Frontend(phone_vocab_path=phones_dict, tone_vocab_path=None)\n        elif lang == \"en\":\n            self.phones_dict = os.path.join(\n                am_res_path, pretrained_models[model_tag]['phones_dict'])\n            self.frontend = English(phone_vocab_path=self.phones_dict)\n        else: raise Exception(\"Unknown language ID: {}\".format(lang))\n    def _get_pretrained_path(self, tag):\n        \"\"\"\n        Download and returns pretrained resources path of current task.\n        \"\"\"\n        assert tag in pretrained_models, 'Can not find pretrained resources of {}.'.format(tag)",
+        "file_id": 568,
+        "content": "thresh_output = cv2.adaptiveThreshold(\n    gray_output, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2\n)\nthresh_output = 255 - thresh_output\n# cnts, hierachy = cv2.findContours(thresh_output,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE) # really freaking bad. we should invert this.\ncnts, hierachy = cv2.findContours(\n    thresh_output, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE\n)  # really freaking bad. we should invert this.\n# cv2.RETR_EXTERNAL\n[a, b] = output.shape[:2]\nmyMask = np.zeros(shape=[a, b], dtype=np.uint8)\n# this is for video watermarks. how about pictures? do we need to cut corners? how to find the freaking watermark again?\nfor cnt in cnts:\n    x, y, w, h = cv2.boundingRect(cnt)  # Draw the bounding box image=\n    # cv2.rectangle(output, (x,y), (x+w,y+h), (0,0,255),2)\n    cv2.rectangle(myMask, (x, y), (x + w, y + h), 255, -1)\ndilated_mask = cv2.GaussianBlur(myMask, (11, 11), 0)\ncv2.threshold(dilated_mask, 256 / 2, 255, cv2.THRESH_BINARY, dilated_mask)\ncnts2, hierachy2 = cv2.findContours(",
         "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:142-164"
+        "location": "/tests/still_watermark_auto_removal/automatic-watermark-detection/video_watermark_detection.py:183-206"
     },
     "4423": {
-        "file_id": 561,
-        "content": "This code sets up a model for text-to-speech (TTS) synthesis. It loads pretrained models and parameters, initializes the model architecture, applies normalization to input features, selects the appropriate frontend for the language (English or Chinese), and provides a method to download pretrained resources.",
+        "file_id": 568,
+        "content": "This code applies adaptive thresholding to detect watermarks in a video. It then identifies contours and creates a mask using bounding boxes, applies Gaussian blur, and finally finds the contours again for further processing.",
         "type": "comment"
     },
     "4424": {
-        "file_id": 561,
-        "content": "        res_path = os.path.join(MODEL_HOME, tag)\n        decompressed_path = download_and_decompress(pretrained_models[tag],\n                                                    res_path)\n        decompressed_path = os.path.abspath(decompressed_path)\n        return decompressed_path\n    def run(self, text, output):\n        #文本输入\n        sentences = [str(text)]\n        # 长句处理\n        for sentence in sentences:\n            if self.lang == \"zh\":\n                input_ids = self.frontend.get_input_ids(sentence, merge_sentences=False, get_tone_ids=False) # what the heck? no freaking tone?\n            else:\n                input_ids = self.frontend.get_input_ids(sentence, merge_sentences=False) # what the heck? no freaking tone?\n            phone_ids = input_ids[\"phone_ids\"]\n            flags = 0\n            for part_phone_ids in phone_ids:\n                with paddle.no_grad():\n                    if self.lang == \"en\":\n                        mel = self.am_inference(\n                                        part_phone_ids)",
+        "file_id": 568,
+        "content": "    dilated_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE\n)\nmyMask2 = np.zeros(shape=[a, b], dtype=np.uint8)\n# this is for video watermarks. how about pictures? do we need to cut corners? how to find the freaking watermark again?\nheight, width = myMask2.shape[:2]\nrectangles = []\nfor cnt in cnts2:\n    x, y, w, h = cv2.boundingRect(cnt)  # Draw the bounding box image=\n    # cv2.rectangle(output, (x,y), (x+w,y+h), (0,0,255),2)\n    rectangles.append((x,y,w,h))\n    cv2.rectangle(myMask2, (x, y), (x + w, y + h), 255, -1)\nimport json\ndata = {\"canvas\":(width, height), 'rectangles':rectangles}\ndataString = json.dumps(data)\nwith open(\"test.json\", 'w+') as f: f.write(dataString)\nprint(\"TOTAL {} CONTOURS.\".format(len(cnts2)))  # paint those contours.\n# cv2.imshow(\"IMAGE\",thresh_output)\ncv2.imshow(\"MPICTURE\", myMask2)\ncv2.waitKey(0)\n# fill those areas and you will get it.\n# how do we remove this shit?\n# also how do we remove other weird things? like floating watermarks?\n# print(imageSet[0].shape)\n# breakpoint()",
         "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:165-187"
+        "location": "/tests/still_watermark_auto_removal/automatic-watermark-detection/video_watermark_detection.py:207-239"
     },
     "4425": {
-        "file_id": 561,
-        "content": "This code is related to a text-to-speech (TTS) system. It first downloads and decompresses the necessary pretrained model files, then processes the input text into phone_ids, which are used to generate speech using the am_inference function. The code handles both English and Chinese languages but seems to be missing tone information for Chinese.",
+        "file_id": 568,
+        "content": "Code creates a mask for video watermarks by detecting contours and drawing bounding boxes. It saves the mask information to a JSON file. The code also displays the mask as an image. The code is not specifically designed for images; modifications are needed to handle other formats like images with floating watermarks.",
         "type": "comment"
     },
     "4426": {
-        "file_id": 561,
-        "content": "                                        # must get the scale using ffmpeg.\n                    elif self.lang == \"zh\":\n                        mel = self.am_inference(\n                                        part_phone_ids,\n                                        durations=None,\n                                        durations_scale = 1 / float(self.style_config['TTS']['SPEED']),\n                                        durations_bias = None,\n                                        pitch = None,\n                                        pitch_scale = float(self.style_config['TTS']['PITCH']),\n                                        pitch_bias = None,\n                                        energy = float(self.style_config['TTS']['ENERGY']),\n                                        energy_scale = None,\n                                        energy_bias = None,\n                                        )\n                    wav = self.voc_inference(mel)\n                if flags == 0:\n                    wav_all = wav",
-        "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:188-204"
+        "file_id": 569,
+        "content": "/tests/still_watermark_auto_removal/maxRectangleSolver.py",
+        "type": "filepath"
     },
     "4427": {
-        "file_id": 561,
-        "content": "This code chunk performs text-to-speech (TTS) conversion for Chinese language by first obtaining the Mel Spectrogram using `am_inference` function. The Mel Spectrogram is then converted to a WAV audio file using the `voc_inference` function. If flags equals 0, it assigns the result directly to `wav_all`.",
-        "type": "comment"
+        "file_id": 569,
+        "content": "The code defines checkOverlap for point validation and solves the maximum rectangle problem, iterating through candidate rectangles, detecting overlaps, and displaying the best candidate in red. It also sorts and prints top 5 areas.",
+        "type": "summary"
     },
     "4428": {
-        "file_id": 561,
-        "content": "                    flags = 1\n                else:\n                    wav_all = paddle.concat([wav_all, wav])\n            sf.write(\n                output,\n                wav_all.numpy(),\n                samplerate=self.am_config.fs)\n        return output\n    # def __del__(self):\n    #     del self.voc_inference\n    #     del self.am_inference\n    #     del self.am_config\n    #     del self.style_config\n    #     del self.frontend\n    #     del self",
+        "file_id": 569,
+        "content": "import sympy\nimport json\ndata = json.loads(open(\"test_special.json\", \"r\").read())\ncanvas = data[\"canvas\"]\nrectangles = data[\"rectangles\"]\ncanvasWidth, canvasHeight = canvas\nxValid = [0, canvasWidth]\nyValid = [0, canvasHeight]\nmRects = []\ndef checkContains(rect, point):\n    xPoints = [p[0] for p in rect]\n    yPoints = [p[1] for p in rect]\n    maxX, minX = max(xPoints), min(xPoints)\n    maxY, minY = max(yPoints), min(yPoints)\n    x, y = point\n    return x > minX and x < maxX and y > minY and y < maxY\n# def checkOverlapAsymmetric(rect0, rect1):\n#     for point in rect0:\n#         if checkContains(rect1, point):\n#             return True\n#         # also check for intersections?\n#     return False\n# Python program to check if rectangles overlap\nclass D2Point:\n    def __init__(self, x, y):\n        self.x = x\n        self.y = y\ndef getRectDiagonalPoints(rect):\n    xPoints = [p[0] for p in rect]\n    yPoints = [p[1] for p in rect]\n    maxX, minX = max(xPoints), min(xPoints)\n    maxY, minY = max(yPoints), min(yPoints)\n    p0, p1 = D2Point(minX, minY), D2Point(maxX, maxY)",
         "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/paddlebobo_paddletools_tts.py:205-219"
+        "location": "/tests/still_watermark_auto_removal/maxRectangleSolver.py:1-43"
     },
     "4429": {
-        "file_id": 561,
-        "content": "This code is concatenating audio files and saving them as a single output file. If the flag is set to 1, it stops concatenation and writes the existing audio file. The __del__ method deletes various objects when the instance is deallocated.",
+        "file_id": 569,
+        "content": "Code reads JSON data containing a canvas and rectangles. It validates points, creates a function to check if two rectangles overlap, and defines D2Point class for storing 2D point coordinates.",
         "type": "comment"
     },
     "4430": {
-        "file_id": 562,
-        "content": "/tests/english_chinese_mixing_spliter/english_grepper.py",
-        "type": "filepath"
+        "file_id": 569,
+        "content": "    return p0, p1\ndef do_overlap(l1, r1, l2, r2):\n    # if rectangle has area 0, no overlap\n    if l1.x == r1.x or l1.y == r1.y or r2.x == l2.x or l2.y == r2.y:\n        return False\n    # If one rectangle is on left side of other\n    if l1.x >= r2.x or l2.x >= r1.x:\n        return False\n    if l1.y >= r2.y or l2.y >= r1.y:\n        return False\n    return True\ndef checkOverlap(rect0, rect1):\n    return do_overlap(*getRectDiagonalPoints(rect0),*getRectDiagonalPoints(rect1))\nfor x, y, mWidth, mHeight in rectangles:\n    xValid.append(x)\n    xValid.append(x + mWidth)\n    yValid.append(y)\n    yValid.append(y + mHeight)\n    p0, p1, p2, p3 = (\n        (x, y),\n        (x + mWidth, y),\n        (x + mWidth, y + mHeight),\n        (x, y + mHeight),\n    )\n    # mRectangle = sympy.Polygon(p0,p1,p2,p3)\n    mRectangle = [p0, p1, p2, p3]\n    mRects.append(mRectangle)\ndef purify(xValid):\n    xValid = list(set(xValid))\n    xValid.sort()\n    return xValid\ndef checkOverlapAgainstRectList(rect, rectList):\n    for testRect in rectList:\n        if checkOverlap(rect, testRect):",
+        "type": "code",
+        "location": "/tests/still_watermark_auto_removal/maxRectangleSolver.py:44-85"
     },
     "4431": {
-        "file_id": 562,
-        "content": "This code searches, formats number lists, and tokenizes mixed English-Chinese text using regex. It iterates over results, updates language and UUID, sorts finalResult, creates dictionaries of index-text pairs for English and Chinese lists, then returns the result.",
-        "type": "summary"
+        "file_id": 569,
+        "content": "This code defines a function checkOverlap which takes two rectangles and checks if they overlap. The function do_overlap is used to determine if the rectangles have any area of overlap. It also includes utility functions like getRectDiagonalPoints, purify, and checkOverlapAgainstRectList for manipulating and comparing rectangles. The code creates a list of rectangles and checks for overlaps between each rectangle and others in a separate list.",
+        "type": "comment"
     },
     "4432": {
-        "file_id": 562,
-        "content": "# target = \"sample_strings.txt\"\n# data = open(target,\"r\",encoding=\"utf-8\").read()\n# data = data.split(\"\\n\")\nfrom zhon.hanzi import characters, radicals, punctuation\nimport re\ndef recursiveCompiledSearch(compiledRegex, pattern,initPos=0,resultTotal = []):\n    result = compiledRegex.search(pattern)\n    if result !=None:\n        match = result[0]\n        span = result.span()\n        realSpan = (span[0]+initPos, span[1]+initPos)\n        # initialSpan = span[0]\n        endSpan = span[1]\n        initPos += endSpan\n        mresult = {\"match\":match, \"span\":realSpan}\n        resultTotal.append(mresult)\n        newPattern = pattern[endSpan:]\n        return recursiveCompiledSearch(compiledRegex,newPattern,initPos,resultTotal)\n    else: return resultTotal\nfrom itertools import groupby, count\ndef set_to_range(numberlist):\n    numberlist = list(sorted(numberlist)) # double safety?\n    gpb = groupby(numberlist, lambda n, c=count(): n-next(c))\n    # Then to finish it off, generate the string from the groups.\n    def as_range(iterable): # not sure how to do this part elegantly",
+        "file_id": 569,
+        "content": "            return True\n    return False\nxValid = purify(xValid)\nyValid = purify(yValid)\ntotalCandidates = []\ndef getRectArea(rect):\n    xPoints = [p[0] for p in rect]\n    yPoints = [p[1] for p in rect]\n    maxX, minX = max(xPoints), min(xPoints)\n    maxY, minY = max(yPoints), min(yPoints)\n    return (maxX - minX) * (maxY - minY)\nbestCandidate = None\nbestArea = 0\nfor ix0 in range(0, len(xValid)-1):\n    for ix1 in range(ix0+1, len(xValid)):\n        for iy0 in range(0, len(yValid)-1):\n            for iy1 in range(iy0+1, len(yValid)):\n                x0, x1, y0, y1 = xValid[ix0], xValid[ix1], yValid[iy0], yValid[iy1]\n                x, y = x0, y0\n                mWidth, mHeight = x1 - x, y1 - y\n                p0, p1, p2, p3 = (\n                    (x, y),\n                    (x + mWidth, y),\n                    (x + mWidth, y + mHeight),\n                    (x, y + mHeight),\n                )\n                rectCandidate = [p0, p1, p2, p3]\n                area = getRectArea(rectCandidate)\n                if area <= bestArea:",
         "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/english_grepper.py:1-32"
+        "location": "/tests/still_watermark_auto_removal/maxRectangleSolver.py:86-120"
     },
     "4433": {
-        "file_id": 562,
-        "content": "This code defines two functions for searching and formatting number lists. The first function, `recursiveCompiledSearch`, uses regex to search for patterns in a string, recursively appending matches to the result list. The second function, `set_to_range`, sorts a number list and then groups consecutive numbers together into ranges.",
+        "file_id": 569,
+        "content": "The code is implementing a maximum rectangle solver algorithm. It iterates over the x and y validated points to generate all possible rectangles, calculating their areas using the getRectArea function. The best candidate with the highest area is stored.",
         "type": "comment"
     },
     "4434": {
-        "file_id": 562,
-        "content": "        l = list(iterable)\n        if len(l) > 1:\n            return (l[0], l[-1]+1)\n        else:\n            return (l[0], l[0]+1)\n    result = [as_range(g) for _, g in gpb]\n    # result = [as_range(g) for _, g in groupby(numberlist, key=lambda n, c=count(): n-next(c))]\n    return result\n    # '1-3,6-7,10'\nimport uuid\ndef get_myuuid(): return str(uuid.uuid4())\ndef get_chinese_result(line,chineseSet):\n    chineseRanges = set_to_range(chineseSet)\n    result = []\n    for r in chineseRanges:\n        text = line[r[0]:r[1]]\n        data = {\"match\":text,\"span\":r,\"lang\":\"zh\",\"uuid\":get_myuuid()}\n        result.append(data)\n    return result\nall_chinese = characters+radicals+punctuation\nenglish = re.compile(r\"([a-zA-Z]+([ \\-,\\.:;?!]+)?)+\")\n# for line in data:\ndef analyze_mixed_text(line):\n    line = line.replace(\"\\n\",\"\")\n    # if len(line) <=3: continue\n    # shall we analyze this shit line by line?\n    # just a fucking try...\n    print(\"LINE DATA: \" + line)\n    eng_result = recursiveCompiledSearch(english,line,initPos=0,resultTotal = []) # recursive curse.",
+        "file_id": 569,
+        "content": "                    continue\n                if checkOverlapAgainstRectList(rectCandidate, mRects):\n                    break\n                bestCandidate = rectCandidate.copy()\n                bestArea = area\n                # print(\"UPDATING:\",bestCandidate)\n                # print('AREA:', bestArea)\n                # totalCandidates.append(rectCandidate.copy())\nprint(\"final candidate:\", bestCandidate)\n# plot this?\nimport matplotlib.pyplot as plt\nfrom matplotlib.patches import Rectangle\nfig, ax = plt.subplots()\nax.plot([canvasWidth, canvasHeight])\n# add rectangle to plot\ndef plotRect(ax, x, y, width, height, facecolor):\n    ax.add_patch(Rectangle((x, y), width, height, facecolor=facecolor, fill=True))\ndef rectToXYWH(rect):\n    xPoints = [p[0] for p in rect]\n    yPoints = [p[1] for p in rect]\n    maxX, minX = max(xPoints), min(xPoints)\n    maxY, minY = max(yPoints), min(yPoints)\n    x, y = minX, minY\n    width, height = (maxX - minX), (maxY - minY)\n    return x, y, width, height\nplotRect(ax,0,0,canvasWidth, canvasHeight,'black')",
         "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/english_grepper.py:33-68"
+        "location": "/tests/still_watermark_auto_removal/maxRectangleSolver.py:121-151"
     },
     "4435": {
-        "file_id": 562,
-        "content": "This function takes a line of mixed English and Chinese text, tokenizes it into ranges of each language, and returns these ranges in a list. It first converts the Chinese characters to their corresponding ranges and then finds English words using a compiled regular expression. The function ignores lines with less than 3 characters and calls another function recursively for further processing.",
+        "file_id": 569,
+        "content": "This code finds the maximum rectangle by iterating through candidate rectangles and checking for overlaps. It updates the best candidate and area if a better one is found, then plots the final candidate rectangle on a plot.",
         "type": "comment"
     },
     "4436": {
-        "file_id": 562,
-        "content": "    engSet = []\n    engResult = []\n    for eng in eng_result:\n        print(\"FOUND ENGLISH: \", eng)\n        span = eng[\"span\"]\n        mword = line[span[0]:span[1]]\n        mrange = list(range(span[0],span[1]))\n        engSet += mrange\n        eng2 = eng\n        eng2.update({\"lang\":\"en\",\"uuid\":get_myuuid()})\n        engResult.append(eng2)\n        print(\"VERIFICATION:\",mword)\n    chineseSet = [x for x in range(len(line)) if x not in engSet]\n    chineseResult = get_chinese_result(line,chineseSet)\n    finalResult = chineseResult+engResult\n    finalResult = sorted(finalResult,key=lambda x:x[\"span\"][0])\n    result = {\"en\":[],\"zh\":[]}\n    for index, data in enumerate(finalResult):\n        lang = data[\"lang\"]\n        text = data[\"match\"]\n        result[lang].append({\"index\":index,\"text\":text})\n    return result",
+        "file_id": 569,
+        "content": "for rect in mRects:\n    x,y, width, height = rectToXYWH(rect)\n    plotRect(ax,x,y,width,height,'white')\nplotRect(ax,*rectToXYWH(bestCandidate),'red')\n# display plot\nplt.show()\n# totalCandidates.sort(key = lambda rect: -getRectArea(rect))\n# for rect in totalCandidates[:5]:\n#     print(rect)",
         "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/english_grepper.py:69-90"
+        "location": "/tests/still_watermark_auto_removal/maxRectangleSolver.py:153-161"
     },
     "4437": {
-        "file_id": 562,
-        "content": "The code iterates over the English results, appends the range of each word to engSet, updates the language and UUID of each result, and then builds a finalResult list. It sorts the finalResult by span[0] (start index) and creates a dictionary with English (en) and Chinese (zh) lists containing index-text pairs. Finally, it returns the result dictionary.",
+        "file_id": 569,
+        "content": "The code generates and plots rectangles using given coordinates and dimensions, with the best candidate rectangle displayed in red. It also sorts the total list of candidate rectangles by area and prints the top 5 areas.",
         "type": "comment"
     },
     "4438": {
-        "file_id": 563,
-        "content": "/tests/english_chinese_mixing_spliter/default.yaml",
+        "file_id": 570,
+        "content": "/tests/still_watermark_auto_removal/test_auto_video_watermark_detection.sh",
         "type": "filepath"
     },
     "4439": {
-        "file_id": 563,
-        "content": "This YAML configuration file sets the input and output paths for a GAN-based driving application. It includes options for image and video files, TTS settings, and save directories.",
+        "file_id": 570,
+        "content": "cd into the automatic-watermark-detection directory and execute the video_watermark_detection.py script for watermark detection in videos.",
         "type": "summary"
     },
     "4440": {
-        "file_id": 563,
-        "content": "GANDRIVING:\n  FOM_INPUT_IMAGE: './file/input/test.png'\n  FOM_DRIVING_VIDEO: './file/input/zimeng.mp4'\n  FOM_OUTPUT_VIDEO: './file/input/test.mp4'\nTTS:\n  SPEED: 1.0\n  PITCH: 1.0\n  ENERGY: 1.0\nSAVEPATH:\n  VIDEO_SAVE_PATH: './file/output/video/'\n  AUDIO_SAVE_PATH: './file/output/audio/'",
+        "file_id": 570,
+        "content": "cd automatic-watermark-detection\npython3 video_watermark_detection.py",
         "type": "code",
-        "location": "/tests/english_chinese_mixing_spliter/default.yaml:1-13"
+        "location": "/tests/still_watermark_auto_removal/test_auto_video_watermark_detection.sh:1-3"
     },
     "4441": {
-        "file_id": 563,
-        "content": "This YAML configuration file sets the input and output paths for a GAN-based driving application. It includes options for image and video files, TTS settings, and save directories.",
+        "file_id": 570,
+        "content": "cd into the automatic-watermark-detection directory and execute the video_watermark_detection.py script for watermark detection in videos.",
         "type": "comment"
     },
     "4442": {
-        "file_id": 564,
-        "content": "/tests/recommendation_system/neo4j_e2e_recsys.py",
+        "file_id": 571,
+        "content": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/README.md",
         "type": "filepath"
     },
     "4443": {
-        "file_id": 564,
-        "content": "This code is referencing resources from Neo4j's documentation for end-to-end examples and Graph Academy training. It appears to be related to implementing Fast RP (Recommendation Prediction) using k-Nearest Neighbors (kNN) algorithm in a Neo4j graph database.",
+        "file_id": 571,
+        "content": "This code seems to be related to the tiktok_douyin module of pyjom project. It refers to a server address (111.48.141.77:8081) and mentions that the direction arrows indicate request and response, suggesting it deals with network communication. The code also references a query related to taobao guangguang, indicating it could be used for data retrieval from the Tmall platform of Taobao, involving an app crawler. It also refers to a JAR file for further information on how this is implemented.",
         "type": "summary"
     },
     "4444": {
-        "file_id": 564,
-        "content": "# https://neo4j.com/docs/graph-data-science/current/end-to-end-examples/fastrp-knn-example/\n# https://neo4j.com/graphacademy/training-iga-40/12-iga-40-ingredient-analysis/",
+        "file_id": 571,
+        "content": "weishi use jce with TYPE_COMPRESS\nwhat is this server doing?\n111.48.141.77:8081\nmaybe the direction is not right.\n-> is response.\n<- is request.\nhttps://github.com/tsuzcx/qq_apk/blob/36c43445f737ed1c8854ce9dadac3979a0fc8b90/com.tencent.tim/classes.jar/com/tencent/beacon/base/net/b/d.java\nfor taobao guangguang it seems just a query away. but that query is a long one. hard to tell.\n淘口令解析\n淘宝app爬虫",
         "type": "code",
-        "location": "/tests/recommendation_system/neo4j_e2e_recsys.py:1-2"
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/README.md:1-17"
     },
     "4445": {
-        "file_id": 564,
-        "content": "This code is referencing resources from Neo4j's documentation for end-to-end examples and Graph Academy training. It appears to be related to implementing Fast RP (Recommendation Prediction) using k-Nearest Neighbors (kNN) algorithm in a Neo4j graph database.",
+        "file_id": 571,
+        "content": "This code seems to be related to the tiktok_douyin module of pyjom project. It refers to a server address (111.48.141.77:8081) and mentions that the direction arrows indicate request and response, suggesting it deals with network communication. The code also references a query related to taobao guangguang, indicating it could be used for data retrieval from the Tmall platform of Taobao, involving an app crawler. It also refers to a JAR file for further information on how this is implemented.",
         "type": "comment"
     },
     "4446": {
-        "file_id": 565,
-        "content": "/tests/recommendation_system/karate_test.py",
+        "file_id": 572,
+        "content": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/decodeTaobaoQuery.py",
         "type": "filepath"
     },
     "4447": {
-        "file_id": 565,
-        "content": "This code imports necessary libraries and defines a function for normalizing adjacency matrices. It then creates a graph using the karate club data, converts it to a dense matrix, normalizes this matrix, and prints its shape before initializing a GCN model.",
+        "file_id": 572,
+        "content": "The code decodes a Taobao query string, parses the URL-encoded data into JSON format with various parameters, and prints it using pprint for readability.",
         "type": "summary"
     },
     "4448": {
-        "file_id": 565,
-        "content": "import networkx as nx\nimport torch\ndef normalize(A , symmetric=True):\n\t# A = A+I\n\tA = A + torch.eye(A.size(0))\n\t# 所有节点的度\n\td = A.sum(1)\n\tif symmetric:\n\t\t#D = D^-1/2\n\t\tD = torch.diag(torch.pow(d , -0.5))\n\t\treturn D.mm(A).mm(D)\n\telse:\n\t\t# D=D^-1\n\t\tD = torch.diag(torch.pow(d,-1))\n\t\treturn D.mm(A)\nG = nx.karate_club_graph()\nA = nx.adjacency_matrix(G).todense() # dense matrix? not so freaking good.\n#A需要正规化\nA_normed = normalize(torch.FloatTensor(A),True)\nprint(A_normed.shape)\nfrom torch_geometric.nn import GCN\n# how to generate graph?\n# breakpoint() # 34,34",
+        "file_id": 572,
+        "content": "import urllib.parse\nimport json\na = \"\"\"%7B%22LBS%22%3A%22%7B%5C%22TB%5C%22%3A%5C%22%7B%5C%5C%5C%22stores%5C%5C%5C%22%3A%5B%7B%5C%5C%5C%22code%5C%5C%5C%22%3A%5C%5C%5C%22236736190%5C%5C%5C%22%2C%5C%5C%5C%22bizType%5C%5C%5C%22%3A%5C%5C%5C%222%5C%5C%5C%22%2C%5C%5C%5C%22type%5C%5C%5C%22%3A%5C%5C%5C%2224%5C%5C%5C%22%7D%5D%7D%5C%22%2C%5C%22TMALL_MARKET_B2C%5C%22%3A%5C%22%7B%5C%5C%5C%22stores%5C%5C%5C%22%3A%5B%7B%5C%5C%5C%22code%5C%5C%5C%22%3A%5C%5C%5C%22107%5C%5C%5C%22%2C%5C%5C%5C%22bizType%5C%5C%5C%22%3A%5C%5C%5C%22REGION_TYPE_REGION%5C%5C%5C%22%2C%5C%5C%5C%22addrId%5C%5C%5C%22%3A%5C%5C%5C%229056332332%5C%5C%5C%22%2C%5C%5C%5C%22type%5C%5C%5C%22%3A%5C%5C%5C%22CHOOSE_ADDR%5C%5C%5C%22%7D%5D%7D%5C%22%2C%5C%22TMALL_MARKET_O2O%5C%22%3A%5C%22%7B%5C%5C%5C%22stores%5C%5C%5C%22%3A%5B%7B%5C%5C%5C%22code%5C%5C%5C%22%3A%5C%5C%5C%22235565019%5C%5C%5C%22%2C%5C%5C%5C%22bizType%5C%5C%5C%22%3A%5C%5C%5C%22DELIVERY_TIME_HALF_DAY%5C%5C%5C%22%2C%5C%5C%5C%22addrId%5C%5C%5C%22%3A%5C%5C%5C%229056332332%5C%5C%5C%22%2C%",
         "type": "code",
-        "location": "/tests/recommendation_system/karate_test.py:1-27"
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/decodeTaobaoQuery.py:1-3"
     },
     "4449": {
-        "file_id": 565,
-        "content": "This code imports necessary libraries and defines a function for normalizing adjacency matrices. It then creates a graph using the karate club data, converts it to a dense matrix, normalizes this matrix, and prints its shape before initializing a GCN model.",
+        "file_id": 572,
+        "content": "This code is decoding a Taobao query string containing information about various stores and their types, likely used for filtering or search purposes.",
         "type": "comment"
     },
     "4450": {
-        "file_id": 566,
-        "content": "/tests/recommendation_system/dgl_link_prediction.py",
-        "type": "filepath"
+        "file_id": 572,
+        "content": "5C%5C%5C%22type%5C%5C%5C%22%3A%5C%5C%5C%22CHOOSE_ADDR%5C%5C%5C%22%7D%5D%7D%5C%22%7D%22%2C%22URL_REFERER_ORIGIN%22%3A%22%2F%2Fs.m.taobao.com%2Fh5entry%3Fg_channelSrp%3Dvideointeract%26g_tab%3Dtbexperience%26g_pfilter%3Ddaren%26g_closeModues%3Dtab%26closeExpSubTab%3Dtrue%26g_csearchdoor_spm%3Da310p.14955560%26spm%3Da310p.13800399%26launchMode%3Dandroid_new_task%26g_closeExpSubTab%3Dtrue%22%2C%22ad_type%22%3A%221.0%22%2C%22apptimestamp%22%3A%221665607023%22%2C%22areaCode%22%3A%22CN%22%2C%22brand%22%3A%22Xiaomi%22%2C%22canP4pVideoPlay%22%3A%22true%22%2C%22channelSrp%22%3A%22videointeract%22%2C%22cityCode%22%3A%22320100%22%2C%22closeExpSubTab%22%3A%22true%22%2C%22closeModues%22%3A%22tab%22%2C%22countryNum%22%3A%22156%22%2C%22csearchdoor_spm%22%3A%22a310p.14955560%22%2C%22device%22%3A%22Mi+MIX+2%22%2C%22editionCode%22%3A%22CN%22%2C%22from%22%3A%22input%22%2C%22globalLbs%22%3A%22%7B%5C%22biz_common%5C%22%3A%7B%5C%22recommendedAddress%5C%22%3A%7B%5C%22addressId%5C%22%3A%5C%229056332332%5C%22%2",
+        "type": "code",
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/decodeTaobaoQuery.py:3-3"
     },
     "4451": {
-        "file_id": 566,
-        "content": "This code imports the DGL library, loads the Cora dataset from DGL's data module, and prints the loaded dataset. The Cora dataset is a popular benchmark for node classification tasks in graph-based machine learning.",
-        "type": "summary"
+        "file_id": 572,
+        "content": "This code contains a complex JSON object with various parameters like type, URL_REFERER_ORIGIN, ad_type, areaCode, brand, canP4pVideoPlay, channelSrp, cityCode, closeExpSubTab, closeModues, countryNum, csearchdoor\\_spm, device, editionCode, from, and globalLbs. These parameters are used to describe the source of the request, user's location, device information, and other relevant data for an API call.",
+        "type": "comment"
     },
     "4452": {
-        "file_id": 566,
-        "content": "import dgl\ncora = dgl.data.CoraGraphDataset()\nprint(cora)",
+        "file_id": 572,
+        "content": "C%5C%22area%5C%22%3A%5C%22%E6%A0%96%E9%9C%9E%E5%8C%BA%5C%22%2C%5C%22areaDivisionCode%5C%22%3A%5C%22320113%5C%22%2C%5C%22city%5C%22%3A%5C%22%E5%8D%97%E4%BA%AC%E5%B8%82%5C%22%2C%5C%22cityDivisionCode%5C%22%3A%5C%22320100%5C%22%2C%5C%22detailText%5C%22%3A%5C%22%E6%96%87%E8%8B%91%E8%B7%AF9%E5%8F%B7%E5%8D%97%E4%BA%AC%E9%82%AE%E7%94%B5%E5%A4%A7%E5%AD%A6%E5%9C%86%E9%80%9A%E5%BF%AB%E9%80%92%5C%22%2C%5C%22lat%5C%22%3A%5C%2232.11078%5C%22%2C%5C%22lng%5C%22%3A%5C%22118.932821%5C%22%2C%5C%22province%5C%22%3A%5C%22%E6%B1%9F%E8%8B%8F%E7%9C%81%5C%22%2C%5C%22provinceDivisionCode%5C%22%3A%5C%22320000%5C%22%2C%5C%22town%5C%22%3A%5C%22%E4%BB%99%E6%9E%97%E8%A1%97%E9%81%93%5C%22%2C%5C%22townDivisionCode%5C%22%3A%5C%22320113007%5C%22%2C%5C%22type%5C%22%3A%5C%22deliver%5C%22%7D%7D%2C%5C%22eleme%5C%22%3A%7B%5C%22storeInfos%5C%22%3A%5B%7B%5C%22storeId%5C%22%3A%5C%22999%5C%22%7D%5D%7D%2C%5C%22meeting_place%5C%22%3A%7B%7D%2C%5C%22on_time_promise%5C%22%3A%7B%5C%22storeInfos%5C%22%3A%5B%7B%5C%22storeId%5C%22%3A%5C",
         "type": "code",
-        "location": "/tests/recommendation_system/dgl_link_prediction.py:1-4"
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/decodeTaobaoQuery.py:3-3"
     },
     "4453": {
-        "file_id": 566,
-        "content": "This code imports the DGL library, loads the Cora dataset from DGL's data module, and prints the loaded dataset. The Cora dataset is a popular benchmark for node classification tasks in graph-based machine learning.",
+        "file_id": 572,
+        "content": "This code block represents a JSON object containing information about the location, delivery details, and stores related to an order. The location data includes area, city, province, town, and latitude/longitude coordinates. There are also delivery-related details such as type (deliver), and store information with store IDs.",
         "type": "comment"
     },
     "4454": {
-        "file_id": 567,
-        "content": "/tests/apple_prores_encoding_play/test.sh",
-        "type": "filepath"
+        "file_id": 572,
+        "content": "%22353585008%5C%22%7D%2C%7B%5C%22storeId%5C%22%3A%5C%22353612036%5C%22%7D%2C%7B%5C%22storeId%5C%22%3A%5C%22525826023%5C%22%7D%5D%7D%2C%5C%22same_city_buy%5C%22%3A%7B%7D%2C%5C%22tmall_market_o2o%5C%22%3A%7B%5C%22storeInfos%5C%22%3A%5B%7B%5C%22storeId%5C%22%3A%5C%22235565019%5C%22%7D%5D%7D%2C%5C%22txd%5C%22%3A%7B%5C%22storeInfos%5C%22%3A%5B%7B%5C%22storeId%5C%22%3A%5C%22707447478%5C%22%7D%5D%7D%7D%22%2C%22gpsEnabled%22%3A%22false%22%2C%\"\"\"\nb =urllib.parse.unquote(a)\n# c=json.loads(b)\nimport pprint\n# pprint.pprint(c)\npprint.pprint(b)",
+        "type": "code",
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/decodeTaobaoQuery.py:3-8"
     },
     "4455": {
-        "file_id": 567,
-        "content": "This script encodes a video file using FFmpeg with the prores_aw encoder and saves it in an Apple ProRes format. The code uses the vulkan hardware acceleration and sets the output container format to .mkv. It also provides alternative options for encoding in ProRes 422 or 4444 HQ, specifying profile, vendor, bits per MB, and pixel format. It mentions allowed container formats for ProRes as .mov, .mkv, and .mxf.",
-        "type": "summary"
+        "file_id": 572,
+        "content": "This code is parsing a URL-encoded string and loading its content into a JSON format. It then prints the parsed JSON data using the pprint module for better readability.",
+        "type": "comment"
     },
     "4456": {
-        "file_id": 567,
-        "content": "videoPath=\"/root/Desktop/works/pyjom/samples/video/cute_cat_gif.mp4\"\n# prores_aw\nffmpeg -hwaccel vulkan -i $videoPath -c:v prores_ks  output.mkv\n# https://ottverse.com/ffmpeg-convert-to-apple-prores-422-4444-hq/#:~:text=FFmpeg%20contains%20two%20ProRes%20encoders%2C%20the%20prores-aw%20and,option%20to%20choose%20the%20ProRes%20profile%20to%20encode.\n# videoPath=\"/Users/jamesbrown/Desktop/works/pyjom_remote/samples/video/cute_cat_gif.mp4\"\n# ffmpeg -hwaccel videotoolbox -i $videoPath -c:v prores_ks  \\\n# -profile:v 4 \\\n# -vendor apl0 \\\n# -bits_per_mb 8000 \\\n# -pix_fmt yuva444p10le \\ \n# output.mov\n# Do remember to store the output in either of these three formats that are allowed as containers for the ProRes format.\n# .mov (QuickTime)\n# .mkv (Matroska)\n# .mxf (Material eXchange Format)",
-        "type": "code",
-        "location": "/tests/apple_prores_encoding_play/test.sh:1-16"
-    },
-    "4457": {
-        "file_id": 567,
-        "content": "This script encodes a video file using FFmpeg with the prores_aw encoder and saves it in an Apple ProRes format. The code uses the vulkan hardware acceleration and sets the output container format to .mkv. It also provides alternative options for encoding in ProRes 422 or 4444 HQ, specifying profile, vendor, bits per MB, and pixel format. It mentions allowed container formats for ProRes as .mov, .mkv, and .mxf.",
-        "type": "comment"
-    },
-    "4458": {
-        "file_id": 568,
-        "content": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/README.md",
+        "file_id": 573,
+        "content": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/disable_ssl.js",
         "type": "filepath"
     },
-    "4459": {
-        "file_id": 568,
-        "content": "This code covers device discovery, Termux daemon, remote unlock with ADB and scrcpy client, focused window titles, downloading a macOS keylogger, and executes input tests on the X server.",
+    "4457": {
+        "file_id": 573,
+        "content": "Bypasses Universal Android SSL Pinning using frida, replacing checkTrustedRecursive implementation to enable SSL communication.",
         "type": "summary"
     },
-    "4460": {
-        "file_id": 568,
-        "content": "device discovery, termux daemon, remote unlock\nunlock requires screenshot and input events.\nhttps://technastic.com/unlock-android-phone-pin-pattern-adb/\nclick ok after input password:\nhttps://stackoverflow.com/questions/29072501/how-to-unlock-android-phone-through-adb\nscrcpy client\nhttps://github.com/leng-yue/py-scrcpy-client\nhttps://leng-yue.github.io/py-scrcpy-client/guide.html#bind-events\nyou want to use android emulator on macos m1?\nhttps://github.com/google/android-emulator-m1-preview/releases/tag/0.3\ncheck android screen lock/unlock state\nhttps://android.stackexchange.com/questions/191086/adb-commands-to-get-screen-state-and-locked-state\nBonjour/Avahi/Zeroconf\nlogic: if the kill switch is off, when no physical input events happens, or not focused on scrcpy window with keyboard/mouse input events on pc for some time, allow to interact with the phone.\nget physical events:\nwarning: this command could be offline for a short period of time after using the scrcpy. must automatically reconnect if the device is not offline.",
+    "4458": {
+        "file_id": 573,
+        "content": "// script name: sowdust/universal-android-ssl-pinning-bypass-2\n/* \n   Universal Android SSL Pinning Bypass\n   by Mattia Vinci and Maurizio Agazzini \n   $ frida -U -f org.package.name -l universal-ssl-check-bypass.js --no-pause\n    https://techblog.mediaservice.net/2018/11/universal-android-ssl-check-bypass-2/\n*/\nJava.perform(function() {\n    var array_list = Java.use(\"java.util.ArrayList\");\n    var ApiClient = Java.use('com.android.org.conscrypt.TrustManagerImpl');\n    ApiClient.checkTrustedRecursive.implementation = function(a1, a2, a3, a4, a5, a6) {\n        // console.log('Bypassing SSL Pinning');\n        var k = array_list.$new();\n        return k;\n    }\n}, 0);",
         "type": "code",
-        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/README.md:1-30"
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/disable_ssl.js:1-22"
     },
-    "4461": {
-        "file_id": 568,
-        "content": "This code focuses on device discovery, termux daemon, remote unlock, using scrcpy client and android emulator on MacOS M1. It includes links for unlocking Android phone through ADB, checking screen lock/unlock state, utilizing Bonjour/Avahi/Zeroconf logic, handling physical events and reconnecting if necessary.",
+    "4459": {
+        "file_id": 573,
+        "content": "Bypasses Universal Android SSL Pinning using frida, replacing checkTrustedRecursive implementation to enable SSL communication.",
         "type": "comment"
     },
+    "4460": {
+        "file_id": 574,
+        "content": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/frida_globalswitch_apk.js",
+        "type": "filepath"
+    },
+    "4461": {
+        "file_id": 574,
+        "content": "The code disables SSL-SPDY and SPDY for packet capture debugging, and attempts to print class names using Frida in an APK, but fails to hook 'Response' methods. It uses Java classes in 'mtopsdk.network' to track requests, log details, and initializes ANetworkCallImpl, while modifying 'mtopsdk.mtop.global.SwitchConfig' using Frida for URL logging.",
+        "type": "summary"
+    },
     "4462": {
-        "file_id": 568,
-        "content": "```bash\nadb -s 192.168.10.3:5555 shell getevent\n```\nto get focused window title:\nhint: for headless ssh sessions, must set apropriate xorg environment variables, eg: `env XAUTHORITY=\"/run/user/0/gdm/Xauthority\" DISPLAY=:1 python3`\ngeneral method:\n```python\nimport pywinctl\npywinctl.getActiveWindowTitle()\n```\nfor linux:\n```bash\nwatch -n 2 xdotool getactivewindow getwindowname\n```\nfor macos: (allow permission first, deprecated since it will not get the window title instead of the program name)\nhttps://alvinalexander.com/mac-os-x/applescript-unix-mac-osx-foreground-application-result/\n(where is the window name?)\n```bash\nsleep 3 && osascript -e 'tell application \"System Events\"' -e 'set frontApp to name of first application process whose frontmost is true' -e 'end tell'\n```\nto get input events on macos:\ndownload keylogger here:\nhttps://hackernoon.com/writing-an-keylogger-for-macos-in-python-24adfa22722\nhttps://github.com/beatsbears/pkl?ref=hackernoon.com\n```bash\npython pkl_nowriting.py\n```\ninput events on linux:\n```bash",
+        "file_id": 574,
+        "content": "////////////////////////////////////////////////////////////////////////\n// try to disable security? disable ssl-spdy and spdy\n////////////////////////////////////////////////////////////////////////\n// try this first anyway.\nsetTimeout(function () {\n    console.log('start——*-*-*-*-*-');\n   Java.perform(function () {\n       var SwitchConfig = Java.use('mtopsdk.mtop.global.SwitchConfig');\n       SwitchConfig.isGlobalSpdySwitchOpen.overload().implementation = function () {\n           var ret = this.isGlobalSpdySwitchOpen.apply(this, arguments);\n           console.log(\"开启抓包\" + ret);\n           return false;\n       }\n       SwitchConfig.isGlobalSpdySslSwitchOpen.overload().implementation = function () {\n        var ret = this.isGlobalSpdySslSwitchOpen.apply(this, arguments);\n        console.log(\"开启抓包\" + ret);\n        return false;\n       }\n   });\n});\n// ————————————————\n// 版权声明：本文为CSDN博主「哈里哈气」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。\n// 原文链接：https://blog.csdn.net/qq_34067821/article/details/103203549\n////////////////////////////////////////////////////////////////////////",
         "type": "code",
-        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/README.md:32-68"
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/frida_globalswitch_apk.js:2-27"
     },
     "4463": {
-        "file_id": 568,
-        "content": "This code provides methods to obtain the focused window title on different operating systems: Bash commands for Android devices and Windows, Python script for Linux, Applescript for macOS. Additionally, it mentions downloading a keylogger for capturing input events on macOS.",
+        "file_id": 574,
+        "content": "This code attempts to disable SSL-SPDY and SPdy by overriding the isGlobalSpdySwitchOpen and isGlobalSpdySslSwitchOpen methods of the SwitchConfig class. It sets both switches to off, effectively disabling them, in order to enable packet capture for debugging purposes. The code is attributed to a CSDN blog post by the author \"哈里哈气\".",
         "type": "comment"
     },
     "4464": {
-        "file_id": 568,
-        "content": "xinput test-xi2 --root\n```",
+        "file_id": 574,
+        "content": "// print class names\n////////////////////////////////////////////////////////////////////////\n// var callback = {\n// \t'onMatch': function(cname){\n// \t\t//lets just print out the class name.\n// \t\tconsole.log(cname);\n// \t},\n// \t'onComplete': function() {\n// \t\tconsole.log(\"done\");\n// \t},\n// \t'onError': function(){\n// \t\tconsole.log(\"There is error\");\n// \t}\n// };\n// Java.perform(function(){\n// \tJava.enumerateLoadedClasses(callback);\t//onMatch: function (className)\n// });\n////////////////////////////////////////////////////////////////////////// failed to hook request/response methods as expected\n////////////////////////////////////////////////////////////////////////\n// // Java.perform(function () {\n// //     // Function to hook is defined here\n// //     //所有响应\n// in this apk we do not find 'Response' shit.\n// //     var Response = Java.use('mtopsdk.network.domain.Response');\n// //     Response.$init.overload('mtopsdk.network.domain.Response$Builder').implementation = function() {\n// //         //PrintStack()\n// //         console.log(\"Response \" + arguments[0].body)",
         "type": "code",
-        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/README.md:69-70"
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/frida_globalswitch_apk.js:28-59"
     },
     "4465": {
-        "file_id": 568,
-        "content": "Executes an input test on the X server, affecting all connected devices.",
+        "file_id": 574,
+        "content": "The code aims to print class names using Frida in an APK. It defines a callback with 'onMatch' and 'onComplete' functions, then uses Java.enumerateLoadedClasses() to obtain the class names. The code also attempts to hook 'Response' methods but failed as they were not found in the APK.",
         "type": "comment"
     },
     "4466": {
-        "file_id": 569,
-        "content": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/unlock_phone_on_given_ip.py",
-        "type": "filepath"
+        "file_id": 574,
+        "content": "// //         var ret = this.$init.apply(this, arguments);\n// //         //all request\n// //         console.log(\"Response \" + this.toString())\n// //         return ret;\n// //     };\n// //     //所有请求\n// //     var RequestBuilder = Java.use('mtopsdk.network.domain.Request$Builder');\n// //     RequestBuilder.build.overload().implementation = function() {\n// //         //PrintStack()\n// //         var ret = this.build.apply(this, arguments);\n// //         //all request\n// //         console.log(\"RequestBuilder \" + ret.toString())\n// //         return ret;\n// //     };\n// //     //所有请求\n// //     var ANetworkCallImpl = Java.use('mtopsdk.network.impl.ANetworkCallImpl');\n// //     ANetworkCallImpl.$init.overload('mtopsdk.network.domain.Request', 'android.content.Context').implementation = function() {\n// //         //PrintStack()\n// //         console.log('ANetworkCallImpl ' + arguments[0])\n// //         var ret = this.$init.apply(this, arguments);\n// //         return ret;\n// //     };\n// //     //所有请求url\n// //     var AbstractNetworkConverter = Java.use(",
+        "type": "code",
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/frida_globalswitch_apk.js:60-87"
     },
     "4467": {
-        "file_id": 569,
-        "content": "Device address is set to connect to the phone on a specific IP and port for further interactions.",
-        "type": "summary"
+        "file_id": 574,
+        "content": "This code is manipulating several Java classes in the 'mtopsdk.network' package for tracking all requests, logging the request details and builder objects, and initializing an ANetworkCallImpl with a Request object and Context.",
+        "type": "comment"
     },
     "4468": {
-        "file_id": 569,
-        "content": "# first, check phone status.\ndevice_address = \"192.168.10.3:5555\"",
+        "file_id": 574,
+        "content": "// //         'mtopsdk.mtop.protocol.converter.impl.AbstractNetworkConverter'\n// //     );\n// //     AbstractNetworkConverter.buildBaseUrl.overload(\n// //         'mtopsdk.framework.domain.MtopContext',\n// //         'java.lang.String',\n// //         'java.lang.String'\n// //     ).implementation = function() {\n// //         console.log(\"buildBaseUrl \"+arguments[1]+' '+arguments[2])\n// //         var ret = this.buildBaseUrl.apply(this, arguments);\n// //         //url\n// //         console.log(\"buildBaseUrl \"+ret)\n// //         return ret;\n// //     };\n// //     // 禁用spdy协议\n// //     var SwitchConfig = Java.use('mtopsdk.mtop.global.SwitchConfig');\n// //     SwitchConfig.setGlobalSpdySslSwitchOpen.overload().implementation = function() {\n// //         var ret = this.isGlobalSpdySwitchOpen.apply(this, arguments);\n// //         console.log('isGlobalSpdySwitchOpenl ' + ret)\n// //         return false;\n// //     };\n// // });",
         "type": "code",
-        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/unlock_phone_on_given_ip.py:1-2"
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/frida_globalswitch_apk.js:88-112"
     },
     "4469": {
-        "file_id": 569,
-        "content": "Device address is set to connect to the phone on a specific IP and port for further interactions.",
+        "file_id": 574,
+        "content": "This code is using Frida to instrument the 'mtopsdk.mtop.global.SwitchConfig' class in an APK. It overrides the 'setGlobalSpdySslSwitchOpen' method to always return false, disabling SPDY protocol. Additionally, it modifies the 'AbstractNetworkConverter.buildBaseUrl' method to log the arguments and base URL.",
         "type": "comment"
     },
     "4470": {
-        "file_id": 570,
-        "content": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/pkl_nowriting.py",
+        "file_id": 575,
+        "content": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/get_frida_codeshare_source.sh",
         "type": "filepath"
     },
     "4471": {
-        "file_id": 570,
-        "content": "This Python script logs keystrokes and mouse events via Cocoa, for educational purposes, requires privilege settings adjustment, and has an event loop with interrupt handling.",
+        "file_id": 575,
+        "content": "This script retrieves the project source from Frida CodeShare using the provided parameter and outputs it in a format that can be easily consumed by various programming languages, such as JSON5 or JavaScript. However, there is a potential code injection warning due to the use of shell commands like `grep`, `sed`, and `python3` for data processing.",
         "type": "summary"
     },
     "4472": {
-        "file_id": 570,
-        "content": "#!/usr/bin/env python\n\"\"\"\npkl.py\n:author: Andrew Scott\n:date: 9-3-2018\nIf executed successfully this script will log key strokes until the process is killed.\nThis script is for EDUCATIONAL PURPOSES ONLY. \n\"\"\"\n# can be run without root, but must enable the privilege in privacy settings\nimport os, sys\nsys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))\nfrom AppKit import NSApplication, NSApp\nfrom Foundation import NSObject\nfrom Cocoa import (\n    NSEvent,\n    NSKeyDownMask, # keyboard\n    NSLeftMouseUpMask, # mouse\n    NSLeftMouseDownMask,\n    NSLeftMouseDraggedMask,\n    NSRightMouseDownMask,\n    NSRightMouseDraggedMask,\n    NSRightMouseUpMask,\n    NSMouseMovedMask,\n)\nfrom PyObjCTools import AppHelper\n# NSLeftMouseUpMask, NSLeftMouseDownMask, NSLeftMouseDraggedMask, NSRightMouseDownMask, NSRightMouseDraggedMask, NSRightMouseUpMask, NSMouseMovedMask\nclass AppDelegate(NSObject):\n    \"\"\"\n    The App Delegate creates a mask to detect the key being pressed and adds\n    a global monitor for this mask.",
+        "file_id": 575,
+        "content": "# warning! potential code injection.\n# better use some json5 formatter instead.\n# this is strict! fuck.\nPARAM=$1\necho \"// script name: $PARAM\"\necho\n# exit\ncurl \"https://codeshare.frida.re/@$PARAM/\" 2>/dev/null | grep \"projectSource: \" | sed 's/projectSource:/\"projectSource\":/;s/^/{/;s/,$//;s/$/}/' | python3 -c \"d=input();import json;p=json.loads(d);print(p['projectSource'])\"\n# curl \"https://codeshare.frida.re/@Gand3lf/xamarin-antiroot/\" 2>/dev/null | grep \"projectSource: \" | sed 's/^/var a={/;s/$/}\\; console.log(a.projectSource);/' | node",
         "type": "code",
-        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/pkl_nowriting.py:1-38"
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/get_frida_codeshare_source.sh:1-9"
     },
     "4473": {
-        "file_id": 570,
-        "content": "This Python script logs key strokes until the process is killed, intended for educational purposes only. It uses AppKit and Foundation modules from Cocoa and PyObjCTools to create an app delegate that detects keyboard and mouse events without root access, but requires enabling privilege in privacy settings.",
+        "file_id": 575,
+        "content": "This script retrieves the project source from Frida CodeShare using the provided parameter and outputs it in a format that can be easily consumed by various programming languages, such as JSON5 or JavaScript. However, there is a potential code injection warning due to the use of shell commands like `grep`, `sed`, and `python3` for data processing.",
         "type": "comment"
     },
     "4474": {
-        "file_id": 570,
-        "content": "    \"\"\"\n    def applicationDidFinishLaunching_(self, notification):\n        mask_down = NSKeyDownMask\n        mouse_masks = [\n            NSLeftMouseUpMask,\n            NSLeftMouseDownMask,\n            NSLeftMouseDraggedMask,\n            NSRightMouseDownMask,\n            NSRightMouseDraggedMask,\n            NSRightMouseUpMask,\n            NSMouseMovedMask,\n        ]\n        NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(mask_down, key_handler)\n        for mouse_mask in mouse_masks:\n            NSEvent.addGlobalMonitorForEventsMatchingMask_handler_(\n                mouse_mask, mouse_handler\n            )\n# w = Writer()\ndef mouse_handler(event):\n    import time\n    print(\"mouse have actions\", time.time())\ndef key_handler(event):\n    \"\"\"\n    Translates the key press events into readable characters if one exists\n    the key code is also recorded for non-character input.\n    \"\"\"\n    try:\n        capture_char = event.characters()\n        capture_raw = event.keyCode()\n        print(capture_char, capture_raw)\n        # w.write_to_log(capture_char, capture_raw)",
-        "type": "code",
-        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/pkl_nowriting.py:39-74"
+        "file_id": 576,
+        "content": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/get_url.py",
+        "type": "filepath"
     },
     "4475": {
-        "file_id": 570,
-        "content": "The code sets up event handlers for various mouse actions and keyboard events. It adds a global monitor to track these events, and when an event occurs, it logs the characters (if any) and keyCode. The code also includes functions for handling the mouse and key events, but they do not appear to perform any specific actions beyond logging.",
-        "type": "comment"
+        "file_id": 576,
+        "content": "This code uses the requests library to send a GET request to a specific URL, passing parameters in the query string. The response cookies are printed, and then another GET request is sent with those cookies included. Finally, the response data is printed.",
+        "type": "summary"
     },
     "4476": {
-        "file_id": 570,
-        "content": "    except KeyboardInterrupt:\n        AppHelper.stopEventLoop()\nif __name__ == \"__main__\":\n    app = NSApplication.sharedApplication()\n    delegate = AppDelegate.alloc().init()\n    NSApp().setDelegate_(delegate)\n    AppHelper.runEventLoop()",
+        "file_id": 576,
+        "content": "import requests\ns = requests.Session()\nparameter=\"359455393248\"\nurl = 'https://h5api.m.taobao.com/h5/mtop.taobao.content.detail.mix.recommend.h5/1.0/?jsv=2.6.1&appKey=12574478&t=1652513788601&api=mtop.taobao.content.detail.mix.recommend.h5&v=1.0&H5Request=true&preventFallback=true&type=jsonp&dataType=jsonp&callback=mtopjsonp3&data=%7B%22contentId%22%3A%22{}%22%2C%22source%22%3A%22guangguang_cainixihuan%22%2C%22pageSize%22%3A5%2C%22pageIndex%22%3A0%2C%22bizParameters%22%3A%22%7B%5C%22itemIds%5C%22%3A%5B%5D%2C%5C%22contentId%5C%22%3A%5C%22{}%5C%22%2C%5C%22videoId%5C%22%3A%5C%22{}%5C%22%7D%22%2C%22extendParameters%22%3A%22%7B%5C%22expoContents%5C%22%3A%5C%22{}%5C%22%2C%5C%22slideAction%5C%22%3A%5C%22up%5C%22%2C%5C%22utparam%5C%22%3Anull%2C%5C%22page%5C%22%3A%5C%22guess-guangguang%5C%22%7D%22%7D'.format(parameter,parameter,parameter,parameter)\ns.get(url)\nprint(s.cookies) # must be valid url then you will be set cookie.\nr = s.get(url)\ndata = r.text\nprint(data)",
         "type": "code",
-        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/pkl_nowriting.py:75-83"
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/get_url.py:1-15"
     },
     "4477": {
-        "file_id": 570,
-        "content": "The code sets up an event loop and handles interrupts, ensuring that the application properly terminates when needed.",
+        "file_id": 576,
+        "content": "This code uses the requests library to send a GET request to a specific URL, passing parameters in the query string. The response cookies are printed, and then another GET request is sent with those cookies included. Finally, the response data is printed.",
         "type": "comment"
     },
     "4478": {
-        "file_id": 571,
-        "content": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/get_modifier_with_masscan_scapy.py",
+        "file_id": 577,
+        "content": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/guangguang_update.sh",
         "type": "filepath"
     },
     "4479": {
-        "file_id": 571,
-        "content": "This code uses Masscan to scan for open ports, connects to the desired port with AdbWrapper, and stores connected addresses in a list. It is part of a script for controlling devices over the network.",
+        "file_id": 577,
+        "content": "The code fetches Taobao API content recommendations using JSONP, specific parameters, and JavaScript version 2.6.1 with authentication cookies in two GET requests; it also sends a POST request with JSON format to an API endpoint including authentication, but the purpose remains unclear.",
         "type": "summary"
     },
     "4480": {
-        "file_id": 571,
-        "content": "# strange.\nfrom __future__ import absolute_import, division, print_function\nimport logging\nimport scapy.config\nimport scapy.layers.l2\nimport scapy.route\nimport socket\nimport math\nimport errno\nimport os\nimport getopt\nimport sys\nmyPort = 5555\nmyInterface = \"wlan0\"\n# list avaliable devices.\nfrom adb_wrapper import AdbWrapper\na = AdbWrapper()\ndevices = a.devices()\nprint(devices)\n# exit()\nconnected_addresses = []\nfor key, value in devices.items():\n    address = key\n    connected_addresses.append(address)\n    deviceType = value\n# not working.\nif os.geteuid() != 0:\n        print('You need to be root to run this script', file=sys.stderr)\n        sys.exit(1)\nscanAddress = None\nfor network, netmask, _, interface, address, _ in scapy.config.conf.route.routes:\n    # print(interface, address)\n    if interface == myInterface:\n        myAddress = address.split(\".\")\n        myAddress[3] = \"0/24\"\n        scanAddress = \".\".join(myAddress)\n        print(scanAddress, interface)\n        break\nif scanAddress is not None:\n    # now scan this interface with masscan.",
+        "file_id": 577,
+        "content": "# curl 'https://h5api.m.taobao.com/h5/mtop.taobao.content.detail.mix.recommend.h5/1.0/?jsv=2.6.1&appKey=12574478&t=1652513788601&sign=898aac6857c0497f83579230a5117e9e&api=mtop.taobao.content.detail.mix.recommend.h5&v=1.0&H5Request=true&preventFallback=true&type=jsonp&dataType=jsonp&callback=mtopjsonp3&data=%7B%22contentId%22%3A%22346882467812%22%2C%22source%22%3A%22guangguang_cainixihuan%22%2C%22pageSize%22%3A5%2C%22pageIndex%22%3A0%2C%22bizParameters%22%3A%22%7B%5C%22itemIds%5C%22%3A%5B%5D%2C%5C%22contentId%5C%22%3A%5C%22346882467812%5C%22%2C%5C%22videoId%5C%22%3A%5C%22346882467812%5C%22%7D%22%2C%22extendParameters%22%3A%22%7B%5C%22expoContents%5C%22%3A%5C%22346882467812%5C%22%2C%5C%22slideAction%5C%22%3A%5C%22up%5C%22%2C%5C%22utparam%5C%22%3Anull%2C%5C%22page%5C%22%3A%5C%22guess-guangguang%5C%22%7D%22%7D' -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0' -H 'Accept: */*' -H 'Accept-Language: en-US,en;q=0.5' --compressed -H 'Connection: keep-alive' ",
         "type": "code",
-        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/get_modifier_with_masscan_scapy.py:1-42"
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/guangguang_update.sh:1-1"
     },
     "4481": {
-        "file_id": 571,
-        "content": "The code imports necessary libraries, initializes variables, and connects with available devices using AdbWrapper. It then checks if the user is root before attempting to scan a specific network interface using masscan.",
+        "file_id": 577,
+        "content": "This code is making a GET request to retrieve data from the Taobao API endpoint for content recommendations. It uses JSONP as the data type and callback parameter, specifies the content ID and source, and sets some other parameters like page size and index.",
         "type": "comment"
     },
     "4482": {
-        "file_id": 571,
-        "content": "    import masscan\n    mas = masscan.PortScanner()\n    mas.scan(scanAddress, ports=str(myPort), arguments='--max-rate 1000')\n    result = mas.scan_result\n    # usually it only show opens.\n    import json\n    scanResultDict = json.loads(result)['scan']\n    for key, value in scanResultDict.items():\n        address = key\n        for port in value:\n            if port['port'] == myPort and port['status'] =='open':\n                # print(address, myPort)\n                # we need to connect to it!\n                connect_address = \"{}:{}\".format(address,myPort)\n                print(connect_address)\n                if not connect_address in connected_addresses:\n                    print(\"connecting device:\", connect_address)\n                    # command1 = \"adb tcpip 5555\"\n                    # no need to restart?\n                    command2 = \"adb connect {}\".format(connect_address)\n                    # os.system(command1)\n                    os.system(command2)",
+        "file_id": 577,
+        "content": "-H 'Referer: https://market.m.taobao.com/' -H 'Cookie: cna=xXJJF/edElYCAd9ok0ozTO9S; isg=BJCQTV2Txmwd0ZnJwllsjEHhYtfiWXSjzRmbHophXOu-xTBvMmlEM-b3nQUlDix7; tfstk=cXgPBIwvIGQj6XUTrzaedIY7JeERZ4r3bZPLqdArAHqPwSrci16Limmag5IpJuf..; l=eBSy3J_rg94a6G7SBOfahurza77OSIOYYuPzaNbMiOCP9L1H5PGOW64n2rTMC31Nh6zWR3orgupwBeYBYIc8c1UNiHwStXDmn; miid=5838535061391394454; enc=iGbYsBExryBryNGDIeLiB3TSNdcdTPSzvhRgC0EExZrv5jHl85qb6bwqwxCyHxis8MkbUtiGLNI%2FRL7axbcx4GXUUuIsmiBDAl4K%2BLKyFBGK0mR%2FlBHvBVipuG5%2BY2CL; thw=cn; t=bc8cdf0df40cdf9cf6967741f7a75f8a; _m_h5_tk=8461de16a664d8efdf7a03b9cb8551f9_1652520895580; _m_h5_tk_enc=4a0616ef73708445252bf305732ce7fe; xlly_s=1' -H 'Sec-Fetch-Dest: script' -H 'Sec-Fetch-Mode: no-cors' -H 'Sec-Fetch-Site: same-site' -H 'TE: trailers'\n# how to get the freaking cat?\n# but what are these signs?\ncurl  'https://h5api.m.taobao.com/h5/mtop.taobao.content.detail.mix.recommend.h5/1.0/?jsv=2.6.1&appKey=12574478&t=1652513788601&sign=898aac6857c0497f83579230a5117e9e&api=mtop.taobao.c",
         "type": "code",
-        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/get_modifier_with_masscan_scapy.py:43-64"
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/guangguang_update.sh:1-7"
     },
     "4483": {
-        "file_id": 571,
-        "content": "This code is using the Masscan library to scan for open ports on a specified address. It then checks if the desired port is open, and if so, connects to it by running \"adb connect\" command. The connected addresses are stored in the connected_addresses list. This code is part of a broader script for controlling devices over network.",
+        "file_id": 577,
+        "content": "This code is making a HTTP GET request to 'https://h5api.m.taobao.com/h5/mtop.taobao.content.detail.mix.recommend.h5/1.0/' with various headers, including Cookie and Referer. The purpose might be to fetch data from the server or interact with the website's API. It seems to involve authentication as it contains multiple cookies and other tokens.",
         "type": "comment"
     },
     "4484": {
-        "file_id": 572,
-        "content": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/get_modifier.sh",
-        "type": "filepath"
+        "file_id": 577,
+        "content": "ontent.detail.mix.recommend.h5&v=1.0&H5Request=true&preventFallback=true&type=jsonp&dataType=jsonp&callback=mtopjsonp3&data=%7B%22contentId%22%3A%22346882467812%22%2C%22source%22%3A%22guangguang_cainixihuan%22%2C%22pageSize%22%3A5%2C%22pageIndex%22%3A0%2C%22bizParameters%22%3A%22%7B%5C%22itemIds%5C%22%3A%5B%5D%2C%5C%22contentId%5C%22%3A%5C%22346882467812%5C%22%2C%5C%22videoId%5C%22%3A%5C%22346882467812%5C%22%7D%22%2C%22extendParameters%22%3A%22%7B%5C%22expoContents%5C%22%3A%5C%22346882467812%5C%22%2C%5C%22slideAction%5C%22%3A%5C%22up%5C%22%2C%5C%22utparam%5C%22%3Anull%2C%5C%22page%5C%22%3A%5C%22guess-guangguang%5C%22%7D%22%7D'  -H \"Cookie: _m_h5_tk=8461de16a664d8efdf7a03b9cb8551f9_1652520895580; _m_h5_tk_enc=4a0616ef73708445252bf305732ce7fe;\"\n# mtop.taobao.content.detail.mix.recommend.h5\n# execute it twice to get the cookie. no need for other shits.\n# jsv\n# \t2.6.1\n# appKey\n# \t12574478\n# t\n# \t1652513695322\n# sign\n# \t8b9b8134ff54f4d4a725dc37db8f10e1\n# api\n# \tmtop.taobao.content.detail.mix.detail.h5\n# v",
+        "type": "code",
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/guangguang_update.sh:7-22"
     },
     "4485": {
-        "file_id": 572,
-        "content": "This line establishes a TCP/IP connection on port 5555 for ADB, ensuring the device is reachable over the network.",
-        "type": "summary"
+        "file_id": 577,
+        "content": "The code is making a GET request to retrieve the recommended content from Taobao's API. It includes specific parameters, such as content ID, source, page size, and page index. The request is using JSONP format with a specified callback function \"mtopjsonp3\". The cookies _m_h5_tk and _m_h5_tk_enc are included in the headers for authentication. The code is written in JavaScript (jsv) using version 2.6.1. The request will be executed twice, but it's unclear why, as there are no other relevant instructions provided.",
+        "type": "comment"
     },
     "4486": {
-        "file_id": 572,
-        "content": "adb tcpip 5555 # will not restart if already in tcpip mode\\",
+        "file_id": 577,
+        "content": "# \t1.0\n# H5Request\n# \ttrue\n# preventFallback\n# \ttrue\n# type\n# \tjsonp\n# dataType\n# \tjsonp\n# callback\n# \tmtopjsonp1\n# data\n# \t{\"contentId\":\"346882467812\",\"source\":\"guangguang_cainixihuan\",\"extendParameters\":\"{\\\"page\\\":\\\"guess-guangguang\\\",\\\"product_type\\\":\\\"videointeract\\\"}\"}\n# contentId, videoId, expoContents, all have videoId inside\n# https://market.m.taobao.com/app/tb-source-app/video-fullpage/pages/index?wh_weex=true&wx_navbar_hidden=true&origin=VideoInteract%7Ca310p.13800399.0.0%7C%7B%22contentId%22%3A%22346882467812%22%7D&contentId=346882467812&source=guess-guangguang&type=guangguang_cainixihuan&spm=a2141.1.guessitemtab_1.3&accountId=0&videoUrl=https%3A%2F%2Fcloud.video.taobao.com%2Fplay%2Fu%2Fnull%2Fp%2F1%2Fe%2F6%2Ft%2F1%2F346882467812.mp4&coverImage=https%3A%2F%2Fimg.alicdn.com%2Fimgextra%2Fi2%2F604321789%2FO1CN01rVTgs31P5PIQ7r2JR_!!604321789.jpg&id=346882467812&sourceType=other&suid=7f31e56f-2878-4462-9a5a-acd7d5deeec5&ut_sk=1.W4yy2CtIMUMDAA1l3Dnx4jNG_21646297_1651742283972.Copy.tblive-video&",
         "type": "code",
-        "location": "/tests/adb_phone_control_termux_network_broadcast_scrcpy_appium_airtest/get_modifier.sh:1-1"
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/guangguang_update.sh:23-39"
     },
     "4487": {
-        "file_id": 572,
-        "content": "This line establishes a TCP/IP connection on port 5555 for ADB, ensuring the device is reachable over the network.",
+        "file_id": 577,
+        "content": "This code seems to be a request for video information from Taobao API, specifying parameters like contentId, source, and extendParameters. It is using JSONP as the data type and includes a callback function \"mtopjsonp1\". The URL points to video resources on Taobao's platform.",
         "type": "comment"
     },
     "4488": {
-        "file_id": 573,
-        "content": "/tests/anime1_me_video_download/README.md",
-        "type": "filepath"
+        "file_id": 577,
+        "content": "un=42ad1253bebcb796f3ba5a7177d3a823&share_crt_v=1&un_site=0&sp_abtk=common_tblive-video_commonInfo&sp_tk=55Sf5a%2B55Zyo54S25pyJ5Li65LiK5a2Q5piv5Y675L2g&cpp=1&shareurl=true&short_name=h.fJE9C6B&bxsign=scdEMXp8zB45hs84KNhAae8siAPZ43wmqm4C-4UXtj2EzGyI0oMyb12vk2tKevOe4p1bZfPRmWxc9UVR3vFx6qhAj6WS0roAs_XJt2bkVF7n1o6YetJv7wgLiCitW-wW5CW&sm=ee59f9&app=firefox\n# https://g.alicdn.com/tnode/fullpageshortvideo/2.1.0/main.json.json\n# wtf is this shit? binary?\n# https://g.alicdn.com/tnode/fullpageshortvideo/2.1.0/main.json.json\nset $parameter=\"359455393248\"\ncurl  'https://h5api.m.taobao.com/h5/mtop.taobao.content.detail.mix.recommend.h5/1.0/?jsv=2.6.1&api=mtop.taobao.content.detail.mix.recommend.h5&v=1.0&H5Request=true&preventFallback=true&type=jsonp&dataType=jsonp&callback=mtopjsonp3&data=%7B%22contentId%22%3A%22'$parameter'%22%2C%22source%22%3A%22guangguang_cainixihuan%22%2C%22pageSize%22%3A5%2C%22pageIndex%22%3A0%2C%22bizParameters%22%3A%22%7B%5C%22itemIds%5C%22%3A%5B%5D%2C%5C%22contentId%5C%22%3A%5C%",
+        "type": "code",
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/guangguang_update.sh:39-47"
     },
     "4489": {
-        "file_id": 573,
-        "content": "This code instructs to extract data from the video API, send it to a specific URL, use the resulting cookie for downloading the video from another URL to avoid errors.",
-        "type": "summary"
+        "file_id": 577,
+        "content": "This code seems to be a URL for fetching data using the cURL command-line tool. It makes a GET request to 'https://h5api.m.taobao.com/...' with specific parameters like jsv, api, preventFallback, type, dataType, and callback, along with the contentId and source. The purpose of this request is unclear as it's mentioned that \"wtf is this shit? binary?\"",
+        "type": "comment"
     },
     "4490": {
-        "file_id": 573,
-        "content": "the data is hide in the video data-api. unquote it and we will get the info. \npost data to https://v.anime1.me/api, then use responded cookie p,h with the original e(timestamp) for download.\ndownload video from https://shiro.v.anime1.me/(or elsewhere) or somehow we will get it wrong.",
+        "file_id": 577,
+        "content": "22'$parameter'%5C%22%2C%5C%22videoId%5C%22%3A%5C%22'$parameter'%5C%22%7D%22%2C%22extendParameters%22%3A%22%7B%5C%22expoContents%5C%22%3A%5C%22'$parameter'%5C%22%2C%5C%22slideAction%5C%22%3A%5C%22up%5C%22%2C%5C%22utparam%5C%22%3Anull%2C%5C%22page%5C%22%3A%5C%22guess-guangguang%5C%22%7D%22%7D'  -H \"Cookie: _m_h5_tk=8461de16a664d8efdf7a03b9cb8551f9_1652520895580; _m_h5_tk_enc=4a0616ef73708445252bf305732ce7fe;\"",
         "type": "code",
-        "location": "/tests/anime1_me_video_download/README.md:1-5"
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/guangguang_update.sh:47-47"
     },
     "4491": {
-        "file_id": 573,
-        "content": "This code instructs to extract data from the video API, send it to a specific URL, use the resulting cookie for downloading the video from another URL to avoid errors.",
+        "file_id": 577,
+        "content": "This code is sending a POST request with parameters in JSON format to an API endpoint. The request includes \"videoId\" and \"extendParameters\" which contain values from '$parameter'. It also sets a Cookie header for authentication.",
         "type": "comment"
     },
     "4492": {
-        "file_id": 574,
-        "content": "/tests/anime1_me_video_download/test_download.sh",
+        "file_id": 578,
+        "content": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/run_gg.sh",
         "type": "filepath"
     },
     "4493": {
-        "file_id": 574,
-        "content": "This script downloads \"crossdressing.mp4\" from the URL using various cookies until successful, involving timestamp, header, and Google Analytics parameters.",
+        "file_id": 578,
+        "content": "This command starts mitmproxy in socks5 mode, listening on port 8050 and logs to gg.log. It also enables websocket streaming support. The user asks for domain name confirmation and doubts about IP stability.",
         "type": "summary"
     },
     "4494": {
-        "file_id": 574,
-        "content": "# curl -L -o crossdressing.mp4 --cookie \"e=1652443257\" https://shiro.v.anime1.me/1019/6b.mp4\n# curl -L -o crossdressing.mp4 --cookie \"e=1652443257; p=eyJpc3MiOiJhbmltZTEubWUiLCJleHAiOjE2NTI0NDMyNTcwMDAsImlhdCI6MTY1MjQyODk1NTAwMCwic3ViIjoiLzEwMTkvNmIubXA0In0\" https://shiro.v.anime1.me/1019/6b.mp4\n# curl -L -o crossdressing.mp4 --cookie \"h=i6CylEHO-BiMkCPCqFDk_A\" https://shiro.v.anime1.me/1019/6b.mp4\n# curl -L -o crossdressing.mp4 --cookie \"e=1652443257; p=eyJpc3MiOiJhbmltZTEubWUiLCJleHAiOjE2NTI0NDMyNTcwMDAsImlhdCI6MTY1MjQyODk1NTAwMCwic3ViIjoiLzEwMTkvNmIubXA0In0; h=i6CylEHO-BiMkCPCqFDk_A\" https://shiro.v.anime1.me/1019/6b.mp4\ncurl -L -o crossdressing.mp4 --cookie \"e=1652443257; p=eyJpc3MiOiJhbmltZTEubWUiLCJleHAiOjE2NTI0NDMyNTcwMDAsImlhdCI6MTY1MjQyODk1NTAwMCwic3ViIjoiLzEwMTkvNmIubXA0In0; h=i6CylEHO-BiMkCPCqFDk_A\" https://shiro.v.anime1.me/1019/6b.mp4 # the only way to be.\n# curl -L -o crossdressing.mp4 --cookie \"e=1652443257; p=eyJpc3MiOiJhbmltZTEubWUiLCJleHAiOjE2NTI0NDMyNTcwMDAsImlhdCI6MTY1Mj",
+        "file_id": 578,
+        "content": "mitmproxy --mode socks5 --listen-port 8050 -w gg.log --set stream_websocket=true\n# what is the domain name for this service? are you sure the ip will not change?",
         "type": "code",
-        "location": "/tests/anime1_me_video_download/test_download.sh:1-6"
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/run_gg.sh:1-3"
     },
     "4495": {
-        "file_id": 574,
-        "content": "This script is downloading a video file named \"crossdressing.mp4\" from the URL \"https://shiro.v.anime1.me/1019/6b.mp4\", using different combinations of cookies to access and save the file, with each attempt providing additional cookie values until the final combination successfully downloads the video.",
+        "file_id": 578,
+        "content": "This command starts mitmproxy in socks5 mode, listening on port 8050 and logs to gg.log. It also enables websocket streaming support. The user asks for domain name confirmation and doubts about IP stability.",
         "type": "comment"
     },
     "4496": {
-        "file_id": 574,
-        "content": "QyODk1NTAwMCwic3ViIjoiLzEwMTkvNmIubXA0In0; h=i6CylEHO-BiMkCPCqFDk_A; _ga=GA1.2.1032429949.1652428850; _gid=GA1.2.244096696.1652428850\" https://shiro.v.anime1.me/1019/6b.mp4",
-        "type": "code",
-        "location": "/tests/anime1_me_video_download/test_download.sh:6-6"
-    },
-    "4497": {
-        "file_id": 574,
-        "content": "The code appears to be a string containing a series of parameters and URL for downloading an MP4 file. The specific parameters include a timestamp, header value, Google Analytics IDs, and the video URL.",
-        "type": "comment"
-    },
-    "4498": {
-        "file_id": 575,
-        "content": "/tests/anime1_me_video_download/get_best_edm.sh",
+        "file_id": 579,
+        "content": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/run_weishi.sh",
         "type": "filepath"
     },
-    "4499": {
-        "file_id": 575,
-        "content": "The code uses FFmpeg to extract segments from the \"edm_super_summit.m4a\" audio file, saving them as \"best_edm_split.mp3\" and \"best_edm_split2.mp3\". The -ss option specifies the start time and -to the end time for each segment.",
+    "4497": {
+        "file_id": 579,
+        "content": "This command starts Mitmproxy in Socks5 mode, listens on port 8050 for incoming connections, writes logs to weishi.log, and enables handling of WebSocket streams.",
         "type": "summary"
+    },
+    "4498": {
+        "file_id": 579,
+        "content": "mitmproxy --mode socks5 --listen-port 8050 -w weishi.log --set stream_websocket=true",
+        "type": "code",
+        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/run_weishi.sh:1-1"
+    },
+    "4499": {
+        "file_id": 579,
+        "content": "This command starts Mitmproxy in Socks5 mode, listens on port 8050 for incoming connections, writes logs to weishi.log, and enables handling of WebSocket streams.",
+        "type": "comment"
     }
 }

@@ -1,548 +1,543 @@
 {
     "1000": {
-        "file_id": 98,
-        "content": "import pyjom.videotoolbox as vtb\nfrom pyjom.commons import decorator, keywordDecorator\nimport os\nfrom lazero.utils import sprint\nfrom lazero.network import waitForServerUp\nfrom lazero.filesystem import tmpdir\n# # flag = \"topic_with_fetcher\"\n# # should't we have our judgement here?\n#     collection = getMilvusVideoDeduplicationCollection(get_existing = get_existing)\n@decorator\ndef OnlineProcessor(\n    newElems,  # a generator.\n    source=\"giphy\",\n    use_proxy=False,  # use some proxy.\n    clash_refresher_port=8677,\n    proxy_url=\"http://127.0.0.1:8381\",\n    tmpPath=\"/dev/shm/medialang/onlineProcessor\",\n    debug=False,\n    # dog_or_cat?\n    dog_or_cat=\"dog\",\n    yolov5_default_filter_dict={\n        \"dog\": {\"min\": 0.5},\n        \"cat\": {\"min\": 0.5},\n    },\n):\n    if use_proxy:\n        clash_refresher_url = \"http://127.0.0.1:{}\".format(clash_refresher_port)\n        waitForServerUp(clash_refresher_port, \"clash update controller\")\n    def set_proxy():\n        os.environ[\"http_proxy\"] = proxy_url\n        os.environ[\"https_proxy\"] = proxy_url",
-        "type": "code",
-        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:1-34"
-    },
-    "1001": {
-        "file_id": 98,
-        "content": "This code defines a function `OnlineProcessor` that processes new video elements from a generator, using the specified source (e.g., \"giphy\"), and applying dog or cat filters based on the `dog_or_cat` parameter. It also supports using a proxy if `use_proxy` is set to True and waits for the Clash refresher server to be up if necessary. The function sets the HTTP and HTTPS proxies if a proxy is being used.",
-        "type": "comment"
-    },
-    "1002": {
-        "file_id": 98,
-        "content": "    with tmpdir(path=tmpPath) as testDir:\n        # elif flag == \"topic_with_fetcher\":\n        # sprint(\"checking online fetcher\")\n        # print(\"HERE??\",2)\n        if use_proxy:\n            set_proxy()\n        if source == \"giphy\":\n            for elem in newElems:\n                if use_proxy:\n                    waitForServerUp(clash_refresher_port, \"clash update controller\")\n                if debug:\n                    sprint(elem)\n                (item_id, local_video_location) = elem\n                # what is the freaking response?\n                from caer.video.frames_and_fps import (\n                    get_duration,\n                    get_fps_float,\n                    get_res,\n                )\n                # duration = get_duration(local_video_location)\n                from pyjom.commons import checkMinMaxDict\n                from pyjom.videotoolbox import (\n                    corruptVideoFilter,\n                )\n                # usually we want to make video short.\n                # mode: up/down",
-        "type": "code",
-        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:36-64"
-    },
-    "1003": {
-        "file_id": 98,
-        "content": "This code checks the online fetcher and performs operations based on the 'use_proxy', 'source' (giphy), and 'debug' flags. It sets the proxy, waits for the server to update, retrieves video duration, and applies corruptVideoFilter if needed.",
-        "type": "comment"
-    },
-    "1004": {
-        "file_id": 98,
-        "content": "                from typing import Literal\n                def tuneVideoSpeedToBeat(\n                    video_phase: float,\n                    music_phase: float,\n                    mode: Literal[\"speedup\", \"slowdown\"],\n                ):\n                    speed = music_phase / video_phase # change in speed.\n                    speed_min, speed_max = 1, 2\n                    if mode == \"slowdown\":\n                        speed_min /= 2\n                        speed_max /= 2\n                    while True:\n                        if mode in [\"speedup\", \"slowdown\"]:\n                            if speed < speed_min:\n                                speed *= 2\n                            elif speed > speed_max:\n                                speed /= 2\n                            else:\n                                return speed\n                        else:\n                            raise Exception(\"Unknown speed change mode: %s\" % mode)\n                # TODO: tune video speed to match music phase\n                # valid_video = corruptVideoFilter(local_video_location)",
-        "type": "code",
-        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:65-89"
-    },
-    "1005": {
-        "file_id": 98,
-        "content": "This function tunes the video speed based on music phase and mode, either speeding up or slowing down. It uses a while loop to adjust the video speed until it reaches a valid range. If an invalid mode is given, it raises an exception. The code also mentions that a function for tuning the video speed to match the music phase is planned (TODO), but not yet implemented.",
-        "type": "comment"
-    },
-    "1006": {
-        "file_id": 98,
-        "content": "                # if not valid_video:\n                #     continue\n                # video_duration = get_duration(local_video_location)\n                # music_beat_duration = ...  # get from redis!\n                # speed_change_mode = \"speedup\"\n                # speed_change = tuneVideoSpeedToBeat(video_duration, music_beat_duration,mode=speed_change_mode)\n                # # now change the damn speed of video. replace the original video.\n                ###############################################\n                hard_limit = 3.5\n                remedyDurationRange = {\n                    \"min\": 1.5,\n                    \"max\": hard_limit,\n                    \"min_target\": hard_limit,\n                }  # targets in this range can multiply by some factors, looping forward and backward to get gif.\n                # is it corrupted? fuck?\n                def loopVideoTillTarget(\n                    video_path: str,\n                    objective: dict,\n                    scriptPath: str = \"/root/Desktop/works/pyjom/tests/moviepy_loop_video_till_target/loop_till_target.py\",",
-        "type": "code",
-        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:90-115"
-    },
-    "1007": {
-        "file_id": 98,
-        "content": "This code chunk checks if the video is valid and retrieves the video duration. It then gets music beat duration from Redis, sets speed change mode as \"speedup\", and determines the video speed change based on the durations. The hard limit for remedyDurationRange is set to 3.5, with a minimum range of 1.5 and maximum at hard_limit. A function loopVideoTillTarget is defined, taking in video path, objective (dictionary), and scriptPath as parameters.",
-        "type": "comment"
-    },
-    "1008": {
-        "file_id": 98,
-        "content": "                ):\n                    # import moviepy # are you sure you want to import this? i think it will fuck up many things.\n                    # use it externally. please!\n                    # as some commandline script.\n                    success = False\n                    videoDuration = -1\n                    videoValid = False\n                    videoValid = corruptVideoFilter(video_path)\n                    if videoValid:\n                        videoDuration = get_duration(local_video_location)\n                        if videoDuration >= objective[\"min\"]:\n                            cmd = [\n                                \"python3\",\n                                scriptPath,\n                                \"-i\",\n                                video_path,\n                                \"-t\",\n                                str(objective[\"min_target\"]),\n                                \"--replace\",\n                            ]  # you must use some random temp file path...\n                            # use subprocess?",
-        "type": "code",
-        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:116-137"
-    },
-    "1009": {
-        "file_id": 98,
-        "content": "The code checks if a video is valid and meets the minimum duration requirement. If valid, it generates a command for a script using moviepy to extract a portion of the video based on the specified duration. The use of moviepy should be done externally due to potential issues.",
-        "type": "comment"
-    },
-    "1010": {
-        "file_id": 98,
-        "content": "                            import subprocess\n                            r = subprocess.run(cmd)\n                            success = 0 == r.returncode\n                    return videoValid, videoDuration, success\n                videoValid, videoDuration, success = loopVideoTillTarget(\n                    local_video_location, remedyDurationRange\n                )\n                if not videoValid:\n                    print(\"VIDEO NOT VALID.\")\n                    continue\n                elif not success:\n                    print(\"VIDEO DURATION LIMIT OBJECTIVE FAILED.\")\n                    print(f\"MIN: {remedyDurationRange['min']} VIDEO: {videoDuration}\")\n                    continue\n                duration_filter = {\"min\": hard_limit, \"max\": 15}\n                # to loop through short gifs?\n                fps_filter = {\"min\": 7, \"max\": 60}\n                # fps_float = get_fps_float(local_video_location)\n                # duration_valid = checkMinMaxDict(duration,duration_filter)\n                # fps_valid = checkMinMaxDict(fps_float,fps_filter)",
-        "type": "code",
-        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:138-161"
-    },
-    "1011": {
-        "file_id": 98,
-        "content": "The code imports subprocess, runs a command and checks its return code to determine success. It then calls loopVideoTillTarget function with local video location and remedyDurationRange as parameters. If the video is not valid, it prints \"VIDEO NOT VALID.\" and continues. If the objective failed, it prints \"VIDEO DURATION LIMIT OBJECTIVE FAILED.\", current min from remedyDurationRange, and the current video duration and continues. It defines duration_filter and fps_filter dictionaries for filtering.",
-        "type": "comment"
-    },
-    "1012": {
-        "file_id": 98,
-        "content": "                from pyjom.videotoolbox import (\n                    getVideoColorCentrality,\n                    checkVideoColorCentrality,\n                    getEffectiveFPS,\n                    NSFWVideoFilter,\n                    yolov5_bezier_paddlehub_resnet50_dog_cat_video_filter,\n                    dummyFilterFunction,  # just for dog and cat, no other animals.\n                    getVideoTextAreaRatio,\n                )\n                video_color_filter = {\n                    \"centrality\": {\"max\": 0.18},  # stricter limit?\n                    \"max_nearby_center_percentage\": {\"max\": 0.13},\n                }\n                video_effective_fps_filter = {\"min\": 7}\n                videoTextAreaRatioFilter = {\"max\": 0.3}\n                valid = True\n                mList = [\n                    [\n                        corruptVideoFilter,\n                        None,\n                        dummyFilterFunction,\n                        \"video corruption filter\",\n                    ],\n                    [get_duration, duration_filter, checkMinMaxDict, \"duration\"],",
-        "type": "code",
-        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:163-187"
-    },
-    "1013": {
-        "file_id": 98,
-        "content": "The code imports video processing functions from the pyjom.videotoolbox module, sets filter parameters for color centrality, effective FPS, and video text area ratio. It also defines a corruptVideoFilter function and a duration_filter function. The code then checks if all filters are valid to proceed with further processing.",
-        "type": "comment"
-    },
-    "1014": {
-        "file_id": 98,
-        "content": "                    [get_fps_float, fps_filter, checkMinMaxDict, \"fps\"],\n                    [\n                        getVideoTextAreaRatio,\n                        videoTextAreaRatioFilter,\n                        checkMinMaxDict,\n                        \"videoTextAreaRatioFilter\",\n                    ],\n                    [\n                        # yolov5_bezier_paddlehub_resnet50_dog_cat_video_filter,\n                        keywordDecorator(\n                            yolov5_bezier_paddlehub_resnet50_dog_cat_video_filter,\n                            filter_dict={\n                                key: value\n                                for key, value in yolov5_default_filter_dict.items()\n                                if key == dog_or_cat\n                            },\n                        ),\n                        None,\n                        dummyFilterFunction,\n                        \"DogCat\",\n                    ],\n                    [\n                        getVideoColorCentrality,\n                        video_color_filter,",
-        "type": "code",
-        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:188-211"
-    },
-    "1015": {
-        "file_id": 98,
-        "content": "This code defines several processing functions for video analysis, including fps filtering, calculating text area ratio, and filters for detecting dogs or cats based on the provided keywords. These functions are then used to analyze videos and extract relevant information.",
-        "type": "comment"
-    },
-    "1016": {
-        "file_id": 98,
-        "content": "                        checkVideoColorCentrality,\n                        \"video_color_centrality\",\n                    ],\n                    [\n                        getEffectiveFPS,\n                        video_effective_fps_filter,\n                        checkMinMaxDict,\n                        \"EffectiveFPS\",\n                    ],  # also, the dog/cat detector! fuck.\n                    [NSFWVideoFilter, None, dummyFilterFunction, \"NSFW\"],\n                    [\n                        vtb.duplicatedVideoFilter,\n                        None,\n                        dummyFilterFunction,\n                        \"video duplication filter\",\n                    ],\n                ]\n                for function, mFilter, filterFunction, flag in mList:\n                    try:\n                        mValue = function(local_video_location)\n                        valid = filterFunction(mValue, mFilter)\n                        if not valid:\n                            print(\"skipping due to invalid %s: %s\" % (flag, mValue))",
-        "type": "code",
-        "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:212-234"
-    },
-    "1017": {
-        "file_id": 98,
-        "content": "This code defines a list of filters for processing videos. Each filter is applied in sequence, and if any filter returns an invalid result, the video is skipped with a message. The NSFW detector is also mentioned as part of one of the filters.",
-        "type": "comment"
-    },
-    "1018": {
-        "file_id": 98,
+        "file_id": 85,
         "content": "                            print(\"%s filter:\" % flag, mFilter)\n                            break\n                        else:\n                            print(\"%s test passed.\" % flag)\n                    except:\n                        import traceback\n                        traceback.print_exc()\n                        print(\"skipping due to exception during filtering\")\n                        valid = False\n                        break\n                if not valid:\n                    print(\"abandon video:\", item_id)\n                # breakpoint()\n                if not valid:\n                    if os.path.exists(local_video_location):\n                        print(\"removing abandoned video:\", local_video_location)\n                        os.remove(local_video_location)\n                else:\n                    video_width, video_height = get_res(local_video_location)\n                    yield {\n                        \"location\": local_video_location,\n                        \"item_id\": item_id,\n                        \"meta\": {",
         "type": "code",
         "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:235-258"
     },
-    "1019": {
-        "file_id": 98,
+    "1001": {
+        "file_id": 85,
         "content": "This code is testing a filter for an item and either passing or skipping based on exceptions. If it skips, the video file is removed. If it passes, it yields information about the video location and item ID.",
         "type": "comment"
     },
-    "1020": {
-        "file_id": 98,
+    "1002": {
+        "file_id": 85,
         "content": "                            \"duration\": get_duration(local_video_location),\n                            \"width\": video_width,\n                            \"height\": video_height,\n                        },\n                    }\n                    # if you abandon that, better delete it!\n                # do time duration check, effective fps check, color centrality check, then the dog/cat check\n                # what's next? find some audio files? or just use one audio?\n                # print(\"HERE??\",3)\n                # print('flag', flag)",
         "type": "code",
         "location": "/pyjom/modules/informationProcessing/onlineProcessor.py:259-268"
     },
-    "1021": {
-        "file_id": 98,
+    "1003": {
+        "file_id": 85,
         "content": "This code snippet is initializing a dictionary with key-value pairs for video duration, width, and height. It also creates another nested dictionary representing the video object. The code mentions time duration check, effective fps check, color centrality check, dog/cat check, and possibly audio file handling in future steps.",
         "type": "comment"
     },
-    "1022": {
-        "file_id": 99,
-        "content": "/pyjom/modules/informationProcessing/localProcessor.py",
+    "1004": {
+        "file_id": 86,
+        "content": "/pyjom/modules/methodIdentifier/__init__.py",
         "type": "filepath"
     },
-    "1023": {
-        "file_id": 99,
-        "content": "This code segment processes filesystem information, retrieves metadata, calculates various details, handles GIFs and text files, analyzes YoloV5-detected objects from the \"yolov5\" array, filters file info, discards unwanted files, and returns modified fileinfo dictionary.",
+    "1005": {
+        "file_id": 86,
+        "content": "This code imports all the contents from the \"dummyIdentifier\" module in the \"pyjom.modules.methodIdentifier\" package.",
         "type": "summary"
     },
-    "1024": {
-        "file_id": 99,
-        "content": "from pyjom.commons import (\n    decorator,\n    get_media_info,\n    json_media_info,\n    ffprobe_media_info,\n    read_json,\n    getTextFileLength,\n    multi_replacer,\n    append_sublist,\n    extract_span,\n    convoluted,\n    update_subdict,\n)\n# you may want to remove text.\n@decorator\ndef FilesystemProcessor(info, reviewerLogs, filters={}, path_replacers={}):\n    # print(\"FILESYSTEM_PROCESSOR INTERCEPTED INFO\",info)\n    # print(\"REVIEWER LOGS:\", reviewerLogs)\n    # breakpoint()\n    # do not handle meta filters here.\n    protocol, files = info  # source paths.\n    # print(\"FILES\", files)\n    # breakpoint()\n    metainfo = {}\n    for elem in files:\n        _type, path = elem[\"type\"], elem[\"path\"]\n        suffix = path.split(\".\")[-1]\n        metaInfo = {\"type\": _type, \"suffix\": suffix, \"filename\": path.split(\"/\")[-1]}\n        if _type == \"video\":\n            einfo = json_media_info(path)\n            for e in einfo[\"media\"][\"track\"]:  # might be gif. how to solve this?\n                mtype = e[\"@type\"]\n                if mtype == \"Video\":",
+    "1006": {
+        "file_id": 86,
+        "content": "from pyjom.modules.methodIdentifier.dummyIdentifier import *",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:1-38"
+        "location": "/pyjom/modules/methodIdentifier/__init__.py:1-1"
+    },
+    "1007": {
+        "file_id": 86,
+        "content": "This code imports all the contents from the \"dummyIdentifier\" module in the \"pyjom.modules.methodIdentifier\" package.",
+        "type": "comment"
+    },
+    "1008": {
+        "file_id": 87,
+        "content": "/pyjom/modules/methodIdentifier/dummyIdentifier.py",
+        "type": "filepath"
+    },
+    "1009": {
+        "file_id": 87,
+        "content": "The code defines a function `dummyId()` that generates a unique UUID and a class `dummyIdentifier` with instance variables and methods to store fix information related to various components of a system.",
+        "type": "summary"
+    },
+    "1010": {
+        "file_id": 87,
+        "content": "def dummyId():\n    import uuid\n    return uuid.uuid4()\nclass dummyIdentifier:\n    def __init__(self, uuid):\n        self.uuid = uuid\n        self.data = {}\n    def typeFix(self, typeFix):\n        self.data[\"typeFix\"] = typeFix\n    def topicFix(self, topicFix):\n        self.data[\"topicFix\"] = topicFix\n    def infoFix(self, infoFix):\n        self.data[\"infoFix\"] = infoFix\n    def producerFix(self, producerFix):\n        self.data[\"producerFix\"] = producerFix\n    def posterFix(self, posterFix):\n        self.data[\"posterFix\"] = posterFix\n    def feedbackFix(self, feedbackFix):\n        self.data[\"feedbackFix\"] = feedbackFix\n    def updatorFix(self, updatorFix):\n        self.data[\"updatorFix\"] = updatorFix\n    def fetcherFix(self, fetcherFix):\n        self.data[\"fetcherFix\"] = fetcherFix\n    def processorFix(self, processorFix):\n        self.data[\"processorFix\"] = processorFix\n    def optimizerFix(self, optimizerFix):\n        self.data[\"optimizerFix\"] = optimizerFix\n    def reviewerFix(self, reviewerFix):\n        self.data[\"reviewerFix\"] = reviewerFix",
+        "type": "code",
+        "location": "/pyjom/modules/methodIdentifier/dummyIdentifier.py:1-43"
+    },
+    "1011": {
+        "file_id": 87,
+        "content": "The code defines a function `dummyId()` that generates a unique UUID and a class `dummyIdentifier` with instance variables and methods to store fix information related to various components of a system.",
+        "type": "comment"
+    },
+    "1012": {
+        "file_id": 88,
+        "content": "/pyjom/modules/topicGenerator/__init__.py",
+        "type": "filepath"
+    },
+    "1013": {
+        "file_id": 88,
+        "content": "This code imports modules from various topic generators (dummy, weibo, local, online) within the pyjom project. It appears to be related to generating topics or data for a specific purpose.",
+        "type": "summary"
+    },
+    "1014": {
+        "file_id": 88,
+        "content": "from pyjom.modules.topicGenerator.dummyTopicGenerator import *\nfrom pyjom.modules.topicGenerator.weiboTopicGenerator import *\nfrom pyjom.modules.topicGenerator.localTopicGenerator import *\nfrom pyjom.modules.topicGenerator.onlineTopicGenerator import *",
+        "type": "code",
+        "location": "/pyjom/modules/topicGenerator/__init__.py:1-4"
+    },
+    "1015": {
+        "file_id": 88,
+        "content": "This code imports modules from various topic generators (dummy, weibo, local, online) within the pyjom project. It appears to be related to generating topics or data for a specific purpose.",
+        "type": "comment"
+    },
+    "1016": {
+        "file_id": 89,
+        "content": "/pyjom/modules/topicGenerator/dummyTopicGenerator.py",
+        "type": "filepath"
+    },
+    "1017": {
+        "file_id": 89,
+        "content": "The code imports the \"decorator\" function from the \"pyjom.commons\" module and defines two functions: \"dummyTopic()\" that returns the string \"pets\", and \"metaTopic(selected_source)\" which returns a list of titles based on the selected source. These functions are likely used for generating topic ideas or names.",
+        "type": "summary"
+    },
+    "1018": {
+        "file_id": 89,
+        "content": "from pyjom.commons import *\n@decorator\ndef dummyTopic():\n    return \"pets\"\n@decorator\ndef metaTopic(selected_source):\n    sources = {\n        \"baidu_baijiahao\": [\"shitty title1\"],\n        \"bilibili_trending\": [\"boy with women's clothes\"],\n    }\n    return sources[selected_source]",
+        "type": "code",
+        "location": "/pyjom/modules/topicGenerator/dummyTopicGenerator.py:1-15"
+    },
+    "1019": {
+        "file_id": 89,
+        "content": "The code imports the \"decorator\" function from the \"pyjom.commons\" module and defines two functions: \"dummyTopic()\" that returns the string \"pets\", and \"metaTopic(selected_source)\" which returns a list of titles based on the selected source. These functions are likely used for generating topic ideas or names.",
+        "type": "comment"
+    },
+    "1020": {
+        "file_id": 90,
+        "content": "/pyjom/modules/topicGenerator/localTopicGenerator.py",
+        "type": "filepath"
+    },
+    "1021": {
+        "file_id": 90,
+        "content": "The filesystemTopicGenerator function generates topics from file/directory paths, checking their validity and appending to a list of file names. It returns a dictionary with protocol, path, and content (filepaths).",
+        "type": "summary"
+    },
+    "1022": {
+        "file_id": 90,
+        "content": "from pyjom.commons import *\nimport os\n@decorator\ndef filesystemTopicGenerator(filepath=None, dirpath=None, recursive=False):\n    mfilelist = []\n    protocol = None\n    path = getHostname() + \"@\"\n    if filepath is not None:\n        assert os.path.isfile(filepath)\n        mpath = os.path.abspath(filepath)\n        protocol = \"file\"\n        path += mpath\n        mfilelist.append(mpath)\n    else:\n        assert dirpath is not None\n        assert os.path.isdir(dirpath)\n        dirpath = os.path.abspath(dirpath)\n        path += dirpath\n        if recursive:\n            protocol = \"dir_recursive\"\n            for _, _, files in os.walk(dirpath):\n                for fname in files:\n                    fpath = os.path.join(dirpath, fname)\n                    if os.path.isfile(fpath):\n                        # mpath = os.path.abspath(fpath)\n                        mfilelist.append(fpath)\n        else:\n            protocol = \"dir\"\n            mfiles = os.listdir(dirpath)\n            for fname in mfiles:\n                fpath = os.path.join(dirpath, fname)",
+        "type": "code",
+        "location": "/pyjom/modules/topicGenerator/localTopicGenerator.py:1-33"
+    },
+    "1023": {
+        "file_id": 90,
+        "content": "The code defines a filesystemTopicGenerator function that generates topics from file or directory paths. It takes filepath and dirpath as input parameters, with optional recursive flag for directories. It checks if the given filepath exists or if the dirpath is a valid directory. If so, it appends the file/directory path to a list of file names. The protocol is set based on whether a file or directory was provided and used in generating topics.",
+        "type": "comment"
+    },
+    "1024": {
+        "file_id": 90,
+        "content": "                if os.path.isfile(fpath):\n                    # mpath = os.path.abspath(fpath)\n                    mfilelist.append(fpath)\n    return {\"protocol\": protocol, \"path\": path, \"content\": mfilelist}",
+        "type": "code",
+        "location": "/pyjom/modules/topicGenerator/localTopicGenerator.py:34-37"
     },
     "1025": {
-        "file_id": 99,
-        "content": "This code imports various functions and defines a FilesystemProcessor function decorated by the decorator function. It processes information and files from the filesystem, intercepts meta filters, and handles video file information for further processing.",
+        "file_id": 90,
+        "content": "Checks if a file exists at the specified path, appends absolute file paths to list, and returns a dictionary containing protocol, path, and content (filepaths).",
         "type": "comment"
     },
     "1026": {
-        "file_id": 99,
-        "content": "                    # breakpoint()\n                    resolution = {\"height\": e[\"Height\"], \"width\": e[\"Width\"]}\n                    # color = e[\"ColorSpace\"] # YUV for common video\n            info = get_media_info(path)\n            # print(\"INFO OF %s\", path)\n            # print(info)\n            # breakpoint()\n            video_duration = info[\"videoDuration\"]\n            if \"audioDuration\" not in info.keys():\n                audioInfo = None\n            else:\n                # audioInfo = {}\n                audio_duration = info[\"audioDuration\"]\n                # print(info)\n                # breakpoint()\n                sampleRate = info[\"audioSamplingRate\"]\n                channels = info[\"audioChannel\"]\n                audioInfo = {\n                    \"sampleRate\": sampleRate,\n                    \"channels\": channels,\n                    \"duration\": audio_duration,\n                }\n            resolution = {\"height\": info[\"videoHeight\"], \"width\": info[\"videoWidth\"]}\n            _fps = info[\"videoFrameRate\"]",
-        "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:39-62"
+        "file_id": 91,
+        "content": "/pyjom/modules/topicGenerator/onlineTopicGenerator.py",
+        "type": "filepath"
     },
     "1027": {
-        "file_id": 99,
-        "content": "This code retrieves media information from a file path and calculates video and audio duration, as well as the resolution and frame rate of the video. It also checks for audio information and stores it separately if available.",
-        "type": "comment"
+        "file_id": 91,
+        "content": "The code imports functions for keyword removal and topic modeling in English/Chinese, selects words by shuffling topics, fetches random keywords to request gifs/videos from a local server, and retrieves a random picture with related words using keyword and topic modeling.",
+        "type": "summary"
     },
     "1028": {
-        "file_id": 99,
-        "content": "            metaInfo.update(\n                {\n                    \"fps\": _fps,\n                    \"duration\": video_duration,\n                    \"resolution\": resolution,\n                    \"audio\": audioInfo,\n                }\n            )\n        elif _type == \"audio\":\n            info = get_media_info(path)\n            duration = info[\"duration\"]\n            sampleRate = info[\"audioSamplingRate\"]\n            channels = info[\"audioChannel\"]\n            metaInfo.update(\n                {\"sampleRate\": sampleRate, \"channels\": channels, \"duration\": duration}\n            )\n        elif _type == \"image\":  # gif is image. check it out!\n            info = json_media_info(path)\n            for e in info[\"media\"][\"track\"]:\n                mtype = e[\"@type\"]\n                if mtype == \"Image\":\n                    resolution = {\"height\": e[\"Height\"], \"width\": e[\"Width\"]}\n                    # color = e[\"ColorSpace\"]\n            if metaInfo[\"suffix\"].lower() == \"gif\":\n                info = ffprobe_media_info(path)",
+        "file_id": 91,
+        "content": "from pyjom.commons import *\nfrom pyjom.languagetoolbox import englishTopicModeling, chineseTopicModeling\nfrom lazero.utils.tools import flattenUnhashableList  # one of my classic methods\nimport requests\n# import jieba\nfrom typing import Literal\ndef removeKeywordDuplicates(keywords):\n    keywordsType = type(keywords)\n    inputFuncs = {\n        str: lambda x: x.split(\" \"),\n        list: lambda x: x,\n        tuple: lambda x: list(x),\n    }\n    outputFuncs = {\n        str: lambda x: \" \".join(x),\n        list: lambda x: x,\n        tuple: lambda x: tuple(x),\n    }\n    if keywordsType in inputFuncs.keys():\n        keywordsList = inputFuncs[keywordsType](keywords)\n    else:\n        raise Exception(\"Unknown keywords type: %s\" % type(keywords))\n    keywordsSet = set(keywordsList)\n    keywordsSetList = list(keywordsSet)\n    return outputFuncs[keywordsType](keywordsSetList)\ndef topicModeling(sentences: list[str], lang=\"en\"):  # specify language please?\n    # python does not enforce type checking. use third party tool such as linter instead.",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:63-87"
+        "location": "/pyjom/modules/topicGenerator/onlineTopicGenerator.py:1-33"
     },
     "1029": {
-        "file_id": 99,
-        "content": "This code snippet retrieves media information based on the file type (_type) and updates the metaInfo dictionary accordingly. If it's a video, it fetches fps, video_duration, and resolution. For audio, it gets sampleRate, channels, and duration. Image type checks if it's a GIF, and depending on the result, either uses json_media_info or ffprobe_media_info to get the necessary information.",
+        "file_id": 91,
+        "content": "This code imports necessary modules and defines two functions: `removeKeywordDuplicates` for removing duplicate keywords in a list or string, and `topicModeling` for topic modeling with specified language (English or Chinese). It also includes an exception handling for unknown keyword types.",
         "type": "comment"
     },
     "1030": {
-        "file_id": 99,
-        "content": "                for e in info[\"streams\"]:\n                    codec_name = e[\"codec_name\"]\n                    if codec_name == \"gif\":\n                        duration = e[\"duration\"]\n                        _fps = e[\"avg_frame_rate\"]\n                        metaInfo.update(\n                            {\"duration\": float(duration), \"fps\": eval(_fps)}\n                        )\n            metaInfo.update({\"resolution\": resolution})\n        elif _type == \"text\":  # are you sure about that?\n            metaInfo.update({\"length\": getTextFileLength(path)})\n        metainfo.update({multi_replacer(path, replacer_list=path_replacers): metaInfo})\n    # breakpoint()# get meta information from here.\n    fileinfo = {}\n    for rlog in reviewerLogs:\n        print(\"READING LOG: %s\" % rlog)\n        content_json = read_json(rlog)\n        for elem in content_json:\n            review_tuple = elem[\"review\"][\"review\"]\n            filename = review_tuple[0]\n            filename = multi_replacer(filename, replacer_list=path_replacers)",
+        "file_id": 91,
+        "content": "    if lang == \"en\":\n        topics = englishTopicModeling(sentences)\n        return topics\n    elif lang == \"zh\":\n        topics = chineseTopicModeling(sentences)\n        return topics\n    else:\n        raise Exception(\"Unknown language: %s\" % lang)\ndef topicWordSelection(\n    topics,\n    core_topic_set: set,\n    selected_topic_list: list,\n    mode: Literal[\"combined\", \"separate\"] = \"combined\",\n    threshold=10,\n):\n    if len(selected_topic_list) > threshold:\n        for _ in range(len(selected_topic_list) - threshold):\n            selected_topic_list.pop(0)  # right way to remove elem from original list.\n    selected_topic_set = set(list(core_topic_set) + selected_topic_list)\n    import random\n    mTopics = topics.copy()\n    random.shuffle(mTopics)\n    for topic in mTopics:\n        words = topic[mode]\n        words = [x for x in words if x not in selected_topic_set]\n        if len(words) > 0:\n            word = random.choice(words)\n            selected_topic_list.append(word)  # no need to go elsewhere.\n            return word",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:88-108"
+        "location": "/pyjom/modules/topicGenerator/onlineTopicGenerator.py:34-65"
     },
     "1031": {
-        "file_id": 99,
-        "content": "This code retrieves file metadata and reviewer logs, then updates meta information based on file type (image, video, or text). It handles GIFs specifically by extracting duration and average frame rate. Text files have their length measured with getTextFileLength(). Reviewer logs are read and mapped to corresponding files using multi_replacer function.",
+        "file_id": 91,
+        "content": "The code checks the language input and applies the appropriate topic modeling function. It then performs word selection by removing words already in the list, shuffling the remaining topics, and randomly choosing a new word to append to the selected_topic_list until it reaches a specified threshold.",
         "type": "comment"
     },
     "1032": {
-        "file_id": 99,
-        "content": "            sample_review = review_tuple[1]  # convolution with removed text timespan.\n            # print(\"KEYS DUMP:\")\n            primarykey = list(sample_review.keys())[0]  # CHECK THIS KEY FIRST.\n            # print(\"PRIMARYKEY:\",primarykey)\n            primary_sample_content = sample_review[primarykey]\n            # print(primary_sample_content) # hide this shit.\n            if primarykey == \"labels\":\n                discard = sample_review[\"discard\"]\n                if discard:\n                    update_subdict(fileinfo, filename, {\"discard\": True})\n                else:\n                    if primarykey in filters.keys():\n                        if not any(\n                            [x in primary_sample_content for x in filters[primarykey]]\n                        ):\n                            # remove those without the label.\n                            continue\n                    update_subdict(\n                        fileinfo, filename, {\"labels\": primary_sample_content}\n                    )",
+        "file_id": 91,
+        "content": "    print(\"no topic word this time\")\n    return None\ndef getMetaTopicString(metaTopic):\n    staticCandidates = [random.choice(x) for x in metaTopic.get(\"static\", [])]\n    optionalCandidates = [random.choice(x) for x in metaTopic.get(\"optional\", [])]\n    if len(optionalCandidates) > 0:\n        optionalCandidates = random.choice(optionalCandidates)\n    if type(optionalCandidates) != list:\n        optionalCandidates = [optionalCandidates]\n    dynamicCandidates = [random.choice(x) for x in metaTopic.get(\"dynamic\", [])]\n    samples = random.sample(\n        dynamicCandidates, random.randint(0, len(dynamicCandidates))\n    )\n    # print(staticCandidates)\n    # print(optionalCandidates)\n    # print(samples)\n    # breakpoint()\n    return \" \".join(staticCandidates + optionalCandidates + samples)\n@decorator\ndef OnlineTopicGenerator(\n    source=\"giphy\",\n    metaTopic={\n        \"static\": [[\"dog\", \"cat\"], [\"funny\", \"cute\"]],\n        \"dynamic\": [[\"samoyed\", \"husky\", \"teddy\", \"chiwawa\"]],\n    },  # this is not a matrix.\n    # sample_size = 10 # per search.",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:109-128"
+        "location": "/pyjom/modules/topicGenerator/onlineTopicGenerator.py:66-95"
     },
     "1033": {
-        "file_id": 99,
-        "content": "This code processes a sample review, checks if its primary key is \"labels\", discards the file if it contains the \"discard\" label, and updates the file info with labels if they match the specified filters.",
+        "file_id": 91,
+        "content": "The code defines a function called `getMetaTopicString` which takes a metaTopic dictionary as input and returns a string of topic words. It first generates static, optional, and dynamic candidates from the provided metaTopic dictionary. Then, it selects one candidate from each category and combines them into a final string. The code also includes a print statement and a breakpoint for debugging purposes. Finally, the decorator `@decorator` is used to apply some functionality to the `OnlineTopicGenerator` function.",
         "type": "comment"
     },
     "1034": {
-        "file_id": 99,
-        "content": "                    # does it have any filters?\n                # then we have a list of labels down here.\n                # handle the filters.\n            else:\n                sample_content_type, secondary_key = primary_sample_content.keys()\n                secondary_sample_content = primary_sample_content[secondary_key]\n                third_keys = list(secondary_sample_content.keys())\n                thirdkey = third_keys[0]\n                # print(\"SecondaryKey:\",secondary_key)\n                # print(\"THIRD_KEYS:\",third_keys)\n                main_array_content = secondary_sample_content[thirdkey]\n                if secondary_key == \"yolov5\":\n                    # print(\"YOLOV5 DETECTED\")\n                    # get the time step first. or shall we?\n                    # breakpoint()\n                    identity_dict_array = {}\n                    main_time_array = []\n                    for frame in main_array_content:\n                        _time, _frame, yolov5_detector = (\n                            frame[\"time\"],",
+        "file_id": 91,
+        "content": "    timeout:float=20\n):\n    getKeywords = lambda: getMetaTopicString(metaTopic)\n    core_topic_set = {\n        *flattenUnhashableList([value for key, value in metaTopic.items()])\n    }  # common way to initialize a set.\n    selected_topic_list = []\n    if source == \"giphy\":\n        waitForServerUp(8902, \"nodejs giphy server\")\n        keywords = getKeywords()\n        while True:\n            import time\n            time.sleep(0.5)\n            harvestedData = []\n            try:\n                source_type = random.choice([\"videos\", \"gifs\"])\n                # source_type = 'videos' # for debugging\n                if random.random() > 0.5:\n                    with requests.get(\n                        \"http://127.0.0.1:8902/random\",\n                        params={\"q\": keywords, \"rating\": \"g\", \"type\": source_type},\n                        verify=False,\n                        proxies=None,\n                        timeout=timeout\n                    ) as mRandomPicture:  # may you get stickers?\n                        mRandomPictureJson = mRandomPicture.json()",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:130-149"
+        "location": "/pyjom/modules/topicGenerator/onlineTopicGenerator.py:96-122"
     },
     "1035": {
-        "file_id": 99,
-        "content": "The code checks if the content has any filters. If not, it accesses the sample content type and secondary key, then retrieves the third key. It assigns the main array content based on the secondary key, which is checked for being \"yolov5\". If so, it initializes identity_dict_array and main_time_array, and iterates through the main array content to retrieve time, frame, and yolov5_detector.",
+        "file_id": 91,
+        "content": "Code fetches random keywords from a metaTopic string and sends GET requests to a local server (running on 127.0.0.1:8902) for gifs or videos related to these keywords. If the keyword-related request is successful, it stores the result in mRandomPictureJson variable. This process continues until a timeout occurs or until another condition breaks the loop. The code also has debugging support by allowing the source_type to be hardcoded as 'videos'.",
         "type": "comment"
     },
     "1036": {
-        "file_id": 99,
-        "content": "                            frame[\"frame\"],\n                            frame[\"yolov5_detector\"],\n                        )\n                        main_time_array.append(_time)\n                        for detected in yolov5_detector:\n                            # ignore the location. we do not need this shit till we somehow want to focus on the shit.\n                            confidence = detected[\n                                \"confidence\"\n                            ]  # ignore the confidence.\n                            confidence_threshold = 0.6\n                            if confidence <= confidence_threshold:\n                                continue\n                            identity = detected[\"identity\"][\"name\"]\n                            append_sublist(identity_dict_array, identity, _time)\n                    if secondary_key in filters.keys():\n                        if not any(\n                            [\n                                x in identity_dict_array.keys()\n                                for x in filters[secondary_key]",
+        "file_id": 91,
+        "content": "                        harvestedData += mRandomPictureJson[\"data\"]\n                        randomPictureId = mRandomPictureJson[\"data\"][0][\"id\"]\n                else:\n                    with requests.get(\n                        \"http://127.0.0.1:8902/search\",\n                        params={\"q\": keywords, \"rating\": \"g\", \"type\": source_type},\n                        verify=False,\n                        proxies=None,\n                        timeout=timeout\n                    ) as mSearchPictures:\n                        mSearchPicturesJson = mSearchPictures.json()\n                        harvestedData += mSearchPicturesJson[\"data\"]\n                        randomPictureId = random.choice(mSearchPicturesJson[\"data\"])[\n                            \"id\"\n                        ]\n                selectedWord = None\n                with requests.get(\n                    \"http://127.0.0.1:8902/related\",\n                    params={\n                        \"q\": randomPictureId,\n                        \"type\": source_type,",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:150-168"
+        "location": "/pyjom/modules/topicGenerator/onlineTopicGenerator.py:123-143"
     },
     "1037": {
-        "file_id": 99,
-        "content": "This code processes detected objects from a YoloV5 detector and filters them based on a confidence threshold. It appends the detected identities to an array if they pass the threshold, and checks if there are secondary filters present for further processing.",
+        "file_id": 91,
+        "content": "This code is making a request to an API, harvesting data based on keywords and type, and selecting a random picture. It also retrieves related words for the selected picture.",
         "type": "comment"
     },
     "1038": {
-        "file_id": 99,
-        "content": "                            ]\n                        ):\n                            continue  # do not have the dogs.\n                    # so check the timespan.\n                    # get consecutive ranges of x == 1. use threshold function like int(x>0.5)\n                    new_identity_array = {}\n                    for t in main_time_array:\n                        for k in identity_dict_array.keys():\n                            if t in identity_dict_array[k]:\n                                # print(\"APPENDING\")\n                                append_sublist(new_identity_array, k, 1)\n                                # print(new_identity_array[k])\n                                # breakpoint()\n                            else:\n                                append_sublist(new_identity_array, k, 0)\n                    # convolution step:\n                    # print(\"NEW IDEITITY ARRAY BEFORE PROCESSING:\", new_identity_array)\n                    main_time_array += [\"FINAL\"]  # add the final time\n                    for k in new_identity_array.keys():",
+        "file_id": 91,
+        "content": "                    },\n                    verify=False,\n                    proxies=None,  # seems not working? wtf?\n                ) as mRelatedPictures:\n                    mRelatedPicturesJson = mRelatedPictures.json()\n                    harvestedData += mRelatedPicturesJson[\"data\"]\n                    sentences = [x[\"title\"] for x in mRelatedPicturesJson[\"data\"]]\n                    topics = topicModeling(sentences)\n                    selectedWord = topicWordSelection(\n                        topics, core_topic_set, selected_topic_list\n                    )\n                if not selectedWord is None:\n                    keywords = \" \".join(\n                        [getKeywords(), selectedWord]\n                    )  # for next iteration.\n                    print(\"REFRESHING KEYWORDS:\", keywords)\n                else:\n                    keywords = getKeywords()\n                # recheck keywords!\n                keywords = removeKeywordDuplicates(keywords)\n            except:\n                import traceback",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:169-187"
+        "location": "/pyjom/modules/topicGenerator/onlineTopicGenerator.py:144-165"
     },
     "1039": {
-        "file_id": 99,
-        "content": "This code is iterating through a main_time_array and an identity_dict_array to create a new \"new_identity_array\". For each time in the main_time_array, it checks if that time exists within any of the keys' arrays in the identity_dict_array. If so, it appends that key into the new_identity_array with a value of 1. If not, it appends with a value of 0. Afterwards, it adds a final time to the main_time_array and processes the new_identity_array further.",
+        "file_id": 91,
+        "content": "This code segment fetches related pictures from a URL, performs topic modeling on the titles of these images, selects a word from the core topic set for further keyword generation, and handles potential exceptions.",
         "type": "comment"
     },
     "1040": {
-        "file_id": 99,
-        "content": "                        new_identity_array[k] = convoluted(\n                            new_identity_array[k], pad=1, k=5\n                        )\n                        new_identity_array[k] = [\n                            int(x > 0.2) for x in new_identity_array[k]\n                        ]\n                        new_identity_array[k] = extract_span(\n                            new_identity_array[k], target=1\n                        )  # this is span.\n                        # print(new_identity_array[k])\n                        # breakpoint()\n                        new_identity_array[k] = [\n                            (main_time_array[a], main_time_array[b])\n                            for a, b in new_identity_array[k]\n                        ]\n                    # print(\"NEW IDENTITY SPAN ARRAY:\", new_identity_array) # not so sure if the yolov5 detector is not working properly or the confidence threshold is too high.\n                    if secondary_key in filters.keys():\n                        if not any(",
+        "file_id": 91,
+        "content": "                traceback.print_exc()\n                print(\"ERROR WHEN FETCHING GIPHY TOPIC\")\n            for elem in harvestedData:\n                yield elem[\"id\"], json_auto_float_int(elem[\"media\"])",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:188-205"
+        "location": "/pyjom/modules/topicGenerator/onlineTopicGenerator.py:167-170"
     },
     "1041": {
-        "file_id": 99,
-        "content": "This code segment is processing an identity array by applying convolution, setting values above a threshold, extracting spans from the array based on a target value, and finally rearranging the array elements into pairs of indices. It seems to be part of a larger process involving filters and potentially image or object detection using a YoloV5 detector.",
+        "file_id": 91,
+        "content": "This code block catches exceptions that may occur while fetching GIPHY topics. It prints the error trace and a descriptive message, then proceeds to iterate through the harvested data, yielding each entry's ID and media value after converting it using json_auto_float_int function.",
         "type": "comment"
     },
     "1042": {
-        "file_id": 99,
-        "content": "                            [\n                                x in new_identity_array.keys()\n                                for x in filters[secondary_key]\n                            ]\n                        ):\n                            continue  # double check.\n                    timestep = secondary_sample_content[\"timestep\"]\n                    result = {\n                        \"detected_objects_timespan\": new_identity_array,\n                        \"timestep\": timestep,\n                    }\n                    update_subdict(fileinfo, filename, {\"yolov5\": result})\n                    # breakpoint()\n                    # TODO: complete the convolutional span extractor.\n                    # pass\n                elif (\n                    secondary_key == \"framedifference_talib_detector\"\n                ):  # this one is detecting the pip. active region.\n                    # print(\"{:*^30}\".format(\"FRAMEDIFFERECE DETECTOR\"))\n                    # breakpoint()\n                    min_frame_threshold = 30",
-        "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:206-226"
+        "file_id": 92,
+        "content": "/pyjom/modules/topicGenerator/weiboTopicGenerator.py",
+        "type": "filepath"
     },
     "1043": {
-        "file_id": 99,
-        "content": "This code is filtering data based on keys in new_identity_array and filters, and then assigns the \"detected_objects_timespan\" and \"timestep\" values to a result dictionary. The function continues if the current key is found in the new_identity_array and filters arrays. If the secondary_key is \"framedifference_talib_detector\", it prints a message and sets min_frame_threshold to 30.",
-        "type": "comment"
+        "file_id": 92,
+        "content": "This code imports necessary modules and defines a topic generator function for pets. It returns a fixed topic in both Chinese and English languages, demonstrating simple multilingual support.",
+        "type": "summary"
     },
     "1044": {
-        "file_id": 99,
-        "content": "                    if secondary_key in filters.keys():\n                        min_frame_threshold = filters[secondary_key]\n                    frameborders = []\n                    for k in main_array_content.keys():\n                        frameborder = main_array_content[k]\n                        start, end = frameborder[\"start\"], frameborder[\"end\"]\n                        frame_length = end - start\n                        if frame_length < min_frame_threshold:\n                            continue\n                        frameborders.append(frameborder)\n                    update_subdict(\n                        fileinfo,\n                        filename,\n                        {\"framedifference_talib_detector\": frameborders},\n                    )\n    # finally remove those without filter keys.\n    filterKeys = filters.get(\"ensure\", [y for y in filters.keys() if y != \"meta\"])\n    for k in list(fileinfo.keys()):\n        # do metainfo extraction.\n        # print(\"CORE PATH\")\n        fileinfo[k][\"meta\"] = metainfo[k]",
+        "file_id": 92,
+        "content": "from pyjom.commons import *\n@decorator\ndef petsTopicGenerator():\n    # this is just some primitive topic, always return the same thing.\n    # topics cannot be multilingual.\n    return {\"entities\": [{\"chinese\": \"搞笑 宠物\", \"english\": \"funny pets\"}]}",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:227-250"
+        "location": "/pyjom/modules/topicGenerator/weiboTopicGenerator.py:1-8"
     },
     "1045": {
-        "file_id": 99,
-        "content": "The code checks if a secondary key exists in the filters dictionary, then sets a minimum frame threshold based on it. It then loops through the main_array_content, filtering out any frameborders with lengths less than the minimum frame threshold. The filtered frameborders are stored in the frameborders list. Finally, the fileinfo dictionary is updated with the framedifference_talib_detector subdict containing the frameborders, and any keys without the \"meta\" tag or keys not in the filterKeys list are removed.",
+        "file_id": 92,
+        "content": "This code imports necessary modules and defines a topic generator function for pets. It returns a fixed topic in both Chinese and English languages, demonstrating simple multilingual support.",
         "type": "comment"
     },
     "1046": {
-        "file_id": 99,
-        "content": "        fileElemKeys = fileinfo[k].keys()\n        if fileinfo[k].get(\"discard\", False):\n            fileinfo.pop(k)\n            continue\n        mbool_condition = all([x in fileElemKeys for x in filterKeys])\n        # print(\"CHECKING:\",k)\n        # print(\"CONDITION:\",mbool_condition)\n        # breakpoint()\n        if not mbool_condition:\n            fileinfo.pop(k)  # why the fuck you pop all of them!\n    # print(fileinfo)\n    # print(\"____________FILEINFO DUMP____________\")\n    # breakpoint()\n    return fileinfo\n    # fileSystemUrl, fileList = info # I need the processed logs!\n    # return {\"husky\": \"cute husky check my youtube\"} # this is dummy return!",
-        "type": "code",
-        "location": "/pyjom/modules/informationProcessing/localProcessor.py:251-266"
-    },
-    "1047": {
-        "file_id": 99,
-        "content": "This code checks if a file should be discarded based on certain conditions and removes it from the fileinfo dictionary if it doesn't meet those conditions. It also prints some debug information for specific files. Finally, it returns the modified fileinfo dictionary.",
-        "type": "comment"
-    },
-    "1048": {
-        "file_id": 100,
-        "content": "/pyjom/modules/informationProcessing/dummyProcessor.py",
+        "file_id": 93,
+        "content": "/pyjom/musictoolbox.py",
         "type": "filepath"
     },
-    "1049": {
-        "file_id": 100,
-        "content": "This code imports the decorator function from pyjom.commons and defines a dummyProcessor function, decorated with the @decorator. It takes an info parameter and returns a dictionary containing a \"husky\" key with the value \"cute husky check my youtube\".",
+    "1047": {
+        "file_id": 93,
+        "content": "The code imports libraries, defines an audio analysis function using ShazamIO and Midomi API for identifying music. It handles temporary files, extracts duration, segments audio if needed, performs recognition using multiple backends until successful. The function retrieves and checks music URLs, lyrics, and downloaded files' status from NetEase API, implementing search functionality and error handling.",
         "type": "summary"
     },
-    "1050": {
-        "file_id": 100,
-        "content": "from pyjom.commons import decorator\n@decorator\ndef dummyProcessor(info):\n    return {\"husky\": \"cute husky check my youtube\"}",
+    "1048": {
+        "file_id": 93,
+        "content": "# you will have a better name for other toolboxs.\n# for now, the musictoolbox is responsible for music/lyric retrieval/download, track separation, bpm, music recognition\n# pitch shift, speedup/slowdown is for audiotoolbox\n# voice change/synthesis is for voicetoolbox.\n# diffusion based painter, ai colorization, video editing is for artworktoolbox. maybe the naming is not right/necessary.\n# check AmadeusCore, /root/Desktop/works/pyjom/tests/music_recognization/AmadeusCore/src/components/app/models/\nfrom types import FunctionType\nfrom typing import Union\nimport audioowl\nimport math\nfrom pyjom.commons import *\nfrom pyjom.lyrictoolbox import read_lrc, getLyricNearbyBpmCandidates\nfrom pyjom.audiotoolbox import getAudioDuration\nimport ffmpeg\n# musictoolbox\ndef audioOwlAnalysis(myMusic):\n    # get sample rate\n    # info = MediaInfo(filename = myMusic)\n    # info = info.getInfo()\n    info = get_media_info(myMusic)\n    audioSampleRate = info[\"audioSamplingRate\"]\n    audioSampleRate = int(audioSampleRate)\n    waveform = audioowl.get_waveform(myMusic, sr=audioSampleRate)",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/dummyProcessor.py:1-6"
+        "location": "/pyjom/musictoolbox.py:1-31"
+    },
+    "1049": {
+        "file_id": 93,
+        "content": "This code imports necessary libraries and functions, defines the `audioOwlAnalysis` function which retrieves audio sample rate from a music file using `get_media_info()`, sets the sample rate for `audioowl.get_waveform()`, and then calls the waveform function to generate a waveform representation of the audio.",
+        "type": "comment"
+    },
+    "1050": {
+        "file_id": 93,
+        "content": "    data = audioowl.analyze_file(myMusic, sr=audioSampleRate)  # how fucking long?\n    a, b, c, d = [\n        data[k] for k in [\"beat_samples\", \"duration\", \"sample_rate\", \"tempo_float\"]\n    ]\n    bpm = data[\"tempo_float\"]\n    # single_bpm_time = 60/d\n    beat_times = [x / c for x in a]\n    return beat_times, bpm\n# musictoolbox\ndef getMusicCutSpansCandidates(\n    music, lyric_path, maxtime, mintime, mbeat_time_tolerance=0.8\n):\n    beats, bpm = audioOwlAnalysis(music[\"filepath\"])\n    if (\n        lyric_path is not None\n        and type(lyric_path) == str\n        and os.path.exists(lyric_path)\n    ):\n        lyric = read_lrc(lyric_path)\n        # print(lyric)\n        # breakpoint()\n        lyric_times = [x[\"time\"] for x in lyric]\n        lyric_times.sort()\n    else:\n        lyric_times = []\n    new_lyric_times = []\n    last_time = 0\n    for mtime in lyric_times:\n        if mtime - last_time > mintime:\n            new_lyric_times.append(mtime)\n            last_time = mtime\n    lyric_times = new_lyric_times\n    beat_duration = 60 / bpm",
+        "type": "code",
+        "location": "/pyjom/musictoolbox.py:32-68"
     },
     "1051": {
-        "file_id": 100,
-        "content": "This code imports the decorator function from pyjom.commons and defines a dummyProcessor function, decorated with the @decorator. It takes an info parameter and returns a dictionary containing a \"husky\" key with the value \"cute husky check my youtube\".",
+        "file_id": 93,
+        "content": "The code performs audio analysis on a given music file using the audioOwlAnalysis function and obtains beat data, tempo, and beats per minute (BPM). If a lyric path is provided and exists, it reads the lyrics and sorts their timings. Then, it filters out any lyric time that is less than the minimum allowed time (mtime). Finally, it returns the list of beat times and BPM.",
         "type": "comment"
     },
     "1052": {
-        "file_id": 101,
-        "content": "/pyjom/modules/informationProcessing/__init__.py",
-        "type": "filepath"
+        "file_id": 93,
+        "content": "    # this is static, not dynamic.\n    # we can make this 'standard bpm spans' into a generator instead.\n    standard_bpm_spans = [\n        x * beat_duration\n        for x in range(0, math.ceil(maxtime / beat_duration) + 1)\n        if x * beat_duration >= mintime * mbeat_time_tolerance\n        and x * beat_duration <= maxtime / mbeat_time_tolerance\n    ]\n    (\n        sorted_lyrics_nearby_bpm_candidates,\n        sorted_remained_bpm_candidates,\n    ) = getLyricNearbyBpmCandidates(lyric_times, beats)\n    candidates = sorted_lyrics_nearby_bpm_candidates + sorted_remained_bpm_candidates\n    return candidates, standard_bpm_spans\n# musictoolbox\ndef getMusicCutSpans(\n    music,\n    music_duration,\n    lyric_path,\n    maxtime,\n    mintime,\n    mbeat_time_tolerance=0.8,\n    gaussian=False,\n    gaussian_args={\"std\": 1.6674874515595588, \"mean\": 2.839698412698412},\n):\n    assert mintime > 0\n    assert maxtime > mintime\n    candidates, standard_bpm_spans = getMusicCutSpansCandidates(\n        music,\n        lyric_path,\n        maxtime,",
+        "type": "code",
+        "location": "/pyjom/musictoolbox.py:70-104"
     },
     "1053": {
-        "file_id": 101,
-        "content": "This code is importing three different processors - dummy, filesystem, and online - from the pyjom.modules.informationProcessing module. These processors may be used for handling information processing tasks.",
-        "type": "summary"
+        "file_id": 93,
+        "content": "This code generates bpm spans for music and lyrics, considering a certain beat duration. It takes in music, maximum and minimum time values, lyric path, and optional parameters like mbeat_time_tolerance, gaussian function arguments. The code first calculates the standard bpm spans based on the given parameters. Then it calls getLyricNearbyBpmCandidates to get sorted nearby bpm candidates from lyrics. It combines all bpm candidates and returns them along with the calculated standard bpm spans.",
+        "type": "comment"
     },
     "1054": {
-        "file_id": 101,
-        "content": "from pyjom.modules.informationProcessing.dummyProcessor import dummyProcessor\nfrom pyjom.modules.informationProcessing.localProcessor import FilesystemProcessor\nfrom pyjom.modules.informationProcessing.onlineProcessor import OnlineProcessor",
+        "file_id": 93,
+        "content": "        mintime,\n        mbeat_time_tolerance=mbeat_time_tolerance,\n    )\n    assert len(standard_bpm_spans) >= 1\n    if gaussian:\n        from lazero.utils.mathlib import getTruncatedNormalDistribution\n        std, mean = gaussian_args[\"std\"], gaussian_args[\"mean\"]\n        # scale, loc = std, mean\n        myStart, myEnd = mintime, maxtime\n        randomFunction = getTruncatedNormalDistribution(std, mean, myStart, myEnd)\n        # myclip_a, myclip_b = mintime, maxtime\n        # from scipy.stats import truncnorm\n        # a, b = (myclip_a - loc) / scale, (myclip_b - loc) / scale\n        # randVar = truncnorm(a, b)\n        # randomFunction = lambda: randVar.rvs(1)[0] * scale + loc\n    # now we engage with the cue points.\n    demanded_cut_points = [0]\n    # startingPoint=0\n    remaining_time = music_duration\n    counter = 0\n    oldCandidateLength = None\n    while True:\n        if gaussian:\n            standard_bpm_span_min_selected = randomFunction()\n            doubleRate = max(min(2, maxtime / standard_bpm_span_min_selected), 1)",
         "type": "code",
-        "location": "/pyjom/modules/informationProcessing/__init__.py:1-3"
+        "location": "/pyjom/musictoolbox.py:105-133"
     },
     "1055": {
-        "file_id": 101,
-        "content": "This code is importing three different processors - dummy, filesystem, and online - from the pyjom.modules.informationProcessing module. These processors may be used for handling information processing tasks.",
+        "file_id": 93,
+        "content": "This code calculates the minimum and maximum time boundaries for a piece of music. If the gaussian parameter is set, it uses a truncated normal distribution to randomly select a standard BPM span within the specified time range. The code then processes cue points based on this selected standard BPM span, possibly adjusting the rate or creating cut points.",
         "type": "comment"
     },
     "1056": {
-        "file_id": 102,
-        "content": "/pyjom/modules/contentProducing/producerTemplates.py",
-        "type": "filepath"
+        "file_id": 93,
+        "content": "        elif len(standard_bpm_spans) == 1:\n            standard_bpm_span_min_selected = standard_bpm_spans[0]\n            doubleRate = 1.2\n        else:\n            standard_bpm_span_min_selected = random.choice(standard_bpm_spans[:-1])\n            doubleRate = max(1, min(2, maxtime / standard_bpm_span_min_selected))\n        if counter > 10000:  # some dangerous deadloop.\n            breakpoint()\n            print(\"LOOPCOUNT\", counter)\n            print(len(demanded_cut_points), remaining_time, standard_bpm_spans[0])\n        counter += 1\n        startingPoint = demanded_cut_points[-1]\n        # try:\n        selected_candidates = [\n            x for x in candidates if x > startingPoint\n        ]  # unsupported comparation between 'float' and 'list'?\n        # except:\n        #     import traceback\n        #     traceback.print_exc()\n        #     breakpoint()\n        newCandidateLength = len(selected_candidates)\n        if newCandidateLength == 0:\n            # nothing left.\n            break\n        if oldCandidateLength is None:",
+        "type": "code",
+        "location": "/pyjom/musictoolbox.py:134-158"
     },
     "1057": {
-        "file_id": 102,
-        "content": "The code introduces a function, getFileCuts, to process media files and generate cuts using scene detection or specified cuts. It supports audio synthesis, ensures non-overlapping cuts, creates render lists for specific parameters, and includes optional debug mode with breakpoints. The program utilizes FFmpeg filters for audio normalization and video filtering, handles \"ass\" subtitle font selection in a media processing program.",
-        "type": "summary"
+        "file_id": 93,
+        "content": "Code selects a minimum BPM span for music processing based on the number of available options. If there's only one option, it is selected with a double rate (1.2x). If multiple options exist, it randomly selects from all but the last option and calculates the corresponding double rate. The code also checks for an excessive loop count to prevent potential deadlocks and increments a counter for tracking purposes. It then selects candidates greater than the previous cut point and continues processing if any candidates remain.",
+        "type": "comment"
     },
     "1058": {
-        "file_id": 102,
-        "content": "from pyjom.commons import *\n# from pyjom.modules.contentProducing.videoProcessing import *\n# it is like a game designed by you, played by everyone.\n# maybe you need to render this into ffmpeg arguments or mltframework arguments.\nimport random\nfrom pyjom.audiotoolbox import adjustVolumeInMedia\nfrom pyjom.musictoolbox import getMusicInfoParsed\n# from MediaInfo import MediaInfo\nfrom pyjom.medialang.core import *\n# local\ndef getFileCuts(\n    filtered_info, meta_info, standard_bpm_spans, policy_names, mbeat_time_tolerance=0.8\n):\n    total_cuts_dict = {}\n    for (\n        file_path,\n        cuts,\n    ) in (\n        filtered_info.items()\n    ):  # sample these cuts, shuffle these samples. order these samples.\n        file_cuts = []  # only for this single file.\n        modifiers = {}\n        if cuts == {}:  # no cuts specified. require metadata.\n            # what is this synthed cuts? do you want to use some framedelta/audio volume based cutting methods, or not? or some scenedetect cuts?\n            # we use scenedetect cuts here. maybe later you would sort these cuts with framedelta/audio based methods.",
+        "file_id": 93,
+        "content": "            oldCandidateLength = newCandidateLength\n        else:\n            if (\n                oldCandidateLength == newCandidateLength\n            ):  # force append those points without progress\n                # demanded_cut_points.append(selected_candidates) # this is wrong.\n                demanded_cut_points.append(selected_candidates[0])\n                # no need to update the oldCandidateLength since it is the same as the new\n                continue\n            else:\n                oldCandidateLength = newCandidateLength\n        for elem in selected_candidates:\n            timespan_length = elem - startingPoint\n            if inRange(\n                timespan_length,\n                (\n                    standard_bpm_span_min_selected,\n                    standard_bpm_span_min_selected * doubleRate,\n                ),\n                tolerance=mbeat_time_tolerance,\n            ):\n                # select this element.\n                demanded_cut_points.append(elem)\n                break\n        remaining_time = music_duration - demanded_cut_points[-1]",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:1-30"
+        "location": "/pyjom/musictoolbox.py:159-184"
     },
     "1059": {
-        "file_id": 102,
-        "content": "This code imports various modules for audio, video processing, and metadata analysis. It defines a function getFileCuts that takes in filtered information about media files and meta-information. It creates a dictionary of total cuts for each file and iterates through the files, considering if there are any specified cuts or not. If there are no specified cuts, it uses scene detection to generate cuts and may potentially sort them using other methods like frame delta or audio volume. The code also mentions shuffling and ordering these cuts for some unspecified purpose.",
+        "file_id": 93,
+        "content": "This code segment compares the old and new candidate lengths, appending selected points to demanded_cut_points based on a specified range of timespan lengths. It also updates oldCandidateLength and checks for remaining time after adding points.",
         "type": "comment"
     },
     "1060": {
-        "file_id": 102,
-        "content": "            # or you implement this in the reviewer. none of the freaking business.\n            # synthed_cuts = scenedetect_cut(file_path)\n            # we use evenly spaced cuts.\n            duration = meta_info[\"duration\"]\n            if duration < standard_bpm_spans[0]:\n                synthed_cuts = [(0, duration)]\n            else:\n                synthed_cuts = []\n                start_time = 0\n                while True:\n                    remained_time = duration - start_time\n                    mcandidates = [x for x in standard_bpm_spans if x < remained_time]\n                    if len(mcandidates) > 0:\n                        mc = random.choice(mcandidates)\n                        synthed_cuts.append((start_time, mc))\n                        start_time += mc\n                    else:\n                        break\n            file_cuts = synthed_cuts\n        else:  # get cuts from those keys.\n            for key, content in cuts.items():\n                # if key == \"labels\": continue # this cannot happen!",
+        "file_id": 93,
+        "content": "        if remaining_time < standard_bpm_span_min_selected:\n            break\n    demanded_cut_points = list(set(demanded_cut_points))\n    demanded_cut_points.sort()\n    for elem in demanded_cut_points.copy()[::-1]:\n        if music_duration - elem < standard_bpm_spans[0]:\n            demanded_cut_points.remove(elem)\n    demanded_cut_points.append(music_duration)\n    demanded_cut_spans = list(zip(demanded_cut_points[0:-1], demanded_cut_points[1:]))\n    # somehow it was wrong.\n    # print(\"DEMANDED MUSIC CUT SPANS GENERATED\")\n    # breakpoint()\n    return demanded_cut_spans, standard_bpm_spans\n# musictoolbox\n# fix long loading time.\n@redisLRUCache()\ndef getMusicInfoParsed(config, mintime=2, maxtime=7.8):  # these are defaults.\n    music = config[\"music\"]\n    gaussian = config.get(\n        \"gaussian\", True\n    )  # this is different. default to use gaussian instead.\n    # check if music is corrupted?\n    font = config.get(\"font\", None)\n    policy = config.get(\"policy\", {})\n    policy_names = [x for x in policy.keys()]",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:31-52"
+        "location": "/pyjom/musictoolbox.py:185-212"
     },
     "1061": {
-        "file_id": 102,
-        "content": "Code generates synthesized cuts for audio file based on duration and a list of standard bpm spans. If the duration is less than the smallest standard bpm span, it creates one cut from start to end. Otherwise, it iteratively selects random standard bpm spans until remaining time is exhausted or no more spans are available.",
+        "file_id": 93,
+        "content": "The code segment checks if there is enough remaining time for the standard BPM spans. It removes unnecessary cut points, appends the music duration as a cut point, and generates the demanded music cut spans list. The function `getMusicInfoParsed` retrieves music information with optional configuration parameters for font, gaussian usage, policy, and defaults if not specified.",
         "type": "comment"
     },
     "1062": {
-        "file_id": 102,
-        "content": "                if key == \"yolov5\":\n                    for object_name, object_cuts in content.items():\n                        file_cuts += [\n                            x\n                            for x in object_cuts\n                            if (x[1] - x[0])\n                            >= standard_bpm_spans[0] * mbeat_time_tolerance\n                        ]  # we may choose only non-overlapping cuts.\n                elif (\n                    key == \"framedifference_talib_detector\"\n                ):  # this is a modifier. modify all things in avaliable cuts. but it cannot work alone. is it?\n                    modifiers.update({\"framedifference_talib_detector\": content})\n        # rearrange all things.\n        # after this is done, add this to the end.\n        if \"non_overlapping\" in policy_names:\n            file_cuts.sort()\n            new_file_cuts = [file_cuts[0]]\n            for cut in file_cuts[1:]:  # deterministic\n                if cut[0] >= new_file_cuts[-1][1]:\n                    new_file_cuts.append(cut)",
+        "file_id": 93,
+        "content": "    # get music duration here.\n    music_metadata = get_media_info(music[\"filepath\"])\n    music_duration = music_metadata[\"duration\"]\n    maxtime = config.get(\"maxtime\", maxtime)\n    mintime = config.get(\"mintime\", mintime)\n    lyric_path = music.get(\"lyric_path\", None)\n    if type(lyric_path) == str:\n        if not os.path.exists(lyric_path):\n            lyric_path = None\n    elif lyric_path is not None:\n        lyric_path = None\n    demanded_cut_spans, standard_bpm_spans = getMusicCutSpans(\n        music, music_duration, lyric_path, maxtime, mintime, gaussian=gaussian\n    )\n    return (\n        music,\n        font,\n        policy,\n        policy_names,\n        music_metadata,\n        music_duration,\n        maxtime,\n        mintime,\n        lyric_path,\n        demanded_cut_spans,\n        standard_bpm_spans,\n    )\n# for midomi we need to chop music apart.\n# for shazam, nope.\n# shazamio needs event loop. be careful!\nfrom typing import Literal\nimport subprocess\nimport traceback\nfrom lazero.program.subprocess import runCommandGetJson",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:53-72"
+        "location": "/pyjom/musictoolbox.py:213-249"
     },
     "1063": {
-        "file_id": 102,
-        "content": "The code handles different template keys and their associated content, ensuring non-overlapping cuts for \"yolov5\" key and updating modifiers for the \"framedifference_talib_detector\" key. It then sorts the file cuts to ensure non-overlapping order and appends them into a new list if they don't overlap with the previous cut. This ensures deterministic results for further processing.",
+        "file_id": 93,
+        "content": "This code retrieves music metadata, including duration and lyric path. It then checks if the lyric path exists and updates it accordingly. The function `getMusicCutSpans` is called to obtain demanded cut spans and standard BPM spans for certain use cases like midomi, shazam, or shazamio. It imports necessary types and libraries for processing music information.",
         "type": "comment"
     },
     "1064": {
-        "file_id": 102,
-        "content": "            file_cuts = new_file_cuts\n        compiled_file_cuts = []\n        for cut in file_cuts:\n            new_cut = {\"span\": cut, \"modifiers\": {}}\n            for key, content in modifiers.items():\n                if (\n                    key == \"framedifference_talib_detector\"\n                ):  # get the biggest span. best contain this range. no random selection.\n                    framework_candidates = []\n                    for framework2 in content:\n                        coords = framework2[\"coords\"]\n                        f_timespan = framework2[\"timespan\"]\n                        mOverlapRange = overlapRange(cut, f_timespan)\n                        if mOverlapRange:\n                            framework_candidates.append((framework2, mOverlapRange))\n                    framework_candidates.sort(key=lambda x: -(x[1][1] - x[1][0]))\n                    if len(framework_candidates) > 0:\n                        framework_candidate = framework_candidates[0]\n                        modifiers.update(framework_candidate)",
+        "file_id": 93,
+        "content": "def runCommandAndProcessSongRecognizationJson(\n    commandLine: list[str],\n    processMethod: FunctionType,\n    raw_data: bool = False,\n    debug: bool = False,\n    timeout: int = 5,\n    workingDirectory: Union[None, str] = None,\n):\n    success, data = runCommandGetJson(\n        commandLine, debug=debug, timeout=timeout, workingDirectory=workingDirectory\n    )\n    if success:\n        if not raw_data:\n            # more processing. may alter the success flag.\n            try:\n                data = processMethod(data)\n            except:\n                success = False\n                if debug:\n                    traceback.print_exc()\n    return success, data\ndef shazamSongRecognizationResultProcessMethod(data):\n    artist = data[\"track\"][\"subtitle\"]\n    trackName = data[\"track\"][\"title\"]\n    data = {\"artist\": artist, \"trackName\": trackName}\n    return data\n# you can choose to return raw data or not. which is the raw json data.\ndef recognizeMusicFromFileSongrec(filepath, raw_data=False, timeout=6, debug=False):\n    commandLine = [\"songrec\", \"audio-file-to-recognized-song\", filepath]",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:73-91"
+        "location": "/pyjom/musictoolbox.py:252-284"
     },
     "1065": {
-        "file_id": 102,
-        "content": "This code iterates through `file_cuts` and creates a new dictionary for each cut with span key and empty modifiers. It then checks if the modifier is \"framedifference_talib_detector\" and finds the best matching framework candidate based on overlap range with the current cut, sorting them by the overlap range in descending order. If there are framework candidates, it updates the modifiers with the best candidate and continues to the next iteration.",
+        "file_id": 93,
+        "content": "The function `runCommandAndProcessSongRecognizationJson` takes a command line, processing method, and optional parameters, then runs the command, processes the resulting JSON data, and returns success and processed data. The `shazamSongRecognizationResultProcessMethod` extracts artist and track name from the Shazam API's JSON response for song recognition. The `recognizeMusicFromFileSongrec` function calls the previous functions to recognize music from a filepath, providing optional raw data output and timeout settings.",
         "type": "comment"
     },
     "1066": {
-        "file_id": 102,
-        "content": "                        # add that modifier.\n            compiled_file_cuts.append(new_cut)\n        total_cuts_dict.update({file_path: compiled_file_cuts.copy()})\n    return total_cuts_dict\n# local\ndef getRenderList(\n    total_cuts,\n    demanded_cut_spans,\n    noRepeat=False,\n    noRepeatFileName=False,\n    total_trials=100000,\n):\n    trial_count = 0\n    file_access_list = [x for x in total_cuts.keys()]\n    FAL_generator = infiniteShuffle(\n        file_access_list\n    )  # infinite generator! may cause serious problems.\n    TC_generators = {\n        key: infiniteShuffle(total_cuts[key]) for key in total_cuts.keys()\n    }  # again infinite generator!\n    render_list = []\n    if noRepeat:\n        usedCuts = []\n    for span in demanded_cut_spans:\n        start, end = span\n        span_length = end - start\n        tolerance = 0.8\n        tolerance_decrease = lambda x: max(0.1, x - 0.1)\n        for filename in FAL_generator:\n            if filename is None:\n                tolerance = tolerance_decrease(tolerance)\n                continue",
+        "file_id": 93,
+        "content": "    return runCommandAndProcessSongRecognizationJson(\n        commandLine,\n        shazamSongRecognizationResultProcessMethod,\n        raw_data=raw_data,\n        debug=debug,\n        timeout=timeout,\n    )\ndef recognizeMusicFromFileShazamIO(\n    filepath, raw_data=False, timeout=20, debug: bool = False\n):\n    # how to timeout this shit? use subprocess again?\n    # maybe yes.\n    commandLine = [\n        \"python3\",\n        \"/root/Desktop/works/pyjom/tests/soundhound_houndify_midomi_sound_recognize_music/shazamio_recognize_music.py\",\n        \"--file\",\n        filepath,\n    ]\n    return runCommandAndProcessSongRecognizationJson(\n        commandLine,\n        shazamSongRecognizationResultProcessMethod,\n        raw_data=raw_data,\n        debug=debug,\n        timeout=timeout,\n    )\ndef midomiSongRecognizationResultProcessMethod(data):\n    trackData = data[\"AllResults\"][0][\"NativeData\"][\"Tracks\"][0]\n    artist = trackData[\"ArtistName\"]\n    trackName = trackData[\"TrackName\"]\n    data = {\"artist\": artist, \"trackName\": trackName}",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:92-125"
+        "location": "/pyjom/musictoolbox.py:285-318"
     },
     "1067": {
-        "file_id": 102,
-        "content": "This function takes a dictionary of file paths and their associated cut lists, as well as demanded cut spans. It shuffles the file access list and generates infinite shuffled cut generators for each file path. Then, it iterates over the demanded cut spans, adjusting tolerance based on infinite generator progress, and selects a rendered file accordingly. If 'noRepeat' is True, used cuts are kept track of to avoid repetition.",
+        "file_id": 93,
+        "content": "This code uses the ShazamIO library to recognize music from a file. It takes the file path, optional raw data flag, timeout value, and debug mode as inputs. It runs a command line using subprocess to execute the shazamio_recognize_music.py script with the specified file path. The function returns the processed song recognition JSON result using the shazamSongRecognizationResultProcessMethod.",
         "type": "comment"
     },
     "1068": {
-        "file_id": 102,
-        "content": "            file_cuts = TC_generators[filename]\n            # random.shuffle(file_cuts)\n            selected_cut = None\n            for cut in file_cuts:\n                trial_count += 1\n                if trial_count % 1000 == 0 and trial_count > 0:\n                    print(\n                        \"%d trial quota used remaining: %d\"\n                        % (trial_count, total_trials - trial_count)\n                    )\n                if trial_count > total_trials:\n                    raise Exception(\n                        \"Trial Limit Reached.\\nCurrent RenderList: %s\\nCurrent Limit: %d trials\\nCurrent Config: noRepeat=%s noRepeatFileName=%s\"\n                        % (\n                            str(render_list),\n                            total_trials,\n                            str(noRepeat),\n                            str(noRepeatFileName),\n                        )\n                    )\n                if cut is None:  # break if the infinite generator is taking a break.\n                    break",
+        "file_id": 93,
+        "content": "    return data\n# what is the correct timeout for this one?\nfrom lazero.filesystem.temp import tmpfile, getRandomFileNameUnderDirectoryWithExtension\ndef recognizeMusicFromFileMidomi(\n    filepath,\n    raw_data=False,\n    timeout=10,\n    debug: bool = False,\n    maxRetry=3,\n    segmentLength: int = 10,\n    extension: Union[str, None] = None,\n):  # this one is different. maybe we can wait.\n    success, data = False, {}\n    if extension == None:\n        extension = \"\"\n        splitedFilePath = os.path.basename(filepath).split(\".\")\n        if len(splitedFilePath) > 1:\n            extension = splitedFilePath[-1]\n    if len(extension) == 0:\n        extension = \"mp3\"\n    musicLength = getAudioDuration(filepath)\n    needSegment = musicLength > segmentLength\n    if not needSegment:\n        maxRetry = 1\n    for index in range(maxRetry):\n        if debug:\n            print(\"trial {} for midomi\".format(index + 1))\n        segmentName = getRandomFileNameUnderDirectoryWithExtension(\n            extension, \"/dev/shm\"\n        )\n        with tmpfile(segmentName):",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:126-147"
+        "location": "/pyjom/musictoolbox.py:319-354"
     },
     "1069": {
-        "file_id": 102,
-        "content": "This code segment shuffles a list of file cuts, iterates through them, and tracks the trial count to handle trial limits. It prints progress and raises an exception if the trial limit is exceeded or if the generator takes a break.",
+        "file_id": 93,
+        "content": "This function recognizes music from a given file using Midomi API. It accepts the file path, optional raw data flag, timeout value, debug mode, maximum number of retries, segment length, and extension type as parameters. The function generates a random temporary file name, extracts the audio duration, segments the audio if necessary based on length, and performs the recognition for the specified number of retries. If in debug mode, it prints the trial number for Midomi API calls.",
         "type": "comment"
     },
     "1070": {
-        "file_id": 102,
-        "content": "                    # continue # really continue?\n                cut_span = cut[\"span\"]\n                cut_duration = cut_span[1] - cut_span[0]\n                if inRange(\n                    cut_duration, [span_length, span_length * 1.5], tolerance=tolerance\n                ):  # increase this tolerance gradually.\n                    if noRepeat:\n                        cut_str = str(cut) + filename\n                        if noRepeatFileName:\n                            sameSourceOfLastClip = False\n                            if len(usedCuts) > 1:\n                                lastClip = usedCuts[\n                                    -1\n                                ]  # this was wrong. usedCuts could have length == 1\n                                if filename in lastClip:\n                                    sameSourceOfLastClip = True  # this will detect if the next clip is of the same source of last clip\n                            isRepeat = (cut_str in usedCuts) or sameSourceOfLastClip\n                        else:",
+        "file_id": 93,
+        "content": "            if needSegment:\n                start = random.uniform(0, musicLength - segmentLength)\n                end = start + segmentLength\n                ffmpeg.input(filepath, ss=start, to=end).output(segmentName).run(\n                    overwrite_output=True\n                )\n            else:\n                pathlib.Path(segmentName).touch()\n                segmentName = filepath\n            # you will change to given directory, will you?\n            commandLine = [\"npx\", \"ts-node\", \"midomi_music_recognize.ts\", segmentName]\n            success, data = runCommandAndProcessSongRecognizationJson(\n                commandLine,\n                midomiSongRecognizationResultProcessMethod,\n                raw_data=raw_data,\n                debug=debug,\n                timeout=timeout,\n                workingDirectory=\"/root/Desktop/works/pyjom/tests/music_recognization/AmadeusCore\",\n            )\n        if success:\n            break\n    return success, data\ndef recognizeMusicFromFile(\n    filepath,\n    backend: Literal[\"songrec\", \"shazamio\", \"midomi\", None] = None,",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:148-165"
+        "location": "/pyjom/musictoolbox.py:355-381"
     },
     "1071": {
-        "file_id": 102,
-        "content": "The code snippet checks if a cut is within the desired span length and, if so, determines whether it's a repeat or not by comparing its filename with existing used cuts. It also checks if the source of the clip matches the previous one. The tolerance for determining whether a cut is in range can be gradually increased.",
+        "file_id": 93,
+        "content": "This code segment is responsible for recognizing music from a given file using different backends. It first checks if there is a need to segment the audio and then uses FFmpeg to extract a segment or touches an existing file as the input. Next, it runs a command line with various arguments including the input file, backend type, raw data, debug mode, timeout, and working directory. The function returns success status and processed data if successful, otherwise continues trying with different backends until success is achieved.",
         "type": "comment"
     },
     "1072": {
-        "file_id": 102,
-        "content": "                            isRepeat = cut_str in usedCuts\n                        if isRepeat:\n                            continue  # repeated cuts!\n                        usedCuts.append(cut_str)\n                    selected_cut = cut\n                    break\n            if not selected_cut is None:\n                # append the data right here.\n                render_list.append({\"span\": span, \"cut\": cut, \"source\": filename})\n                break\n    return render_list\n# local\ndef renderList2MediaLang(\n    renderList,\n    slient=True,\n    fast: bool = True,\n    bgm=None,\n    backend=\"ffmpeg\",  # wtf is this ffmpeg?\n    medialangTmpdir=\"/dev/shm/medialang\",\n):  # this is just a primitive. need to improve in many ways.\n    # producer = \"\"\n    scriptBase = [\n        '(\".mp4\",backend = \"%s\", bgm = \"%s\", fast=%s)'\n        % (backend, bgm, str(fast).lower())\n    ]  # set default resolution to 1920x1080\n    def getSpanDuration(span):\n        return span[1] - span[0]\n    for item in renderList:\n        # print(\"ITEM:\", item)",
+        "file_id": 93,
+        "content": "    raw_data=False,\n    debug=False,\n):  # if not returning raw_data, only track data and artist data are returned.\n    assert os.path.exists(filepath)\n    # if returning raw_data, must also return the provider name, for easy parsing.\n    # you can try all methods. but if all three methods fails, you know what to do. what indicates the recognizer has failed?\n    # you can try something erotic.\n    if backend is None:  # auto\n        musicDuration = getAudioDuration(filepath)\n        if musicDuration <= 15:\n            backend = \"midomi\"\n        else:\n            backend = \"songrec\"\n    methods = {\n        \"midomi\": recognizeMusicFromFileMidomi,\n        \"songrec\": recognizeMusicFromFileSongrec,\n        \"shazamio\": recognizeMusicFromFileShazamIO,\n    }\n    keys = list(methods.keys())\n    keys.sort(key=lambda x: -int(x == backend))\n    for key in keys:\n        method = methods[key]\n        success, data = method(filepath, debug=debug)\n        if debug:\n            print(\"DATA:\")\n            print(data)\n            print(\"RETURN FROM MUSIC RECOGNIZE METHOD: %s\" % key)",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:166-198"
+        "location": "/pyjom/musictoolbox.py:382-408"
     },
     "1073": {
-        "file_id": 102,
-        "content": "The code is iterating over a list of cuts and selecting one that has not been used before. It appends the selected cut, span, and source file name to render_list if a valid cut is found. The function then returns the rendered list. Additionally, there's another function called renderList2MediaLang which takes the render list and uses it to create media files with specific parameters like backend, bgm, fast, and resolution. This function also requires improvement in many ways according to the comments.",
+        "file_id": 93,
+        "content": "This function uses a series of methods to recognize music from a file and returns track data, artist data, and raw data if specified. It checks the duration of the audio file and chooses the appropriate method (midomi, songrec, or shazamio) based on the duration. If no backend is specified, it automatically selects the best method for the given file duration. The code also prints debug information if requested.",
         "type": "comment"
     },
     "1074": {
-        "file_id": 102,
-        "content": "        span = item[\"span\"]\n        cut_span = item[\"cut\"][\"span\"]\n        source = item[\"source\"]\n        span_duration = getSpanDuration(span)\n        cut_span_duration = getSpanDuration(cut_span)\n        speed = cut_span_duration / span_duration\n        # breakpoint()\n        name = source\n        line = '(\"%s\", video=true, slient=%s, speed=%f, cutFrom=%f,cutTo=%f)' % (\n            name,\n            str(slient).lower(),\n            speed,\n            cut_span[0],\n            cut_span[1],\n        )\n        scriptBase.append(line)\n    # print(scriptBase)\n    # now return the medialang object.\n    medialangScript = \"\\n\\n\".join(scriptBase)  # forced to double return. is it?\n    medialangObject = Medialang(script=medialangScript, medialangTmpdir=medialangTmpdir)\n    return medialangObject\n# local\ndef petsWithMusicProducer(filtered_info, meta_info, config={}, fast=False):\n    # what is this config? how the fuck we can arrange it?\n    # config = {\"music\":{\"filepath\":\"\",\"lyric_path\":\"\"},\"font\":{\"filepath\":\"\",\"fontsize\":30}, \"policy\":{\"some_policy_name\":{}},\"meta\":{\"maxtime\":3, \"mintime\":1}}",
+        "file_id": 93,
+        "content": "            print(\"SUCCESS:\", success)\n        if success:\n            if raw_data:\n                return success, data, key\n            else:\n                return success, data\n        if debug:\n            break  # no retry then.\n    if raw_data:\n        return False, {}, \"\"\n    return False, {}\n############ SEARCH NETEASE MUSIC, GET SIMILAR MUSIC BY ID, DOWNLOAD MUSIC AND LYRICS ############\nimport requests\nfrom lazero.program.functools import suppressException\nclass neteaseMusic:\n    def __init__(self, port: int = 4042):\n        self.baseUrl = \"http://localhost:{}\".format(port)\n    def verifyResponseCodeAndGetJson(\n        self, response, debug: bool = False, success_codes: list[int] = [200]\n    ):\n        response_json = response.json()  # check search_result.json\n        if success_codes != []:\n            code = response_json[\"code\"]\n            if not code in success_codes:\n                if debug:\n                    print(response_json)\n                import traceback\n                traceback.print_exc()",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:199-225"
+        "location": "/pyjom/musictoolbox.py:409-443"
     },
     "1075": {
-        "file_id": 102,
-        "content": "The code defines a function that takes in information and creates a Medialang object. It calculates the speed of cutting from one point to another, adds details to the scriptBase list, and joins them into medialangScript. The config parameter is a dictionary containing options for music filepath, lyric path, font settings, policy settings, and meta settings like max and min time. The function returns a Medialang object with the script and tmpdir.",
+        "file_id": 93,
+        "content": "Imports necessary libraries and defines a class for interacting with Netease Music. The class has a constructor to set the port, and methods to search music, get similar music by ID, download music and lyrics. It also handles exceptions and checks response codes.",
         "type": "comment"
     },
     "1076": {
-        "file_id": 102,
-        "content": "    # how to auto-warp the AAS subtitle?\n    # musicPath = config.get('music',\"\")\n    musicPath = config.get(\"music\", {}).get(\"filepath\", \"\")\n    debug = config.get(\"debug\", False)\n    report = corruptMediaFilter(musicPath)\n    if not report:\n        return False\n    (\n        music,\n        font,\n        policy,\n        policy_names,\n        music_metadata,\n        music_duration,\n        maxtime,\n        mintime,\n        lyric_path,\n        demanded_cut_spans,\n        standard_bpm_spans,\n    ) = getMusicInfoParsed(config)\n    # do you fill timegap with a loop?\n    total_cuts = {}\n    # print(\"DEMANDED CUT SPANS: \" , demanded_cut_spans) # test passed.\n    # breakpoint()\n    # demanded_cut_spans is empty!\n    # total_cuts\n    total_cuts = getFileCuts(\n        filtered_info, meta_info, standard_bpm_spans, policy_names\n    )  # is this shit empty?\n    # this can be infinity loop.\n    # sample: [{'span': (0, 3.9300226757369616), 'cut': {'span': (13.4, 18.0), 'modifiers': {}}, 'source': '/root/Desktop/works/pyjom/samples/video/LiGGLhv4E.mp4'}]",
+        "file_id": 93,
+        "content": "                raise Exception(\"ERROR CODE IN NETEASE API RESPONSE:\", code)\n        return response_json\n    def requestWithParamsGetJson(\n        self,\n        suffix: str,\n        params: dict = {},\n        debug: bool = False,\n        success_codes: list[int] = [200],\n        refresh: bool = False,\n    ):\n        if refresh:\n            params.update({\"timestamp\": getJSTimeStamp()})\n        suffix = suffix.strip()\n        if not suffix.startswith(\"/\"):\n            suffix = \"/\" + suffix\n        link = self.baseUrl + suffix\n        result = requests.get(link, params=params)\n        result_json = self.verifyResponseCodeAndGetJson(\n            result, debug=debug, success_codes=success_codes\n        )\n        return result_json\n    @suppressException(tries=2, defaultReturn={})\n    def searchNeteaseMusicByQuery(\n        self, query: Union[list, str], debug: bool = False, refresh: bool = False\n    ):\n        if type(query) == str:\n            query = query.strip()\n        else:\n            query = [elem.strip() for elem in query]",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:226-257"
+        "location": "/pyjom/musictoolbox.py:444-474"
     },
     "1077": {
-        "file_id": 102,
-        "content": "This code retrieves music file information and parses it using various functions. It checks if the demanded_cut_spans are not empty and retrieves the total_cuts from another function. The code also includes debugging features and may potentially create an infinite loop if certain conditions aren't met.",
+        "file_id": 93,
+        "content": "This code defines a class method to request data from a Netease API using GET requests and handle the response. It takes parameters like suffix, query, debug flag, success codes, and refresh flag. The method handles refreshing timestamps if needed, constructs the URL, makes a GET request with the parameters, verifies the response code, and returns the JSON data or raises an exception if an error occurs.",
         "type": "comment"
     },
     "1078": {
-        "file_id": 102,
-        "content": "    # print(total_cuts)\n    # breakpoint()\n    # now generate the freaking video.\n    # if \"one_clip_per_file\" in policy_names:\n    #     used_files = [] # may raise exception.\n    # total_cuts {} and demanded_cut_spans [] are both empty\n    render_list = getRenderList(\n        total_cuts, demanded_cut_spans\n    )  # this might be an infinity loop.\n    # but why the fuck we got 10 minutes long of the freaking video?\n    if debug:\n        print(render_list)  # empty render list! wtf?\n    # why the fuck we have duplicated clips? why the fuck?\n    # breakpoint()  # WTF IS GOING ON? LEADING TO 10 MINS OF CRAP?\n    medialangObject = renderList2MediaLang(\n        render_list,\n        slient=True,\n        bgm=music[\"filepath\"],\n        backend=\"editly\",  # 在这里你可以分离人声 如果想热闹的话 原视频的音乐就不需要了 可能吧\n        fast=fast,\n    )  # what is the backend?\n    # print(medialangObject)\n    # breakpoint()\n    medialangCode = medialangObject.prettify()\n    # print(\"_________________MEDIALANG CODE_________________\")\n    # print(medialangCode) # should you write it to somewhere?",
+        "file_id": 93,
+        "content": "            query = \" \".join([elem for elem in query if len(elem) > 0])\n        assert len(query) > 0\n        search_result_json = self.requestWithParamsGetJson(\n            \"/search\",\n            params={\"keywords\": query},\n            debug=debug,\n            refresh=refresh,\n        )\n        return search_result_json\n    @suppressException(defaultReturn=[])\n    def getSimilarMusicByIdFromNetease(\n        self, music_id: int, debug: bool = False, refresh: bool = False\n    ):\n        r_json = self.requestWithParamsGetJson(\n            \"/simi/song\", params={\"id\": music_id}, debug=debug, refresh=refresh\n        )\n        song_ids = []\n        for song in r_json[\"songs\"]:\n            name = song[\"name\"]\n            song_id = song[\"id\"]\n            song_ids.append(song_id)\n            # what you want?\n        return song_ids\n    @suppressException()\n    def getMusicUrlFromNetease(\n        self, music_id: int, debug: bool = False, refresh: bool = False\n    ):\n        r_json = self.requestWithParamsGetJson(\n            \"/song/url\", params={\"id\": music_id}, debug=debug, refresh=refresh",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:258-285"
+        "location": "/pyjom/musictoolbox.py:475-505"
     },
     "1079": {
-        "file_id": 102,
-        "content": "This code block is generating a video based on provided cuts and cut spans. It checks for specific policy names, creates a render list, and then passes it to the `renderList2MediaLang` function to generate the video using the Editly backend. The developer is experiencing issues with an empty render list and duplicated clips which may lead to 10 minutes of undesired footage in the final video. They are also questioning what the Editly backend is and whether they should write the medialang code somewhere.",
+        "file_id": 93,
+        "content": "The code contains functions to search and retrieve similar music by ID, as well as fetching the URL of a specific song from the Netease API. It makes requests with parameters, handles exceptions, and returns search results or song IDs.",
         "type": "comment"
     },
     "1080": {
-        "file_id": 102,
-        "content": "    if debug:\n        import uuid\n        randomName = str(uuid.uuid4())\n        # or just use some temporary file instead?\n        medialangCodeSavePath = os.path.join(\n            \"/root/Desktop/works/pyjom/tests/medialang_tests\",\n            \"{}.mdl\".format(randomName),\n        )\n        with open(medialangCodeSavePath, \"w+\") as f:\n            f.write(medialangCode)\n        print(\"MEDIALANG CODE SAVED TO:\", medialangCodeSavePath)\n    # why use medialang? probably because these render language are not \"fully automated\" or \"automated enough\" to express some abstract ideas? or just to leave some blanks for redundent low-level implementations?\n    # print(\"_________________MEDIALANG CODE_________________\")\n    (\n        editly_outputPath,\n        medialang_item_list,\n    ) = medialangObject.execute()  ## shit will happen.\n    # next time you could test medialang directly.\n    # medialangObject.eval() # is something like that?\n    return editly_outputPath\n    # slient all things? despite its config.\n    # now render the file. how to make it happen?",
+        "file_id": 93,
+        "content": "        )  # this song might expire. warning!\n        # expire in a few seconds.\n        url = r_json[\"data\"][0].get(\"url\", None)\n        return url  # you may test this url. later.\n    @suppressException(defaultReturn=False)\n    def checkMusicFromNetEase(\n        self, music_id: int, debug: bool = False, refresh: bool = False\n    ):\n        # {\n        #   \"success\": true,\n        #   \"message\": \"ok\"\n        # }\n        # no need to check the return code.\n        r_json = self.requestWithParamsGetJson(\n            \"check/music\",\n            params={\"id\": music_id},\n            debug=debug,\n            refresh=refresh,\n            success_codes=[],\n        )\n        assert r_json[\"success\"] == True\n        assert r_json[\"message\"] == \"ok\"\n        return True\n    @suppressException()\n    def getMusicLyricFromNetease(\n        self,\n        music_id: int,\n        debug: bool = False,\n        refresh: bool = False,\n        minLyricStringLength: int = 50,\n    ):\n        r_json = self.requestWithParamsGetJson(\n            \"/lyric\",",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:286-310"
+        "location": "/pyjom/musictoolbox.py:506-540"
     },
     "1081": {
-        "file_id": 102,
-        "content": "The code is creating a temporary file with a random name using UUID, writing medialangCode to it, and saving it on the desktop. It then executes the medialangObject and returns the editly_outputPath.",
+        "file_id": 93,
+        "content": "The code defines two functions: `checkMusicFromNetEase` and `getMusicLyricFromNetease`. The first function checks if a music URL exists by sending a GET request to the \"check/music\" endpoint with the given music ID. It returns True if the response is successful. The second function retrieves the lyrics of the specified music ID from the \"/lyric\" endpoint and raises exceptions for errors. Both functions use the `requestWithParamsGetJson` method, which sends a GET request to an endpoint, receives JSON data, and handles success codes or exceptions based on parameters provided.",
         "type": "comment"
     },
     "1082": {
-        "file_id": 102,
-        "content": "# first, we state the format of the input.\n# [{'span': (296.4719954648526, 302.915), 'cut': {'span': (50.8, 57.2), 'modifiers': {}}, 'source': '/root/Desktop/works/pyjom/samples/video/LiGfl6lvf.mp4'}, {..},...]\n# avaliable_cuts = content\n# shall we generate medialang for it?\nfrom pyjom.commons import checkMinMaxDict\nfrom pyjom.lyrictoolbox import lrcToAnimatedAss\nfrom lazero.filesystem import tmpdir\nfrom lazero.network.progressbar.client import netProgressbar\n# local\ndef petsWithMusicOnlineProducer(\n    dataGenerator,\n    configs,\n    tempdir=\"/dev/shm/medialang/pets_with_music_online\",\n    remove_unused=True,\n    fast: bool = True,\n    medialangTmpdir=\"/dev/shm/medialang\",\n):\n    import uuid\n    NetProgressbar = netProgressbar()\n    with tmpdir(path=tempdir) as TD:\n        getRandomFileName = lambda extension: os.path.join(\n            tempdir, \".\".join([str(uuid.uuid4()), extension])\n        )\n        for config in configs:\n            try:\n                debug = config.get(\"debug\", False)  # in config.\n                musicPath = config.get(\"music\", {}).get(\"filepath\", \"\")",
+        "file_id": 93,
+        "content": "            params={\"id\": music_id},\n            debug=debug,\n            refresh=refresh,\n        )\n        # warning: the fetched lrc could be not so clean. clean it somehow!\n        lyric_string = r_json[\"lrc\"][\"lyric\"]\n        if lyric_string != None and type(lyric_string) == str:\n            if len(lyric_string) > minLyricStringLength:\n                return lyric_string\n    @suppressException(tries=2, defaultReturn=((None, None), None))\n    def getMusicAndLyricWithKeywords(\n        self,\n        keywords: str,\n        similar: bool = False,\n        debug: bool = False,\n        min_audio_length: float = 2 * 60,\n        max_audio_length: float = 5 * 60\n    ):  # minimum 2.5 minutes of music.\n        import pyjq\n        # store the downloaded file in some place please?\n        search_data_json = self.searchNeteaseMusicByQuery(keywords, debug=debug)\n        # print(search_data_json)\n        song_ids = pyjq.all(\n            \".result.songs[] | select (.id !=null) | .id\", search_data_json\n        )  # incorrect. use pyjq.all",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:313-343"
+        "location": "/pyjom/musictoolbox.py:541-567"
     },
     "1083": {
-        "file_id": 102,
-        "content": "This function, petsWithMusicOnlineProducer, generates medialang for a list of configs with associated music files. It takes dataGenerator, configs, tempdir, remove_unused, and fast as inputs. It uses temporary directories and UUIDs for file names. The debug flag indicates whether to include debugging information in the generated output.",
+        "file_id": 93,
+        "content": "This code defines a function that searches for music and its corresponding lyrics using keywords. It also includes error suppression and checks if the downloaded file is stored or not. The function takes in parameters such as keywords, similarity flag, debug mode, minimum and maximum audio lengths. It uses Pyjq to query the music data and extracts song IDs from the search results.",
         "type": "comment"
     },
     "1084": {
-        "file_id": 102,
-        "content": "                translate = config.get(\"translate\", False)\n                # also how to translate?\n                translate_method = config.get(\"translate_method\", \"baidu\")\n                # from pyjom.commons import corruptMediaFilter\n                report = corruptMediaFilter(musicPath)\n                if not report:\n                    continue\n                render_ass = config.get(\"render_ass\", False)\n                ass_template_configs = config.get(\"ass_template_configs\", {})\n                assStyleConfig = config.get(\"assStyleConfig\", {})\n                parsed_result = getMusicInfoParsed(config) # will raise exception. what to do?\n                # print(parsed_result)\n                # breakpoint()\n                # we only have one song here. you fucking know that?\n                (\n                    music,\n                    font,\n                    policy,\n                    policy_names,\n                    music_metadata,\n                    music_duration,\n                    maxtime,",
+        "file_id": 93,
+        "content": "        # print(song_ids)\n        # breakpoint()\n        song_id = random.choice(song_ids)\n        # how to parse this shit?\n        if similar:\n            similar_song_ids = self.getSimilarMusicByIdFromNetease(song_id, debug=debug)\n            song_id = random.choice(similar_song_ids)\n        # now download the music.\n        music_url = self.getMusicUrlFromNetease(song_id, debug=debug, refresh=True)\n        # download the music right now.\n        r = requests.get(music_url)\n        if debug:\n            print(\"download music status code:\", r.status_code)\n        assert r.status_code == 200  # are you sure the code is ok?\n        music_format = music_url.split(\".\")[-1]\n        music_content = r.content\n        # how to get song duration?\n        import tempfile\n        with tempfile.NamedTemporaryFile(\n            mode=\"wb\", suffix=\".{}\".format(music_format)\n        ) as f:\n            name = f.name\n            name = os.path.abspath(name)\n            f.write(music_content)\n            song_duration = getAudioDuration(name)",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:344-367"
+        "location": "/pyjom/musictoolbox.py:568-594"
     },
     "1085": {
-        "file_id": 102,
-        "content": "This code block is configuring the settings for processing a music file. It sets whether to translate, the translation method, and checks if there are any corrupt media issues. It also determines if ASS (Advanced Substation Alpha) subtitles should be rendered, retrieves configuration settings for the ASS style and templates, and fetches the parsed music information that may raise an exception.",
+        "file_id": 93,
+        "content": "This code randomly selects a song, if similar music is specified, it chooses one from the similar list. It then downloads the selected music and stores it temporarily for later use. The song duration is determined using a helper function.",
         "type": "comment"
     },
     "1086": {
-        "file_id": 102,
-        "content": "                    mintime,\n                    lyric_path,\n                    demanded_cut_spans,\n                    standard_bpm_spans,\n                ) = parsed_result  # this is taking long time.\n                # check for 'demanded_cut_spans' now!\n                from pyjom.lyrictoolbox import remergeDemandedCutSpans\n                demanded_cut_spans = remergeDemandedCutSpans(demanded_cut_spans)\n                render_list = []  # what is this freaking render_list?\n                # [{'span':(start,end),'cut':{'span':(start,end)},'source':videoSource},...]\n                # if lyric_path:\n                render_ass = render_ass and (lyric_path is not None)\n                if render_ass:\n                    ass_file_path = getRandomFileName(\"ass\")\n                    # print(\"lrc path:\", lyric_path)\n                    # print('ass file path:',ass_file_path)\n                    # breakpoint()\n                    lrcToAnimatedAss(\n                        music[\"filepath\"],\n                        lyric_path,",
+        "file_id": 93,
+        "content": "        if song_duration < min_audio_length:\n            raise Exception(\"audio too short, total {} seconds\".format(song_duration))\n        elif song_duration > max_audio_length:\n            raise Exception(\"audio too long, total {} seconds\".format(song_duration))\n        lyric_string = self.getMusicLyricFromNetease(song_id)\n        if debug:\n            print(\"LYRICS:\", lyric_string)\n        if type(lyric_string) ==str and lyric_string.strip() !=\"\":\n            from pyjom.lyrictoolbox import (\n                cleanLrcFromWeb,\n            )  # cleaning needs song duration.\n            lyric_string = cleanLrcFromWeb(lyric_string, song_duration)\n        return (music_content, music_format), lyric_string\n############ SEARCH NETEASE MUSIC, GET SIMILAR MUSIC BY ID, DOWNLOAD MUSIC AND LYRICS ############",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:368-389"
+        "location": "/pyjom/musictoolbox.py:595-611"
     },
     "1087": {
-        "file_id": 102,
-        "content": "The code is unpacking the 'parsed_result' into separate variables such as 'mintime', 'lyric_path', 'demanded_cut_spans', and 'standard_bpm_spans'. It then checks for 'demanded_cut_spans' and remerges them using 'remergeDemandedCutSpans'. The code initializes an empty list called 'render_list', which may contain dictionaries with {'span':(start,end), 'cut':{'span':(start,end)}, 'source':videoSource} elements. If 'lyric_path' is provided and 'render_ass' (a combination of 'render_ass' flag and 'lyric_path' condition) is True, it generates a random file name for an 'ass' file and calls the 'lrcToAnimatedAss' function with music file path, lyric path as input.",
+        "file_id": 93,
+        "content": "This code checks the song duration against specified minimum and maximum audio lengths, raises exceptions if necessary, retrieves lyrics from Netease using getMusicLyricFromNetease method, prints or logs the lyric string if in debug mode, checks if the lyric string is a non-empty string, cleans the LRC from web by calling cleanLrcFromWeb function and passing song duration as argument, and returns music content, format, and cleaned lyrics.",
         "type": "comment"
     },
     "1088": {
-        "file_id": 102,
-        "content": "                        ass_file_path,\n                        translate=translate,\n                        translate_method=translate_method,\n                        ass_template_configs=ass_template_configs,\n                        assStyleConfig=assStyleConfig,\n                    )  # here's the 'no translation' flag.\n                data_ids = []\n                # from tqdm.gui import tqdm\n                total_pops = len(demanded_cut_spans)\n                # for _ in tqdm(range(total_pops)):\n                NetProgressbar.reset(total=total_pops)\n                for data in dataGenerator:\n                    # what is the format of the data?\n                    data_id = data[\"item_id\"]\n                    if data_id not in data_ids:\n                        dataDuration = data[\"meta\"][\"duration\"]\n                        videoSource = data[\"location\"]\n                        data_ids.append(data_id)\n                        demanded_cut_spans.sort(\n                            key=lambda span: abs((span[1] - span[0]) - dataDuration)",
-        "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:390-411"
+        "file_id": 94,
+        "content": "/pyjom/platforms/bilibili/credentials.py",
+        "type": "filepath"
     },
     "1089": {
-        "file_id": 102,
-        "content": "This code snippet generates subtitles for videos and processes them in batches. It uses a data generator to iterate over demanded cuts, sorts them based on the difference between their duration and video duration, and appends unique data IDs to the list. The progress bar is updated using NetProgressbar.",
-        "type": "comment"
+        "file_id": 94,
+        "content": "The code handles bilibili login/logout, stores credentials in TinyDB, verifies them and provides functions for SMS-based credential input/removal. It uses a decorator `bilibiliCredential` that retrieves user credentials and wraps function calls with them.",
+        "type": "summary"
     },
     "1090": {
-        "file_id": 102,
-        "content": "                        )\n                        closest_span = demanded_cut_spans[0]\n                        closest_span_duration = closest_span[1] - closest_span[0]\n                        speed_delta = dataDuration / closest_span_duration\n                        # for time duration of 0.6 seconds, how the fuck you can fit in?\n                        span = closest_span\n                        candidate = {\n                            \"span\": span,\n                            \"cut\": {\"span\": (0, dataDuration)},\n                            \"source\": videoSource,\n                        }\n                        append_render_list = False\n                        case = None\n                        if checkMinMaxDict(speed_delta, {\"min\": 0.8, \"max\": 1.2}):\n                            case = \"nearby\"\n                            append_render_list = True\n                            # break\n                        elif checkMinMaxDict(speed_delta, {\"min\": 1.2, \"max\": 5}):\n                            case = \"trim\"",
+        "file_id": 94,
+        "content": "# you need to manage login/logout and credential storage.\n# first you need to get 'home' directory\nfrom lazero.search.api import getHomeDirectory\nimport os\nfrom bilibili_api import sync, Credential\nfrom bilibili_api.user import get_self_info\nfrom bilibili_api import settings\nfrom bilibili_api.login import (\n    # login_with_password,\n    login_with_sms,\n    send_sms,\n    PhoneNumber,\n    # Check,\n)\nsettings.geetest_auto_open = False\nhome = getHomeDirectory()\ndbPath = os.path.join(home, \".bilibili_api.json\")\nimport tinydb\ndb = tinydb.TinyDB(dbPath)  # is this variable shared in this module?\nUser = tinydb.Query()\ndef verifyCredential(credential, returnName=True):\n    try:\n        name = sync(get_self_info(credential))[\"name\"]\n        print(\"credential is valid for:\", name)\n        db.upsert(\n            {\n                \"name\": name,  # does not show up in credential.\n                \"dedeuserid\": credential.dedeuserid,\n                \"bili_jct\": credential.bili_jct,\n                \"buvid3\": credential.buvid3,\n                \"sessdata\": credential.sessdata,",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:412-431"
+        "location": "/pyjom/platforms/bilibili/credentials.py:2-38"
     },
     "1091": {
-        "file_id": 102,
-        "content": "This code is finding the closest cut span for a given data duration and calculating the speed delta between them. It then determines if the speed delta falls within certain predefined thresholds, assigning the appropriate case (\"nearby\" or \"trim\") and whether to append to the render list. The speed delta ranges from 0.8 to 1.2 for nearby cuts and from 1.2 to 5 for trim cuts.",
+        "file_id": 94,
+        "content": "The code manages login/logout and credential storage for the Bilibili API. It retrieves the 'home' directory, creates a TinyDB instance at the specified path to store user credentials, and provides a function `verifyCredential` to check if a given credential is valid. The code also sets geetest_auto_open to False and imports necessary modules for Bilibili API interaction.",
         "type": "comment"
     },
     "1092": {
-        "file_id": 102,
-        "content": "                            append_render_list = True\n                            from pyjom.videotoolbox import motionVectorEstimation\n                            dataDict = motionVectorEstimation(videoSource)\n                            referenceData = dataDict[\n                                \"average_global_weighted_motion_vectors_filtered_cartesian_distance\"\n                            ]\n                            from pyjom.mathlib import getCursorOfMaxAverageInWindow\n                            cursor = getCursorOfMaxAverageInWindow(\n                                referenceData, closest_span_duration * 1.2, dataDuration\n                            )\n                            # cursor = random.uniform(0,dataDuration-closest_span_duration*1.2) # this is not exactly right. not even good.\n                            # you should utilize the 'motion vector' stuff.\n                            mStart, mEnd = 0 + cursor, min(\n                                closest_span_duration * 1.2 + cursor, dataDuration",
+        "file_id": 94,
+        "content": "            },\n            User.dedeuserid == credential.dedeuserid,\n        )\n        if returnName:\n            return name\n        else:\n            return True\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\"invalid credential:\", credential)\n        return False\ndef removeCredentialByDedeUserId(dedeuserid: str):\n    try:\n        db.remove(User.dedeuserid == dedeuserid)\n        return True\n    except:\n        import traceback\n        traceback.print_exc()\n        print(\n            \"error when removing credential from database for dedeuserid:\", dedeuserid\n        )\n        return False\n# from lazero.program.functools import skipException\nfrom lazero.program.functools import suppressException\n# @skipException(defaultReturn = None, breakpoint_flag=True, debug_flag=True, global_variables=globals(), local_variables=locals()) # send_sms is not definded here. WTF?\n@suppressException(defaultReturn=None, showException=True)  # trycatch based.\ndef getCredentialViaSMS():\n    phone = input(\"请输入手机号：\")",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:432-447"
+        "location": "/pyjom/platforms/bilibili/credentials.py:39-74"
     },
     "1093": {
-        "file_id": 102,
-        "content": "Code fetches average motion vectors from video source using motionVectorEstimation, selects cursor based on max average in window function from mathlib. Uses obtained cursor to calculate mStart and mEnd for clip segmentation.",
+        "file_id": 94,
+        "content": "The code is a Python implementation for managing bilibili credentials. The `getCredentialViaSMS` function allows users to input their phone number and retrieves the corresponding credential via SMS verification. The `removeCredentialByDedeUserId` function removes a credential from the database based on the provided dedeuserid. Both functions handle exceptions using try-except blocks, providing error messages and returning False if any errors occur during execution.",
         "type": "comment"
     },
     "1094": {
-        "file_id": 102,
-        "content": "                            )\n                            candidate[\"cut\"][\"span\"] = (mStart, mEnd)\n                        if not append_render_list:\n                            print(f'fail to match. source: {dataDuration} target: {closest_span_duration}')\n                            if remove_unused:\n                                videoPath = videoSource\n                                if os.path.exists(videoPath):\n                                    os.remove(videoPath)\n                        else:\n                            demanded_cut_spans.pop(0)\n                            NetProgressbar.update(\n                                info={\n                                    \"remainings\": len(demanded_cut_spans),\n                                    \"case\": case,\n                                    \"data\": candidate,\n                                    'last_5_spans_time':[x[1]-x[0] for x in demanded_cut_spans[:5]]\n                                } # this last cut must be seriously wrong.\n                            )",
+        "file_id": 94,
+        "content": "    print(\"正在登录。\")\n    send_sms(PhoneNumber(phone, country=\"+86\"))  # 默认设置地区为中国大陆\n    code = input(\"请输入验证码：\")\n    c = login_with_sms(PhoneNumber(phone, country=\"+86\"), code)\n    credential = c\n    # first, check if this is a valid credential.\n    name = verifyCredential(credential)\n    return credential, name\ndef getCredentialByDedeUserId(dedeuserid: str = \"397424026\"):\n    dataList = db.search(User.dedeuserid == dedeuserid)\n    if len(dataList) != 1:\n        if len(dataList) != 0:\n            # remove all related records.\n            print(\"multiple credentials found for dedeuserid:\", dedeuserid)\n            removeCredentialByDedeUserId(dedeuserid)\n        else:\n            print(\"no credential found for dedeuserid:\", dedeuserid)\n    else:\n        # check validity.\n        data = dataList[0].copy()\n        print(\"try to login credential fetched from db:\", data)\n        oldName = data.pop(\"name\")\n        print(\"previous name:\", oldName)\n        credential = Credential(**data)\n        name = verifyCredential(credential)",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:448-465"
+        "location": "/pyjom/platforms/bilibili/credentials.py:75-101"
     },
     "1095": {
-        "file_id": 102,
-        "content": "This code attempts to match a data duration with a target duration, and if unsuccessful, it removes the corresponding video segment. If successful, it updates the progress bar with information about remaining cuts, the current case, and the candidate cut details. It also checks if the last 5 spans' durations indicate a serious error.",
+        "file_id": 94,
+        "content": "The code is responsible for logging in to a Bilibili account and retrieving the user's credentials. It first attempts to log in using an SMS verification code, then checks if the provided credential is valid by verifying it with the database. The function `getCredentialByDedeUserId` allows fetching credentials based on the given dedeuserid. If multiple or no credentials are found for the specified id, appropriate error messages are printed and potentially irrelevant records are removed from the database.",
         "type": "comment"
     },
     "1096": {
-        "file_id": 102,
-        "content": "                            render_list.append(candidate)\n                    complete = len(demanded_cut_spans) == 0\n                    if complete:\n                        break\n                # the main shit will fuck up again, maybe.\n                # so i wrapped it a little bit.\n                try:\n                    medialangObject = renderList2MediaLang(\n                        render_list,\n                        slient=True,\n                        fast=fast,\n                        bgm=music[\"filepath\"],\n                        backend=\"editly\",  # 在这里你可以分离人声 如果想热闹的话 原视频的音乐就不需要了 可能吧\n                        medialangTmpdir=medialangTmpdir,\n                    )  # what is the backend?\n                    # we first create a backup for this medialang script, please?\n                    medialangScript = medialangObject.prettify()\n                    if debug:\n                        medialangScript_savedPath = getRandomFileName(\"mdl\")\n                        with open(\n                            medialangScript_savedPath, \"w+\"",
+        "file_id": 94,
+        "content": "        if name != False:\n            print(\"login successful:\", name)\n            return credential\n        else:\n            print(\"login failed with existing credential for user:\", oldName)\n            removeCredentialByDedeUserId(\n                dedeuserid\n            )  # warning. my credential has been removed because of that async problem. please relogin.\n    # anyway if you are here, nothing in database related to this dedeuserid now.\n    # you choose to login via SMS.\n    while True:\n        # could be troublesome.\n        result = getCredentialViaSMS()\n        if result != None:  # has type check here?\n            credential, name = result\n            if name != False:\n                print(\"登录成功\")\n                # update with this credential!\n                # next, check if this is the credential we need.\n                if credential.dedeuserid == dedeuserid:\n                    return credential\n                else:\n                    print(\"dedeuserid not right.\")\n                    print(",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:466-486"
+        "location": "/pyjom/platforms/bilibili/credentials.py:102-125"
     },
     "1097": {
-        "file_id": 102,
-        "content": "Code tries to render a list of objects using a function, and if the demanded cut spans are empty, it breaks the loop. It then attempts to wrap this process inside a try-except block, and if successful, prettifies the resulting medialang script and saves a backup if debug mode is enabled. The backend option allows separating voices for a noisy environment.",
+        "file_id": 94,
+        "content": "The code checks if the provided name is not False and prints \"login successful\" along with the name. If the name is False, it prints a failed login message and removes the existing credential associated with the user. The code then allows the user to log in via SMS. It retrieves the credential from SMS and checks if the dedeuserid matches the desired value. If it does, the credential is returned; otherwise, a message is printed indicating that the dedeuserid is incorrect.",
         "type": "comment"
     },
     "1098": {
-        "file_id": 102,
-        "content": "                        ) as f:  # will this shit work?\n                            f.write(medialangScript)\n                        print(\"MEDIALANG SCRIPT SAVED TO:\", medialangScript_savedPath)\n                    (\n                        editly_outputPath,\n                        medialang_item_list,\n                    ) = medialangObject.execute()  # how to control its 'fast' parameter?\n                    # maybe we need render the lyric file separately.\n                    # normalization starts here.\n                    rendered_media_location = getRandomFileName(\n                        \"mp4\"\n                    )  # so where exactly is the file?\n                    print(\"___adjusting volume in media___\")\n                    adjustVolumeInMedia(editly_outputPath, rendered_media_location)\n                    # using a ffmpeg filter.\n                    print(\"RENDERED MEDIA LOCATION:\", rendered_media_location)\n                    if debug:  # where is this debug??\n                        breakpoint()",
+        "file_id": 94,
+        "content": "                        \"user %s (dedeuserid: %s) does not have dedeuserid: %s\"\n                        % (name, credential.dedeuserid, dedeuserid)\n                    )\n        else:\n            print(\"登陆失败\")\ndef bilibiliCredential(func):\n    def wrapper(*args, dedeuserid=\"397424026\", **kwargs):\n        credential = getCredentialByDedeUserId(dedeuserid)\n        if type(kwargs) != dict:\n            kwargs = {}\n        return func(*args, **(kwargs | {'credential': credential}))\n    return wrapper",
         "type": "code",
-        "location": "/pyjom/modules/contentProducing/producerTemplates.py:487-505"
+        "location": "/pyjom/platforms/bilibili/credentials.py:126-140"
     },
     "1099": {
-        "file_id": 102,
-        "content": "This code appears to be a part of a larger program that involves media processing. It saves a medialang script, executes a medialang object, adjusts volume in the media, and renders the output. It uses a ffmpeg filter and has an optional debug mode with a breakpoint function.",
+        "file_id": 94,
+        "content": "The code defines a decorator called `bilibiliCredential` that takes a function as input and returns a new function wrapper. The wrapper retrieves the credentials for a specific `dedeuserid`, and if the user exists, it passes the function call with the credential as an argument. If the keyword arguments are not of type dictionary, it converts them into an empty dictionary.",
         "type": "comment"
     }
 }

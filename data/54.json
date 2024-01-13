@@ -1,542 +1,538 @@
 {
     "5400": {
-        "file_id": 706,
-        "content": "checked as having_alike_rect then cut its life. otherwise extend its life, though not extend above max_rect_life.\n    (old_x1,old_y1), (old_x2, old_y2) = oldRect\n    (new_x1,new_y1), (new_x2, new_y2) = newRect\n    old_w = old_x2-old_x1\n    old_h = old_y2-old_y1\n    det_x1 = abs(new_x1 - old_x1)/ old_w\n    det_x2 = abs(new_x2 - old_x2)/ old_w\n    det_y1 = abs(new_y1 - old_y1)/ old_h\n    det_y2 = abs(new_y2 - old_y2)/ old_h\n    # print(\"deltas:\",det_x1, det_x2, det_y1, det_y2)\n    having_alike_rect =  (det_x1 < delta_thresh) and (det_y1 < delta_thresh) and (det_x2 < delta_thresh ) and (det_y2 < delta_thresh)\n    myRect = newRect\n    if having_alike_rect:\n        myRect = oldRect\n    return myRect, having_alike_rect\ndef rectSurge(oldRectList, newRectList,delta_thresh = 0.1, min_rect_life = 0, max_rect_life = 6):\n    newToOldDictList = []\n    oldRectDictList = [{\"rect\":x[\"rect\"], \"alike\":False, \"life\":x[\"life\"],\"uuid\":x[\"uuid\"]} for x in oldRectList] # actually they are all dict lists. you can pass an empty list as oldRectList anyway.",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:20-43"
-    },
-    "5401": {
-        "file_id": 706,
-        "content": "This code calculates the delta between two rectangles and checks if they are alike within a certain threshold. It updates the rectangle list based on this comparison, ensuring rectangles with little change remain unchanged while extending or cutting their life depending on the condition.",
-        "type": "comment"
-    },
-    "5402": {
-        "file_id": 706,
-        "content": "    # print(\"OLDRECTDICTLIST:\",oldRectDictList)\n    for newRect in newRectList:\n        needAppend = True\n        for index, oldRectDict in enumerate(oldRectDictList):\n            # print(\"ENUMERATING OLD INDEX:\",index)\n            oldRect = oldRectDict[\"rect\"]\n            _, having_alike_rect = rectMerge(oldRect,newRect,delta_thresh=delta_thresh)\n            if having_alike_rect:\n                needAppend = False\n                if not oldRectDict[\"alike\"]:\n                    # print(\"SET ALIKE:\",index,oldRect)\n                    oldRectDictList[index][\"alike\"] = True\n                # ignore myRect.\n        if needAppend:\n            newToOldDictList.append({\"rect\":newRect,\"life\":1,\"uuid\":str(uuid.uuid4())}) # make sure it is not duplicated?\n            # if appended we shall break this loop. but when shall we append?\n    oldToOldDictList = []\n    for oldRectDict in oldRectDictList:\n        alike = oldRectDict[\"alike\"]\n        life = oldRectDict[\"life\"]\n        oldRect = oldRectDict[\"rect\"]\n        myUUID = oldRectDict[\"uuid\"]",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:44-65"
-    },
-    "5403": {
-        "file_id": 706,
-        "content": "The code is iterating through a list of new rectangles and an existing list of old rectangles. For each new rectangle, it checks if any old rectangle has a similar one using the rectMerge function. If a similar rectangle is found, it updates its \"alike\" flag in the oldRectDictList. If no similar rectangle is found, it appends the new rectangle to the newToOldDictList. Finally, it creates a new list, oldToOldDictList, by iterating through oldRectDictList and excluding any rectangles with \"alike\" set to True.",
-        "type": "comment"
-    },
-    "5404": {
-        "file_id": 706,
-        "content": "        if not alike:\n            life -=1\n        else:\n            life +=1\n            life = min(max_rect_life, life)\n        if life <= min_rect_life:\n            continue\n        oldToOldDictList.append({\"rect\":oldRect,\"life\":life,\"uuid\":myUUID})\n    return oldToOldDictList + newToOldDictList # a combination.\ndef updateTotalRects(oldTotalRectDict,rectList,currentFrameIndex,diffFrame):\n    for elem in rectList:\n        uuid = elem[\"uuid\"]\n        rect = elem[\"rect\"]\n        if uuid not in oldTotalRectDict.keys():\n            oldTotalRectDict.update({uuid:{\"rect\":rect,\"startFrame\":currentFrameIndex,\"endFrame\":None,\"meanDifference\":None}}) # finally,remove those without endFrame.\n        else:\n            duration = currentFrameIndex - oldTotalRectDict[uuid][\"startFrame\"]\n            (x0,y0),(x1,y1) = rect\n            diff = diffFrame[y0:y1,x0:x1] # this is shit. we need to crop this shit.\n            # grayscale.\n            # std = np.abs(std)\n            # get the total delta over time?\n            # std = np.mean(std,axis=2)",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:66-89"
-    },
-    "5405": {
-        "file_id": 706,
-        "content": "This function updates a dictionary of rectangles by iterating over a list of rectangles and their properties. It adds new rectangles to the dictionary or updates existing ones with their duration, position, and difference from previous frames. It ignores rectangles that do not change and removes those without an end frame.",
-        "type": "comment"
-    },
-    "5406": {
-        "file_id": 706,
-        "content": "            diff_x = np.mean(diff.flatten())\n            # std_x = np.std(std,axis=2)\n            # std_x = np.std(std_x,axis=1)\n            # std_x = np.std(std_x,axis=0)\n            std_total = diff_x # later we need to convert this float64.\n            # breakpoint()\n            if duration == 1:\n                oldTotalRectDict[uuid][\"meanDifference\"] = std_total\n            else:\n                dur2 = duration - 1\n                prev_std = oldTotalRectDict[uuid][\"meanDifference\"]\n                new_std = (dur2*prev_std + std_total)/duration # may freaking exceed limit.\n                oldTotalRectDict[uuid][\"meanDifference\"] = new_std\n            oldTotalRectDict[uuid][\"endFrame\"] = currentFrameIndex\n    return oldTotalRectDict\ntotal_rect_dict ={}\nrect_dict_main_list = []\nmin_rect_life_display_thresh = 3 # a filter.\nmode = 1\nline_thresh =  150\nincludeBoundaryLines = True # applied to those cornered crops.\n# this will slow down the process. or maybe?\nframeIndex = -1\nprevFrame = None\nif mode == 1:\n    import pybgs as bgs",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:90-117"
-    },
-    "5407": {
-        "file_id": 706,
-        "content": "This code calculates the mean difference of rectangles over a certain duration and updates an existing dictionary with this information. It then returns the updated dictionary. The dictionary contains rectangle information such as mean difference, start frame index, end frame index, and duration for each unique ID (uuid). If the duration is 1, it simply stores the current mean difference in the dictionary. Otherwise, it calculates a new mean difference by taking a weighted average of the previous mean difference and the new mean difference. The code also initializes variables and imports a module called pybgs as bgs.",
-        "type": "comment"
-    },
-    "5408": {
-        "file_id": 706,
-        "content": "    algorithm = (\n    bgs.FrameDifference()\n)  # this\nwhile True:\n    ret, img = video.read()\n    if img is None:\n        if mode == 1:\n            popKeys = []\n            for key in total_rect_dict.keys():\n                elem = total_rect_dict[key]\n                if elem[\"endFrame\"] is None:\n                    popKeys.append(key)\n            for key in popKeys:\n                total_rect_dict.pop(key) # remove premature rectangles.\n        break\n    else: frameIndex+=1\n    if mode == 1:\n        diff_img_output = algorithm.apply(img)\n    # what about the freaking still image?\n    # Convert the img to grayscale\n    # gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)\n    # no need to use gray image.\n    # Apply edge detection method on the image\n    blurred = cv2.GaussianBlur(img, (5, 5), 0)\n    edges = cv2.Canny(blurred,20,210,apertureSize = 3) # great.\n    # why not applying edges directly to rectangles?\n    # This returns an array of r and theta values\n    # line_thresh =  200\n    # maintain a rectangle list. merge the alikes?",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:118-152"
-    },
-    "5409": {
-        "file_id": 706,
-        "content": "This code reads frames from a video and applies different algorithms to detect objects. It checks for premature rectangles and removes them if necessary, and applies edge detection methods on the image. The code uses GaussianBlur and Canny functions for edge detection. It maintains a rectangle list and considers merging similar rectangles.",
-        "type": "comment"
-    },
-    "5410": {
-        "file_id": 706,
-        "content": "    if mode == 1:\n        lines = cv2.HoughLines(edges,1,np.pi/180,line_thresh)\n        angle_error = 0.00003   # this can only detect square things, absolute square.\n        # we need to know horizontal and vertical lines, when they cross we get points.\n        frameHeight, frameWidth = img.shape[:2]\n        # print(\"height: \", frameHeight)\n        # print(\"width: \", frameWidth)\n        mlines = {\"horizontal\":[], \"vertical\":[]}\n        if includeBoundaryLines:\n            originPoint = (0,0)\n            cornerPoint = (frameWidth,frameHeight)\n            mlines[\"horizontal\"].append(originPoint)\n            mlines[\"horizontal\"].append(cornerPoint)\n            mlines[\"vertical\"].append(originPoint)\n            mlines[\"vertical\"].append(cornerPoint)\n        for line in lines:\n            for r_theta in line:\n                # breakpoint()\n                r,theta = r_theta.tolist()\n                # Stores the value of cos(theta) in a\n                # filter detected lines?\n                # theta filter:\n                if not abs(theta % (np.pi/2) )< angle_error:",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:154-176"
-    },
-    "5411": {
-        "file_id": 706,
-        "content": "The code segment is filtering HoughLines-detected lines from an image, ensuring they are nearly horizontal or vertical. It stores the cosine of line angles in a variable called 'a', and applies an angle error threshold to filter out lines not close to 0 (horizontal) or π/2 (vertical). If includeBoundaryLines is True, it adds four boundary points for both horizontal and vertical lines.",
-        "type": "comment"
-    },
-    "5412": {
-        "file_id": 706,
-        "content": "                    continue # this is filtering.\n                # print(\"line parameter:\",r,theta)\n                a = np.cos(theta)\n                # Stores the value of sin(theta) in b\n                b = np.sin(theta)\n                # x0 stores the value rcos(theta)\n                x0 = a*r\n                # y0 stores the value rsin(theta)\n                y0 = b*r\n                # x1 stores the rounded off value of (rcos(theta)-1000sin(theta))\n                x1 = int(x0 + 1000*(-b))\n                # y1 stores the rounded off value of (rsin(theta)+1000cos(theta))\n                y1 = int(y0 + 1000*(a))\n                # x2 stores the rounded off value of (rcos(theta)+1000sin(theta))\n                x2 = int(x0 - 1000*(-b))\n                # y2 stores the rounded off value of (rsin(theta)-1000cos(theta))\n                y2 = int(y0 - 1000*(a))\n                # cv2.line draws a line in img from the point(x1,y1) to (x2,y2).\n                # (0,0,255) denotes the colour of the line to be\n                #drawn. In this case, it is red.",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:177-204"
-    },
-    "5413": {
-        "file_id": 706,
-        "content": "This code calculates line parameters using trigonometry and then draws a red line on the image. The loop filters out certain conditions, and the calculations are based on radius (r), polar angle (theta). Lines are drawn between different points calculated from these variables to create lines in the image.",
-        "type": "comment"
-    },
-    "5414": {
-        "file_id": 706,
-        "content": "                df_x = abs(x1-x2)\n                df_y = abs(y1-y2)\n                lineType = \"vertical\"\n                if df_x > df_y:\n                    lineType = \"horizontal\"\n                # we just need one single point and lineType.\n                linePoint = (x1,y1)\n                mlines[lineType].append(linePoint)\n                # cv2.line(img,(x1,y1), (x2,y2), (0,0,255),2)\n                # would not draw lines this time. draw found rects instead.\n        # get rectangle points. or just all possible rectangles?\n        # enumerate all possible lines.\n        if len(mlines[\"horizontal\"]) < 2 or len(mlines[\"vertical\"]) < 2:\n            print(\"unable to form rectangles.\")\n            continue\n        else:\n            rects =[] # list of rectangles\n            for line_h1, line_h2 in itertools.combinations(mlines[\"horizontal\"],2):\n                ymin, ymax = list(sorted([line_h1[1],line_h2[1]]))\n                for line_v1, line_v2 in itertools.combinations(mlines[\"vertical\"], 2):\n                    xmin, xmax = list(sorted([line_v1[0],line_v2[0]]))",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:205-226"
-    },
-    "5415": {
-        "file_id": 706,
-        "content": "Calculating differences in x and y coordinates to determine line type. Appends line points based on line type to a dictionary. If there are less than 2 horizontal or vertical lines, the code cannot form rectangles and skips to the next iteration. Iterates through combinations of horizontal lines to find the upper and lower bounds, then does the same with vertical lines for left and right bounds.",
-        "type": "comment"
-    },
-    "5416": {
-        "file_id": 706,
-        "content": "                    rect = ((xmin,ymin),(xmax,ymax))\n                    rects.append(rect)\n            rect_dict_main_list = rectSurge(rect_dict_main_list,rects)\n            # print(\"RECT DICT MAIN LIST:\")\n            # print(rect_dict_main_list) # maybe i want this shit?\n            total_rect_dict = updateTotalRects(total_rect_dict,rect_dict_main_list,frameIndex,diff_img_output)\n            mdisplayed_rect_count = 0\n            for rect_dict in rect_dict_main_list:\n                life = rect_dict[\"life\"]\n                if life < min_rect_life_display_thresh:\n                    continue # this is needed.\n                # draw shit now.\n                mdisplayed_rect_count +=1\n                (xmin,ymin),(xmax,ymax) = rect_dict[\"rect\"]\n                cv2.rectangle(img,(xmin,ymin),(xmax,ymax) , (255,0,0), 2)\n            #     (xmin,ymin),(xmax,ymax) = rect\n            #     rect_area = (xmax-xmin) * (ymax-ymin)\n            #     print(\"rect found:\",rect,rect_area)\n            prevFrame = img.copy()",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:227-245"
-    },
-    "5417": {
-        "file_id": 706,
-        "content": "The code is updating a list of rectangles and iterating over it to draw them on an image. It checks if the rectangle \"life\" is above a certain threshold before drawing, and maintains a count of displayed rectangles. The code also stores the previous frame for comparison in a later step.",
-        "type": "comment"
-    },
-    "5418": {
-        "file_id": 706,
-        "content": "            # print(\"total rects:\",mdisplayed_rect_count)\n    elif mode == 2:\n        lines = cv2.HoughLinesP(edges,1,np.pi/180,line_thresh,minLineLength=2,maxLineGap=100) # these are not angle filtering.\n        for points in lines:\n      # Extracted points nested in the list\n            x1,y1,x2,y2=points[0]\n            # filter out angle errors?\n            # Draw the lines joing the points\n            # On the original image\n            cv2.line(img,(x1,y1),(x2,y2),(0,255,0),2)\n            # Maintain a simples lookup list for points\n            # lines_list.append([(x1,y1),(x2,y2)])\n    elif mode == 3:\n        # edges = cv2.GaussianBlur(edges, (5, 5), 0)\n        horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (10,1))\n        detect_horizontal = cv2.morphologyEx(edges, cv2.MORPH_OPEN, horizontal_kernel, iterations=3)\n        vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1,10))\n        detect_vertical = cv2.morphologyEx(edges, cv2.MORPH_OPEN, vertical_kernel, iterations=3)",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:246-264"
-    },
-    "5419": {
-        "file_id": 706,
-        "content": "The code applies different modes to detect lines and edges in an image. Mode 2 uses HoughLinesP to detect lines without angle filtering, drawing them on the original image. Mode 3 applies morphological operations using structuring elements for horizontal and vertical lines detection.",
-        "type": "comment"
-    },
-    "5420": {
-        "file_id": 706,
-        "content": "        cnts_horizontal = cv2.findContours(detect_horizontal, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)\n        cnts_horizontal = cnts_horizontal[0] if len(cnts_horizontal) == 2 else cnts_horizontal[1]\n        cnts_vertical = cv2.findContours(detect_vertical, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)\n        cnts_vertical = cnts_vertical[0] if len(cnts_vertical) == 2 else cnts_vertical[1]\n        for c in cnts_horizontal:\n            cv2.drawContours(img, [c], -1, (255,0,0), 3)\n        for c in cnts_vertical:\n            cv2.drawContours(img, [c], -1, (255,0,0), 3)\n    # what the heck?\n    # The below for loop runs till r and theta values\n    # are in the range of the 2d array\n    # why you have middle lines?\n            # how to get the intersections? lines?\n    cv2.imshow('linesDetected.jpg', img)\n    # cv2.imshow(\"edges.jpg\",edges) # not for fun.\n    if cv2.waitKey(20) == ord(\"q\"):\n        print(\"QUIT INTERFACE.\")\n        break\n# All the changes made in the input image are finally\n# written on a new image houghlines.jpg",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:266-290"
-    },
-    "5421": {
-        "file_id": 706,
-        "content": "This code uses OpenCV to detect horizontal and vertical lines in an image. It finds contours for both line types and draws them on the original image. Then, it displays the image with the detected lines using cv2.imshow(). The code also checks for a 'q' key press to exit the interface and saves the edited image as houghlines.jpg.",
-        "type": "comment"
-    },
-    "5422": {
-        "file_id": 706,
-        "content": "if mode == 1:\n    print(\"FINAL RESULT:\")\n    for key in total_rect_dict.keys():\n        elem = total_rect_dict[key]\n        print(\"RECT UUID\",key)\n        print(\"RECT CONTENT\",elem)",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_detect.py:291-298"
-    },
-    "5423": {
-        "file_id": 706,
-        "content": "This code block checks if mode is 1, then prints the final results. It iterates through each key-value pair in total_rect_dict and outputs the rect UUID and content.",
-        "type": "comment"
-    },
-    "5424": {
-        "file_id": 707,
-        "content": "/tests/video_detector_tests/rectangle_framedifference.py",
-        "type": "filepath"
-    },
-    "5425": {
-        "file_id": 707,
-        "content": "The code utilizes a motion detector to continuously capture frames, detecting changes for object detection and tracking. It calculates merged bounding boxes, applies thresholds, updates coordinates based on average values, and displays frames using OpenCV.",
-        "type": "summary"
-    },
-    "5426": {
-        "file_id": 707,
-        "content": "# motion detectors are used to track objects. though you may want to separate objects with it.\nimport numpy as np\nimport cv2\nimport pybgs as bgs\nimport talib  # wait till all points are stablized. find a way to stream this.\n# suspect by static image analysis, and then create bounding box over the thing.\n# check image quality.\n# this can generate frame borders.\nalgorithm = (\n    bgs.FrameDifference()\n)  # this is not stable since we have more boundaries. shall we group things?\nvideo_file = (\n    \"../../samples/video/dog_with_text.mp4\"  # this is doggy video without borders.\n)\n# video_file = \"../../samples/video/LiEIfnsvn.mp4\" # this one with cropped boundaries.\ncapture = cv2.VideoCapture(video_file)\nwhile not capture.isOpened():\n    capture = cv2.VideoCapture(video_file)\n    # cv2.waitKey(1000)\n    # print(\"Wait for the header\")\npos_frame = capture.get(1)\ndef getAppendArray(mx1, min_x, past_frames=19):\n    return np.append(mx1[-past_frames:], min_x)\ndef getFrameAppend(frameArray, pointArray, past_frames=19):\n    mx1, mx2, my1, my2 = [",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:1-33"
-    },
-    "5427": {
-        "file_id": 707,
-        "content": "The code initializes a motion detector using frame difference algorithm to track objects in a video. It reads the video file and prepares two functions: `getAppendArray` for appending array elements, and `getFrameAppend` for processing frame data. These functions are used with specified past frames to analyze the video and possibly group objects. The code also handles potential video file opening issues by retrying if necessary.",
-        "type": "comment"
-    },
-    "5428": {
-        "file_id": 707,
-        "content": "        getAppendArray(a, b, past_frames=past_frames)\n        for a, b in zip(frameArray, pointArray)\n    ]\n    return mx1, mx2, my1, my2\ndef getStreamAvg(a, timeperiod=10):  # to maintain stability.\n    return talib.stream.EMA(a, timeperiod=timeperiod)\ndef checkChange(frame_x1, val_x1, h, change_threshold=0.2):\n    return (abs(frame_x1 - val_x1) / h) > change_threshold  # really changed.\nmx1, mx2, my1, my2 = [np.array([]) for _ in range(4)]\npast_frames = 19\nperc = 0.03\nframe_num = 0\n# what is the time to update the frame?\nframe_x1, frame_y1, frame_x2, frame_y2 = [None for _ in range(4)]\nreputation = 0\nmax_reputation = 3\nminVariance = 10\nframeDict = {}  # include index, start, end, coords.\nframeIndex = 0\nwhile True:\n    flag, frame = capture.read()\n    frameIndex += 1\n    if flag:\n        pos_frame = capture.get(1)  # this is getting previous frame without read again.\n        img_output = algorithm.apply(frame)\n        img_bgmodel = algorithm.getBackgroundModel()\n        _, contours = cv2.findContours(\n            img_output, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:34-70"
-    },
-    "5429": {
-        "file_id": 707,
-        "content": "The code initializes variables for frame coordinates, past frames count, and other parameters. It then enters a loop to continuously capture frames from the camera, apply an algorithm to detect changes, and update relevant variables accordingly. The purpose is likely object detection and tracking using background subtraction or similar techniques.",
-        "type": "comment"
-    },
-    "5430": {
-        "file_id": 707,
-        "content": "        )\n        # maybe you should merge all active areas.\n        if contours is not None:\n            # continue\n            counted = False\n            for contour in contours:\n                [x, y, w, h] = cv2.boundingRect(img_output)\n                if not counted:\n                    min_x, min_y = x, y\n                    max_x, max_y = x + w, y + h\n                    counted = True\n                else:\n                    min_x = min(min_x, x)\n                    min_y = min(min_y, y)\n                    max_x = max(max_x, x + w)\n                    max_y = max(max_y, y + h)\n                    # only create one single bounding box.\n            # print(\"points:\",min_x, min_y, max_x,max_y)\n            this_w = max_x - min_x\n            this_h = max_y - min_y\n            thresh_x = max(minVariance, int(perc * (this_w)))\n            thresh_y = max(minVariance, int(perc * (this_h)))\n            mx1, mx2, my1, my2 = getFrameAppend(\n                (mx1, mx2, my1, my2), (min_x, max_x, min_y, max_y)\n            )",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:71-95"
-    },
-    "5431": {
-        "file_id": 707,
-        "content": "The code finds the bounding box of all detected contours and merges them into a single one. It then calculates the width and height of this merged bounding box, applies thresholds based on its size and percentage, and updates existing frame append values with new min and max coordinates.",
-        "type": "comment"
-    },
-    "5432": {
-        "file_id": 707,
-        "content": "            val_x1, val_x2, val_y1, val_y2 = [\n                getStreamAvg(a) for a in (mx1, mx2, my1, my2)\n            ]\n            # not a number. float\n            # will return False on any comparison, including equality.\n            if (\n                abs(val_x1 - min_x) < thresh_x\n                and abs(val_x2 - max_x) < thresh_x\n                and abs(val_y1 - min_y) < thresh_y\n                and abs(val_y2 - max_y) < thresh_y\n            ):\n                needChange = False\n                # this will create bounding rect.\n                # this cannot handle multiple active rects.\n                reputation = max_reputation\n                if frame_x1 == None:\n                    needChange = True\n                elif (\n                    checkChange(frame_x1, val_x1, this_w)\n                    or checkChange(frame_x2, val_x2, this_w)\n                    or checkChange(frame_y1, val_y1, this_h)\n                    or checkChange(frame_y2, val_y2, this_h)\n                ):\n                    needChange = True",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:96-119"
-    },
-    "5433": {
-        "file_id": 707,
-        "content": "This code calculates the average values of x1, x2, y1, and y2 using getStreamAvg function for variables mx1 to my2. If these averages are within a certain threshold from min_x, max_x, min_y, and max_y, it sets needChange to False and reputation to max_reputation. If frame_x1 is None or there's a change in any of the variables, needChange is set to True.",
-        "type": "comment"
-    },
-    "5434": {
-        "file_id": 707,
-        "content": "                    # the #2 must be of this reason.\n                if needChange:\n                    frame_x1, frame_y1, frame_x2, frame_y2 = [\n                        int(a) for a in (min_x, min_y, max_x, max_y)\n                    ]\n                    print()\n                    print(\"########FRAME CHANGED########\")\n                    frame_num += 1\n                    frame_area = (frame_x2 - frame_x1) * (frame_y2 - frame_y1)\n                    # update the shit.\n                    coords = ((frame_x1, frame_y1), (frame_x2, frame_y2))\n                    frameDict[frame_num] = {\n                        \"coords\": coords,\n                        \"start\": frameIndex,\n                        \"end\": frameIndex,\n                    }\n                    print(\n                        \"FRAME INDEX: {}\".format(frame_num)\n                    )  # this is the indexable frame. not uuid.\n                    print(\"FRAME AREA: {}\".format(frame_area))\n                    print(\"FRAME COORDS: {}\".format(str(coords)))",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:120-140"
-    },
-    "5435": {
-        "file_id": 707,
-        "content": "This code snippet handles frame changes in a video detection process. When a change is detected (needChange), it updates the frame's coordinates, number, and area. It then prints information about the new frame and adds it to the frameDict dictionary with the index as the key.",
-        "type": "comment"
-    },
-    "5436": {
-        "file_id": 707,
-        "content": "                # allow us to introduce our new frame determinism.\n            else:\n                if reputation > 0:\n                    reputation -= 1\n            if frame_x1 is not None and reputation > 0:\n                # you may choose to keep cutting the frame? with delay though.\n                cv2.rectangle(\n                    frame, (frame_x1, frame_y1), (frame_x2, frame_y2), (255, 0, 0), 2\n                )\n                frameDict[frame_num][\"end\"] = frameIndex\n                # we mark the first and last time to display this frame.\n            # how to stablize this shit?\n        cv2.imshow(\"video\", frame)\n        # just video.\n        # cv2.imshow('img_output', img_output)\n        # cv2.imshow('img_bgmodel', img_bgmodel)\n    else:\n        cv2.waitKey(1000)\n        break\n    if 0xFF & cv2.waitKey(10) == 27:\n        break\ncv2.destroyAllWindows()\nprint(\"FINAL FRAME DETECTIONS:\")\nprint(frameDict)\n# {1: {'coords': ((80, 199), (496, 825)), 'start': 13, 'end': 269}, 2: {'coords': ((80, 381), (483, 644)), 'start': 297, 'end': 601}}",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rectangle_framedifference.py:141-169"
-    },
-    "5437": {
-        "file_id": 707,
-        "content": "This code appears to be part of a video detection and analysis program. It uses OpenCV to display frames from the video and overlay rectangles on frames that have been detected multiple times. The \"frameDict\" stores information about detected frames, including their coordinates, start and end indices in the video, and reputation. The program continues until the user presses ESC or waits too long, then prints the final frame detections.",
-        "type": "comment"
-    },
-    "5438": {
-        "file_id": 708,
-        "content": "/tests/video_detector_tests/rect_corner_detect_fast.py",
-        "type": "filepath"
-    },
-    "5439": {
-        "file_id": 708,
-        "content": "This code appears to be exploring various corner detection methods from the OpenCV library (cv2) for potential use with the Canny edge detector. The purpose might be to find the most suitable method for a specific application.",
-        "type": "summary"
-    },
-    "5440": {
-        "file_id": 708,
-        "content": "# there are some corner detection methods in cv2. not sure what to follow... is it intended to use with canny edge detector or not?",
-        "type": "code",
-        "location": "/tests/video_detector_tests/rect_corner_detect_fast.py:1-1"
-    },
-    "5441": {
-        "file_id": 708,
-        "content": "This code appears to be exploring various corner detection methods from the OpenCV library (cv2) for potential use with the Canny edge detector. The purpose might be to find the most suitable method for a specific application.",
-        "type": "comment"
-    },
-    "5442": {
-        "file_id": 709,
-        "content": "/tests/video_detector_tests/singleTracker.py",
-        "type": "filepath"
-    },
-    "5443": {
-        "file_id": 709,
-        "content": "This code utilizes YOLOv5 for object detection and a video tracker to monitor dog movement in frames, identifying dogs and providing bounding box coordinates above threshold. Additionally, it closes OpenCV-created video windows.",
-        "type": "summary"
-    },
-    "5444": {
-        "file_id": 709,
-        "content": "import cv2\n# import imutils #another dependency?\n# tracker = cv2.TrackerCSRT_create() # outdated tracker.\n# i really don't know what is a dog.\nimport torch\n# don't really know how paddleocr recognize chars.\nlocalModelDir = '/root/Desktop/works/pyjom/pyjom/models/yolov5/ultralytics_yolov5_master/'\nimport os\nos.environ[\"YOLOV5_MODEL_DIR\"] = '/root/Desktop/works/pyjom/pyjom/models/yolov5/'\nmodel = torch.hub.load(localModelDir, 'yolov5s',source=\"local\")\ndef getDogBB(frame,thresh=0.7):\n    img = frame[:,:,::-1].transpose((2,0,1))\n    # Inference\n    # reshape this shit.\n    # img = np.reshape()\n    results = model(img) # pass the image through our model\n    df = results.pandas().xyxy[0]\n    print(df)\n    data = []\n    for index,line in df.iterrows():\n        # print(line)\n        left = (line[\"xmin\"],line[\"ymin\"])\n        right = (line[\"xmax\"],line[\"ymax\"])\n        confidence = line[\"confidence\"]\n        class_ = line[\"class\"]\n        name = line[\"name\"]\n        if name == \"dog\" and confidence >= thresh: # better figure out all output names.",
-        "type": "code",
-        "location": "/tests/video_detector_tests/singleTracker.py:1-31"
-    },
-    "5445": {
-        "file_id": 709,
-        "content": "This code imports necessary libraries, sets the local model directory, and loads a YOLOv5 model for object detection. It defines a function to get the bounding box coordinates of a dog in an image, with the option to set a minimum confidence threshold. The code then performs inference using the loaded model on the input frame image and returns the bounding box information if the detected class is \"dog\" and the confidence meets or exceeds the threshold.",
-        "type": "comment"
-    },
-    "5446": {
-        "file_id": 709,
-        "content": "            data.append({\"location\":[left,right],\"confidence\":confidence,\"identity\":{\"class\":class_,\"name\":name}})\n    print(data)\n    data = list(sorted(data,key=lambda x: -x[\"confidence\"]))\n    if len(data)>0:\n        target= data[0]\n        xmin,ymin = target[\"location\"][0]\n        xmax,ymax = target[\"location\"][1]\n        return int(xmin),int(ymin),int(xmax-xmin),int(ymax-ymin)\ndef checkDog(frame,thresh=0.5):\n    return getDogBB(frame,thresh=thresh) == None # dog missing.\n# better use something else?\n# tracker = cv2.TrackerMIL_create()\ntracker_types = ['MIL', 'GOTURN', 'DaSiamRPN']\ntracker_type = tracker_types[2]\nbasepath = \"./OpenCV-Object-Tracker-Python-Sample\"\nif tracker_type == 'MIL':\n    tracker = cv2.TrackerMIL_create()\nelif tracker_type == 'DaSiamRPN': # deeplearning.\n    # this tracker is slow as hell. really.\n    params = cv2.TrackerDaSiamRPN_Params()\n    params.model = os.path.join(basepath,\"model/DaSiamRPN/dasiamrpn_model.onnx\")\n    params.kernel_r1 = os.path.join(basepath,\"model/DaSiamRPN/dasiamrpn_kernel_r1.onnx\")",
-        "type": "code",
-        "location": "/tests/video_detector_tests/singleTracker.py:32-56"
-    },
-    "5447": {
-        "file_id": 709,
-        "content": "Code initializes a video tracker using different algorithms and prepares parameters for the 'DaSiamRPN' tracker, which is slower but uses deep learning. It then checks if a dog is present in each frame of a video and returns its bounding box coordinates.",
-        "type": "comment"
-    },
-    "5448": {
-        "file_id": 709,
-        "content": "    params.kernel_cls1 = os.path.join(basepath,\"model/DaSiamRPN/dasiamrpn_kernel_cls1.onnx\")\n    tracker = cv2.TrackerDaSiamRPN_create(params)\n    # tracker = cv2.TrackerDaSiamRPN_create()\nelif tracker_type == 'GOTURN': #also need config file.\n    # this is bad though.\n    params = cv2.TrackerGOTURN_Params()\n    params.modelTxt = os.path.join(basepath,\"model/GOTURN/goturn.prototxt\") # save this shit without BOM.\n    params.modelBin = os.path.join(basepath,\"model/GOTURN/goturn.caffemodel\")\n    tracker = cv2.TrackerGOTURN_create(params)\n    # tracker = cv2.TrackerGOTURN_create()\n# we have to feed dog coordinates into the shit.\nvideo = cv2.VideoCapture(\"../../samples/video/dog_with_text.mp4\")\n_,frame = video.read()\n# frame = imutils.resize(frame,width=720) #why?\nindex = 0\nyoloRate = 10\ntrack_success = False\nupdate_track = 3\nBB = None\ninit=False\nwhile frame is not None:\n    index +=1\n    _, frame = video.read()\n    if frame is None:\n        print(\"VIDEO END.\")\n        break\n    if index%yoloRate == 0:\n        if BB is None:",
-        "type": "code",
-        "location": "/tests/video_detector_tests/singleTracker.py:57-86"
-    },
-    "5449": {
-        "file_id": 709,
-        "content": "This code initializes a tracker using the cv2.TrackerDaSiamRPN or cv2.TrackerGOTURN methods based on the tracker_type variable. It then creates parameters for the GOTURN tracker and creates a video capture object to read a video file. The loop reads frames from the video, checks if a bounding box is None every yoloRate frames, and if it's None, it initializes the BB variable. This code appears to be part of a video tracking application.",
-        "type": "comment"
-    },
-    "5450": {
-        "file_id": 709,
+        "file_id": 701,
         "content": "            BB = getDogBB(frame)\n        else:\n            x, y, w, h = BB\n            if len(frame.shape) == 3:\n                dogFrame = frame[y:y+h,x:x+w,:]\n            else:\n                dogFrame = frame[y:y+h,x:x+w]\n            result = checkDog(dogFrame)\n            if result: # dog gone missing.\n                BB = getDogBB(frame)\n                init=False\n    if BB is not None:\n        if not init:\n            tracker.init(frame, BB) # how to init this shit?\n            init=True\n    # when lost, we know there is no dog inside the bounding box.\n    # frame = imutils.resize(frame,width=720)\n        if index % update_track == 0:\n            track_success,BB = tracker.update(frame)\n        if track_success and BB:\n            top_left = (int(BB[0]),int(BB[1]))\n            bottom_right = (int(BB[0]+BB[2]), int(BB[1]+BB[3]))\n            cv2.rectangle(frame,top_left,bottom_right,(0,255,0),5)\n    cv2.imshow('Output',frame)\n    key  =  cv2.waitKey(1) & 0xff\n    if key == ord('q'):\n        break\nvideo.release()",
         "type": "code",
         "location": "/tests/video_detector_tests/singleTracker.py:87-114"
     },
-    "5451": {
-        "file_id": 709,
+    "5401": {
+        "file_id": 701,
         "content": "This code initializes a tracker and tracks a dog's movement in video frames. It checks if the dog is present in the bounding box and updates the position accordingly. If the dog goes missing, it reinitializes the tracker with new dog's bounding box. The tracked dog's position is displayed on the frame, which is then shown as output.",
         "type": "comment"
     },
-    "5452": {
-        "file_id": 709,
+    "5402": {
+        "file_id": 701,
         "content": "cv2.destroyAllWindows()",
         "type": "code",
         "location": "/tests/video_detector_tests/singleTracker.py:115-115"
     },
-    "5453": {
-        "file_id": 709,
+    "5403": {
+        "file_id": 701,
         "content": "This code is used to close all the video windows created by OpenCV (cv2).",
         "type": "comment"
     },
-    "5454": {
-        "file_id": 710,
+    "5404": {
+        "file_id": 702,
         "content": "/tests/video_detector_tests/yolo.py",
         "type": "filepath"
     },
-    "5455": {
-        "file_id": 710,
+    "5405": {
+        "file_id": 702,
         "content": "The code reads video frames, uses YOLOv5 model for object detection and text extraction, sets model directories and environment variables, performs inference, and stores results in a DataFrame. It detects objects (likely a dog) and displays image with details before exiting upon key press.",
         "type": "summary"
     },
-    "5456": {
-        "file_id": 710,
+    "5406": {
+        "file_id": 702,
         "content": "image_path = \"../../samples/video/dog_with_text.mp4\"\nimport cv2\nvideo = cv2.VideoCapture(image_path)\nfor _ in range(100):\n    ret, frame = video.read() # first frame is blackout!\nimport torch\n# don't really know how paddleocr recognize chars.\nlocalModelDir = '/root/Desktop/works/pyjom/pyjom/models/yolov5/ultralytics_yolov5_master/'\nimport os\nos.environ[\"YOLOV5_MODEL_DIR\"] = '/root/Desktop/works/pyjom/pyjom/models/yolov5/'\nmodel = torch.hub.load(localModelDir, 'yolov5s',source=\"local\") # the yolov5s.pt file is required when loading the model.\n# Image\n# img = 'https://ultralytics.com/images/zidane.jpg'\nimg = frame[:,:,::-1].transpose((2,0,1))\n# Inference\n# reshape this shit.\n# img = np.reshape()\nresults = model(img) # pass the image through our model\ndf = results.pandas().xyxy[0]\nprint(df)\ndata = []\nfor index,line in df.iterrows():\n    # print(line)\n    left = (line[\"xmin\"],line[\"ymin\"])\n    right = (line[\"xmax\"],line[\"ymax\"])\n    confidence = line[\"confidence\"]\n    class_ = line[\"class\"]\n    name = line[\"name\"]\n  ",
         "type": "code",
         "location": "/tests/video_detector_tests/yolo.py:1-37"
     },
-    "5457": {
-        "file_id": 710,
+    "5407": {
+        "file_id": 702,
         "content": "The code reads a video frame by frame, applies object detection using YOLOv5 model, and extracts text from the detected objects. It sets the local model directory and environment variable for YOLOv5 model loading, loads the model, resizes and preprocesses the frame, performs inference, and stores the resultant bounding boxes with associated data (class, confidence, name) into a DataFrame.",
         "type": "comment"
     },
-    "5458": {
-        "file_id": 710,
+    "5408": {
+        "file_id": 702,
         "content": "  data.append({\"location\":[left,right],\"confidence\":confidence,\"identity\":{\"class\":class_,\"name\":name}})\nprint(data)\ncv2.imshow(\"name\",frame)\ncv2.waitKey(0)\n# found the freaking dog!",
         "type": "code",
         "location": "/tests/video_detector_tests/yolo.py:37-41"
     },
-    "5459": {
-        "file_id": 710,
+    "5409": {
+        "file_id": 702,
         "content": "This code detects an object (likely a dog) using YOLO and appends its location, confidence level, and identity details to the \"data\" list. The image is displayed with the name \"name\" and waits for a key press to exit. The comment celebrates finding the desired object.",
         "type": "comment"
     },
-    "5460": {
-        "file_id": 711,
+    "5410": {
+        "file_id": 703,
         "content": "/tests/video_detector_tests/yolo_norfair.py",
         "type": "filepath"
     },
-    "5461": {
-        "file_id": 711,
+    "5411": {
+        "file_id": 703,
         "content": "This code initializes Detectron2 for instance segmentation on COCO dataset, sets up a YOLO object detector for video frames, and tracks their positions across frames. It processes detection information, updates tracked objects using a tracker, draws circles with names based on estimated positions. The code displays a video frame, waits for 'q' key press to break loop, destroys windows, and writes the frame to file if display is not enabled.",
         "type": "summary"
     },
-    "5462": {
-        "file_id": 711,
+    "5412": {
+        "file_id": 703,
         "content": "import cv2\nimport numpy as np\nfrom detectron2.config import get_cfg\nfrom detectron2.engine import DefaultPredictor\nfrom cocoNames import cocoName\nfrom norfair import Detection, Tracker, Video, draw_tracked_objects\ndef euclidean_distance(detection, tracked_object):\n    return np.linalg.norm(detection.points - tracked_object.estimate)\n# Set up Detectron2 object detector\ncfg = get_cfg()\ncfg.merge_from_file(\"norfair/demos/faster_rcnn_R_50_FPN_3x.yaml\")\ncfg.MODEL.ROI_HEADS.SCORE_THRESH_TEST = 0.5 # looks like it does not recognize dog.\n# cfg.MODEL.WEIGHTS = \"detectron2://COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl\"\ncfg.MODEL.WEIGHTS = \"/root/Desktop/works/pyjom/tests/video_detector_tests/detectron2_models/model_final_f10217.pkl\"\n# it is stored in s3\n# https://dl.fbaipublicfiles.com/detectron2/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl\n# download cache: /root/.torch/iopath_cache/detectron2/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl",
         "type": "code",
         "location": "/tests/video_detector_tests/yolo_norfair.py:1-22"
     },
-    "5463": {
-        "file_id": 711,
+    "5413": {
+        "file_id": 703,
         "content": "The code imports necessary libraries and sets up the Detectron2 object detector using a pre-trained model for instance segmentation on COCO dataset. The model weight file is located at \"/root/Desktop/works/pyjom/tests/video_detector_tests/detectron2\\_models/model\\_final\\_f10217.pkl\".",
         "type": "comment"
     },
-    "5464": {
-        "file_id": 711,
+    "5414": {
+        "file_id": 703,
         "content": "detector = DefaultPredictor(cfg)\n# what are the classes output by the model?\n# Norfair\n# video_path = \"/root/Desktop/works/pyjom/samples/video/dog_with_text.mp4\"\nvideo_path = \"/root/Desktop/works/pyjom/samples/video/LlfeL29BP.mp4\"\nvideo = Video(input_path=video_path)\ntracker = Tracker(distance_function=euclidean_distance, distance_threshold=200,hit_inertia_min=2,hit_inertia_max=20,initialization_delay=1) # what the heck?\n# you should implement standalone tracker function, optical.\n# maybe you can track the object via framedifference?\ntracked_objects = None\ndisplay=True\nfor index, frame in enumerate(video): # we need to speed up.\n    if index%10 == 0:\n        detections = detector(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))\n        print(\"original detections:\",detections)\n        instances = detections[\"instances\"]\n        print(\"instances:\",instances)\n        # breakpoint()\n        pred_classes = instances.pred_classes\n        if len(pred_classes) == 0:\n            continue\n        detections2=[]\n        for index,class_ in enumerate(pred_classes):",
         "type": "code",
         "location": "/tests/video_detector_tests/yolo_norfair.py:24-48"
     },
-    "5465": {
-        "file_id": 711,
+    "5415": {
+        "file_id": 703,
         "content": "This code is initializing a YOLO object detector, reading a video file, setting up a tracker, and then iterating through each frame of the video. The detector predicts objects in each frame, and if any are detected, it saves the detections and continues to the next frame. If no objects are detected, it skips that frame. The tracker helps keep track of object positions across frames, but the implementation details are unclear.",
         "type": "comment"
     },
-    "5466": {
-        "file_id": 711,
+    "5416": {
+        "file_id": 703,
         "content": "            print(\"index:\",index)\n            class_ = int(class_.cpu().numpy().tolist())\n            print(\"class:\",class_)\n            box = instances.pred_boxes.tensor[index].cpu().numpy().tolist()\n            box = [int(x) for x in box]\n            score = float(instances.scores[index].cpu().numpy().tolist())\n            print('box:',box)\n            print('score:',score)\n            det = Detection(instances.pred_boxes.get_centers()[index].cpu().numpy(),scores=np.array([score]),data={\"box\":box,\"class\":{\"id\":class_,\"name\":cocoRealName[class_]}})\n            detections2.append(det)\n            # breakpoint()\n        # detections = [Detection(p) for p in instances.pred_boxes.get_centers().cpu().numpy()] # what is this instance anyway?\n        # you would lost data you dick!\n        print(\"detections2\",detections2)\n        tracked_objects = tracker.update(detections=detections2)\n        # print(detections)\n        print(\"tracked objects:\",tracked_objects) # you don't track shit?\n    if tracked_objects is not None:",
         "type": "code",
         "location": "/tests/video_detector_tests/yolo_norfair.py:49-66"
     },
-    "5467": {
-        "file_id": 711,
+    "5417": {
+        "file_id": 703,
         "content": "The code is processing and printing detection information, appending detections to a list (detections2), and updating tracked objects using a tracker. The comment criticizes a previous line of code for potentially losing data. The final if statement checks if any tracked_objects were found.",
         "type": "comment"
     },
-    "5468": {
-        "file_id": 711,
+    "5418": {
+        "file_id": 703,
         "content": "        if tracked_objects!=[]:\n            # there is no bounding box avaliable?\n            for obj in tracked_objects:\n                point = obj.estimate[0]\n                position = tuple(point.astype(int))\n                color = (255,0,0)\n                # breakpoint()\n                name = obj.last_detection.data[\"class\"][\"name\"]\n                cv2.circle(\n                        frame,\n                        position,\n                        radius=100,\n                        color=color,\n                        thickness=2,\n                    )\n                cv2.putText(\n                    frame,\n                    \"[{}][{}]\".format(str(obj.id),name),\n                    (position[0]-100,position[1]),\n                    cv2.FONT_HERSHEY_SIMPLEX,\n                    2,\n                    (0,255,0),\n                    3,\n                    cv2.LINE_AA,\n                )\n            # breakpoint()\n        # i want to draw you in a different way.\n        # draw_tracked_objects(frame, tracked_objects,color=(255,0,0))",
         "type": "code",
         "location": "/tests/video_detector_tests/yolo_norfair.py:67-94"
     },
-    "5469": {
-        "file_id": 711,
+    "5419": {
+        "file_id": 703,
         "content": "The code checks if there are any tracked objects. If there are, it estimates the object's position and draws a circle at that point on the frame. The object's name is also displayed near the circle. Finally, the code calls a function to draw the objects differently using a specific color.",
         "type": "comment"
     },
-    "5470": {
-        "file_id": 711,
+    "5420": {
+        "file_id": 703,
         "content": "    if display:\n        cv2.imshow(\"window\",frame)\n        key  =  cv2.waitKey(1) & 0xff\n        if key == ord('q'):\n            break\n        # maybe we shall print this shit somehow.\n    # video.write(frame) # you write what?\nif display:\n    cv2.destroyAllWindows()",
         "type": "code",
         "location": "/tests/video_detector_tests/yolo_norfair.py:95-103"
     },
-    "5471": {
-        "file_id": 711,
+    "5421": {
+        "file_id": 703,
         "content": "This code snippet displays a video frame on the screen, waits for a key press (specifically 'q'), and breaks the loop if 'q' is pressed. It then destroys all windows created. The frame is written to the video file if display is not enabled.",
         "type": "comment"
     },
-    "5472": {
-        "file_id": 712,
-        "content": "/tests/video_detector_tests/siamMask/setup.sh",
+    "5422": {
+        "file_id": 704,
+        "content": "/tests/video_phash_deduplication/README.md",
         "type": "filepath"
+    },
+    "5423": {
+        "file_id": 704,
+        "content": "Code detects identical video files and finds repeated intervals within each video file.",
+        "type": "summary"
+    },
+    "5424": {
+        "file_id": 704,
+        "content": "two main problems, one is to detect identical video files, one is to find 'repeated interval' inside each other.",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/README.md:1-1"
+    },
+    "5425": {
+        "file_id": 704,
+        "content": "Code detects identical video files and finds repeated intervals within each video file.",
+        "type": "comment"
+    },
+    "5426": {
+        "file_id": 705,
+        "content": "/tests/video_phash_deduplication/config_milvus.sh",
+        "type": "filepath"
+    },
+    "5427": {
+        "file_id": 705,
+        "content": "This code sets up Milvus, a vector database, by creating its configuration directory and downloading the necessary server and log configurations before starting the Milvus services.",
+        "type": "summary"
+    },
+    "5428": {
+        "file_id": 705,
+        "content": "# # Create Milvus file\n# $ mkdir -p /home/$USER/milvus/conf\n# $ cd /home/$USER/milvus/conf\n# $ wget https://raw.githubusercontent.com/milvus-io/milvus/v0.8.0/core/conf/demo/server_config.yaml\n# $ wget https://raw.githubusercontent.com/milvus-io/milvus/v0.8.0/core/conf/demo/log_config.conf\nsudo systemctl start milvus\nsudo systemctl start milvus-etcd\nsudo systemctl start milvus-minio",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/config_milvus.sh:1-8"
+    },
+    "5429": {
+        "file_id": 705,
+        "content": "This code sets up Milvus, a vector database, by creating its configuration directory and downloading the necessary server and log configurations before starting the Milvus services.",
+        "type": "comment"
+    },
+    "5430": {
+        "file_id": 706,
+        "content": "/tests/video_phash_deduplication/test_image_hash.py",
+        "type": "filepath"
+    },
+    "5431": {
+        "file_id": 706,
+        "content": "This code uses the Python Imaging Library (PIL) and imagehash module to calculate average color hash values for images. It opens three images, 'pic_0', 'pic_0_similar', and 'pic_1', calculates their color hash values using the phash function from imagehash, and then calculates the differences between the hashes of each pair of images. The code checks the types of the calculated hashes and prints the distances (dis0 and dis1) between the pairs of images. It also mentions a possible discrepancy in the expected number of digits for the distances.",
+        "type": "summary"
+    },
+    "5432": {
+        "file_id": 706,
+        "content": "pic_0= 'cat.png'\npic_0_similar = \"cat3.png\"\npic_1 = \"/root/Desktop/works/pyjom/samples/image/dick.png\"\nfrom PIL import Image\n# >>> import imagehash\n# >>> hash = imagehash.average_hash(Image.open\nimport imagehash\npics = [pic_0, pic_0_similar, pic_1]\nhashs = [imagehash.phash(Image.open(pic)) for pic in pics]\ndis0 = hashs[0]-hashs[1]\ndis1 = hashs[1]-hashs[2]\n# 0 24\n# 6 24\n# well, let's check?\nprint([type(h) for h in hashs])\nbreakpoint()\nprint(dis0, dis1)\n# three truth tables.\n# 2^4 = 16, total 2*8 digits=16?",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_image_hash.py:1-23"
+    },
+    "5433": {
+        "file_id": 706,
+        "content": "This code uses the Python Imaging Library (PIL) and imagehash module to calculate average color hash values for images. It opens three images, 'pic_0', 'pic_0_similar', and 'pic_1', calculates their color hash values using the phash function from imagehash, and then calculates the differences between the hashes of each pair of images. The code checks the types of the calculated hashes and prints the distances (dis0 and dis1) between the pairs of images. It also mentions a possible discrepancy in the expected number of digits for the distances.",
+        "type": "comment"
+    },
+    "5434": {
+        "file_id": 707,
+        "content": "/tests/video_phash_deduplication/test_image_hash_milvus_database_search.py",
+        "type": "filepath"
+    },
+    "5435": {
+        "file_id": 707,
+        "content": "This code is initializing image paths and loading necessary libraries. It calculates image hashes for three different images using the phash function from imagehash library. It then creates a connection to a Milvus database and loads an existing collection.",
+        "type": "summary"
+    },
+    "5436": {
+        "file_id": 707,
+        "content": "pic_0 = \"cat.png\"\npic_0_similar = \"cat3.png\"\npic_1 = \"/root/Desktop/works/pyjom/samples/image/dick.png\"\nfrom PIL import Image\n# >>> import imagehash\n# >>> hash = imagehash.average_hash(Image.open\nimport imagehash\npics = [pic_0, pic_0_similar, pic_1]\nhashs = [imagehash.phash(Image.open(pic)) for pic in pics]\n# dis0 = hashs[0]-hashs[1]\n# dis1 = hashs[1]-hashs[2]\n# print(dis0, dis1)\n# 0 24\n# 6 24\n# well, let's check?\n# print(hashs)\n# three truth tables.\n# 2^4 = 16, total 2*8 digits=16?\n# towhee(multimodal search like jina), haystack, milvus\n# import pymilvus\nfrom pymilvus import connections\nconnection = connections.connect(alias=\"default\", host=\"localhost\", port=\"19530\")\nfrom pymilvus import Collection\ncollection = Collection(\"book\")  # Get an existing collection.\ncollection.load()\n# seems hard to setup.\n# not started!",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_image_hash_milvus_database_search.py:1-37"
+    },
+    "5437": {
+        "file_id": 707,
+        "content": "This code is initializing image paths and loading necessary libraries. It calculates image hashes for three different images using the phash function from imagehash library. It then creates a connection to a Milvus database and loads an existing collection.",
+        "type": "comment"
+    },
+    "5438": {
+        "file_id": 708,
+        "content": "/tests/video_phash_deduplication/test_milvus.py",
+        "type": "filepath"
+    },
+    "5439": {
+        "file_id": 708,
+        "content": "The code demonstrates Milvus database operations, including creating a \"video\" collection, inserting data and performing searches. It is part of debugging process to retrieve documents by ID. The programmer is stuck and requires further investigation.",
+        "type": "summary"
+    },
+    "5440": {
+        "file_id": 708,
+        "content": "# duplicate -> remove, do not insert\n# not duplicate -> get the data, insert\n# you want to clear the collection after this run?\n# import pymilvus\nfrom pymilvus import connections\nfrom functools import lru_cache\n@lru_cache(maxsize=1)\ndef connectMilvusDatabase(alias=\"default\", host=\"localhost\", port=\"19530\"):\n\tconnection = connections.connect(alias=alias, host=host, port=port)# can we reconnect?\n\tprint('milvus connected')\nconnectMilvusDatabase()\nconnectMilvusDatabase() # will not connect again.\ncollection_name = \"video_deduplication\"\nfrom pymilvus import Collection\n# Collection(collection_name)\n# remote this thing.\nfrom pymilvus import utility\ntry:\n    if utility.has_collection(collection_name):  # be prudent.\n        utility.drop_collection(collection_name)\nexcept:\n    import traceback\n    traceback.print_exc()\n    print(\"maybe the collection does not exist\")\nfrom pymilvus import CollectionSchema, FieldSchema, DataType\nvideo_semantic_id = FieldSchema(  # how to insert this shit without prior knowledge?\n    name=\"video_semantic_id\",",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus.py:1-39"
+    },
+    "5441": {
+        "file_id": 708,
+        "content": "This code establishes a connection to a Milvus database, checks if the \"video_deduplication\" collection exists, and if so, removes it before creating a new one. The `connectMilvusDatabase` function sets up a connection with specified alias, host, and port (default values used in this code). The `utility.has_collection` and `utility.drop_collection` functions from the `pymilvus` utility module are used to check for and remove an existing collection named \"video_deduplication\". A `CollectionSchema` is defined for the new collection, specifying a field schema named \"video_semantic_id\".",
+        "type": "comment"
+    },
+    "5442": {
+        "file_id": 708,
+        "content": "    dtype=DataType.INT64,\n    is_primary=True,  # if is primary, will do check for 'not duplicate' or something.\n    auto_id=True,  # no need for id generation.\n)\nvideo_length = FieldSchema(\n    name=\"video_length\",\n    dtype=DataType.FLOAT,\n)\nvideo_phash = FieldSchema(\n    name=\"video_phash\", dtype=DataType.BINARY_VECTOR, dim=64\n)  # 64\n# single dimension? no multi dimension support?\nschema = CollectionSchema(\n    fields=[video_semantic_id, video_length, video_phash],\n    description=\"Test video deduplication\",\n)\n# collection = Collection(\"video\")      # Get an existing collection.\ncollection = Collection(\n    name=collection_name,\n    schema=schema,\n    using=\"default\",\n    shards_num=2,\n)\n# is this demo collection?\n# seems hard to setup.\n# not started!\n# https://milvus.io/docs/v2.0.0/metric.md#binary\n# the metric is important to us.\nsearch_params = {\"metric_type\": \"Jaccard\", \"params\": {\"nprobe\": 10}}\nimport numpy as np\nqueryData = np.array(\n    [\n        [True, True, True, False, False, True, False, True],\n        [True, False, False, True, False, True, True, False],",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus.py:40-76"
+    },
+    "5443": {
+        "file_id": 708,
+        "content": "This code is defining a schema for a Milvus collection, specifying the data types and field names. The schema includes video_semantic_id, video_length, and video_phash fields, which are used in video deduplication. The code creates a collection named \"video\" with 2 shards using the specified schema and sets the metric type for searching as Jaccard with nprobe parameter set to 10. It also imports numpy and creates queryData, which seems to be a binary vector.",
+        "type": "comment"
+    },
+    "5444": {
+        "file_id": 708,
+        "content": "        [True, False, False, True, True, False, False, True],\n        [True, True, True, True, True, False, False, True],\n        [True, False, False, True, False, True, True, False],\n        [False, True, True, False, False, False, False, True],\n        [True, True, False, False, False, True, True, False],\n        [False, False, True, False, False, True, False, False],\n    ]\n)\nqueryData = queryData.reshape(-1).tolist()\nqueryData = [\"1\" if x else \"0\" for x in queryData]\nimport bitarray\nqueryData = bitarray.bitarray(\"\".join(queryData), endian=\"little\")\nqueryData2 = queryData.copy()\nqueryData2[1:4] = 0\nqueryData3 = queryData2.copy()\nqueryData2 = queryData2.tobytes()\nqueryData3[8:15] = 0\nqueryData3 = queryData3.tobytes()\nqueryData = queryData.tobytes()\n# dimension: 8*8=64\n# collection.insert([[1], [np.float32(3.5)], [queryData]])\n# collection.insert([[np.float32(3.5)], [queryData]])\n# for _ in range(8):\ncollection.insert([[np.float32(3.5)], [queryData]])\ncollection.insert([[np.float32(3.5)], [queryData2]])  # slight difference.",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus.py:77-102"
+    },
+    "5445": {
+        "file_id": 708,
+        "content": "The code is preparing and inserting data into a Milvus collection. It creates binary representations of queryData, queryData2, and queryData3 (slightly different from queryData2), then inserts them along with a float value (np.float32(3.5)) into the collection, representing a 64-dimensional vector.",
+        "type": "comment"
+    },
+    "5446": {
+        "file_id": 708,
+        "content": "collection.insert([[np.float32(3.5)], [queryData3]])  # more difference.\n# print(len(queryData), len(queryData)*8)\n# # print(queryData.shape)\n# breakpoint()\n# collection.load()\ncollection.insert([[np.float32(3.5)], [queryData]]) # still three.\n# can release even if not loaded.\ncollection.release() # unload.\ncollection.load()\n# make it into some library!\n# insert after load?\n# # 1,64\n# what is wrong? wtf?\n# queryData = queryData.tolist()\nresults = collection.search(\n    data=[queryData],  # this is the float dimension.\n    anns_field=\"video_phash\",\n    param=search_params,\n    output_fields=[\"video_length\"],\n    limit=10,\n    expr=\"video_length > 1.2 and video_length < 4\",\n    # expr='video_length < 1.2',\n)\ntheHit = results[0]\nprint(theHit)\n# so we can perform search without filtering afterwards.\n# results[0][0].entity.get('video_length')\n# print(results[0].ids)\n# now, we want to have the 'distance' parameter.\n# print(results[0])\n# print(theHit)\n# distances = theHit.distances\n# results = [x for x in theHit]\n# hits = len(theHit)",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus.py:103-139"
+    },
+    "5447": {
+        "file_id": 708,
+        "content": "The code is inserting data into a collection, releasing and reloading it, performing a search based on specific parameters, and accessing the results. The purpose seems to be searching for video data within a database based on certain criteria, such as length, and extracting relevant information from the resulting hits.",
+        "type": "comment"
+    },
+    "5448": {
+        "file_id": 708,
+        "content": "# breakpoint()\n# how to get document by id? wtf",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus.py:140-141"
+    },
+    "5449": {
+        "file_id": 708,
+        "content": "This code appears to be part of a debugging process, where the programmer is trying to understand how to retrieve a document by its ID using the Milvus database. The \"breakpoint()\" comment suggests they are currently stuck or needing to pause execution for further investigation.",
+        "type": "comment"
+    },
+    "5450": {
+        "file_id": 709,
+        "content": "/tests/video_phash_deduplication/test_milvus_library.py",
+        "type": "filepath"
+    },
+    "5451": {
+        "file_id": 709,
+        "content": "This code defines a Milvus function for connecting, managing collections, and caching. It creates Collections with specified data types, searches duplicated videos, retrieves video duration/hash, indexes videos, and reloads collection if necessary.",
+        "type": "summary"
+    },
+    "5452": {
+        "file_id": 709,
+        "content": "# # duplicate -> remove, do not insert\n# # not duplicate -> get the data, insert\n# # you want to clear the collection after this run?\n# from functools import lru_cache\n# from pymilvus import connections\n# @lru_cache(maxsize=1)\n# def connectMilvusDatabase(alias=\"default\", host=\"localhost\", port=\"19530\"):\n#     connection = connections.connect(\n#         alias=alias, host=host, port=port\n#     )  # can we reconnect?\n#     print(\"milvus connected\")\n# # connectMilvusDatabase()\n# # connectMilvusDatabase() # will not connect again.\n# from pymilvus import Collection\n# from pymilvus import utility\n# from pymilvus import CollectionSchema, FieldSchema, DataType\n# import traceback\n# def getMilvusVideoDeduplicationCollection(\n#     get_existing: bool = False,\n# ):  # most of the time we just use the same\n#     collection_name = \"video_deduplication\"\n#     try:\n#         if utility.has_collection(collection_name):  # be prudent.\n#             if get_existing:\n#                 return Collection(collection_name)\n#             utility.drop_collection(collection_name)",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:1-35"
+    },
+    "5453": {
+        "file_id": 709,
+        "content": "The code defines a function to connect to a Milvus database, get or remove an existing collection named \"video_deduplication\", and returns the collection if it already exists. The function uses caching and checks if the collection already exists before performing any actions.",
+        "type": "comment"
+    },
+    "5454": {
+        "file_id": 709,
+        "content": "#     except:\n#         traceback.print_exc()\n#         print(\"maybe the collection does not exist\")\n#     video_semantic_id = FieldSchema(  # how to insert this shit without prior knowledge?\n#         name=\"video_semantic_id\",\n#         dtype=DataType.INT64,\n#         is_primary=True,  # if is primary, will do check for 'not duplicate' or something.\n#         auto_id=True,  # no need for id generation.\n#     )\n#     video_length = FieldSchema(\n#         name=\"video_length\",\n#         dtype=DataType.FLOAT,\n#     )\n#     video_phash = FieldSchema(\n#         name=\"video_phash\", dtype=DataType.BINARY_VECTOR, dim=64\n#     )  # 64\n#     # single dimension? no multi dimension support?\n#     schema = CollectionSchema(\n#         fields=[video_semantic_id, video_length, video_phash],\n#         description=\"Test video deduplication\",\n#     )\n#     collection = Collection(\n#         name=collection_name,\n#         schema=schema,\n#         using=\"default\",\n#         shards_num=2,\n#     )\n#     # is this demo collection?\n#     return collection",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:36-65"
+    },
+    "5455": {
+        "file_id": 709,
+        "content": "This code defines a CollectionSchema and Collection for Milvus library. The schema contains fields for video_semantic_id, video_length, and video_phash, with their respective data types and properties. The Collection is created with a name, schema, database usage, and number of shards.",
+        "type": "comment"
+    },
+    "5456": {
+        "file_id": 709,
+        "content": "# # seems hard to setup.\n# # not started!\n# # https://milvus.io/docs/v2.0.0/metric.md#binary\n# # the metric is important to us.\n# import numpy as np\n# import bitarray\n# @lru_cache(maxsize=1)\n# def transformVideoPhash(videoPhash):\n#     # we need the raw phash.\n#     queryData = videoPhash.hash  # videoPhashTruthTable8x8 or something\n#     queryData = queryData.reshape(-1).tolist()\n#     queryData = [\"1\" if x else \"0\" for x in queryData]\n#     queryData = bitarray.bitarray(\"\".join(queryData), endian=\"little\")\n#     queryData = queryData.tobytes()\n#     return queryData\n# # dimension: 8*8=64\n# def indexVideoWithVideoDurationAndPhash(collection, videoDuration, videoPhash):\n#     queryData = transformVideoPhash(videoPhash)\n#     collection.insert([[np.float32(videoDuration)], [queryData]])\n# # can release even if not loaded.\n# from test_video_hash import getVideoPHash\n# import caer\n# @lru_cache(maxsize=1)\n# def getVideoDurationAndPhashFromFile(videoFilePath):\n#     videoDuration = caer.video.frames_and_fps.get_duration(videoFilePath)",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:68-103"
+    },
+    "5457": {
+        "file_id": 709,
+        "content": "Function `transformVideoPhash` takes a video phash and converts it into a binary format for Milvus library indexing. Function `indexVideoWithVideoDurationAndPhash` inserts the video duration and transformed phash into the specified collection. The `getVideoDurationAndPhashFromFile` function retrieves the video duration and corresponding phash of a given video file using caer's video module. All functions are cached to avoid redundant computations.",
+        "type": "comment"
+    },
+    "5458": {
+        "file_id": 709,
+        "content": "#     videoPhash = getVideoPHash(videoFilePath)\n#     return videoDuration, videoPhash\n# def indexVideoWithVideoDurationAndPhashFromFile(collection, videoFilePath):\n#     videoDuration, videoPhash = getVideoDurationAndPhashFromFile(videoFilePath)\n#     indexVideoWithVideoDurationAndPhash(collection, videoDuration, videoPhash)\n# def reloadMilvusCollection(collection):\n#     collection.release()  # unload.\n#     collection.load()\n# # make it into some library!\n# # insert after load?\n# # # 1,64\n# # what is wrong? wtf?\n# # queryData = queryData.tolist()\n# def getDistancesBySearchingDuplicatedVideoInMilvusByFile(\n#     collection,\n#     videoFilePath,\n#     search_params={\"metric_type\": \"Jaccard\", \"params\": {\"nprobe\": 10}},\n#     autoreload: bool = True,\n#     span: float = 2,\n#     debug: bool = False,\n#     limit: int = 10,\n# ):\n#     if autoreload:\n#         reloadMilvusCollection(collection)\n#     videoDuration, videoPhash = getVideoDurationAndPhashFromFile(videoFilePath)\n#     queryData = transformVideoPhash(videoPhash)",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:104-136"
+    },
+    "5459": {
+        "file_id": 709,
+        "content": "This code snippet defines a function for searching duplicated videos in Milvus by their file path, using Jaccard metric. It also includes functions to get video duration and hash from the file, index videos with duration and hash, and reload Milvus collection if necessary. The search parameters include metric type, probe count, span, limit, and whether to enable debug mode.",
+        "type": "comment"
+    },
+    "5460": {
+        "file_id": 709,
+        "content": "#     minVideoLength = max(0, videoDuration - span)\n#     maxVideoLength = videoDuration + span\n#     results = collection.search(\n#         data=[queryData],  # this is the float dimension.\n#         anns_field=\"video_phash\",\n#         param=search_params,\n#         output_fields=[\"video_length\"],\n#         limit=limit,\n#         expr=\"video_length > {minVideoLength} and video_length < {maxVideoLength}\".format(\n#             minVideoLength=minVideoLength, maxVideoLength=maxVideoLength\n#         ),\n#     )\n#     theHit = results[0]\n#     # print(theHit)\n#     # so we can perform search without filtering afterwards.\n#     # results[0][0].entity.get('video_length')\n#     # print(results[0].ids)\n#     # now, we want to have the 'distance' parameter.\n#     # print(results[0])\n#     # print(theHit)\n#     distances = list(theHit.distances)\n#     if debug:\n#         print(\"distances: %s\" % distances)\n#     return distances\n#     # what is the distance? we need to try.\n#     # returh the closest distance?\n#     # results = [x for x in theHit]",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:137-164"
+    },
+    "5461": {
+        "file_id": 709,
+        "content": "This code searches for videos within a specified range of video length in the Milvus library. It sets minimum and maximum lengths based on the query's duration and span, and uses these values to filter results from the search. The closest distance between the query and each result is then returned.",
+        "type": "comment"
+    },
+    "5462": {
+        "file_id": 709,
+        "content": "#     # hits = len(theHit)\n#     # breakpoint()\n#     # how to get document by id? wtf\n# def checkDuplicatedVideoAndInsertVector(\n#     collection,\n#     videoPath,\n#     threshold: float = 0.15,  # are you sure?\n#     insertDuplicatedVector: bool = True,\n#     debug: bool = True,\n# ):\n#     reloadMilvusCollection(collection)\n#     distances = getDistancesBySearchingDuplicatedVideoInMilvusByFile(\n#         collection, videoPath, debug=debug\n#     )\n#     minDistance = min(distances + [1])  # empty!\n#     duplicated = minDistance < threshold\n#     if insertDuplicatedVector or (not duplicated):\n#         indexVideoWithVideoDurationAndPhashFromFile(\n#             collection, videoPath\n#         )  # anyway let's do this.\n#     return duplicated\n# shall we insert that vector or not, even if we have detected the duplicated media?\n# you choose.\nimport sys\nimport os\n# os.chdir(\"../../\")\nsys.path.append(\"../../\")\n# ignore the global proxy now, we are not going to use that.\nos.environ[\"http_proxy\"] = \"\"\nos.environ[\"https_proxy\"] = \"\"",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:165-200"
+    },
+    "5463": {
+        "file_id": 709,
+        "content": "Function checkDuplicatedVideoAndInsertVector checks if a video file exists in Milvus collection and returns whether the video is duplicated or not. If insertDuplicatedVector is True, it indexes the video regardless of duplication status. The function uses getDistancesBySearchingDuplicatedVideoInMilvusByFile to find distances between the new video and existing videos in Milvus.",
+        "type": "comment"
+    },
+    "5464": {
+        "file_id": 709,
+        "content": "from pyjom.videotoolbox import getMilvusVideoDeduplicationCollection,checkDuplicatedVideoAndInsertVector\nif __name__ == \"__main__\":\n    # connectMilvusDatabase()\n    collection = (\n        getMilvusVideoDeduplicationCollection()\n    )  # will not get existing collections\n    videoPaths = [\n        \"cute_cat_gif.mp4\",\n        \"cute_cat_gif.gif\",\n        \"cat_delogo.gif\",\n        \"/root/Desktop/works/pyjom/samples/video/dog_with_large_text.gif\",\n    ]\n    # for videoPath in videoPaths:\n    from lazero.utils.logger import sprint\n    for videoPath in videoPaths:\n        print(\"filepath: %s\" % videoPath)\n        duplicated = checkDuplicatedVideoAndInsertVector(collection, videoPath)\n        sprint(\"duplicated?\", duplicated)\n\"\"\"\nfilepath: cute_cat_gif.mp4\ndistances: [0.0, 0.11764705926179886, 0.11764705926179886, 0.7200000286102295, 0.7200000286102295, 0.7346938848495483, 0.7659574747085571, 0.7924528121948242]\n______________________________\nfilepath: cute_cat_gif.gif\ndistances: [0.0, 0.11764705926179886, 0.117647",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:201-226"
+    },
+    "5465": {
+        "file_id": 709,
+        "content": "The code connects to a Milvus database, retrieves the video deduplication collection, and checks if each given video path is already in the collection. It prints the file paths of the videos and whether they are duplicated or not using `checkDuplicatedVideoAndInsertVector` function from `lazero.utils.logger` module. The distances between the new video and existing ones in the database are also printed.",
+        "type": "comment"
+    },
+    "5466": {
+        "file_id": 709,
+        "content": "05926179886, 0.7200000286102295, 0.7200000286102295, 0.7346938848495483, 0.7659574747085571, 0.7692307829856873]\n______________________________\nfilepath: cat_delogo.gif\ndistances: [0.0, 0.11764705926179886, 0.11764705926179886, 0.7200000286102295, 0.7200000286102295, 0.7346938848495483, 0.7659574747085571, 0.7924528121948242]\n______________________________\nfilepath: /root/Desktop/works/pyjom/samples/video/dog_with_large_text.gif\ndistances: [0.0, 0.6808510422706604, 0.6938775777816772, 0.6938775777816772, 0.739130437374115, 0.7692307829856873, 0.7924528121948242, 0.7924528121948242]\n______________________________\n\"\"\"",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_milvus_library.py:226-234"
+    },
+    "5467": {
+        "file_id": 709,
+        "content": "The code appears to be storing and comparing distances between video phashes for different files. Each line contains a file path followed by an array of distances, indicating the similarity of that video phash to other video phashes in the system. The lower the distance value, the more similar the videos are.",
+        "type": "comment"
+    },
+    "5468": {
+        "file_id": 710,
+        "content": "/tests/video_phash_deduplication/test_video_hash.py",
+        "type": "filepath"
+    },
+    "5469": {
+        "file_id": 710,
+        "content": "The code defines `getVideoPHash` to calculate a video's phash using the `videohashes` tool, testing it by comparing pairwise differences between hash values for different videos and considering duplicates based on a threshold.",
+        "type": "summary"
+    },
+    "5470": {
+        "file_id": 710,
+        "content": "# use some delogo stuff.\nfrom lazero.program.subprocess import runCommandGetJson\n# these two are similar. can be used as threshold.\n# aaaa3d8a2eaa1f8a delogo\n# aaaa398a2faa5d8a not delogoed.\n# aaaa3c8a2faa5e8a mp4 (very similar to delogoed version)\ndef getVideoPHash(filepath,debug=False, timeout=100):\n    import os\n    import imagehash\n    assert os.path.exists(filepath)\n    assert os.path.isfile(filepath)\n    if not os.path.isabs(filepath):\n        filepath = os.path.abspath(filepath)\n    commandLine = [\n        \"videohashes\", # installed in path.\n        # \"/root/Desktop/works/pyjom/tests/video_phash_deduplication/videohashes/videohashes-linux\",\n        \"-json\",\n        filepath,\n    ]\n    success, myJson = runCommandGetJson(commandLine, debug=debug, timeout=timeout)\n    if debug:\n        print(\"SUCCESS?\", success)\n        print(myJson, type(myJson))\n    if not success:\n        return\n    # breakpoint()\n    phashString = myJson[\"phash\"]\n    phash = imagehash.hex_to_hash(phashString)\n    if debug:\n        print(\"FILEPATH: %s\" % filepath)",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_video_hash.py:1-32"
+    },
+    "5471": {
+        "file_id": 710,
+        "content": "The code defines a function `getVideoPHash` that calculates a video's phash (a unique identifier for an image or video) using the `videohashes` command-line tool. It takes a filepath as input, checks if it exists and is a file, then runs the command to generate the JSON output. The function also converts the returned phash string to a binary hash and optionally prints debug information.",
+        "type": "comment"
+    },
+    "5472": {
+        "file_id": 710,
+        "content": "        print(myJson)\n        print(\"PHASH:\", phash)\n    # if withDuration:\n    #     duration = myJson[\"duration\"]\n    #     return duration, phash\n    # duration is inaccurate\n    return phash\nif __name__ == \"__main__\":\n    videoPaths = [\n        \"cute_cat_gif.mp4\",\n        \"cute_cat_gif.gif\",\n        \"cat_delogo.gif\",\n        \"/root/Desktop/works/pyjom/samples/video/dog_with_large_text.gif\",\n    ]\n    hashs = [getVideoPHash(filepath,debug=True) for filepath in videoPaths]\n    dis0 = hashs[0] - hashs[1]  # small\n    dis1 = hashs[1] - hashs[2]  # big\n    dis2 = hashs[0] - hashs[2]  # big\n    dis3 = hashs[0] - hashs[3]  # big\n    print(dis0, dis1, dis2, dis3)\n    # 4 4 4\n    # strange. why?\n    # 4 4 4 42\n    # huge difference.\n    # what value do you decide to be duplicate?\n    # phash < 7 (really?)\n    # so how do we run this test?",
+        "type": "code",
+        "location": "/tests/video_phash_deduplication/test_video_hash.py:33-65"
     },
     "5473": {
-        "file_id": 712,
-        "content": "Downloading and setting up SiamMask from GitHub, then retrieving pre-trained model files for VOT and DAVIS datasets.",
-        "type": "summary"
+        "file_id": 710,
+        "content": "This code tests the video hashing function by calculating pairwise differences between hash values for different video files. It then compares the differences to determine potential duplicates and prints the results. The hash difference threshold for considering duplicates is set to 7, but this seems low and may need adjustment based on further testing.",
+        "type": "comment"
     },
     "5474": {
-        "file_id": 712,
-        "content": "git clone https://github.com/foolwood/SiamMask.git && cd SiamMask\nexport SiamMask=$PWD\ncd $SiamMask/experiments/siammask_sharp\nwget http://www.robots.ox.ac.uk/~qwang/SiamMask_VOT.pth\nwget http://www.robots.ox.ac.uk/~qwang/SiamMask_VOT_LD.pth\nwget http://www.robots.ox.ac.uk/~qwang/SiamMask_DAVIS.pth",
-        "type": "code",
-        "location": "/tests/video_detector_tests/siamMask/setup.sh:1-6"
+        "file_id": 711,
+        "content": "/tests/video_script_generation_reconstruction/README.md",
+        "type": "filepath"
     },
     "5475": {
-        "file_id": 712,
-        "content": "Downloading and setting up SiamMask from GitHub, then retrieving pre-trained model files for VOT and DAVIS datasets.",
-        "type": "comment"
+        "file_id": 711,
+        "content": "This code refers to a project containing various AI models for feature extraction, video summarization, audio classification, image labeling, text extraction, and keyword suggestion. The user needs to write a script before using these tools from PaddleVideo.",
+        "type": "summary"
     },
     "5476": {
-        "file_id": 713,
-        "content": "/tests/video_detector_tests/siamMask/demo.sh",
-        "type": "filepath"
+        "file_id": 711,
+        "content": "contains multiple feature extractor, video summarizer, audio classifier, image labeler, text extractor, keyword suggestor. but you need to write one freaking script first. that is your freaking style. you can write that shit in markdown anyway, in reference of existing excellent(?) videos.\nfrom https://github.com/PaddlePaddle/PaddleVideo.\nvideo understanding.",
+        "type": "code",
+        "location": "/tests/video_script_generation_reconstruction/README.md:1-5"
     },
     "5477": {
-        "file_id": 713,
-        "content": "This script changes directory to \"SiamMask\" and sets environment variables for running a SiamMask demo using Python 3. It resumes from the \"SiamMask_DAVIS.pth\" file with configuration from \"config_davis.json\".",
-        "type": "summary"
+        "file_id": 711,
+        "content": "This code refers to a project containing various AI models for feature extraction, video summarization, audio classification, image labeling, text extraction, and keyword suggestion. The user needs to write a script before using these tools from PaddleVideo.",
+        "type": "comment"
     },
     "5478": {
-        "file_id": 713,
-        "content": "cd SiamMask\nexport SiamMask=$PWD\n# cd $SiamMask/experiments/siammask_sharp\n# cd $SiamMask/experiments/siammask_sharp\n# export PYTHONPATH=$PWD:$PYTHONPATH\n# which python3\npython3 -m tools.demo --resume experiments/siammask_sharp/SiamMask_DAVIS.pth --config experiments/siammask_sharp/config_davis.json",
-        "type": "code",
-        "location": "/tests/video_detector_tests/siamMask/demo.sh:1-7"
-    },
-    "5479": {
-        "file_id": 713,
-        "content": "This script changes directory to \"SiamMask\" and sets environment variables for running a SiamMask demo using Python 3. It resumes from the \"SiamMask_DAVIS.pth\" file with configuration from \"config_davis.json\".",
-        "type": "comment"
-    },
-    "5480": {
-        "file_id": 714,
-        "content": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/frida_globalswitch_apk.js",
+        "file_id": 712,
+        "content": "/tests/video_script_generation_reconstruction/lstm_trial.py",
         "type": "filepath"
     },
-    "5481": {
-        "file_id": 714,
-        "content": "The code disables SSL-SPDY and SPDY for packet capture debugging, and attempts to print class names using Frida in an APK, but fails to hook 'Response' methods. It uses Java classes in 'mtopsdk.network' to track requests, log details, and initializes ANetworkCallImpl, while modifying 'mtopsdk.mtop.global.SwitchConfig' using Frida for URL logging.",
+    "5479": {
+        "file_id": 712,
+        "content": "This code initializes a LSTM layer, passes a 3D input tensor through it, and prints the shapes of the input, output, and hidden states.",
         "type": "summary"
     },
-    "5482": {
-        "file_id": 714,
-        "content": "////////////////////////////////////////////////////////////////////////\n// try to disable security? disable ssl-spdy and spdy\n////////////////////////////////////////////////////////////////////////\n// try this first anyway.\nsetTimeout(function () {\n    console.log('start——*-*-*-*-*-');\n   Java.perform(function () {\n       var SwitchConfig = Java.use('mtopsdk.mtop.global.SwitchConfig');\n       SwitchConfig.isGlobalSpdySwitchOpen.overload().implementation = function () {\n           var ret = this.isGlobalSpdySwitchOpen.apply(this, arguments);\n           console.log(\"开启抓包\" + ret);\n           return false;\n       }\n       SwitchConfig.isGlobalSpdySslSwitchOpen.overload().implementation = function () {\n        var ret = this.isGlobalSpdySslSwitchOpen.apply(this, arguments);\n        console.log(\"开启抓包\" + ret);\n        return false;\n       }\n   });\n});\n// ————————————————\n// 版权声明：本文为CSDN博主「哈里哈气」的原创文章，遵循CC 4.0 BY-SA版权协议，转载请附上原文出处链接及本声明。\n// 原文链接：https://blog.csdn.net/qq_34067821/article/details/103203549\n////////////////////////////////////////////////////////////////////////",
+    "5480": {
+        "file_id": 712,
+        "content": "from torch.nn import LSTM\nimport numpy as np\ndata = [[[1,2,3],[2,3,4],[3,5,6]]]\nfrom torch import Tensor\ndata = Tensor(data)\nlayer_lstm = LSTM(3,1)\noutput_1, (hid_1_a,hid_1_b) = layer_lstm(data)\n# print(len(hidden_1))\nprint(data.shape)\nprint(output_1.shape) # [1,3,10]\nprint(hid_1_a.shape,hid_1_b.shape)",
         "type": "code",
-        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/frida_globalswitch_apk.js:2-27"
+        "location": "/tests/video_script_generation_reconstruction/lstm_trial.py:1-17"
     },
-    "5483": {
-        "file_id": 714,
-        "content": "This code attempts to disable SSL-SPDY and SPdy by overriding the isGlobalSpdySwitchOpen and isGlobalSpdySslSwitchOpen methods of the SwitchConfig class. It sets both switches to off, effectively disabling them, in order to enable packet capture for debugging purposes. The code is attributed to a CSDN blog post by the author \"哈里哈气\".",
+    "5481": {
+        "file_id": 712,
+        "content": "This code initializes a LSTM layer, passes a 3D input tensor through it, and prints the shapes of the input, output, and hidden states.",
         "type": "comment"
     },
+    "5482": {
+        "file_id": 713,
+        "content": "/tests/video_script_generation_reconstruction/raw_data_cut.py",
+        "type": "filepath"
+    },
+    "5483": {
+        "file_id": 713,
+        "content": "This code initializes shapes, generates cut targets, and ensures correct tensor dimensions. It applies convolution, pooling, activation functions, performs two RNN operations, prints output/hidden state shapes, defines a final linear layer, transposes data, and suggests MaxPool1d for character extraction.",
+        "type": "summary"
+    },
     "5484": {
-        "file_id": 714,
-        "content": "// print class names\n////////////////////////////////////////////////////////////////////////\n// var callback = {\n// \t'onMatch': function(cname){\n// \t\t//lets just print out the class name.\n// \t\tconsole.log(cname);\n// \t},\n// \t'onComplete': function() {\n// \t\tconsole.log(\"done\");\n// \t},\n// \t'onError': function(){\n// \t\tconsole.log(\"There is error\");\n// \t}\n// };\n// Java.perform(function(){\n// \tJava.enumerateLoadedClasses(callback);\t//onMatch: function (className)\n// });\n////////////////////////////////////////////////////////////////////////// failed to hook request/response methods as expected\n////////////////////////////////////////////////////////////////////////\n// // Java.perform(function () {\n// //     // Function to hook is defined here\n// //     //所有响应\n// in this apk we do not find 'Response' shit.\n// //     var Response = Java.use('mtopsdk.network.domain.Response');\n// //     Response.$init.overload('mtopsdk.network.domain.Response$Builder').implementation = function() {\n// //         //PrintStack()\n// //         console.log(\"Response \" + arguments[0].body)",
+        "file_id": 713,
+        "content": "# 2d understanding or 3d?\n# what about the freaking audio?\nimport numpy as np\nimport torch\nvideo_shape = (30,100,100) # thirty frames extracted.\naudio_shape = (1,40000) # so batch size is included.\nvideo2_shape = (60,200,200) # thirty frames extracted.\naudio2_shape = (1,80000)\ntarget_cut_shape = (30,2) # choose either beginning or to cut?\ntarget_cut2_shape = (60,2) # choose either beginning or to cut?\nimport random\ntarget_cut = np.array([random.randint(0,1) for _ in range(30)])\ntarget_cut2 = np.array([random.randint(0,1) for _ in range(60)])\nvideo_data = np.array(np.random.random(video_shape))\naudio_data = np.array(np.random.random(audio_shape))\nvideo2_data = np.array(np.random.random(video2_shape))\naudio2_data = np.array(np.random.random(audio2_shape))\n# print(data)\n# I really not caring the freaking data range.\nprint(video_data.shape)\nprint(audio_data.shape)\nprint(target_cut2.shape)\ndevice = torch.device(\"cuda\")\nvideo_data = torch.Tensor([video_data]) # to make sure the first dimension is batchsize\ntarget_cut = torch.Tensor([target_cut])",
         "type": "code",
-        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/frida_globalswitch_apk.js:28-59"
+        "location": "/tests/video_script_generation_reconstruction/raw_data_cut.py:1-33"
     },
     "5485": {
-        "file_id": 714,
-        "content": "The code aims to print class names using Frida in an APK. It defines a callback with 'onMatch' and 'onComplete' functions, then uses Java.enumerateLoadedClasses() to obtain the class names. The code also attempts to hook 'Response' methods but failed as they were not found in the APK.",
+        "file_id": 713,
+        "content": "Code initializes various shapes for video and audio data, randomly generates cut targets, and ensures tensor dimensions are correct for GPU usage.",
         "type": "comment"
     },
     "5486": {
-        "file_id": 714,
-        "content": "// //         var ret = this.$init.apply(this, arguments);\n// //         //all request\n// //         console.log(\"Response \" + this.toString())\n// //         return ret;\n// //     };\n// //     //所有请求\n// //     var RequestBuilder = Java.use('mtopsdk.network.domain.Request$Builder');\n// //     RequestBuilder.build.overload().implementation = function() {\n// //         //PrintStack()\n// //         var ret = this.build.apply(this, arguments);\n// //         //all request\n// //         console.log(\"RequestBuilder \" + ret.toString())\n// //         return ret;\n// //     };\n// //     //所有请求\n// //     var ANetworkCallImpl = Java.use('mtopsdk.network.impl.ANetworkCallImpl');\n// //     ANetworkCallImpl.$init.overload('mtopsdk.network.domain.Request', 'android.content.Context').implementation = function() {\n// //         //PrintStack()\n// //         console.log('ANetworkCallImpl ' + arguments[0])\n// //         var ret = this.$init.apply(this, arguments);\n// //         return ret;\n// //     };\n// //     //所有请求url\n// //     var AbstractNetworkConverter = Java.use(",
+        "file_id": 713,
+        "content": "audio_data = torch.Tensor(audio_data)\nlayer_1 = torch.nn.Conv2d(30,3,10) # original shape: (30,100,100)\noutput_1 = layer_1(video_data)\nprint(output_1.shape) #(1,3,91,91)\nlayer_2 = torch.nn.Conv2d(3,1,10)\noutput_2 = layer_2(output_1)\nprint(output_2.shape) #([1, 2, 82, 82])\nlayer_3 = torch.nn.MaxPool1d(4)\noutput_3 = layer_3(audio_data)\nprint(output_3.shape) # torch.Size([1, 10000]) # what is this fuck?\nlayer_4 = torch.nn.MaxPool2d(2)\noutput_4 = layer_4(output_2)\nprint(output_4.shape) # 1,2,41,41 freaking bad.\nlayer_5 = torch.nn.Sigmoid()\noutput_5 = layer_5(output_4)\nprint(output_5.shape) # 1,2,41,41\noutput_5 = output_5.reshape(1,41,41)\n# get this reshaped.\noutput_5 = output_5.reshape(1,1,41*41)\nrnn_layer_1 = torch.nn.RNN(41*41,41*41,3) # must have three dimensions.\nrnn_output_1, rnn_hidd_1 = rnn_layer_1(output_5)\nprint(rnn_output_1.shape,rnn_hidd_1.shape) #tuple torch.Size([1, 41, 20]) torch.Size([3, 41, 20])\nrnn_output_2, rnn_hidd_2 = rnn_layer_1(output_5,rnn_hidd_1)\nprint(\"RNN 2:\",rnn_output_2.shape,rnn_hidd_2.shape)",
         "type": "code",
-        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/frida_globalswitch_apk.js:60-87"
+        "location": "/tests/video_script_generation_reconstruction/raw_data_cut.py:34-67"
     },
     "5487": {
-        "file_id": 714,
-        "content": "This code is manipulating several Java classes in the 'mtopsdk.network' package for tracking all requests, logging the request details and builder objects, and initializing an ANetworkCallImpl with a Request object and Context.",
+        "file_id": 713,
+        "content": "This code applies convolution, pooling, and activation functions to the input data. It reshapes the output for RNN processing with a specific structure, and performs two RNN operations.",
         "type": "comment"
     },
     "5488": {
-        "file_id": 714,
-        "content": "// //         'mtopsdk.mtop.protocol.converter.impl.AbstractNetworkConverter'\n// //     );\n// //     AbstractNetworkConverter.buildBaseUrl.overload(\n// //         'mtopsdk.framework.domain.MtopContext',\n// //         'java.lang.String',\n// //         'java.lang.String'\n// //     ).implementation = function() {\n// //         console.log(\"buildBaseUrl \"+arguments[1]+' '+arguments[2])\n// //         var ret = this.buildBaseUrl.apply(this, arguments);\n// //         //url\n// //         console.log(\"buildBaseUrl \"+ret)\n// //         return ret;\n// //     };\n// //     // 禁用spdy协议\n// //     var SwitchConfig = Java.use('mtopsdk.mtop.global.SwitchConfig');\n// //     SwitchConfig.setGlobalSpdySslSwitchOpen.overload().implementation = function() {\n// //         var ret = this.isGlobalSpdySwitchOpen.apply(this, arguments);\n// //         console.log('isGlobalSpdySwitchOpenl ' + ret)\n// //         return false;\n// //     };\n// // });",
+        "file_id": 713,
+        "content": "rnn_output_3, rnn_hidd_3 = rnn_layer_1(rnn_output_1,rnn_hidd_1)\nprint(\"RNN 3:\",rnn_output_3.shape,rnn_hidd_3.shape)\n# final_data = \nfinal_layer = torch.nn.Linear(41*41,2) # the final swap.\nfinal_data = final_layer(rnn_output_1)\nprint(final_data.shape)\n# find the max one.\nfinal_data = final_data.transpose(2,1)\nprint(final_data.shape)\n# output_final_layer = torch.nn.MaxPool1d(41) \n# final_data2 = output_final_layer(final_data)\n# print(final_data2.shape) # 40000,1 this is a single character. is it?",
         "type": "code",
-        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/frida_globalswitch_apk.js:88-112"
+        "location": "/tests/video_script_generation_reconstruction/raw_data_cut.py:69-81"
     },
     "5489": {
-        "file_id": 714,
-        "content": "This code is using Frida to instrument the 'mtopsdk.mtop.global.SwitchConfig' class in an APK. It overrides the 'setGlobalSpdySslSwitchOpen' method to always return false, disabling SPDY protocol. Additionally, it modifies the 'AbstractNetworkConverter.buildBaseUrl' method to log the arguments and base URL.",
+        "file_id": 713,
+        "content": "This code applies an RNN layer, prints the shapes of output and hidden states, defines a final linear layer with 41x41 input size and 2 output sizes, passes RNN output through it, transposes the data, and suggests using MaxPool1d for possible character extraction.",
         "type": "comment"
     },
     "5490": {
-        "file_id": 715,
-        "content": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/disable_ssl.js",
+        "file_id": 714,
+        "content": "/tests/video_script_generation_reconstruction/raw_data_understanding.py",
         "type": "filepath"
     },
     "5491": {
-        "file_id": 715,
-        "content": "Bypasses Universal Android SSL Pinning using frida, replacing checkTrustedRecursive implementation to enable SSL communication.",
+        "file_id": 714,
+        "content": "The code defines the shapes of video and audio data, generates random one-hot encoded target sentences, and creates random data for both videos. It then prints the shapes of the generated video and audio data.",
         "type": "summary"
     },
     "5492": {
-        "file_id": 715,
-        "content": "// script name: sowdust/universal-android-ssl-pinning-bypass-2\n/* \n   Universal Android SSL Pinning Bypass\n   by Mattia Vinci and Maurizio Agazzini \n   $ frida -U -f org.package.name -l universal-ssl-check-bypass.js --no-pause\n    https://techblog.mediaservice.net/2018/11/universal-android-ssl-check-bypass-2/\n*/\nJava.perform(function() {\n    var array_list = Java.use(\"java.util.ArrayList\");\n    var ApiClient = Java.use('com.android.org.conscrypt.TrustManagerImpl');\n    ApiClient.checkTrustedRecursive.implementation = function(a1, a2, a3, a4, a5, a6) {\n        // console.log('Bypassing SSL Pinning');\n        var k = array_list.$new();\n        return k;\n    }\n}, 0);",
+        "file_id": 714,
+        "content": "# 2d understanding or 3d?\n# what about the freaking audio?\nimport numpy as np\nimport torch\nvideo_shape = (30,100,100) # thirty frames extracted.\naudio_shape = (1,40000)\nvideo2_shape = (60,200,200) # thirty frames extracted.\naudio2_shape = (1,80000)\ntarget_sentence_shape = (10,40000) # full charset. you may choose not to speak. when should you freaking speak?\ntarget_sentence2_shape = (15,40000) # full charset. you may choose not to speak. when should you freaking speak?\n# one hot encoding.\nimport random\ntarget_sentence = np.array([random.randint(0,39999) for _ in range(10)])\ntarget_sentence2 = np.array([random.randint(0,39999) for _ in range(15)])\n# i really don't care how. freaking do it!\nvideo_data = np.random.random(video_shape)\naudio_data = np.random.random(audio_shape)\nvideo2_data = np.random.random(video2_shape)\naudio2_data = np.random.random(audio2_shape)\n# print(data)\n# I really not caring the freaking data range.\nprint(video_data.shape)\nprint(audio_data.shape)",
         "type": "code",
-        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/disable_ssl.js:1-22"
+        "location": "/tests/video_script_generation_reconstruction/raw_data_understanding.py:1-31"
     },
     "5493": {
-        "file_id": 715,
-        "content": "Bypasses Universal Android SSL Pinning using frida, replacing checkTrustedRecursive implementation to enable SSL communication.",
+        "file_id": 714,
+        "content": "The code defines the shapes of video and audio data, generates random one-hot encoded target sentences, and creates random data for both videos. It then prints the shapes of the generated video and audio data.",
         "type": "comment"
     },
     "5494": {
-        "file_id": 716,
-        "content": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/decodeTaobaoQuery.py",
+        "file_id": 715,
+        "content": "/tests/video_script_generation_reconstruction/spp_any_video.py",
         "type": "filepath"
     },
     "5495": {
-        "file_id": 716,
-        "content": "The code decodes a Taobao query string, parses the URL-encoded data into JSON format with various parameters, and prints it using pprint for readability.",
+        "file_id": 715,
+        "content": "The code initializes video and audio data arrays, defines a VideoCutNet model with CNN layers, performs spatial pyramid pooling on video frames, uses LSTM for audio processing, iterates over training loop for gradient descent, and lacks batch size specification.",
         "type": "summary"
     },
     "5496": {
-        "file_id": 716,
-        "content": "import urllib.parse\nimport json\na = \"\"\"%7B%22LBS%22%3A%22%7B%5C%22TB%5C%22%3A%5C%22%7B%5C%5C%5C%22stores%5C%5C%5C%22%3A%5B%7B%5C%5C%5C%22code%5C%5C%5C%22%3A%5C%5C%5C%22236736190%5C%5C%5C%22%2C%5C%5C%5C%22bizType%5C%5C%5C%22%3A%5C%5C%5C%222%5C%5C%5C%22%2C%5C%5C%5C%22type%5C%5C%5C%22%3A%5C%5C%5C%2224%5C%5C%5C%22%7D%5D%7D%5C%22%2C%5C%22TMALL_MARKET_B2C%5C%22%3A%5C%22%7B%5C%5C%5C%22stores%5C%5C%5C%22%3A%5B%7B%5C%5C%5C%22code%5C%5C%5C%22%3A%5C%5C%5C%22107%5C%5C%5C%22%2C%5C%5C%5C%22bizType%5C%5C%5C%22%3A%5C%5C%5C%22REGION_TYPE_REGION%5C%5C%5C%22%2C%5C%5C%5C%22addrId%5C%5C%5C%22%3A%5C%5C%5C%229056332332%5C%5C%5C%22%2C%5C%5C%5C%22type%5C%5C%5C%22%3A%5C%5C%5C%22CHOOSE_ADDR%5C%5C%5C%22%7D%5D%7D%5C%22%2C%5C%22TMALL_MARKET_O2O%5C%22%3A%5C%22%7B%5C%5C%5C%22stores%5C%5C%5C%22%3A%5B%7B%5C%5C%5C%22code%5C%5C%5C%22%3A%5C%5C%5C%22235565019%5C%5C%5C%22%2C%5C%5C%5C%22bizType%5C%5C%5C%22%3A%5C%5C%5C%22DELIVERY_TIME_HALF_DAY%5C%5C%5C%22%2C%5C%5C%5C%22addrId%5C%5C%5C%22%3A%5C%5C%5C%229056332332%5C%5C%5C%22%2C%",
+        "file_id": 715,
+        "content": "# 2d understanding or 3d?\n# what about the freaking audio?\nimport numpy as np\nimport torch\nimport torch.nn.functional as F\nimport torch.nn as nn\nvideo_shape = (20,3,100,100) # thirty frames extracted.\naudio_shape = (1,40000)\nvideo2_shape = (70,3,200,200) # thirty frames extracted. # change it!\naudio2_shape = (2,120000) # no freaking padding game.\ntarget_sentence_shape = (20,2) # full charset. you may choose not to speak. when should you freaking speak?\ntarget_sentence2_shape = (70,2) # full charset. you may choose not to speak. when should you freaking speak?\n# one hot encoding.\nimport random\ntarget_sentence = np.array([random.randint(0,1) for _ in range(20)]) # do one-hot encoding please.\ntarget_sentence2 = np.array([random.randint(0,1) for _ in range(70)])\ntarget_sentence = np.eye(2)[target_sentence]\ntarget_sentence2 = np.eye(2)[target_sentence2]\npad_video_shape_2 = np.zeros((20,3,200,200))\npad_sentence_2 = np.zeros((20,2))\ntarget_sentence2 = np.concatenate([target_sentence2,pad_sentence_2])\n# print(target_sentence2.shape,pad_sentence_2.shape)",
         "type": "code",
-        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/decodeTaobaoQuery.py:1-3"
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:1-30"
     },
     "5497": {
-        "file_id": 716,
-        "content": "This code is decoding a Taobao query string containing information about various stores and their types, likely used for filtering or search purposes.",
+        "file_id": 715,
+        "content": "This code defines video and audio shapes for various inputs, creates random target sentences, and pads the data with zeros to maintain consistent shape. It uses numpy array manipulation and one-hot encoding to represent categorical data.",
         "type": "comment"
     },
     "5498": {
-        "file_id": 716,
-        "content": "5C%5C%5C%22type%5C%5C%5C%22%3A%5C%5C%5C%22CHOOSE_ADDR%5C%5C%5C%22%7D%5D%7D%5C%22%7D%22%2C%22URL_REFERER_ORIGIN%22%3A%22%2F%2Fs.m.taobao.com%2Fh5entry%3Fg_channelSrp%3Dvideointeract%26g_tab%3Dtbexperience%26g_pfilter%3Ddaren%26g_closeModues%3Dtab%26closeExpSubTab%3Dtrue%26g_csearchdoor_spm%3Da310p.14955560%26spm%3Da310p.13800399%26launchMode%3Dandroid_new_task%26g_closeExpSubTab%3Dtrue%22%2C%22ad_type%22%3A%221.0%22%2C%22apptimestamp%22%3A%221665607023%22%2C%22areaCode%22%3A%22CN%22%2C%22brand%22%3A%22Xiaomi%22%2C%22canP4pVideoPlay%22%3A%22true%22%2C%22channelSrp%22%3A%22videointeract%22%2C%22cityCode%22%3A%22320100%22%2C%22closeExpSubTab%22%3A%22true%22%2C%22closeModues%22%3A%22tab%22%2C%22countryNum%22%3A%22156%22%2C%22csearchdoor_spm%22%3A%22a310p.14955560%22%2C%22device%22%3A%22Mi+MIX+2%22%2C%22editionCode%22%3A%22CN%22%2C%22from%22%3A%22input%22%2C%22globalLbs%22%3A%22%7B%5C%22biz_common%5C%22%3A%7B%5C%22recommendedAddress%5C%22%3A%7B%5C%22addressId%5C%22%3A%5C%229056332332%5C%22%2",
+        "file_id": 715,
+        "content": "# breakpoint()\n# i really don't care how. freaking do it!\nvideo_data = np.random.random(video_shape)\naudio_data = np.random.random(audio_shape)\nvideo2_data = np.random.random(video2_shape)\naudio2_data = np.random.random(audio2_shape)\n# print(data)\nvideo2_data = np.concatenate([video2_data,pad_video_shape_2])\n# I really not caring the freaking data range.\nprint(video_data.shape)\nprint(audio_data.shape)\nfrom spp_module import spatial_pyramid_pool\nclass VideoCutNet(torch.nn.Module):\n    def __init__(self,debug=True):\n        super().__init__()\n        self.debug = debug\n        self.hidden_states=[None]\n        self.audio_hidden_states = [None]\n        self.va_hidden_states = [None,None]\n        self.c2layer_1 = nn.Conv2d(3,4,4)\n        self.c2layer_2 = nn.Conv2d(4,16,20)\n        self.output_num = [20]\n        # print(x.shape,spp.shape) # 1,5120\n        self.cnn_1 = nn.Conv1d(2,20,16,stride=2,padding=8) # you could use this on the audio.\n        self.cnn_2 = nn.Conv1d(20,16,16,stride=2,padding=8)\n        self.cnn_3 = nn.Conv1d(16,30,16,stride=4,padding=8)",
         "type": "code",
-        "location": "/tests/taobao_guangguang_download_哇哦视频_淘宝逛逛_tiktok_douyin/decodeTaobaoQuery.py:3-3"
+        "location": "/tests/video_script_generation_reconstruction/spp_any_video.py:31-63"
     },
     "5499": {
-        "file_id": 716,
-        "content": "This code contains a complex JSON object with various parameters like type, URL_REFERER_ORIGIN, ad_type, areaCode, brand, canP4pVideoPlay, channelSrp, cityCode, closeExpSubTab, closeModues, countryNum, csearchdoor\\_spm, device, editionCode, from, and globalLbs. These parameters are used to describe the source of the request, user's location, device information, and other relevant data for an API call.",
+        "file_id": 715,
+        "content": "This code snippet initializes random video and audio data arrays with specified shapes, concatenates the second video data array with padding, defines a class for the VideoCutNet model, and sets up various layers such as convolutional layers (CNNs) for processing audio and videos. The debug parameter allows controlling whether or not to print the shapes of the initialized arrays.",
         "type": "comment"
     }
 }
